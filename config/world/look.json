@@ -1,5 +1,5 @@
 {
-  "$comment": "M02e look pass (DL-704): the procedural look of the streamed city as data. Design values tuned in the M02e session (a config edit, not code, changes them). Colours are sRGB hex strings; the materials convert them to linear. The profile per tier: full on the desktop tiers, lite on mobile, min on mobile-low, legacy (the M02b1/M02b2 materials) on both XR tiers.",
+  "$comment": "M02e look pass (DL-704): the procedural look of the streamed city as data. Design values tuned in the M02e session (a config edit, not code, changes them). Colours are sRGB hex strings; the materials convert them to linear. The profile per tier: full on the desktop tiers, lite on mobile, min on mobile-low, legacy (the M02b1/M02b2 materials) on both XR tiers. M02g1 adds: bloom; grade (display-referred lift/gamma/gain, saturation and a warm-sun/cool-shade split, per weather preset, blended with the weather blend); haze (sun in-scatter, Rayleigh tint and extinction per kilometre, per preset); windows.litFrac (rows of [hour, min, max], cyclic and smooth: the share of a lit building's windows that are lit); layers (the layer ids each profile enables, legacy none); dynamicCasterRadiusM.",
   "schema": "world-look/1",
   "tierProfile": {
     "desktop-ultra": "full",
@@ -62,18 +62,18 @@
     "Paved": { "albedo": "#9a9ea5", "roughness": 0.88, "noise": 0.1 },
     "Dirt": { "albedo": "#8f7a5a", "roughness": 0.96, "noise": 0.2 },
     "Rock": { "albedo": "#7b7d80", "roughness": 0.9, "noise": 0.3 },
-    "Asphalt": { "albedo": "#505257", "roughness": 0.85, "noise": 0.14 },
+    "Asphalt": { "albedo": "#66686d", "roughness": 0.85, "noise": 0.14 },
     "Sidewalk": { "albedo": "#b9bbb4", "roughness": 0.9, "noise": 0.08 },
     "Pier": { "albedo": "#8d7456", "roughness": 0.88, "noise": 0.12 },
     "WaterShallow": { "albedo": "#4f95c8", "roughness": 0.1, "noise": 0.0 },
     "Water": { "albedo": "#2f6fb5", "roughness": 0.08, "noise": 0.0 },
     "Rail": { "albedo": "#6c5e55", "roughness": 0.95, "noise": 0.22 },
-    "freeway": { "albedo": "#5a5c61", "roughness": 0.8, "noise": 0.12 },
-    "ramp": { "albedo": "#56585d", "roughness": 0.8, "noise": 0.12 },
-    "arterial": { "albedo": "#4f5156", "roughness": 0.82, "noise": 0.14 },
-    "collector": { "albedo": "#4d4f54", "roughness": 0.84, "noise": 0.14 },
-    "local": { "albedo": "#4a4c51", "roughness": 0.86, "noise": 0.15 },
-    "service": { "albedo": "#525458", "roughness": 0.88, "noise": 0.15 }
+    "freeway": { "albedo": "#6e7075", "roughness": 0.8, "noise": 0.12 },
+    "ramp": { "albedo": "#6a6c71", "roughness": 0.8, "noise": 0.12 },
+    "arterial": { "albedo": "#68696e", "roughness": 0.82, "noise": 0.14 },
+    "collector": { "albedo": "#66686d", "roughness": 0.84, "noise": 0.14 },
+    "local": { "albedo": "#65676c", "roughness": 0.86, "noise": 0.15 },
+    "service": { "albedo": "#6b6d72", "roughness": 0.88, "noise": 0.15 }
   },
   "water": {
     "deep": "#12456d",
@@ -83,8 +83,35 @@
   "sky": {
     "turbidity": { "clear": 2.2, "karl-fog": 9, "overcast": 7, "rain": 8, "smoke": 14, "golden": 3.5 },
     "rayleigh": { "clear": 1.6, "karl-fog": 0.6, "overcast": 0.9, "rain": 0.7, "smoke": 0.5, "golden": 2.4 },
-    "keyframeWeight": { "clear": 0.0, "karl-fog": 1.0, "overcast": 1.0, "rain": 1.0, "smoke": 1.0, "golden": 0.55 }
+    "keyframeWeight": { "clear": 0.0, "karl-fog": 0.35, "overcast": 0.6, "rain": 1.0, "smoke": 1.0, "golden": 0.55 }
   },
+  "bloom": { "strength": 0.32, "radius": 0.55, "threshold": 1.4 },
+  "grade": {
+    "clear": { "lift": [0.004, 0.005, 0.01], "gamma": 1.05, "gain": [1.03, 1.0, 0.97], "saturation": 1.14, "warm": [1.06, 1.0, 0.9], "cool": [0.94, 0.99, 1.07] },
+    "karl-fog": { "lift": [0.012, 0.012, 0.016], "gamma": 1.02, "gain": [1.02, 1.0, 0.99], "saturation": 1.0, "warm": [1.04, 1.0, 0.95], "cool": [0.97, 1.0, 1.04] },
+    "overcast": { "lift": [0.008, 0.009, 0.012], "gamma": 1.04, "gain": [1.01, 1.0, 0.99], "saturation": 1.06, "warm": [1.03, 1.0, 0.96], "cool": [0.97, 1.0, 1.04] },
+    "rain": { "lift": [0.008, 0.01, 0.014], "gamma": 1.03, "gain": [0.99, 1.0, 1.01], "saturation": 0.96, "warm": [1.0, 1.0, 1.0], "cool": [0.95, 0.99, 1.06] },
+    "smoke": { "lift": [0.014, 0.01, 0.006], "gamma": 1.0, "gain": [1.05, 0.99, 0.9], "saturation": 0.92, "warm": [1.08, 0.98, 0.84], "cool": [1.0, 0.98, 0.95] },
+    "golden": { "lift": [0.006, 0.004, 0.008], "gamma": 1.05, "gain": [1.04, 1.0, 0.94], "saturation": 1.18, "warm": [1.1, 1.0, 0.84], "cool": [0.92, 0.98, 1.08] }
+  },
+  "haze": {
+    "clear": { "sun": 0.55, "blue": 0.45, "ext": 0.07 },
+    "karl-fog": { "sun": 0.3, "blue": 0.0, "ext": 0.0 },
+    "overcast": { "sun": 0.1, "blue": 0.1, "ext": 0.02 },
+    "rain": { "sun": 0.05, "blue": 0.05, "ext": 0.02 },
+    "smoke": { "sun": 0.25, "blue": 0.0, "ext": 0.0 },
+    "golden": { "sun": 0.7, "blue": 0.3, "ext": 0.05 }
+  },
+  "windows": {
+    "litFrac": [[0, 0.3, 0.6], [3, 0.12, 0.3], [5.5, 0.08, 0.22], [6.5, 0.05, 0.16], [8, 0.02, 0.07], [12, 0.0, 0.04], [16, 0.04, 0.12], [18, 0.3, 0.55], [20, 0.5, 0.8], [22, 0.55, 0.85]]
+  },
+  "layers": {
+    "full": ["grade", "haze", "blob", "casters", "skyReflect", "windows"],
+    "lite": ["grade", "haze", "blob", "skyReflect", "windows"],
+    "min": ["grade", "haze", "blob", "skyReflect", "windows"],
+    "legacy": []
+  },
+  "dynamicCasterRadiusM": 70,
   "webgl2Unsupported": [],
   "webgl2AaFallback": {}
 }

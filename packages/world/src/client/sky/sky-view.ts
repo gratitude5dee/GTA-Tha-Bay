@@ -166,7 +166,7 @@ export class SkyView {
     this.enabled = !o.disabled;
     this.uniforms = evaluateSky(SKY_KEYS, DEFAULT_INPUT);
 
-    this.dome = createDome(o.nodes, this.config.clouds, (o.look?.domeBlend ?? undefined) as L | undefined);
+    this.dome = createDome(o.nodes, this.config.clouds, (o.look?.domeBlend ?? undefined) as L | undefined, o.look !== undefined);
     o.backdrop.scene.add(this.dome);
     o.backdrop.scene.background = null;
 
@@ -248,8 +248,8 @@ export class SkyView {
     this.night.setVisible(this.enabled);
     if (this.streaks) this.streaks.mesh.visible = this.enabled && this.streaks.mesh.visible;
     if (this.overlay) this.overlay.mesh.visible = this.enabled && this.overlay.mesh.visible;
-    (scene as unknown as { fogNode: unknown }).fogNode = this.enabled ? createBackdropFog(this.nodes) : null;
-    (host.scene as unknown as { fogNode: unknown }).fogNode = this.enabled ? createWorldFog(this.nodes, this.config.fog) : null;
+    (scene as unknown as { fogNode: unknown }).fogNode = this.enabled ? createBackdropFog(this.nodes, this.o.look !== undefined) : null;
+    (host.scene as unknown as { fogNode: unknown }).fogNode = this.enabled ? createWorldFog(this.nodes, this.config.fog, this.o.look !== undefined) : null;
     if (!this.enabled) this.restoreStaticLights();
   }
 

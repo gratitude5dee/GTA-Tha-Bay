@@ -5,6 +5,7 @@
  */
 import { uniform as uniformNode } from 'three/tsl';
 import { Vector3 } from 'three/webgpu';
+import { createFogLook } from '../look/grade.ts';
 import type { U } from './tsl.ts';
 import type { SkyUniforms } from './types.ts';
 
@@ -14,6 +15,8 @@ const v3 = (x = 0, y = 0, z = 0): Vector3 => new Vector3(x, y, z);
 
 export function createSkyNodes() {
   return {
+    /** M02g1: the colour grade of the fog path and the haze of both fog nodes; the weights are 0 until the look writes them. */
+    look: createFogLook(uniform),
     uTime: uniform(0),
     uNight: uniform(0),
     uDark: uniform(0),

@@ -81,6 +81,8 @@ export interface WorldBridge {
   internals(): { view: WorldView; look: unknown };
   /** M02e: the look on or off at runtime (materials, post stack, shadows; one re-record per resident chunk). False when the tier has none. */
   setLook(on: boolean): boolean;
+  /** M02g1: one layer of the look's profile (`grade`, `haze`, `blob`, `casters`, `skyReflect`, `windows`) on or off; false when the profile has no such layer. */
+  setLookLayer(id: string, on: boolean): boolean;
   /**
    * M02e: applies a shot of `config/world/look-shots.json`: pauses the sim, locks the hour and weather with a zero-second blend,
    * freezes the look clock, holds the camera, waits for `settle()` and the fade, and resolves once a frame with all of it has been
@@ -231,6 +233,7 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
     look: () => view.lookReport(),
     internals: () => ({ view, look: view.lookView }),
     setLook: (on) => view.setLook(on),
+    setLookLayer: (id, on) => view.setLookLayer(id, on),
     shot: async (id) => {
       const lv = view.lookView;
       if (!lv) throw new Error('look shot: this view has no look');

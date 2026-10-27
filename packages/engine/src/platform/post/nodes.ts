@@ -6,7 +6,7 @@
  * (multiplies), `bloom` (adds) and `traa` (temporal, still linear), then `tonemap` (the one tone mapping and the sRGB conversion of
  * the whole pipeline), then the spatial AA nodes `smaa` and `fxaa`, which need display-referred input, and `fsr1` last.
  */
-import { renderOutput, screenSize, screenUV, vec2 } from 'three/tsl';
+import { renderOutput, screenSize, screenUV, vec2, vec4 } from 'three/tsl';
 import type { Camera, Node, Texture } from 'three/webgpu';
 import { ao } from 'three/addons/tsl/display/GTAONode.js';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
@@ -14,6 +14,7 @@ import { fsr1 } from 'three/addons/tsl/display/FSR1Node.js';
 import { fxaa } from 'three/addons/tsl/display/FXAANode.js';
 import { smaa } from 'three/addons/tsl/display/SMAANode.js';
 import { traa } from 'three/addons/tsl/display/TRAANode.js';
+import { gradeColor, type GradeUniforms } from './grade.ts';
 
 /** Loosely typed TSL node: mixed shapes (a float against a vec4) are normal in a shader graph and three's static types reject them. */
 export interface PNode {
@@ -32,9 +33,16 @@ export type Fn = (...a: unknown[]) => PNode;
 /** Tuning of the nodes (design values, set for the city scale: metres). */
 export const POST_TUNING = {
   gtao: { radius: 2.2, thickness: 1.2, scale: 1.0, samples: 16, resolutionScale: 0.5, blurTaps: 1.3 },
-  bloom: { strength: 0.32, radius: 0.55, threshold: 1.05 },
   fsr1: { sharpness: 0.2, denoise: false },
 } as const;
+
+/** The bloom node's tuning. It lives in `config/world/look.json` `bloom` since M02g1; this is the value a stack built without it uses. */
+export interface BloomTuning {
+  strength: number;
+  radius: number;
+  threshold: number;
+}
+export const DEFAULT_BLOOM: Readonly<BloomTuning> = Object.freeze({ strength: 0.32, radius: 0.55, threshold: 1.4 });
 
 export interface GtaoHandle {
   /** The AO factor as a node (1 = open), already at half resolution. */
@@ -61,8 +69,8 @@ export function createGtao(depth: unknown, normal: unknown, camera: Camera): Gta
 }
 
 /** `bloom`: adds the blurred highlights (lit windows, the sun glint on glass and water) to the HDR colour. */
-export function createBloom(color: PNode): { add: PNode; node: { dispose(): void } } {
-  const node = bloom(color as unknown as Node<'vec4'>, POST_TUNING.bloom.strength, POST_TUNING.bloom.radius, POST_TUNING.bloom.threshold);
+export function createBloom(color: PNode, tuning: Readonly<BloomTuning> = DEFAULT_BLOOM): { add: PNode; node: { dispose(): void } } {
+  const node = bloom(color as unknown as Node<'vec4'>, tuning.strength, tuning.radius, tuning.threshold);
   return { add: node as unknown as PNode, node: node as unknown as { dispose(): void } };
 }
 
@@ -71,9 +79,16 @@ export function createTraa(color: PNode, depth: unknown, velocity: unknown, came
   return (traa as unknown as (...a: unknown[]) => PNode)(color, depth, velocity, camera);
 }
 
-/** `tonemap`: the one tone mapping and colour-space conversion (renderer.toneMapping, `NeutralToneMapping`, and its exposure). */
-export function createTonemap(color: PNode): PNode {
-  return (renderOutput as unknown as Fn)(color);
+/**
+ * `tonemap`: the one tone mapping and colour-space conversion (renderer.toneMapping, `NeutralToneMapping`, and its exposure). With a
+ * grade (M02g1) the colour grade runs on its output: `grade(renderOutput(color))`, display-referred, in this node and nowhere else on
+ * a stack that has a target (the fog nodes carry it on a tonemap-only list, `gradeOwner`).
+ */
+export function createTonemap(color: PNode, grade?: GradeUniforms | null): PNode {
+  const out = (renderOutput as unknown as Fn)(color);
+  if (!grade) return out;
+  const a = (out as unknown as { a: PNode }).a;
+  return (vec4 as unknown as Fn)(gradeColor(out, grade), a);
 }
 
 export const createSmaa = (color: PNode): PNode => smaa(color as unknown as Node) as unknown as PNode;

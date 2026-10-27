@@ -7,10 +7,15 @@
  *  - `full`: four waves, the sky reflected through the environment map and a sun glint from the light's specular term;
  *  - `lite`: two waves and a sky-colour Fresnel in the albedo;
  *  - `min`: a flat colour, no waves.
+ *
+ * M02g1: where no environment map exists (Safari `full`, `lite`, `min`) the analytic sky reflection (`look/sky-reflect.ts`) adds the
+ * sky gradient and the sun glint along the reflected direction of the wave normal; the layer weight is 0 with an environment map.
  */
 import { clamp, dot, float, mix, normalize, normalView, pow, positionViewDirection, positionWorld, smoothstep, sin, transformNormalToView, vec3, type L } from '../sky/tsl.ts';
+import { cameraWorldMatrix } from 'three/tsl';
 import type { LookNodes } from './common.ts';
 import { srgbHexToLinear, type LookFile } from './config.ts';
+import { reflectTerm } from './sky-reflect.ts';
 
 export interface WaterOut {
   color: L;
@@ -51,7 +56,7 @@ export function waterNodes(profile: 'full' | 'lite' | 'min', look: LookFile, n: 
   const shallow = srgbHexToLinear(look.water.shallow);
   const tint = mix(vec3(...shallow), vec3(...deep), deepness);
   const base = mix(vertexColor, tint, 0.7);
-  if (profile === 'min') return { color: base, roughness: float(0.35), metalness: float(0), normal: normalView };
+  if (profile === 'min') return { color: base.add(reflectTerm(n.sky, 0.02)), roughness: float(0.35), metalness: float(0), normal: normalView };
 
   const waves = profile === 'full' ? 4 : 2;
   const world = waveNormal(look, n, waves);
@@ -60,6 +65,9 @@ export function waterNodes(profile: 'full' | 'lite' | 'min', look: LookFile, n: 
   const fres = pow(float(1).sub(ndv), 5);
   // The sky colour at grazing angles: full lets the environment map do most of it, lite fakes all of it.
   const sky = n.sky.uSkyBottom;
-  const color = mix(base, sky.mul(0.9), fres.mul(profile === 'full' ? 0.35 : 0.85).add(profile === 'full' ? 0 : 0.06));
+  // The baked sky tint of `lite` gives way to the analytic reflection when that layer is on (the weight is 1 then).
+  const tintK = fres.mul(profile === 'full' ? 0.35 : 0.85).add(profile === 'full' ? 0 : 0.06).mul(profile === 'full' ? float(1) : float(1).sub(n.sky.look.reflect.weight as unknown as L).mul(0.6).add(0.4));
+  const R = positionViewDirection.negate().reflect(normal).transformDirection(cameraWorldMatrix as unknown as L);
+  const color = mix(base, sky.mul(0.9), tintK).add(reflectTerm(n.sky, 0.02, { R, ndv, shininess: 420 }));
   return { color, roughness: float(profile === 'full' ? 0.045 : 0.2), metalness: float(0), normal };
 }

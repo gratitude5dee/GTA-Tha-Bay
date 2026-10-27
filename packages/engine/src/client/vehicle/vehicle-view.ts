@@ -61,6 +61,35 @@ const SPOKE_COLOR = 0xb9bec6;
 const GLASS_COLOR = 0x23303c;
 const CLEARANCE = 0.3;
 
+/**
+ * The reflection hook (M02g1): the world's look gives the gray-box materials an analytic sky reflection where no environment map
+ * exists (every WebKit tier, `lite`, `min`), through `emissiveNode`. The hook runs on each material when it is made and on every live
+ * one when it is set; `null` removes the reflection again. The engine knows nothing of the sky: the hook is the world's.
+ */
+export type ReflectHook = (m: MeshStandardNodeMaterial) => void;
+let reflectHook: ReflectHook | null = null;
+const liveMaterials = new Set<MeshStandardNodeMaterial>();
+
+export function setReflectHook(hook: ReflectHook | null): void {
+  reflectHook = hook;
+  for (const m of liveMaterials) {
+    if (hook) hook(m);
+    else {
+      m.emissiveNode = null;
+      m.needsUpdate = true;
+    }
+  }
+}
+
+/** Where a gray-box vehicle touches the ground and how wide its footprint is, from its C07 asset key (`vehicle/graybox.<archetype>`). */
+export function vehicleFootprint(key: string): { halfWidth: number; halfLength: number; dropM: number } | null {
+  const m = /^vehicle\/graybox\.([a-z-]+)$/.exec(key);
+  const arch = m ? ARCHETYPES[m[1] as string] : undefined;
+  if (!arch) return null;
+  // The origin is the centre of gravity: the wheels touch the ground `cgHeightM` below it.
+  return { halfWidth: arch.width / 2, halfLength: arch.length / 2, dropM: handlingById(arch.hp).cgHeightM };
+}
+
 /** Geometry and material caches. One per view; `dispose` frees both. */
 export class GrayboxAssets {
   private readonly geometries = new Map<string, BufferGeometry>();
@@ -80,6 +109,8 @@ export class GrayboxAssets {
         m.emissiveIntensity = 1.4;
       }
       this.materials.set(key, m);
+      liveMaterials.add(m);
+      reflectHook?.(m);
     }
     return m;
   }
@@ -111,7 +142,10 @@ export class GrayboxAssets {
 
   dispose(): void {
     for (const g of this.geometries.values()) g.dispose();
-    for (const m of this.materials.values()) m.dispose();
+    for (const m of this.materials.values()) {
+      liveMaterials.delete(m);
+      m.dispose();
+    }
     this.geometries.clear();
     this.materials.clear();
   }

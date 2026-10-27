@@ -24,10 +24,13 @@ export interface LookNodes {
   uWindowGlow: U<number>;
   /** How much of the light the environment map carries this frame, 0..1: metallic glass reflects it, so it fades out with it. */
   uEnv: U<number>;
+  /** M02g1: the share of the windows of a lit building that are lit, `[min, max]` by the hour (`look/windows.ts`). */
+  uLitMin: U<number>;
+  uLitMax: U<number>;
 }
 
 export function createLookNodes(sky: SkyNodes, fadeSeconds: number): LookNodes {
-  return { sky, uTime: uniform(0), uFade: uniform(fadeSeconds), uLook: uniform(0), uWindowGlow: uniform(0), uEnv: uniform(1) };
+  return { sky, uTime: uniform(0), uFade: uniform(fadeSeconds), uLook: uniform(0), uWindowGlow: uniform(0), uEnv: uniform(1), uLitMin: uniform(0.55), uLitMax: uniform(0.85) };
 }
 
 /** The `surf` attribute decoded: surface id (flat across a triangle), palette index, kind/roof code, flags. */

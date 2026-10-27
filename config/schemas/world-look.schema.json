@@ -4,7 +4,7 @@
   "title": "config/world/look.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "tierProfile", "postLevelCap", "exposureBias", "casterRadiusM", "shadowsOff", "facade", "roof", "ground", "water", "sky", "webgl2Unsupported", "webgl2AaFallback"],
+  "required": ["schema", "tierProfile", "postLevelCap", "exposureBias", "casterRadiusM", "shadowsOff", "facade", "roof", "ground", "water", "sky", "bloom", "grade", "haze", "windows", "layers", "dynamicCasterRadiusM", "webgl2Unsupported", "webgl2AaFallback"],
   "$defs": {
     "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
     "tier": { "enum": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"] },
@@ -22,6 +22,30 @@
         "golden": { "type": "number", "minimum": 0 }
       }
     },
+    "gradePreset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lift", "gamma", "gain", "saturation", "warm", "cool"],
+      "properties": {
+        "lift": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number", "minimum": -0.1, "maximum": 0.2 } },
+        "gamma": { "type": "number", "minimum": 0.5, "maximum": 2 },
+        "gain": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number", "minimum": 0.5, "maximum": 1.5 } },
+        "saturation": { "type": "number", "minimum": 0, "maximum": 2 },
+        "warm": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number", "minimum": 0.5, "maximum": 1.5 } },
+        "cool": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number", "minimum": 0.5, "maximum": 1.5 } }
+      }
+    },
+    "hazePreset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sun", "blue", "ext"],
+      "properties": {
+        "sun": { "type": "number", "minimum": 0, "maximum": 1 },
+        "blue": { "type": "number", "minimum": 0, "maximum": 1 },
+        "ext": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "layerList": { "type": "array", "uniqueItems": true, "items": { "enum": ["grade", "haze", "blob", "casters", "skyReflect", "windows"] } },
     "facadeClass": {
       "type": "object",
       "additionalProperties": false,
@@ -151,6 +175,75 @@
         "keyframeWeight": { "$ref": "#/$defs/perWeather" }
       }
     },
+    "bloom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strength", "radius", "threshold"],
+      "properties": {
+        "strength": { "type": "number", "minimum": 0, "maximum": 2 },
+        "radius": { "type": "number", "minimum": 0, "maximum": 1 },
+        "threshold": { "type": "number", "minimum": 0, "maximum": 8 }
+      }
+    },
+    "grade": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clear", "karl-fog", "overcast", "rain", "smoke", "golden"],
+      "properties": {
+        "clear": { "$ref": "#/$defs/gradePreset" },
+        "karl-fog": { "$ref": "#/$defs/gradePreset" },
+        "overcast": { "$ref": "#/$defs/gradePreset" },
+        "rain": { "$ref": "#/$defs/gradePreset" },
+        "smoke": { "$ref": "#/$defs/gradePreset" },
+        "golden": { "$ref": "#/$defs/gradePreset" }
+      }
+    },
+    "haze": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clear", "karl-fog", "overcast", "rain", "smoke", "golden"],
+      "properties": {
+        "clear": { "$ref": "#/$defs/hazePreset" },
+        "karl-fog": { "$ref": "#/$defs/hazePreset" },
+        "overcast": { "$ref": "#/$defs/hazePreset" },
+        "rain": { "$ref": "#/$defs/hazePreset" },
+        "smoke": { "$ref": "#/$defs/hazePreset" },
+        "golden": { "$ref": "#/$defs/hazePreset" }
+      }
+    },
+    "windows": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["litFrac"],
+      "properties": {
+        "litFrac": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": [
+              { "type": "number", "minimum": 0, "exclusiveMaximum": 24 },
+              { "type": "number", "minimum": 0, "maximum": 1 },
+              { "type": "number", "minimum": 0, "maximum": 1 }
+            ]
+          }
+        }
+      }
+    },
+    "layers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["full", "lite", "min", "legacy"],
+      "properties": {
+        "full": { "$ref": "#/$defs/layerList" },
+        "lite": { "$ref": "#/$defs/layerList" },
+        "min": { "$ref": "#/$defs/layerList" },
+        "legacy": { "$ref": "#/$defs/layerList", "maxItems": 0 }
+      }
+    },
+    "dynamicCasterRadiusM": { "type": "number", "minimum": 0, "maximum": 400 },
     "webgl2Unsupported": { "type": "array", "items": { "enum": ["gtao-half", "bloom", "fsr1"] }, "uniqueItems": true },
     "webgl2AaFallback": {
       "type": "object",

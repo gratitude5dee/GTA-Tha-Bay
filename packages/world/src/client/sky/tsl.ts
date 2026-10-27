@@ -43,6 +43,8 @@ export interface L {
   addAssign(b: Arg): L;
   mulAssign(b: Arg): L;
   setInterpolation(type: string, sampling?: string | null): L;
+  reflect(b: Arg): L;
+  transformDirection(m: Arg): L;
 
   readonly x: L;
   readonly y: L;

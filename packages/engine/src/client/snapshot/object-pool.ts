@@ -141,6 +141,8 @@ export class ObjectPool {
         } else {
           mesh = this.create(key);
         }
+        // M02g1: the look finds the actors by this tag (shadow casters on the desktop tiers); the engine draws them either way.
+        mesh.userData['dvActor'] = key === GRAYBOX_CAPSULE ? 'avatar' : key.startsWith('vehicle/') ? 'vehicle' : 'prop';
         this.meshes.set(p.handle, mesh);
         this.scene.add(mesh);
       }
