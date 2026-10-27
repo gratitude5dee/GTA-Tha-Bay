@@ -184,7 +184,7 @@ Gates for all M15 scopes: R-MAP-02; OSM/DataSF-equivalent sources and attributio
 
 ## Look program (owner decision 2026-10-26, DL-OWN-07, DL-739; run order `_PLAN.md` §0 rule 10)
 
-Phase 0–1 rows sit in block B (rows 57–65, after M01d3) and run one at a time; M10d0, M10d1 and M10d4 sit in block E (rows 92–94, before M10f); M02h8 follows M11a1 (row 104). Each Phase 0–1 row writes `docs/look/<id>-render-ledger.json` with the previous row's `after` as its baseline; `mobile-low` stays ≤ 100 render objects and `legacy` adds 0.
+Phase 0–1 rows sit in block B (rows 58–66, after M01d3) and run one at a time; M10d0, M10d1 and M10d4 sit in block E (rows 93–95, before M10f); M02h8 follows M11a1 (row 105). Each Phase 0–1 row writes `docs/look/<id>-render-ledger.json` with the previous row's `after` as its baseline; `mobile-low` stays ≤ 100 render objects and `legacy` adds 0.
 
 ### M02g1 · look-tune — 1 · risk H · S02 (+S11, S03) (Phase 0 A)
 - **Goal:** per-weather grade and haze, Karl fog no longer replacing the sky, blob shadows on every flat tier and desktop casters, analytic `skyReflect`, a fitted chase camera, dawn window ratio, real asphalt albedo; m.a1.01 releases the clock at `truck`, so fog burns off on the first drive (the dawn clip key is unchanged, AC-9).

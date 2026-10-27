@@ -18,6 +18,7 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
 - **M10a2**: the published roster assets and `asset_index` tags `char:<id>`.
 - **M08b2**: `content/fighter/cutscenes.json`, the fighter refs in `assets:cutscene-index`, the kill-switch remap in select and loadouts, `@fighter-kill`.
 - **M06a3**: dialogue-side kill handling (`fallback {reason:'killed'}`). The run order also places M06a1 (route 46, `RosterFlags`, `EncounterDO.kill`) and M05b1/M05c3 (`GenJobWorkflow`, `assets:gen prewarm`, `check:c2pa`) before this milestone.
+- **M05c4** (offedge-finish): `prewarm --live`, the `handed_off` state, `--finish` and the Worker publish phase, without which no live prewarm runs on Workers Free (DL-750).
 - Contracts: C07 1.1 (`GateCode`, `ProvenanceRecord` status, `asset_index`), C09 1.0 (`CutsceneRef`, `cutsceneKey`, `CutsceneManifest`, fallback), C12 1.1 (route 46 starts the workflow, route 30 `RosterFlags`, route 49 `_test/*` on staging only).
 
 ## Scope in
@@ -53,7 +54,7 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
   - The provider is the first `cleared` one by the A-08 selection rule. With none cleared the run prints `refused: ENDPOINT_NOT_CLEARED`, spends zero, and every ref keeps its fallback.
   - Outputs are re-signed (C2PA) and pass `check:c2pa`.
 - **Idempotence suite.** A mock prewarm of the story and fighter refs, run twice, makes zero `FalPort` calls the second time. A roster `run` after M10a2 also makes zero calls.
-- **Act 1 prewarm re-run (operator step, DL-232).** Once M10a2's Act 1 Lean sheets are approved, the operator re-runs M05c3's `pnpm assets:gen prewarm --release <tag> --live` under the same gate (a `cleared` provider) with `--cap-micros` = 16,000,000 minus the Act 1 spend already in the ledger; ready keys are skipped. The result goes into the drill report; no AC asserts live spend.
+- **Act 1 prewarm re-run (operator step, DL-232).** Once M10a2's Act 1 Lean sheets are approved, the operator re-runs M05c3's `pnpm assets:gen prewarm --release <tag> --live`, then M05c4's `--finish`, under the same gate (a `cleared` provider) with `--cap-micros` = 16,000,000 minus the Act 1 spend already in the ledger; ready keys are skipped. The result goes into the drill report; no AC asserts live spend.
 
 ## Scope out
 - Production rails, alerting and guardrail suites T1–T9: M14b1–M14b3.
@@ -132,5 +133,5 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
   5. prewarm grouping and cap;
   6. the `test:ops` runner;
   7. the runbook.
-- **Workers Free (DL-OWN-08, DL-746; `09-backend-ops.md` §1.4).** The fighter prewarm runs M05c3's off-edge path: the Worker hands each key off after `copy-orig`, and the operator's `pnpm assets:gen prewarm -- --release <tag> --env prod --finish` transcodes, re-signs and publishes (DL-745); no Container. `KillPurgeWorkflow` steps stay I/O-bound (list, copy, delete, purge calls; 10 ms CPU per step on Free) and the drill's step count stays far inside 3,000 steps a day.
+- **Workers Free (DL-OWN-08, DL-746; `09-backend-ops.md` §1.4).** The fighter prewarm runs M05c4's off-edge path (DL-750): the Worker hands each key off after `copy-orig`, and the operator's `pnpm assets:gen prewarm -- --release <tag> --env prod --finish` transcodes, re-signs and publishes (DL-745); no Container. `KillPurgeWorkflow` steps stay I/O-bound (list, copy, delete, purge calls; 10 ms CPU per step on Free) and the drill's step count stays far inside 3,000 steps a day.
 - **Workflow binding.** It needs its own deploy, but it is not a Durable Object class, so `check:do-migrations` does not label this PR `do-lifecycle`. Confirm with the check.

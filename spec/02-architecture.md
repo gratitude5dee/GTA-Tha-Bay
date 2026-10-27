@@ -127,7 +127,7 @@ services/
                      leaderboards, alerts, ops, generated/, _test/ (compiled out of production); wrangler.jsonc
   rooms/             @dv/rooms — tha-bay-rooms: gate, ticket, jwks, room/, directory/, presence/, chat/, activities/, progress/, ops/, metrics
   pipeline/          @dv/pipeline — library compiled into tha-bay-web: src/ (GenJobWorkflow, FalPort, gates, ports, FalGateDO, mocks),
-                     steps/, kill/ (KillPurgeWorkflow, M10b), rebake/ (RebakeRevalidationWorkflow, M13c2), transcoder/ (Container, M05c3)
+                     steps/, kill/ (KillPurgeWorkflow, M10b), rebake/ (RebakeRevalidationWorkflow, M13c2), transcoder/ (`ladder.sh`, `Dockerfile.ladder` for the off-edge finish, M05c4; Container parked, DL-745)
 tools/
   map/               SF bake and map:* (src/, schemas/) (S02)
   assets/            assets:* and genai:* CLIs: catalog, verify, lock, publish, seed, gen/, cutscene-index/, plates/, spike/, pose-vendor (S05);
@@ -421,7 +421,7 @@ All configuration lives in `config/`, is validated by JSON Schema (`config/schem
 - **Storage:** Wrangler secrets uploaded with the code by `versions upload --secrets-file`; local development uses `services/edge/.dev.vars` (git-ignored) [`09-backend-ops.md` §6].
 - **Names** follow `CLAUDE.md` and `spec/08-test-and-ci.md` §8 (DL-210, DL-231): deploy `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`; cache purge `CF_API_TOKEN_CACHE` (M10b); moderation `OPENAI_MODERATION_API_KEY`; Anthropic `ANTHROPIC_API_KEY` (runtime), `ANTHROPIC_BUILDER_KEY`, `ANTHROPIC_EVALS_KEY`, `ANTHROPIC_ADMIN_KEY`; `PLAY_TOKEN_HMAC` from M04b3.
 - **Client:** no key ever reaches a client bundle; `check:secrets` scans `apps/web/dist`.
-- **genAI keys:** `FAL_KEY` held per Q-17 for operator CLI batches and the Worker's production pipeline (M05c3), never CI (`FAL_MODE=mock`); `FAL_KEY_BILLING` for reconciliation (M14b1).
+- **genAI keys:** `FAL_KEY` held per Q-17 for operator CLI batches and the Worker's production pipeline (M05c4), never CI (`FAL_MODE=mock`); `FAL_KEY_BILLING` for reconciliation (M14b1).
 - **CI auth:** expiring account API tokens, because Cloudflare has no CI OIDC [research/gap-ci-cd-release-assets.md §1.3].
 
 ### 5.6 Security boundaries (summary)
@@ -458,7 +458,7 @@ Run order and dependencies: `spec/07-milestones/_PLAN.md` §1–§3; file status
 | World bake, streaming, weather, graph services, maps, landmarks | M02a1–M02d2 (M02c2 after the HUD kit) |
 | Vehicles, traffic, peds and transit, pursuit | M03a1–M03c |
 | Saves and modes, UI shell and kit, local identity, cutscene spike, QA harness | M04a1–M04d |
-| Missions, cutscene infrastructure, Act 1 slice, data spine, prewarm | M05a1–M05d, M05c3; Acts 2–3 M05e1–M05f2 |
+| Missions, cutscene infrastructure, Act 1 slice, data spine, prewarm | M05a1–M05d, M05c3, M05c4; Acts 2–3 M05e1–M05f2 |
 | NPC runtime, agency, builder | M06a1–M06c, M06b1–M06b4 |
 | Racing, fighter, pose, tycoon | M07a1–M07b2, M08a1–M08c2, M09a1–M09b2 |
 | Roster pipeline, QA gates and kill drill, roster souls | M10a1–M10c |

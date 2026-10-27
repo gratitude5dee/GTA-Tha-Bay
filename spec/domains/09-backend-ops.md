@@ -54,7 +54,7 @@
                    no SUPABASE_URL, SUPABASE_ANON_KEY or AUTH_PASSWORD_SIGNUP until M05d (M00e item 8, DL-621) */ }
 }
 ```
-Each new migration tag ships in its own PR labelled `do-lifecycle`, containing only the class skeleton, the export and the tag (deployed with `wrangler deploy`); the logic follows in a normal PR. S05 adds two bindings to `tha-bay-web` in M05b: Workflow `KILL_WF` → `KillPurgeWorkflow` and Container `TRANSCODER` for `services/pipeline/transcoder/` (Container and Workflow config keys are checked against the wrangler schema in M00, S05 U6). Amended 2026-10-27 (DL-OWN-08, DL-745): Containers need Workers Paid, so `TRANSCODER` is not declared; M05c3 transcodes off-edge (§1.4) and the Container is the post-upgrade option, parked on `claude/release-do-lifecycle-3`.
+Each new migration tag ships in its own PR labelled `do-lifecycle`, containing only the class skeleton, the export and the tag (deployed with `wrangler deploy`); the logic follows in a normal PR. S05 adds two bindings to `tha-bay-web` in M05b: Workflow `KILL_WF` → `KillPurgeWorkflow` and Container `TRANSCODER` for `services/pipeline/transcoder/` (Container and Workflow config keys are checked against the wrangler schema in M00, S05 U6). Amended 2026-10-27 (DL-OWN-08, DL-745): Containers need Workers Paid, so `TRANSCODER` is not declared; M05c4 transcodes off-edge (§1.4; split from M05c3 by DL-750) and the Container is the post-upgrade option, parked on `claude/release-do-lifecycle-3`.
 
 `services/rooms/wrangler.jsonc` mirrors it with: route `rt.<domain>`; DO bindings `ROOM`, `DIRECTORY`, `PRESENCE`; migration `rooms-v1` `new_sqlite_classes: ["RoomDO","DirectoryDO","PresenceDO"]` (M12b); `FLAGS` KV; `AE` dataset; `RL_ROOMS`; observability `logs.head_sampling_rate: 0.001`, `invocation_logs: false` (an unsampled busy room would ingest ≈ 830 GB of logs a month after the 2026-12-01 pricing change [research/gap-observability-cost-guardrails.md §1.3]); secrets `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC`, `SUPABASE_SECRET_KEY`; vars `ID_ISSUER`, `GEO_ALLOW`, `BUILD_ID` (set by CI), `CAP` (16).
 
@@ -212,7 +212,7 @@ Names follow `CLAUDE.md` and `spec/08-test-and-ci.md` §8 (DL-210, amended at th
 | `SUPABASE_SECRET_KEY` (`sb_secret_…`) | web, rooms | M05d / M12b1 | 90 d |
 | `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT` (ES256 private JWK) | web | M12a1 | 90 d, ≥ 30 min overlap |
 | `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC` | rooms (+ web for ticket/internal) | M12b1 | 90 d |
-| `FAL_KEY` (held per Q-17; operator CLI and the Worker's production pipeline; never CI, which runs `FAL_MODE=mock`), `FAL_KEY_BILLING` | operator (M00c, M10a1); web (M05c3); web (billing) | M00c, M05c3, M10a1 / M14b1 | 90 d expiry set at creation |
+| `FAL_KEY` (held per Q-17; operator CLI and the Worker's production pipeline; never CI, which runs `FAL_MODE=mock`), `FAL_KEY_BILLING` | operator (M00c, M10a1); web (M05c4); web (billing) | M00c, M05c4, M10a1 / M14b1 | 90 d expiry set at creation |
 | `ANTHROPIC_API_KEY` (workspace `npc-runtime`), `ANTHROPIC_BUILDER_KEY` (`npc-builder`), `ANTHROPIC_EVALS_KEY` (`ci-evals`, GitHub), `ANTHROPIC_ADMIN_KEY` (Usage API) | web; GitHub for evals | M06a3 / M06b1 / M06a4 / M14b1 | 90 d |
 | `ELEVENLABS_API_KEY` (service account, `character_limit`; t2 voices off until Q-20) | web | M06a4 | 90 d |
 | `OPENAI_MODERATION_API_KEY` | web | M06b1 | 90 d |

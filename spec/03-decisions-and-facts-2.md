@@ -40,7 +40,8 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M05b2 | F-039, F-040, F-043, F-063 | key inputs, fixture manifests, iOS video gesture | — |
 | M05c1 | none | authored content on mocks; no external-system fact | — |
 | M05c2 | F-039, F-041, F-042, F-043, F-050 | provider gate, licence exclusions, fallback chain | U-AST-16 |
-| M05c3 | F-039, F-040, F-041, F-042, F-043, F-047, F-048, F-050 | prewarm through a cleared provider; webhook retries; cap | U-AST-16 |
+| M05c3 | F-039, F-040, F-041, F-042, F-043, F-047, F-048, F-050 | prewarm plan through a cleared provider; cap; `--live` refused until M05c4 (DL-750) | U-AST-16 |
+| M05c4 | F-039, F-040, F-041, F-042, F-043, F-047, F-048, F-050; §8 (Workers Free limits) | live prewarm, webhook retries, off-edge finish and hand-off within 10 ms steps and 50 subrequests; cap | U-AST-16, U-BE-24 |
 | M05d | F-016, F-029, F-030, F-032 | supabase-js pin; Pro plan and `us-west-1`; publishable and secret keys | — |
 | M05e1, M05e2, M05f1, M05f2 | none | authored story content; clips follow the M05b and M05c3 gates | — |
 | M06a1 | F-020, F-021, F-022, F-025, F-028, F-029, F-034, F-037 | Durable Object limits and pricing; pgvector storage; embedding price; gateway limits; Anthropic prices and tiers | U-BE-17, U-BE-22 (DL-679) |
