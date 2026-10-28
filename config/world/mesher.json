@@ -13,7 +13,7 @@
     "desktop": { "trisPerBuilding": 80, "terrainStride": 1, "nearStride": 1, "roofs": true, "parapets": true, "equipment": true, "skip": null, "lodStride": 1 },
     "visionpro": { "trisPerBuilding": 60, "terrainStride": 1, "nearStride": 1, "roofs": true, "parapets": true, "equipment": false, "skip": null, "lodStride": 1 },
     "mobile": { "trisPerBuilding": 40, "terrainStride": 2, "nearStride": 1, "roofs": true, "parapets": true, "equipment": false, "skip": { "minAreaM2": 25, "maxHeightM": null, "beyondM": 300 }, "lodStride": 2 },
-    "low": { "trisPerBuilding": 18, "terrainStride": 4, "nearStride": 2, "roofs": false, "parapets": false, "equipment": false, "skip": { "minAreaM2": 40, "maxHeightM": 5, "beyondM": 250 }, "lodStride": 4 }
+    "low": { "trisPerBuilding": 18, "terrainStride": 4, "nearStride": 4, "roofs": false, "parapets": false, "equipment": false, "skip": { "minAreaM2": 40, "maxHeightM": 5, "beyondM": 250 }, "lodStride": 4 }
   },
   "ao": { "ringM": 3, "ringStrength": 0.35, "wallRowM": 1.2, "wallRowAo": 0.85, "eaveAo": 0.8 },
   "terrain": { "nearRingM": 300, "leaveFactor": 1.5, "skirtM": 1 },

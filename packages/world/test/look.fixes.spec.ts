@@ -326,10 +326,12 @@ describe('terrain (AC-3)', () => {
     expect(remeshes).toBe(3);
   });
 
-  it('only the profiles that have a finer near stride mesh the near ring finer: low 4 to 2, mobile 2 to 1, desktop 1 to 1', () => {
-    expect(Object.entries(MESHER.profiles).map(([id, p]) => `${id}:${p.terrainStride}>${p.nearStride}`)).toEqual(['desktop:1>1', 'visionpro:1>1', 'mobile:2>1', 'low:4>2']);
-    // the first-person budget: the near grid at mobile-low is 2,048 triangles a chunk instead of 512
-    expect((64 / MESHER.profiles.low.nearStride) ** 2 * 2 - (64 / MESHER.profiles.low.terrainStride) ** 2 * 2).toBe(1536);
+  it('only the profiles that have a finer near stride mesh the near ring finer: mobile 2 to 1; low stays at 4 (the mobile-low triangle budget, BD-M02g2-02), desktop 1 to 1', () => {
+    expect(Object.entries(MESHER.profiles).map(([id, p]) => `${id}:${p.terrainStride}>${p.nearStride}`)).toEqual(['desktop:1>1', 'visionpro:1>1', 'mobile:2>1', 'low:4>4']);
+    // the near grid at mobile is 8,192 triangles a chunk instead of 2,048; at mobile-low it would be 2,048 instead of 512 and, with the
+    // skirts every chunk of a two-stride profile carries, took the tier 24,384 triangles over the parent (the budget is 16,000)
+    expect((64 / MESHER.profiles.mobile.nearStride) ** 2 * 2 - (64 / MESHER.profiles.mobile.terrainStride) ** 2 * 2).toBe(6144);
+    expect(MESHER.profiles.low.nearStride).toBe(MESHER.profiles.low.terrainStride);
   });
 });
 
