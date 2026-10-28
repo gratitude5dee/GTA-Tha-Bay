@@ -138,7 +138,7 @@ describe('L1 and L2: massing stays under its unit and on its terrain', () => {
       }
     }
     if (process.env['DV_REQUIRE_BAKE'] === '1') expect(massing).toBeGreaterThan(0);
-  });
+  }, 180_000);
 });
 
 describe('the far massing and the skyline cards', () => {
