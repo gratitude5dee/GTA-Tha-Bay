@@ -2,10 +2,11 @@
  * The Coast set and the batch plan (M10a2): the subject card of `pc-coast`, the owner's sheet as the first reference of the sheet stage, the
  * owner-only H1 and H3 gates, and the plan over the whole roster with the real-derived fighter slots reserved. No vendor call leaves memory.
  */
+import { createHash } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { makeHarness } from '../../../services/pipeline/test/helpers/character-harness.ts';
+import { makeHarness, walkStandard } from '../../../services/pipeline/test/helpers/character-harness.ts';
 import { runIdOf } from '../../../services/pipeline/src/steps/character.ts';
 import { repoRoot } from '../../ci/run.ts';
 import { useTempDirs } from '../../ci/test-tmp.ts';
@@ -74,6 +75,23 @@ describe('the sheet stage takes the owner sheet', () => {
     // no endpoint of the stages up to the sheet is a video model
     expect(h.submits.every((e) => !/video|kling|veo|sora|seedance|runway/i.test(e))).toBe(true);
   }, 120_000);
+});
+
+describe('the mock walk of pc-coast to the publish stage', () => {
+  it('records the owner sheet in the sheet root of the provenance chain and writes six-tier-ready files under the slug', async () => {
+    const h = await makeHarness({ subject: { slug: 'pc-coast', hero: true, heightM: 1.75 } });
+    const sheetBytes = new Uint8Array(readFileSync(path.join(repoRoot, SHEET)));
+    h.cfg.refs = [sheetBytes];
+    const done = await walkStandard(h);
+    expect(done.status, done.detail).toBe('complete');
+    const ownerSha = createHash('sha256').update(sheetBytes).digest('hex');
+    const records = [...h.published].filter(([rel]) => rel.startsWith('assets/provenance/')).map(([, b]) => JSON.parse(new TextDecoder().decode(b)) as { kind: string; origin: string; generator?: { input_refs: string[] }; likeness: { tier: string } });
+    const sheet = records.find((r) => r.kind === 'character_sheet')!;
+    expect(sheet.origin).toBe('generated');
+    expect(sheet.generator?.input_refs).toContain(`sha256:${ownerSha}`);
+    expect(records.every((r) => r.likeness.tier === 'original')).toBe(true);
+    expect([...h.published.keys()]).toEqual(expect.arrayContaining(['assets/src/character/pc-coast/desktop.glb', 'assets/src/character/pc-coast/mobile.glb', 'assets/src/character/pc-coast/mobile-low.glb', 'assets/src/portrait/pc-coast/default.png']));
+  }, 240_000);
 });
 
 describe('owner-signed gates', () => {

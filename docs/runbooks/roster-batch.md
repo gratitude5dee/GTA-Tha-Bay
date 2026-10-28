@@ -1,6 +1,6 @@
 # Runbook: roster batch and the live canary
 
-The character pipeline of `spec/domains/05-assets-pipeline.md` section 12 as commands. M10a1 ships the tools and the two-character canary; M10a2 runs the batch. **Only the operator or the art lead runs anything with `--live`.** CI never does (`FAL_MODE: mock` in every workflow, `run --live` refuses while `CI` is set). The hard cap for all fal spend is USD 100 (DL-OWN-01); the character line is USD 42 (`config/guardrails.yaml` `genai.lines`).
+The character pipeline of `spec/domains/05-assets-pipeline.md` section 12 as commands. M10a1 ships the tools and the two-character canary; M10a2 adds the Coast set, the fighter-clip fallbacks and the batch report, and the operator runs the batch with them. **Only the operator or the art lead runs anything with `--live`.** CI never does (`FAL_MODE: mock` in every workflow, `run --live` refuses while `CI` is set). The hard cap for all fal spend is USD 100 (DL-OWN-01); the character line is USD 42 (`config/guardrails.yaml` `genai.lines`).
 
 ## Before the first live command
 
@@ -21,6 +21,46 @@ pnpm assets:gen -- plan --roster content/npcs/roster.json --tier all
 
 Every matching `active` entry prints its stages, registry prices, plan keys and gate verdict. A `research: pending` entry, a non-`ok` verdict, a missing soul or the premium preset is `blocked:<reason>` with its estimate still reserved. A Standard estimate above 3,730,000 micros is refused (DL-172). A batch is refused when the ledger plus the estimate passes the characters line or the programme cap. Refuse any slug whose verdict is not `ok`.
 
+### What `plan --tier all` lists (M10a2)
+
+- **Eligible:** every `active` roster entry with a Standard or Lean pipeline, plus the subject card `pc-coast` (below). A published slug prints `done (published): zero outstanding jobs`; a slug with cached stages lists only the stages without a cached result under `.genai/work/` (the run record names the job keys).
+- **Reserved:** a `draft` entry with `research: pending`, and every v1 fighter slot of `content/fighter/roster.json` whose fighter has no runnable roster entry yet, print `blocked:research` with one Standard estimate each. Those slots keep their share of the line until Q-19 and Q-25 answer; run `plan` and `run` with the same commands then.
+- The last lines give the room left on the characters line after the batch and what it buys in Lean models. With the eight fighter slots, Coast and the canary the line holds 9 Standard characters (34.05 USD with the Lean one), which leaves room for 7 more Lean models, not 12: the R7 caps (8 Standard, 12 Lean) count roster entries and the card is not one, but the USD 42 line is the binding limit.
+
+## Coast first (M10a2, DL-OWN-05, DL-737)
+
+`content/characters/pc-coast/subject.json` is a subject card: the protagonist as a Standard, hero-class character with no soul, no dialogue route and no `data/npc-roster` row. `plan`, `run` and `gate` take it like a roster slug.
+
+```
+pnpm assets:gen -- run --slug pc-coast --until sheet --live      # style bible H0 first; the owner sheet (WebP) is ref-1 beside the style bible
+pnpm assets:gen -- gate --run pc-coast-<id> --gate H1 --choose <n> --checklist --by owner     # H1 and H3 take only --by owner
+```
+
+The sheet `content/characters/pc-coast/sheet.webp` (BD-COAST-SHEET-01) is a first-party reference only; it is never a video reference. After H5, `assets:lock`, then the split into the six creator rows:
+
+```
+pnpm assets:coast -- split --by <profile>     # character/pc-<slot>-coast x 3 fidelities + portrait/pc-<slot>-coast, specs, derived records
+pnpm assets:lock -- --approved-by <handle>    # review the lock diff
+pnpm assets:coast -- link                     # sets model and portrait on the six Coast catalog rows from the lock
+pnpm assets:coast -- check
+```
+
+The split groups triangles by the bone they are weighted to and splits the head into hair and face at a hairline; both live in `content/characters/pc-coast/split.json`, which the art lead tunes at the H4 review. Every part file keeps the whole character's texture (BD-M10a2-06). A hand-split set published as the same six refs replaces the output with no other change. A row without a model keeps the mannequin path, so a skipped split is safe.
+
+## Fighter clips (M10a2)
+
+No signature clips exist until the art lead delivers them (Q-24). Every move plays the library clip listed in `content/fighter/clip-fallbacks.json` (`pnpm --filter @dv/mode-fighter fighter:gen-clip-fallbacks`, checked by `check:fighter`). To bake authored clips: give the mannequin clip file a provenance record (`provenance:new`, origin authored), then
+
+```
+pnpm assets:retarget -- --rig bay_rig_v1 --clips assets/src/anim/mannequin/<file>.glb --to <slug> --fps 60 --spec --by <profile>
+```
+
+`--spec` writes `retarget.json` (the A5 result per clip), `asset.json` and the derived provenance record beside `anim/<slug>.moves`; `check:fighter` then holds the file to the kit: clip names equal the move ids and each `extras.frames` is the move's total frames at the declared fps.
+
+## Batch report
+
+`pnpm assets:gen -- batch-report` writes `docs/runbooks/reports/M10a2-batch.md` (slugs, gates, cost per slug from the ledger, fallback moves, Coast rows); a unit test fails when the committed file is stale. After comparing the ledger with the fal dashboard, record `assets/ledger/reconcile.json` as `{ "dashboardMicros": <n>, "note": "<difference and why>" }` and regenerate the report (AC-8).
+
 ## Canary (M10a1): `canary-mc` (Standard) and `ro-batista` (Lean)
 
 Two originals while Q-19 is open. Expected spend about USD 4.72 (3,666,590 + 1,052,000 micros); the milestone allows 7,300,000 micros.
@@ -40,7 +80,7 @@ pnpm assets:gen -- run --slug canary-mc --until publish --live   # optimize (A6,
 
 The same eight commands run `ro-batista` with `--tier lean`: no H0, no portrait or mouth atlas, no H2. Each `gate` command records into `.genai/work/character/<slug>/run.json`; a human gate is never crossed without a recorded decision. H1 for a `parody` or `fictionalized` design prints the legal L1 checklist and needs `--checklist`. The H1 to H5 meanings are in `05-assets-pipeline.md` section 2; A1 and A2 are held for you because no vision model is wired (the report in `.genai/work/character/<slug>/reports/` says `held`).
 
-A rejected candidate is kept in `.genai/work/` for audit. To redo a stage with a new seed, record a rejection (`gate ... --reject`) and re-run the stage with `--retake <stage> --attempt <n>` (a new seed); a retake is a new job key and costs again, from the $2 buffer only with owner sign-off (Q-26).
+A rejected candidate is kept in `.genai/work/` for audit. To redo a stage with a new seed, record a rejection (`gate ... --reject`) and re-run the stage with `--retake <stage> --attempt <n> --owner-signoff "<who, when, why>"` (a new seed); a retake is a new job key and costs again. It is booked on the `buffer` line (USD 2, DL-OWN-07), never on the characters line, and the command refuses without the owner's sign-off (Q-26), which the ledger row keeps in its `note` (M10a2, BD-M10a2-10).
 
 ## Optimize, verify, publish
 
