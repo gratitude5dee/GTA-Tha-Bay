@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/art-packs.schema.json",
+  "title": "docs/legal/licenses/packs.json (third-party art pack register, M10d0, DL-OWN-06)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "packs"],
+  "properties": {
+    "schema": { "const": "art-packs/1" },
+    "packs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "hosts", "spdx", "snapshot", "use"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]{1,30}$" },
+          "hosts": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$" }, "uniqueItems": true },
+          "spdx": { "type": "string", "minLength": 3 },
+          "snapshot": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256", "retrieved"],
+            "properties": {
+              "path": { "type": "string", "pattern": "^docs/legal/licenses/[a-z0-9.-]+\\.md$" },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "retrieved": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+            }
+          },
+          "courtesy": { "type": "string", "minLength": 8, "maxLength": 240 },
+          "use": { "enum": ["import", "snapshot-only"] }
+        }
+      }
+    }
+  }
+}
