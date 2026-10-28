@@ -7,7 +7,6 @@ import { BRAND } from '../../config/brand.ts';
 import { cspForBuild } from '../../config/csp-hosts.ts';
 import tokens from '../../config/ui/tokens.json' with { type: 'json' };
 import { cutsceneFixtures } from './vite/cutscene-fixtures.ts';
-import { basisTranscoder } from './vite/basis-transcoder.ts';
 import { mediaLocal } from './vite/media-local.ts';
 import { moduleIds } from './vite/module-ids.ts';
 import { qaPrecache } from './vite/qa-precache.ts';
@@ -92,8 +91,6 @@ export default defineConfig({
   plugins: [
     isolationHeaders(),
     brandInHtml(),
-    // M10d0: the Basis transcoder of the KTX2 surface textures, same-origin at /basis/.
-    basisTranscoder(here('../..')),
     moduleIds(here('.'), here('../..'), true),
     ...(qaOnly ? [qaOnly.main()] : []),
     // QA builds only: the same-origin mirror of the asset store (M01e).
@@ -141,6 +138,10 @@ export default defineConfig({
   },
   // /api goes to `wrangler dev` (services/edge) on :8788; `pnpm dev` starts both.
   server: { proxy: { '/api': 'http://localhost:8788' } },
+  // M10d0: three's KTX2Loader finds the Basis transcoder by `new URL('../libs/basis/...', import.meta.url)`. A build emits both files as
+  // hashed same-origin assets (assets/basis_transcoder-<hash>.js and .wasm, under the isolation headers, no CDN); the dev server must not
+  // pre-bundle the loader, or that URL no longer points at the package.
+  optimizeDeps: { exclude: ['three/examples/jsm/loaders/KTX2Loader.js'] },
   worker: { format: 'es', plugins: () => [moduleIds(here('.'), here('../..'), false), ...(qaOnly ? [qaOnly.worker()] : [])], rollupOptions: { output: { chunkFileNames: chunkName } } },
   build: {
     outDir: 'dist',

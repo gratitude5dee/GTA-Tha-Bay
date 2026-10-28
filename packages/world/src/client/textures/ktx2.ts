@@ -1,8 +1,8 @@
 /**
  * KTX2 decoding for the surface textures (M10d0): a thin wrapper around three's `KTX2Loader` and its Basis transcoder (WASM in
- * worker threads). The transcoder files are copied same-origin by `apps/web/vite.config.ts` (`/basis/`), which keeps them under the
- * isolation headers; nothing is fetched from a CDN. The bytes come from the pack store through the `world.texture` job, so the loader
- * only parses (`parse`), it never fetches.
+ * worker threads). The build emits the transcoder files as same-origin assets (see `TRANSCODER_PATH`), which keeps them under the
+ * isolation headers; nothing is fetched from a CDN. The bytes of the textures come from the pack store through the `world.texture` job,
+ * so the loader only parses (`parse`); it fetches nothing but its own transcoder.
  *
  * The loader picks the GPU format from what the renderer reports (`detectSupport`), so it is built after `renderer.init()` and again
  * when the renderer is replaced (`onRendererReplaced`): a texture transcoded for one device is not valid on the next.
@@ -20,8 +20,11 @@ import {
 } from 'three/webgpu';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 
-/** Where `apps/web/vite.config.ts` copies the Basis transcoder (`basis_transcoder.js`, `basis_transcoder.wasm`). */
-export const TRANSCODER_PATH = '/basis/';
+/**
+ * The empty path is the loader's own: `KTX2Loader` resolves `basis_transcoder.js` and `.wasm` with `new URL(..., import.meta.url)`, and the
+ * build emits both as same-origin assets (`assets/basis_transcoder-<hash>.*`), so no CDN is involved.
+ */
+export const TRANSCODER_PATH = '';
 
 export class Ktx2Error extends Error {
   constructor(message: string) {
@@ -117,7 +120,7 @@ export class Ktx2Decoder {
   bind(renderer: WebGPURenderer): void {
     this.loader?.dispose();
     const loader = new KTX2Loader();
-    loader.setTranscoderPath(this.transcoderPath);
+    if (this.transcoderPath !== '') loader.setTranscoderPath(this.transcoderPath);
     loader.setWorkerLimit(2);
     loader.detectSupport(renderer);
     this.loader = loader;
