@@ -32,21 +32,22 @@ export interface Uploader {
   put(unit: ClassFiles): number;
   /** Returns one problem string per missing or wrong-size key. */
   verify(keys: readonly KeyExpectation[]): string[];
-}
-
-/**
- * Single-object operations on the same S3-API remote (M05c4): what `assets:gen prewarm --finish` needs against the PRIVATE bucket.
- * `copyto` moves one file to or from a key; `cat` reads a small JSON object; `lsf` lists a prefix. None of them is used by `assets:publish`.
- */
-export interface RemoteFiles {
-  /** Copies `remoteKey` to `localPath`. Throws on any failure, a missing object included. */
-  download(remoteKey: string, localPath: string): void;
-  /** Copies `localPath` to `remoteKey`, replacing an existing object. */
-  putFile(localPath: string, remoteKey: string, opts?: { contentType?: string; cacheControl?: string }): void;
   /** The parsed JSON of `remoteKey`, or null when the object does not exist. Throws on any other failure. */
   readJson(remoteKey: string): unknown;
   /** Object names below `prefix` (recursive, relative to it); empty when the prefix does not exist. */
   list(prefix: string): string[];
+}
+
+/**
+ * Single-object operations on the same S3-API remote (M05c4): what `assets:gen prewarm --finish` needs against the PRIVATE bucket.
+ * `copyto` moves one file to or from a key. `cat` (readJson) and `lsf` (list) are on every uploader: `assets:publish` reads an
+ * existing ODbL offer with them, and neither writes (BD-FIX-ODBL-01).
+ */
+export interface RemoteFiles extends Pick<Uploader, 'readJson' | 'list'> {
+  /** Copies `remoteKey` to `localPath`. Throws on any failure, a missing object included. */
+  download(remoteKey: string, localPath: string): void;
+  /** Copies `localPath` to `remoteKey`, replacing an existing object. */
+  putFile(localPath: string, remoteKey: string, opts?: { contentType?: string; cacheControl?: string }): void;
 }
 
 export type RcloneUploader = Uploader & RemoteFiles;
