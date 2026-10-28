@@ -1,4 +1,5 @@
 /** M10d0 AC-4: the texture importer (resize, KTX2 headers, outputs, provenance chain) and `--check` over the committed sets. */
+import { createHash } from 'node:crypto';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -146,13 +147,15 @@ describe('committed outputs (--check)', () => {
     expect(res.assets).toBe(18);
   });
 
-  it('every asset has the sizes and codec of the milestone, texGpuBytes, and derived records rooted in an approved licensed record', () => {
+  it('every asset has the sizes and codec of the milestone, texGpuBytes, and derived records rooted in an approved licensed record', { timeout: 120_000 }, () => {
     const reg = loadPackRegister(toolsRoot);
     const snap = snapshotHashes(toolsRoot, reg.packs);
     const manifest = readManifest(toolsRoot);
     const recs: ProvenanceRecord[] = [];
     const dir = path.join(toolsRoot, 'assets/provenance');
     for (const sub of readdirSync(dir)) for (const f of readdirSync(path.join(dir, sub))) recs.push(JSON.parse(readFileSync(path.join(dir, sub, f), 'utf8')) as ProvenanceRecord);
+    const bySha = new Map(recs.map((r) => [r.sha256, r]));
+    const nodeSha = (b: Uint8Array): string => createHash('sha256').update(b).digest('hex');
     for (const s of manifest.sets) {
       for (const m of MAP_NAMES) {
         const spec = JSON.parse(readFileSync(path.join(toolsRoot, assetDirOf(s.set, m), 'asset.json'), 'utf8')) as { id: string; codec: { tex: string }; stats: Record<string, { texMaxPx: number; texGpuBytes: number }> };
@@ -163,11 +166,11 @@ describe('committed outputs (--check)', () => {
           const info = readKtx2(bytes);
           expect(info?.width).toBe(TIER_SIZES[v]);
           expect(spec.stats[v]?.texGpuBytes).toBe(gpuBytesOf(TIER_SIZES[v], TIER_SIZES[v], levelsFor(TIER_SIZES[v])));
-          const rec = recs.find((r) => r.sha256 === sha256Hex(bytes));
+          const rec = bySha.get(nodeSha(bytes));
           expect(rec?.origin).toBe('derived');
           expect(rec?.derived_from).toEqual([s.maps[m].sha256]);
         }
-        const root = recs.find((r) => r.sha256 === s.maps[m].sha256);
+        const root = bySha.get(s.maps[m].sha256);
         expect(root?.origin).toBe('licensed');
         expect(checkLicensedRecord(root as ProvenanceRecord, { packs: reg.packs, snapshotSha: snap })).toEqual([]);
       }
