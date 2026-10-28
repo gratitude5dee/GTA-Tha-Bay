@@ -8,12 +8,14 @@
   "threshold": 32,
   "baselines": {
     "chromium-webgl2": {
-      "junction-graze": 0.000812,
-      "civic-hall-graze": 0.00082,
-      "asphalt-low": 0.000347
+      "junction-graze": 0.00174,
+      "civic-hall-graze": 0.001476,
+      "asphalt-low": 0.000951
     },
     "webkit-webgl2": {
-      "asphalt-low": 0.00033
+      "junction-graze": 0.001684,
+      "civic-hall-graze": 0.001502,
+      "asphalt-low": 0.000872
     }
   },
   "ledger": {

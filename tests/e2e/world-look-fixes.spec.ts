@@ -163,7 +163,7 @@ test.describe('look fixes @look-fixes', () => {
       for (const pair of pairs) {
         const base = readBaseline()?.baselines[testInfo.project.name]?.[pair.id];
         expect(base, `${FLICKER_BASELINE_FILE} holds ${testInfo.project.name} / ${pair.id}`).toBeDefined();
-        expect(shares[pair.id], `flicker of ${pair.id} against half of the baseline ${base}`).toBeLessThanOrEqual(flickerLimit(base ?? 0));
+        expect(shares[pair.id], `flicker of ${pair.id} against half of the baseline ${base} (floor FLICKER_FLOOR)`).toBeLessThanOrEqual(flickerLimit(base ?? 0));
       }
     });
   }

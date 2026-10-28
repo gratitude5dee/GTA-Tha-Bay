@@ -82,9 +82,18 @@ export function flickerShareRaw(a: Rgba, b: Rgba, threshold = FLICKER_THRESHOLD)
 }
 
 /**
- * The most a pair may flicker now: half of its committed baseline. A baseline under `floor` (a pair that hardly flickered before) is
- * held to `floor` instead, so measurement noise on a quiet pair does not fail the case.
+ * The share of the canvas a pair may flicker without being measured against its baseline: the parallax of the near geometry that the
+ * one-pixel window of `flickerShare` does not absorb (a pole or a kerb 3 m away moves by 5 pixels in a 0.05 m step). The parent commit
+ * measured 0.09 to 0.17 % on the three pairs on both engines, all of it that residue: a texel that changes in place is hundreds of
+ * pixels more (BD-M02g2-10).
  */
-export function flickerLimit(baseline: number, floor = 0.0005): number {
+export const FLICKER_FLOOR = 0.0025;
+
+/**
+ * The most a pair may flicker now: half of its committed baseline, and never less than `floor`. A pair whose baseline is the parallax
+ * residue (all three on the synth bake) is held to the floor, so measurement noise on a quiet pair does not fail the case while real
+ * sparkle, which adds a share of a percent or more, does.
+ */
+export function flickerLimit(baseline: number, floor = FLICKER_FLOOR): number {
   return Math.max(baseline * 0.5, floor);
 }

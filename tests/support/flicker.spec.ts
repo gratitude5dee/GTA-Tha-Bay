@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FLICKER_THRESHOLD, flickerLimit, flickerShare, flickerShareRaw } from './flicker.ts';
+import { FLICKER_FLOOR, FLICKER_THRESHOLD, flickerLimit, flickerShare, flickerShareRaw } from './flicker.ts';
 import type { Rgba } from './image-diff.ts';
 
 const flat = (w: number, h: number, v: number): Rgba => {
@@ -54,7 +54,7 @@ describe('flicker measure (M02g2)', () => {
 
   it('limits a pair to half its baseline, with a floor for a quiet pair', () => {
     expect(flickerLimit(0.2)).toBeCloseTo(0.1, 12);
-    expect(flickerLimit(0)).toBe(0.0005);
-    expect(flickerLimit(0.0004)).toBe(0.0005);
+    expect(flickerLimit(0)).toBe(FLICKER_FLOOR);
+    expect(flickerLimit(0.0017)).toBe(FLICKER_FLOOR);
   });
 });
