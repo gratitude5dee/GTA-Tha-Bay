@@ -10,7 +10,7 @@
  * skips its call; concurrency is `genai.falConcurrency` (2).
  */
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import type { ConsentIndex } from '../../../packages/shared/src/assets/gates/index.ts';
@@ -25,6 +25,7 @@ import { LEDGER_FILE, usd } from './ledger.ts';
 import { loadWorld, type World } from './plan.ts';
 import { LedgerBudget, QueueFalPort, fsBlob, mapRoster } from './ports.ts';
 import { fsPublisher } from './stages/publish.ts';
+import { refPaths } from './subject-card.ts';
 import { BAY_RIG } from './stages/rig.ts';
 import { ktxTool } from '../src/optimize.ts';
 
@@ -157,8 +158,8 @@ function buildLive(d: RunDeps) {
     const row = budgets.rows.find((r) => r.id === (subject.hero ? 'character-hero' : 'character-npc'));
     if (row === undefined) throw new Error(`${BUDGETS_FILE} has no row for ${subject.hero ? 'character-hero' : 'character-npc'}`);
     const sb = abs(`${WORK_DIR}/style-bible/${a.styleBible}.png`);
-    const refsDir = abs(`content/npcs/${subject.slug}/refs`);
-    const refs = existsSync(refsDir) ? readdirSync(refsDir).filter((f) => f.endsWith('.png')).sort().map((f) => new Uint8Array(readFileSync(path.join(refsDir, f)))) : [];
+    const card = w.entries.find((x) => x.entry.id === subject.slug)?.card;
+    const refs = refPaths(d.root, subject.slug, card).map((rel) => new Uint8Array(readFileSync(abs(rel))));
     const license = JSON.parse(readFileSync(abs('config/license-allowlist.json'), 'utf8')) as { record: string[] };
     const consent = JSON.parse(readFileSync(abs('config/consent-index.json'), 'utf8')) as ConsentIndex;
     const terms = readFileSync(abs(TERMS_FILE));

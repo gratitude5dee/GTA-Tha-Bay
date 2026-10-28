@@ -22,12 +22,15 @@ import {
 } from '../../../services/pipeline/src/steps/character.ts';
 import { DEFAULT_CAPS, LEDGER_FILE, capRefusal, readLedger, totals, usd, type LedgerRow, type LineCaps } from './ledger.ts';
 import { mapRoster } from './ports.ts';
+import { cardEntry, readCards, type SubjectCard } from './subject-card.ts';
 
 export interface LoadedEntry {
   entry: NpcRosterEntry;
   subject: CharacterSubject | null;
   /** Why no subject could be built: a missing or invalid soul. */
   problem: string | null;
+  /** Set for a subject card (M10a2): a character with no soul, such as the protagonist. */
+  card?: SubjectCard;
 }
 
 /** Kill flags beside the roster: `{ "<slug>": ["all"] }`. A `retired` entry counts as killed everywhere. */
@@ -85,6 +88,10 @@ export interface PlanResult {
   ledgerMicros: number;
   /** The reason the whole batch is refused, or null. */
   refused: string | null;
+  /** What is left of the characters line after the ledger and the batch (reserved entries included); negative when over. */
+  roomMicros: number;
+  /** One Lean estimate, so the room reads as a number of Lean models. */
+  leanMicros: number;
 }
 
 export interface PlanInput {
@@ -99,7 +106,11 @@ export interface PlanInput {
   withMoves?: boolean;
   /** ADR-GENAI-01 state noted in the header. */
   adrState?: string;
+  /** Fighter slots whose model is not eligible yet (the soul is real-derived and waits for Q-19 and Q-25): listed `blocked:research`, Standard estimate reserved. */
+  reservedSlots?: readonly ReservedSlot[];
 }
+
+export interface ReservedSlot { slot: string; fighterId: string }
 
 export async function planBatch(input: PlanInput): Promise<PlanResult> {
   const registry = withLeanEndpoints(input.registry);
@@ -118,7 +129,9 @@ export async function planBatch(input: PlanInput): Promise<PlanResult> {
     names: { realNames: () => Promise.resolve(i.realNames ?? null) },
   };
   for (const e of i.entries) {
-    if (e.entry.status !== 'active') continue;
+    // A real-derived entry is `draft` while its research is pending (roster rule R6); it still keeps its estimate reserved (M10a2 AC-1).
+    const reservedDraft = e.entry.status === 'draft' && e.entry.research === 'pending';
+    if (e.entry.status !== 'active' && !reservedDraft) continue;
     if (i.slugs !== undefined && !i.slugs.includes(e.entry.id)) continue;
     if (i.tier !== 'all' && e.entry.pipeline !== i.tier) continue;
     if (e.entry.pipeline === 'none') continue;
@@ -153,6 +166,18 @@ export async function planBatch(input: PlanInput): Promise<PlanResult> {
     }
     rows.push({ slug: e.entry.id, pipeline: e.entry.pipeline, status, reason, verdict, stages, estimateMicros: est });
   }
+  // Fighter slots that cannot run yet keep one Standard estimate each in the line, so the batch can be finished later with the same commands.
+  const reserved = i.reservedSlots ?? [];
+  if (reserved.length > 0 && (i.slugs === undefined) && (i.tier === 'all' || i.tier === 'standard')) {
+    const probe = stagePlans({ pipeline: 'standard', moves: [] }, i.registry, { withMoves: i.withMoves === true });
+    const est = estimateMicros(probe);
+    for (const r of reserved) {
+      rows.push({
+        slug: r.slot.toLowerCase().replace(/_/g, '-'), pipeline: 'standard', status: 'blocked', verdict: '-', stages: [], estimateMicros: est,
+        reason: `blocked:research (${r.slot}: soul ${r.fighterId} is not eligible, real-derived souls wait for Q-19 and Q-25; one Standard estimate stays reserved)`,
+      });
+    }
+  }
   const batchMicros = rows.filter((r) => r.status !== 'refused').reduce((n, r) => n + r.estimateMicros, 0);
   const refused = capRefusal(t, 'characters', batchMicros, caps);
   const header = [
@@ -161,7 +186,8 @@ export async function planBatch(input: PlanInput): Promise<PlanResult> {
     `ledger: ${usd(t.characters)} of ${usd(caps.lines.characters)} on the characters line, ${usd(t.total)} of ${usd(caps.program)} programme`,
     'zero vendor calls; zero network requests',
   ];
-  return { header, rows, batchMicros, ledgerMicros: t.characters, refused };
+  const leanMicros = estimateMicros(stagePlans({ pipeline: 'lean', moves: [] }, i.registry, { withMoves: false }));
+  return { header, rows, batchMicros, ledgerMicros: t.characters, refused, roomMicros: caps.lines.characters - t.characters - batchMicros, leanMicros };
 }
 
 export function renderPlan(r: PlanResult): string[] {
@@ -174,6 +200,7 @@ export function renderPlan(r: PlanResult): string[] {
   }
   out.push(`batch ${usd(r.batchMicros)} (${r.batchMicros.toLocaleString('en-US')} micros, blocked entries reserved)`);
   out.push(r.refused ?? 'batch within the characters line and the programme cap');
+  out.push(`room on the characters line after the batch: ${usd(r.roomMicros)} (${r.roomMicros.toLocaleString('en-US')} micros), ${r.roomMicros > 0 ? Math.floor(r.roomMicros / r.leanMicros) : 0} more Lean models at ${usd(r.leanMicros)}`);
   return out;
 }
 
@@ -192,6 +219,10 @@ export interface World {
   /** Real-side names for the prompt lint, or null when `.private/names-real.json` is absent. */
   realNames: string[] | null;
   kill: KillFlags;
+  /** Fighter slots with no eligible roster entry (M10a2). */
+  reservedSlots: ReservedSlot[];
+  /** Subject cards that failed their checks. */
+  cardProblems: string[];
 }
 
 export interface WorldFiles {
@@ -211,7 +242,33 @@ export function loadWorld(root: string, f: WorldFiles = {}): World {
   const kill = readJsonIf<KillFlags>(abs(f.kill ?? KILL_FILE)) ?? {};
   const names = readJsonIf<{ entries?: { real?: unknown; aliases?: unknown }[] }>(abs(NAMES_REAL_FILE));
   const realNames = names === null ? null : (names.entries ?? []).flatMap((e) => [...(typeof e.real === 'string' ? [e.real] : []), ...(Array.isArray(e.aliases) ? e.aliases.filter((a): a is string => typeof a === 'string') : [])]);
-  return { roster, entries: loadEntries(root, roster, kill), registry, ledgerRows: readLedger(abs(f.ledger ?? LEDGER_FILE)), realNames, kill };
+  const cards = readCards(root);
+  const entries = [...cards.cards.map((c) => cardEntry(c, kill)), ...loadEntries(root, roster, kill)];
+  return {
+    roster, entries, registry, ledgerRows: readLedger(abs(f.ledger ?? LEDGER_FILE)), realNames, kill,
+    reservedSlots: reservedFighterSlots(root, roster), cardProblems: cards.problems.map((p) => `${p.file}: ${p.detail}`),
+  };
+}
+
+/**
+ * The v1 fighter slots whose roster entry cannot be generated yet: no entry, a `none` pipeline, or a draft that is not waiting on research
+ * (a development placeholder). A slot whose entry is `active` with a Standard or Lean pipeline is planned as itself; a draft with
+ * `research: pending` is listed by `planBatch` from its own entry.
+ */
+export function reservedFighterSlots(root: string, roster: NpcRosterManifest): ReservedSlot[] {
+  const file = path.resolve(root, 'content/fighter/roster.json');
+  if (!existsSync(file)) return [];
+  const slots = JSON.parse(readFileSync(file, 'utf8')) as { slot: string; fighterId: string; v1?: boolean }[];
+  const byId = new Map(roster.entries.map((e) => [e.id, e]));
+  const out: ReservedSlot[] = [];
+  for (const s of slots) {
+    if (s.v1 !== true) continue;
+    const e = byId.get(s.fighterId);
+    const runnable = e !== undefined && (e.pipeline === 'standard' || e.pipeline === 'lean');
+    if (runnable && (e.status === 'active' || (e.status === 'draft' && e.research === 'pending'))) continue;
+    out.push({ slot: s.slot, fighterId: s.fighterId });
+  }
+  return out;
 }
 
 export async function planCommand(argv: readonly string[], env: NodeJS.ProcessEnv, log: (l: string) => void, root: string): Promise<number> {
@@ -231,8 +288,9 @@ export async function planCommand(argv: readonly string[], env: NodeJS.ProcessEn
   const result = await planBatch({
     entries: w.entries, tier: values.tier, ...(values.slugs !== undefined ? { slugs: values.slugs.split(',').map((x) => x.trim()).filter(Boolean) } : {}),
     registry: w.registry, ledgerRows: w.ledgerRows, gate: { falMode: env['FAL_MODE'] === 'live' ? 'live' : 'mock', environment: 'dev', registry: w.registry, log }, realNames: w.realNames,
-    withMoves: values['with-moves'],
+    withMoves: values['with-moves'], reservedSlots: w.reservedSlots,
   });
+  for (const p of w.cardProblems) log(`blocked:card ${p}`);
   for (const line of renderPlan(result)) log(line);
   return result.refused !== null || result.rows.some((r) => r.status === 'refused') ? 1 : 0;
 }
