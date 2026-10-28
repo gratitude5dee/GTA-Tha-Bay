@@ -1,6 +1,6 @@
 {
   "schema": "npc-roster/1",
-  "rosterVersion": 2,
+  "rosterVersion": 3,
   "entries": [
     {
       "id": "npc_test",
@@ -24,7 +24,7 @@
       "tier": "fictionalized",
       "basis": "original",
       "hero": true,
-      "pipeline": "none",
+      "pipeline": "lean",
       "priority": 1,
       "research": "none",
       "standIn": null,
@@ -56,7 +56,7 @@
       "tier": "fictionalized",
       "basis": "original",
       "hero": false,
-      "pipeline": "lean",
+      "pipeline": "none",
       "priority": 3,
       "research": "none",
       "standIn": null,
@@ -72,7 +72,7 @@
       "tier": "fictionalized",
       "basis": "original",
       "hero": false,
-      "pipeline": "lean",
+      "pipeline": "none",
       "priority": 4,
       "research": "none",
       "standIn": null,

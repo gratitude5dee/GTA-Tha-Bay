@@ -3,8 +3,8 @@
  *
  *   tsx tools/assets/src/cli.ts catalog
  *   tsx tools/assets/src/cli.ts lock --approved-by <handle>
- *   tsx tools/assets/src/cli.ts verify
- *   tsx tools/assets/src/cli.ts publish --env staging|prod [--target r2|dir:<path>] [--dry-run] [--pointer-out <dir>] [--fragment <file>]
+ *   tsx tools/assets/src/cli.ts verify [--slug <slug> [--probe-bones [--in <rigged.glb>]]]   (M10a1: the per-character gates; the alias probe)
+ *   tsx tools/assets/src/cli.ts publish --env staging|prod [--target r2|dir:<path>] [--dry-run] [--pointer-out <dir>] [--fragment <file>] [--slug <slug>]
  *   tsx tools/assets/src/cli.ts publish --env staging|prod --world assets/world/sf.lock.json --pointer-out assets/world/pointer.<env>.json [--bake <dir>]   (M02c2)
  *   tsx tools/assets/src/cli.ts seed [--check]
  */
@@ -19,6 +19,8 @@ import { publishAssets } from './publish.ts';
 import { seedTextures } from './seed.ts';
 import { loadSpecs } from './spec.ts';
 import { verifyAssets } from './verify.ts';
+import { runProbeBones } from './probe-run.ts';
+import { verifySlug } from './verify-slug.ts';
 
 async function main(): Promise<number> {
   const { values, positionals } = parseArgs({
@@ -35,6 +37,9 @@ async function main(): Promise<number> {
       world: { type: 'string' },
       bake: { type: 'string' },
       check: { type: 'boolean', default: false },
+      slug: { type: 'string' },
+      'probe-bones': { type: 'boolean', default: false },
+      in: { type: 'string' },
     },
   });
   const root = path.resolve(values.root ?? toolsRoot);
@@ -68,6 +73,20 @@ async function main(): Promise<number> {
       return 0;
     }
     case 'verify': {
+      if (values['probe-bones']) {
+        if (!values.slug) {
+          console.error('usage: assets:verify -- --slug <slug> --probe-bones [--in <rigged.glb>]');
+          return 2;
+        }
+        return runProbeBones(root, values.slug, values.in, (l) => console.log(l));
+      }
+      if (values.slug) {
+        const sv = await verifySlug(root, values.slug);
+        sv.notes.forEach((n) => console.log(`assets:verify ${values.slug}: ${n}`));
+        sv.findings.forEach((f) => console.log(formatFinding(f)));
+        console.log(sv.findings.length ? `assets:verify ${values.slug}: FAIL (${sv.findings.length} findings)` : `assets:verify ${values.slug}: ok`);
+        return sv.findings.length ? 1 : 0;
+      }
       const r = verifyAssets(root);
       r.findings.forEach((f) => console.log(formatFinding(f)));
       if (r.findings.length) {
@@ -83,7 +102,7 @@ async function main(): Promise<number> {
         return 2;
       }
       const res = await publishAssets({
-        root, env: values.env, target: values.target, dryRun: values['dry-run'], pointerOut: values['pointer-out'], fragment: values.fragment, world: values.world, worldBake: values.bake,
+        root, env: values.env, target: values.target, dryRun: values['dry-run'], pointerOut: values['pointer-out'], fragment: values.fragment, world: values.world, worldBake: values.bake, slug: values.slug,
       });
       return res.code;
     }

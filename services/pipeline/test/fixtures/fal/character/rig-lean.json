@@ -1,0 +1,7 @@
+{
+  "rigged_character_glb": { "url": "mock://fal/recorded/rigged.glb", "content_type": "model/gltf-binary", "file_name": "rigged.glb" },
+  "basic_animations": {
+    "walking_glb": { "url": "mock://fal/recorded/walking.glb", "content_type": "model/gltf-binary", "file_name": "walking.glb" },
+    "running_glb": { "url": "mock://fal/recorded/running.glb", "content_type": "model/gltf-binary", "file_name": "running.glb" }
+  }
+}

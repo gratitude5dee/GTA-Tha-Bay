@@ -2,7 +2,7 @@
   "$comment": "Prompt hygiene lists (spec/domains/03-story-cutscenes.md section D4, DL-550; M05b2). `words` are matched whole-word and case-insensitively by lintPrompt rule 2 (firearm, gore, killing, drug and sexual vocabulary; D-30, Q-06). `realism` is rule 3, applied when the cast holds a character whose tier is not consented. A trailing * allows letters after the stem.",
   "schema": "prompt-banned/1",
   "words": [
-    "gun*", "pistol*", "revolver*", "rifle*", "shotgun*", "firearm*", "handgun*", "machine gun*", "ammo", "ammunition", "bullet*", "gunshot*", "gunfire", "sniper*", "grenade*", "explosive*", "bomb*",
+    "gun*", "pistol*", "revolver*", "rifle*", "shotgun*", "firearm*", "handgun*", "machine gun*", "ammo", "ammunition", "bullet*", "gunshot*", "gunfire", "sniper*", "grenade*", "explosive*", "bomb", "bombs", "bombed", "bombing", "bombings",
     "gore", "gory", "blood", "bloody", "bloodied", "bloodshed", "wound*", "corpse*", "dead body", "decapitat*", "dismember*", "mutilat*", "entrails", "severed",
     "kill", "kills", "killed", "killing", "killer*", "murder*", "stab", "stabs", "stabbed", "stabbing", "strangl*", "execution", "massacre", "slaughter*", "torture*", "suicide",
     "cocaine", "heroin", "meth", "methamphetamine", "fentanyl", "crack pipe", "syringe*", "overdose", "marijuana", "cannabis", "bong", "weed",

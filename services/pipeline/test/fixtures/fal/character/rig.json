@@ -1,0 +1,4 @@
+{
+  "rigged_character_glb": { "url": "mock://fal/recorded/rigged.glb", "content_type": "model/gltf-binary", "file_name": "rigged.glb" },
+  "rigged_character_fbx": { "url": "mock://fal/recorded/rigged.fbx", "content_type": "application/octet-stream", "file_name": "rigged.fbx" }
+}
