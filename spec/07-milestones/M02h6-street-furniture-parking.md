@@ -1,7 +1,7 @@
 # M02h6 — street-furniture-parking
 
 ## Goal
-After this session the M02h2 sidewalks carry signal masts with live aspects, stop signs, hydrants about every 90 m, meters, shelters, benches, utility poles and (desktop only) trolley wires, and curbs with C08 `parkingSides` gain parked cars: render-only instances on the traffic body geometry, with no sim entity and no state-hash change. Everything is original and procedural, with no texture or fal spend (DL-OWN-07 Phase 1; render audit item 11). A per-profile render-object ledger keeps `mobile-low` ≤ 100 and `legacy` at +0.
+After this session the M02h2 sidewalks carry signal masts with live aspects, stop signs, hydrants about every 90 m, meters, shelters, benches, utility poles and (desktop only) trolley wires, and curbs with C08 `parkingSides` gain parked cars: render-only instances on M10d1's realistic traffic families, with no sim entity and no state-hash change. Furniture is original and procedural, with no texture or fal spend (DL-OWN-07 Phase 1; render audit item 11). A per-profile render-object ledger keeps `mobile-low` ≤ 100 and `legacy` at +0.
 
 ## Requirements
 - R-MAP-01: signals, stop signs and shelters stand where C08 puts junction controls and transit stops.
@@ -13,7 +13,8 @@ After this session the M02h2 sidewalks carry signal masts with live aspects, sto
 ## Depends on
 - **M02h2:** sidewalk ribbons, `curb.heightM`, the curb line, the ledger chain (other export names: use what merged, BD row).
 - **Run order (`_PLAN.md` §0 rule 10):** after M02h5 (Phase 1 rows share `mesher.ts`, `surfaces.ts`, `look.json`, `look-shots.json` and the ledger chain).
-- **M03b1:** `TrafficRenderer` (`carGeometry`, material, `aTint`, `aLights`), `parkedPose`, `slotUnit`, `density.json` `tierFactors.parked`.
+- **M10d1** (DL-755; merged about 2.5 sessions before this row starts, `_PLAN.md` §3): the families of `traffic/archetype-mesh.ts` and `config/world/traffic-art.json`, `traffic/materials.ts` (`aTint`, `aLights`, livery bit) and the registry.
+- **M03b1:** `TrafficRenderer`, `parkedPose`, `slotUnit`, `density.json` `tierFactors.parked`.
 - Merged context: M02g1 (`layers`, `setLookLayer`, blob layer, ledger shape), M02e (profiles, `shot()`, `@look-golden`), M02b2 (lamps, blackout), M02b1 (mesher, upload gate).
 - Contracts: C08 1.1 (rule 12 pools, DL-741), C13 1.2, C06 1.1 (read).
 
@@ -33,9 +34,9 @@ After this session the M02h2 sidewalks carry signal masts with live aspects, sto
 
 | Profile | Pools | Parked | Objects added (≤) |
 |---|---|---|---|
-| `full` (ultra, desktop) | signal, post, shelter, pole, wire | 1 | 6 |
-| `lite` (mobile) | signal, post, shelter | 1 | 4 |
-| `min` (mobile-low) | signal, post (no meter, blade) | 1 | 3 |
+| `full` (ultra, desktop) | signal, post, shelter, pole, wire | 4 (one per family) | 9 |
+| `lite` (mobile) | signal, post, shelter | 3 (one per family) | 6 |
+| `min` (mobile-low) | signal, post (no meter, blade) | 1 (car family only) | 3 |
 | `legacy` (XR, `world.look: false`) | — | 0 | 0 |
 
   Instance caps per profile are design values (farthest dropped first).
@@ -43,9 +44,9 @@ After this session the M02h2 sidewalks carry signal masts with live aspects, sto
   - new `signalEmissive` reads `aAspect` (green, amber, red, dark) as `lampEmissive` reads `aLights`;
   - `furniture/signals.ts` evaluates C08 `signalAspect(program, tick, movement, blackout)` at 10 Hz within 200 m, from a new engine-internal `WorldFrame.simTick` (snapshot tick, `boot-engine.ts`) and `WorldFrame.blackout`.
 - **Sign faces** (`faces.ts`): TSL signed-distance shapes, no texture or font: a red octagon with "STOP" from bars and arcs, a one-way arrow, blank green blades (no street names), a generic bus-stop flag.
-- **Parked dressing** (`traffic/parked-dressing.ts`): a second `InstancedMesh` on `TrafficRenderer`'s geometry and material, so the M10d1 body swap reaches it. Lights stay off.
+- **Parked dressing** (`traffic/parked-dressing.ts`): one `InstancedMesh` per M10d1 family of the profile, on that family's body and material, using whatever the registry holds (on `full` the opaque mesh only; glass shades through the part id); on `min` the car family only, which keeps `mobile-low` at +3. Lights stay off.
   - only slots with index ≥ `densityCap(capacity, tierFactors.parked[tier])`, which the sim never fills on that tier (C01 prefix rule), so the sets are disjoint;
-  - pose from `parkedPose`, archetype and colour from `slotUnit` as in the sim; slots within 0.6 car lengths of a live pose skipped;
+  - pose from `parkedPose`, archetype and colour from `slotUnit` as in the sim (on `min` every archetype draws the car family's body); slots within 0.6 car lengths of a live pose skipped;
   - drawn only between `ghostM` † (30/28/25 m) and `dressFarM` † (300/200/140 m) from player and camera, 8 m dithered fades, so the player never reaches a bodiless car;
   - `dressShare` † thins slots; dressed cars join M02g1's blob object (+0); nothing is written to the sim.
 - **Bridge and ledger:**
@@ -53,7 +54,7 @@ After this session the M02h2 sidewalks carry signal masts with live aspects, sto
   - `@furniture-ledger` writes (`DV_LOOK_WRITE=1`) or checks `docs/look/M02h6-render-ledger.json` in M02g1's shape; baseline = the same build with both layers off (`platform.perf.live()`), at shots `noon-street` and new `junction-noon` (13:00 clear, synth junction per BD row).
 
 ## Scope out
-- Licensed (CC0, CC-BY) or fal props and cars: M10d0, M10d1 (DL-OWN-06; $14 vehicles line), swapping pool geometry via `kit.ts`.
+- Car bodies: M10d1. Licensed (CC0, CC-BY) or fal props: a later Track B import that swaps pool geometry through `kit.ts` (DL-OWN-06, DL-755; unscheduled).
 - Colliders and sim parked density (sim, hash changes): Architect. `xr` profile: M02h8.
 - Trash cans, news boxes, fire escapes, street-name text, murals, public art (`02-world-bake.md` S4 rule 8).
 
@@ -100,15 +101,15 @@ After this session the M02h2 sidewalks carry signal masts with live aspects, sto
   - `parked.instances` is above 0;
   - `heads.aspects` changes within 30 s;
   - layers off report 0;
-  - no image or `texture/` request appears.
+  - every image or `texture/` request is a ref in `look().textures?.refs ?? []` (M10d0) or `world.art().refs` (M10d1), and switching the `furniture` and `parked` layers on adds no request (furniture and sign faces fetch nothing).
   — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-furniture && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @world-furniture`
 - AC-7 Given every perf scenario and the ledger When fail-mode perf and `@furniture-ledger` run Then:
   - budgets hold;
-  - per-shot deltas are ≤ 6 (`full`), 4 (`lite`) and 3 (`min`);
+  - per-shot deltas are ≤ 9 (`full`), 6 (`lite`) and 3 (`min`);
   - `mobile-low` after is ≤ 100;
   - XR adds 0.
   — proof: `DV_WORLD=synth pnpm check:perf -- --fail && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @furniture-ledger && DV_WORLD=synth pnpm check:e2e:xr`
-- AC-8 Given regenerated goldens plus `junction-noon` at `desktop` and `mobile-low` When `@look-golden` runs Then all are within M02e's tolerance — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @look-golden`
+- AC-8 Given every committed look golden set regenerated (`_PLAN-3.md` Look program rule 6) plus `junction-noon` at `desktop` and `mobile-low` When the look golden suites run Then all are within M02e's tolerance — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@look-golden|@markings-golden|@textures-golden|@facade-golden" && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @look-owner`
 - AC-9 Given the branch When the asset and IP gates and the production build run Then the gates pass with no new asset, image or provenance record, `__dvBridge` is absent and the Preview passes its headers — proof: `pnpm assets:catalog && pnpm check:assets && pnpm provenance:check && pnpm ip:strings && pnpm names:lint && pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
 - AC-10 Given an operator `synth` Preview on an iPhone 15 Home Screen app at `mobile-low` When the checklist runs `downtown-rush` with the layers on, then off Then `perf:verify` passes, and `notes.json` records the delta — proof: manual: iPhone 15 (Home Screen app), Preview from `pnpm map:build -- --area synth && DV_WORLD=synth VITE_DV_QA=1 pnpm build && pnpm deploy:preview`, `pnpm perf:checklist -- tools/ci/checklists/M02h6-iphone15.json`, upload to `docs/device-runs/M02h6/iphone15/`, then `pnpm perf:verify -- docs/device-runs/M02h6/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M02h6-iphone15.json`
 
@@ -138,7 +139,7 @@ How to see it:
 - **Flaky goldens:** M02e's nightly fallback.
 
 ## Notes for the Builder
-- Read first: `02-world.md` §5.2–§5.4; `02-world-contracts.md` rules 10–12; `02-world-living.md` §1.4, §1.6, §2.6, §4, §7; `02-world-bake.md` §6 and spawn capacities; the M02g1, M02h2, M03b1 files; the look study (render audit item 11: `mesher.ts:4`, `s13-pack.ts:194`; capture study "Props and street furniture") and the plan's Phase 1 row.
+- Read first: `02-world.md` §5.2–§5.4; `02-world-contracts.md` rules 10–12; `02-world-living.md` §1.4, §1.6, §2.6, §4, §7; `02-world-bake.md` §6 and spawn capacities; the M02g1, M02h2, M03b1, M10d1 files; the look study (render audit item 11: `mesher.ts:4`, `s13-pack.ts:194`; capture study "Props and street furniture") and the plan's Phase 1 row.
 - Original sign faces only (no agency files or fonts); the target image is never committed, sampled or fed to a tool; no fal call.
 - Rebuild the pools in `onRendererReplaced`. `shot()` freezes the aspect clock.
 - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for AC-9 and AC-10 (SKIP locally). AC-10 needs Q-13's device, else "Blocked on: Q-13". Branch `m02h6-street-furniture-parking`.
