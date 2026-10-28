@@ -48,7 +48,7 @@ export interface PublishOptions {
   /** `HOST_MEDIA` for the printed offer URL (default `MEDIA_ORIGIN`, else the Worker config of `root`). */
   mediaOrigin?: string | undefined;
 }
-export interface PublishResult { code: number; uploaded: number; total: number; skipped?: string; buildId?: string; offerUrl?: string }
+export interface PublishResult { code: number; uploaded: number; total: number; skipped?: string; buildId?: string; offerUrl?: string; offer?: OfferReport }
 
 const defaultHead: HeadFn = async (url) => {
   const r = await fetch(url, { method: 'HEAD' });
@@ -305,15 +305,15 @@ export async function publishAssets(o: PublishOptions): Promise<PublishResult> {
   }
 
   // the ODbL offer of a world release (DL-695): the bake scripts, the world lock and an index naming both and the world packs
-  let offerUrl: string | undefined;
+  let offer: OfferReport | undefined;
   if (worldInput) {
-    const offer = await uploadOffer(o, worldInput, uploader, fragmentBlobs, bucket, log);
-    if (typeof offer === 'string') {
-      log(`assets:publish: ODbL offer: ${offer}`);
+    const r = await uploadOffer(o, worldInput, uploader, fragmentBlobs, bucket, log);
+    if (typeof r === 'string') {
+      log(`assets:publish: ODbL offer: ${r}`);
       return { code: 1, uploaded, total, buildId };
     }
-    uploaded += offer.uploaded;
-    offerUrl = offer.url;
+    uploaded += r.uploaded;
+    offer = r;
   }
 
   const text = pointerText(build.pointer);
@@ -332,23 +332,114 @@ export async function publishAssets(o: PublishOptions): Promise<PublishResult> {
       assetsLockSha256: existsSync(assetsLock) ? sha256Of(readFileSync(assetsLock)) : '',
       worldLockSha256: sha256Of(worldInput.lockBytes),
       ...(worldIndexSha ? { worldIndexSha256: worldIndexSha } : {}),
+      // the same fields for a fresh offer and an accepted one (BD-FIX-ODBL-01), so a re-run gives a byte-identical meta file
+      ...(offer ? { odblOffer: { bakeId: offer.bakeId, url: offer.url, index: offer.indexKey, tarball: { key: offer.tarball.key, bytes: offer.tarball.bytes, sha256: offer.tarball.sha256 } } } : {}),
     };
     writeFileSync(metaPathOf(path.resolve(o.root, o.pointerOut)), `${JSON.stringify(meta, null, 2)}
 `);
   }
   log(`assets:publish ok: env=${o.env} target=${o.target === 'r2' ? `r2:${bucket}` : o.target} build=${buildId} uploaded ${uploaded} of ${total} objects, manifest ${build.manifestKey}`);
-  return { code: 0, uploaded, total, buildId, ...(offerUrl ? { offerUrl } : {}) };
+  return { code: 0, uploaded, total, buildId, ...(offer ? { offerUrl: offer.url, offer } : {}) };
 }
 
-/** Uploads `odbl/<bakeId>/{bake-scripts.tar.gz, <lock>, index.json}` through the uploader of the run; a string is the reason it failed. */
-async function uploadOffer(o: PublishOptions, w: WorldInput, uploader: Uploader, fragmentBlobs: readonly FragmentBlob[], bucket: string, log: (l: string) => void): Promise<string | { uploaded: number; url: string }> {
+/** One file of an `odbl-offer/1` index. */
+interface OfferFile { name: string; key: string; sha256: string; bytes: number }
+interface OfferIndex { bakeId: string; files: OfferFile[]; worldPacks: string[] | null }
+
+/** What the offer step reports, the same for a fresh offer and an accepted one (the publish output and the pointer meta). */
+export interface OfferReport { bakeId: string; url: string; indexKey: string; existing: boolean; uploaded: number; tarball: OfferFile }
+
+const HEX64 = /^[0-9a-f]{64}$/;
+
+/** Parses an existing `odbl/<bakeId>/index.json`; a string is why it is not a usable `odbl-offer/1` index. */
+function parseOfferIndex(raw: unknown, prefix: string): OfferIndex | string {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return 'not a JSON object';
+  const r = raw as Record<string, unknown>;
+  if (r['schema'] !== 'odbl-offer/1') return `schema ${JSON.stringify(r['schema'])}, expected "odbl-offer/1"`;
+  if (typeof r['bakeId'] !== 'string') return 'no bakeId';
+  if (!Array.isArray(r['files'])) return 'no files list';
+  const files: OfferFile[] = [];
+  for (const f of r['files'] as unknown[]) {
+    const e = (typeof f === 'object' && f !== null ? f : {}) as Record<string, unknown>;
+    const { name, key, sha256, bytes } = e;
+    if (typeof name !== 'string' || typeof key !== 'string' || typeof sha256 !== 'string' || !HEX64.test(sha256) || typeof bytes !== 'number' || !Number.isInteger(bytes) || bytes < 0) {
+      return `a files entry is not {name, key, sha256, bytes}: ${JSON.stringify(f)}`;
+    }
+    if (!key.startsWith(`${prefix}/`)) return `the file ${key} is outside ${prefix}/`;
+    files.push({ name, key, sha256, bytes });
+  }
+  const packs = r['worldPacks'];
+  const worldPacks = Array.isArray(packs) && packs.every((p) => typeof p === 'string') ? [...(packs as string[])].sort() : null;
+  return { bakeId: r['bakeId'], files, worldPacks };
+}
+
+const sameList = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((x, i) => x === b[i]);
+
+/**
+ * An offer already published for this bake id (DL-754, BD-FIX-ODBL-01). The scripts archived when the bake id was first
+ * published reproduce that database, so that offer stays valid and is never replaced: it is accepted, with nothing uploaded,
+ * when it names this bake and the same world packs or the same world lock, and every object it lists is present at its size.
+ */
+function acceptOffer(raw: unknown, ctx: { prefix: string; indexKey: string; bakeId: string; lockName: string; lockSha: string; packs: readonly string[]; uploader: Uploader }): string | { index: OfferIndex; tarball: OfferFile; match: string } {
+  const where = `${ctx.indexKey} already exists`;
+  const index = parseOfferIndex(raw, ctx.prefix);
+  if (typeof index === 'string') return `${where} but is not a usable odbl-offer/1 index (${index}); a published offer is never replaced`;
+  if (index.bakeId !== ctx.bakeId) return `${where} and names bake ${index.bakeId.slice(0, 12)}, this release is bake ${ctx.bakeId.slice(0, 12)}; a published offer is never replaced`;
+  const packsMatch = index.worldPacks !== null && sameList(index.worldPacks, ctx.packs);
+  const lockSha = index.files.find((f) => f.name === ctx.lockName)?.sha256 ?? null;
+  const lockMatch = lockSha === ctx.lockSha;
+  if (!packsMatch && !lockMatch) {
+    const listed = new Set(index.worldPacks ?? []), now = new Set(ctx.packs);
+    const missing = ctx.packs.filter((k) => !listed.has(k)).length, extra = (index.worldPacks ?? []).filter((k) => !now.has(k)).length;
+    return `${where} for bake ${ctx.bakeId.slice(0, 12)} but with different world packs (${index.worldPacks === null ? 'no list' : `${index.worldPacks.length} listed, ${missing} of this release's ${ctx.packs.length} not among them, ${extra} not in this release`}) and world lock sha256 ${(lockSha ?? '-').slice(0, 12)}, this release's is ${ctx.lockSha.slice(0, 12)}; a published offer is never replaced`;
+  }
+  const tarball = index.files.find((f) => f.name === 'bake-scripts.tar.gz');
+  if (!tarball) return `${where} but lists no bake-scripts.tar.gz (a partial offer); nothing uploaded`;
+  const problems = ctx.uploader.verify(index.files.map((f) => ({ key: f.key, bytes: f.bytes })));
+  if (problems.length > 0) return `${where} but the offer is partial (${problems.join('; ')}); nothing uploaded`;
+  return { index, tarball, match: packsMatch ? 'the same world packs' : 'the same world lock' };
+}
+
+/**
+ * The ODbL offer `odbl/<bakeId>/{bake-scripts.tar.gz, <lock>, index.json}` of the run; a string is the reason it failed.
+ * A bake id with no object under `odbl/<bakeId>/` gets a fresh offer archived from HEAD; an existing index is accepted or refused
+ * by `acceptOffer` and never overwritten; objects without an index (a partial offer) are refused.
+ */
+async function uploadOffer(o: PublishOptions, w: WorldInput, uploader: Uploader, fragmentBlobs: readonly FragmentBlob[], bucket: string, log: (l: string) => void): Promise<string | OfferReport> {
   const bakeId = w.fragment.bakeId;
-  if (!/^[0-9a-f]{64}$/.test(bakeId)) return `the bake id ${bakeId} is not 64 lowercase hex characters`;
+  if (!HEX64.test(bakeId)) return `the bake id ${bakeId} is not 64 lowercase hex characters`;
   const dir = path.join(o.distRoot ? path.resolve(o.distRoot) : path.join(o.root, 'dist', 'assets'), `odbl-${bakeId.slice(0, 12)}`);
   const prefix = `odbl/${bakeId}`;
   const tarKey = `${prefix}/bake-scripts.tar.gz`;
-  const lockKey = `${prefix}/${path.basename(w.lockRel)}`;
+  const lockName = path.basename(w.lockRel);
+  const lockKey = `${prefix}/${lockName}`;
   const indexKey = `${prefix}/index.json`;
+  const where = o.target === 'r2' ? `r2:${bucket}` : o.target;
+  const origin = (o.mediaOrigin ?? o.processEnv?.MEDIA_ORIGIN ?? process.env['MEDIA_ORIGIN'] ?? hostMediaOf(o.root, o.env) ?? '<HOST_MEDIA>').replace(/\/$/, '');
+  const url = `${origin}/${indexKey}`;
+  const packs = fragmentBlobs.map((b) => b.key).sort();
+  const report = (r: OfferReport): OfferReport => {
+    log(`ODbL offer tarball: ${r.tarball.key}, ${r.tarball.bytes} bytes, sha256 ${r.tarball.sha256}`);
+    log(`ODbL offer URL: ${r.url}`);
+    return r;
+  };
+
+  let existing: unknown;
+  let present: string[] = [];
+  try {
+    existing = uploader.readJson(indexKey);
+    if (existing === null) present = uploader.list(prefix);
+  } catch (e) {
+    return `reading ${indexKey} failed: ${(e as Error).message}`;
+  }
+  if (existing !== null) {
+    const ok = acceptOffer(existing, { prefix, indexKey, bakeId, lockName, lockSha: sha256Of(w.lockBytes), packs, uploader });
+    if (typeof ok === 'string') return ok;
+    log(`ODbL offer accepted: ${indexKey} in ${where} names this bake and ${ok.match} (${ok.index.files.map((f) => f.key).join(', ')}, ${ok.index.worldPacks?.length ?? 0} world packs listed); nothing uploaded or replaced`);
+    return report({ bakeId, url, indexKey, existing: true, uploaded: 0, tarball: ok.tarball });
+  }
+  if (present.length > 0) return `${prefix}/ holds ${present.join(', ')} but no index.json (a partial offer); nothing uploaded`;
+
   mkdirSync(path.join(dir, prefix), { recursive: true });
   const archive = o.archive ?? defaultArchive(o.root);
   if (archive(path.join(dir, tarKey)) !== 0 || !existsSync(path.join(dir, tarKey))) return 'the archive of the bake scripts failed (run from a git checkout with the scripts committed)';
@@ -357,13 +448,14 @@ async function uploadOffer(o: PublishOptions, w: WorldInput, uploader: Uploader,
     const b = readFileSync(path.join(dir, key));
     return { name, key, sha256: sha256Of(b), bytes: b.length };
   };
+  const tarball = file(tarKey, 'bake-scripts.tar.gz');
   const index = {
     schema: 'odbl-offer/1',
     bakeId,
     licence: 'ODbL-1.0',
-    files: [file(tarKey, 'bake-scripts.tar.gz'), file(lockKey, path.basename(w.lockRel))],
+    files: [tarball, file(lockKey, lockName)],
     scriptPaths: [...ODBL_SCRIPT_PATHS],
-    worldPacks: fragmentBlobs.map((b) => b.key).sort(),
+    worldPacks: packs,
   };
   writeFileSync(path.join(dir, indexKey), `${JSON.stringify(index, null, 2)}
 `);
@@ -379,9 +471,6 @@ async function uploadOffer(o: PublishOptions, w: WorldInput, uploader: Uploader,
   }
   const problems = uploader.verify([tarKey, lockKey, indexKey].map((k) => ({ key: k, bytes: statSync(path.join(dir, k)).size })));
   if (problems.length > 0) return problems.join('; ');
-  const origin = (o.mediaOrigin ?? o.processEnv?.MEDIA_ORIGIN ?? process.env['MEDIA_ORIGIN'] ?? hostMediaOf(o.root, o.env) ?? '<HOST_MEDIA>').replace(/\/$/, '');
-  const url = `${origin}/${indexKey}`;
-  log(`ODbL offer uploaded to ${o.target === 'r2' ? `r2:${bucket}` : o.target}: ${index.files.map((f) => f.key).join(', ')}, ${index.worldPacks.length} world packs listed`);
-  log(`ODbL offer URL: ${url}`);
-  return { uploaded: n, url };
+  log(`ODbL offer uploaded to ${where}: ${index.files.map((f) => f.key).join(', ')}, ${index.worldPacks.length} world packs listed`);
+  return report({ bakeId, url, indexKey, existing: false, uploaded: n, tarball });
 }
