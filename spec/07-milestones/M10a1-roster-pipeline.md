@@ -50,7 +50,7 @@ After this session the R-NPC-02 character pipeline is an automated CLI. `pnpm as
 - `packages/shared/src/rig/bay_rig_v1.json`: the alias table.
 - Fixtures: `services/pipeline/test/fixtures/fal/character/*.json` (recorded responses, JSON only), plus a test helper `tools/assets/test/helpers/mannequin.ts` that builds a procedural skinned GLB with the 22 `HUMANOID_BONES`.
 - Tests: `tools/assets/test/{plan.spec.ts, run.spec.ts, ledger.spec.ts, optimize.spec.ts, retarget.spec.ts}`, `packages/shared/src/assets/gates/gates.spec.ts` and `services/pipeline/test/character.pipeline.test.ts` (part of `check:pipeline`).
-- `assets/ledger/fal-spend.jsonl`, `content/npcs/roster.json` (pipeline fields), `config/guardrails.yaml` (`genai.lines` caps in micros, DL-OWN-07: spike 4,000,000; characters 42,000,000; cutscenes 38,000,000; vehiclesProps 14,000,000; buffer 2,000,000).
+- `assets/ledger/fal-spend.jsonl`, `content/npcs/roster.json` (pipeline fields), `config/guardrails.yaml` (`genai.lines` caps in micros, DL-OWN-07: spike 4,000,000; characters 42,000,000; cutscenes 38,000,000; vehiclesProps 14,000,000; buffer 2,000,000). M10d0 writes the same block when `claude/build` lacks it (DL-755): the later of the two rows to merge drops the duplicate and re-runs M10d0 AC-10 or this file's AC-9.
 - Root scripts **`assets:gen`** (extended), **`assets:optimize`**, **`assets:retarget`**, all under the `assets:*` family. `.gitignore` adds `.genai/`.
 - `docs/runbooks/roster-batch.md`: the `05-assets-pipeline.md` §12 steps as commands.
 - About 38 files.
