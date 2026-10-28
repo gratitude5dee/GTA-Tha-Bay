@@ -178,7 +178,7 @@ export function meshLod(unit: LodUnit, tier: QualityTierId, maxBytes: number | n
   const objects: MeshBuffers[] = [tb.build('terrain') as MeshBuffers];
 
   // ---- massing and roads, reduced to the byte cap when there is one -----------------------------------------------------------
-  const massProfile: MesherProfile = { trisPerBuilding: MASS_TRIS, terrainStride: stride, roofs: false, parapets: false, equipment: false, skip: null, lodStride: stride };
+  const massProfile: MesherProfile = { trisPerBuilding: MASS_TRIS, terrainStride: stride, nearStride: stride, roofs: false, parapets: false, equipment: false, skip: null, lodStride: stride };
   const massOrder = unit.massing
     .map((m, i) => {
       let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
