@@ -143,9 +143,9 @@ describe('ci.yml (AC-8)', () => {
     expect(step).toContain('BUILD_RESULT: ${{ needs.build.result }}');
     expect(step).toContain('SHARDS_RESULT: ${{ needs.e2e-shard.result }}');
     const shards = Number(/E2E_SHARDS: '(\d+)'/.exec(step)?.[1] ?? 0);
-    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four).
+    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four, BD-INTEG-M02g1-01 to six).
     const matrix = /^ {8}shard: \[([\d, ]+)\]$/m.exec(jobs['e2e-shard'] ?? '')?.[1]?.split(',').length ?? 0;
-    expect(shards).toBe(4);
+    expect(shards).toBe(6);
     expect(shards).toBe(matrix);
     const all = (r: string | null): (string | null)[] => Array.from({ length: shards }, () => r);
     const withAt = (i: number, r: string | null): (string | null)[] => all('success').map((v, j) => (j === i ? r : v));
@@ -310,7 +310,7 @@ describe('Playwright system packages: mirror-resilient install, one apt cache pe
     const nightly = jobsOf(wf('nightly.yml'));
     const shardSet = browsersOf(ci['e2e-shard'] ?? '') ?? '';
     for (const project of ['chromium-webgpu', 'chromium-webgl2', 'webkit-webgl2', 'xr-quest3']) {
-      for (const shard of [1, 2, 3, 4]) {
+      for (const shard of [1, 2, 3, 4, 5, 6]) {
         // chromium-webgl2 shard 1 also runs check:coi, which launches Chromium and WebKit (tools/ci/check-dist.ts checkCoi).
         const want = project === 'chromium-webgl2' && shard === 1 ? 'chromium webkit' : engine(project);
         expect(evalSet(shardSet, { project, shard }), `ci e2e-shard ${project} ${shard}`).toBe(want);
