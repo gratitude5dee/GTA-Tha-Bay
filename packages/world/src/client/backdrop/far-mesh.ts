@@ -152,7 +152,7 @@ export function cardsLayout(spawn: { x: number; z: number }, cardsKm: number): C
     const u0 = (c.col * a.cardPx[0]) / a.sizePx[0], u1 = ((c.col + 1) * a.cardPx[0]) / a.sizePx[0];
     // The atlas texture is uploaded unflipped (`atlasTexture`: `flipY = false`), so v = 0 is the TOP row of the image, in WebGL2 and in
     // WebGPU. Before M02g2 the v values counted from the bottom (1 - y / height), which hung every skyline silhouette upside down:
-    // the solid base of the card at its top and the jagged roofline under it, a dark slab floating over the horizon (BD-M02G2-04).
+    // the solid base of the card at its top and the jagged roofline under it, a dark slab floating over the horizon (BD-M02g2-04).
     const vTop = (row * a.cardPx[1]) / a.sizePx[1], vBottom = ((row + 1) * a.cardPx[1]) / a.sizePx[1];
     uvs.set([u0, vBottom, u1, vBottom, u1, vTop, u0, vTop], k * 8);
     indices.set([k * 4, k * 4 + 1, k * 4 + 2, k * 4, k * 4 + 2, k * 4 + 3], k * 6);

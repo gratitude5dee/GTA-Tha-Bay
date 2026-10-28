@@ -557,7 +557,7 @@ export function addBuilding(
     const [p0x, p0z] = q(0), [p1x, p1z] = q(1), [p2x, p2z] = q(2), [p3x, p3z] = q(3);
     const short = Math.min(l01, l12);
     const lift = Math.min(MESHER.roofLiftMaxM, 0.3 * short);
-    // The base ring of the roof is the wall-top ring: the same corners at `wallTop` (M02g2, BD-M02G2-03).
+    // The base ring of the roof is the wall-top ring: the same corners at `wallTop` (M02g2, BD-M02g2-03).
     const topY = wallTop + lift;
     // Ridge ends: midpoints of the short edges 1-2 (B) and 3-0 (A); a hip pulls them in by half the short side.
     let ax = (p3x + p0x) / 2, az = (p3z + p0z) / 2, bx = (p1x + p2x) / 2, bz = (p1z + p2z) / 2;
