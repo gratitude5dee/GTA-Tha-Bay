@@ -3,4 +3,11 @@ export const GENAI_GUARDRAILS = {
   programCapUsdMicros: 100000000,
   falConcurrency: 2,
   alarms: [0.5, 0.8, 1],
+  lines: {
+    spike: 4000000,
+    characters: 42000000,
+    cutscenes: 38000000,
+    vehiclesProps: 14000000,
+    buffer: 2000000,
+  },
 } as const;

@@ -1,0 +1,6 @@
+{
+  "images": [
+    { "url": "mock://fal/recorded/portrait-1.png", "content_type": "image/png", "file_name": "portrait-1.png", "width": 1024, "height": 1024 },
+    { "url": "mock://fal/recorded/portrait-2.png", "content_type": "image/png", "file_name": "portrait-2.png", "width": 1024, "height": 1024 }
+  ]
+}

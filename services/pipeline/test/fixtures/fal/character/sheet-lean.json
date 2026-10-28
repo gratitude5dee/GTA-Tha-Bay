@@ -1,0 +1,9 @@
+{
+  "images": [
+    { "url": "mock://fal/recorded/sheet-1.png", "content_type": "image/png", "file_name": "sheet-1.png" },
+    { "url": "mock://fal/recorded/sheet-2.png", "content_type": "image/png", "file_name": "sheet-2.png" },
+    { "url": "mock://fal/recorded/sheet-3.png", "content_type": "image/png", "file_name": "sheet-3.png" },
+    { "url": "mock://fal/recorded/sheet-4.png", "content_type": "image/png", "file_name": "sheet-4.png" }
+  ],
+  "description": "recorded shape of a four-attempt nano-banana edit; the image sizes are the test's own"
+}

@@ -20,6 +20,8 @@ permissions:
   contents: read
 
 env:
+  # M10a1 (DL-OWN-01): every job runs the generation pipeline on its mock; no workflow holds or passes a fal key.
+  FAL_MODE: mock
   # Same string as ci.yml and tests/e2e/graybox-grep.txt (M02b1, DL-546, DL-680).
   GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay|@story( |$)|@racing-touch|@racing-vs'
 

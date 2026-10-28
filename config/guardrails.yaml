@@ -9,6 +9,13 @@ genai:
   falConcurrency: 2
   # Fractions of the program cap that raise a log alarm.
   alarms: [0.5, 0.8, 1.0]
+  # Per-line caps inside the program cap (DL-OWN-07, 2026-10-26). `assets:gen plan` and `ledger` refuse a batch that would pass a line or the program.
+  lines:
+    spike: 4000000
+    characters: 42000000
+    cutscenes: 38000000
+    vehiclesProps: 14000000
+    buffer: 2000000
 
 # M06a1: NPC dialogue quotas, encounter limits and cost estimates (spec/domains/09-backend-ops.md section 5.2, 09-backend.md section 5.1).
 # Mirrored into packages/shared/src/genai/npc-guardrails.generated.ts by the same tool. Money is integer USD micros; the day is UTC.

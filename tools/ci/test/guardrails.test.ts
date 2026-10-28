@@ -7,7 +7,15 @@ import { GENERATED_PATH, NPC_GENERATED_PATH, genaiSection, main, npcSection, par
 describe('config/guardrails.yaml', () => {
   it('holds the DL-OWN-01 program cap, the fal concurrency and the alarm fractions', () => {
     const g = genaiSection(readFileSync(YAML_PATH, 'utf8'));
-    expect(g).toEqual({ programCapUsdMicros: 100_000_000, falConcurrency: 2, alarms: [0.5, 0.8, 1] });
+    expect(g).toEqual({
+      programCapUsdMicros: 100_000_000, falConcurrency: 2, alarms: [0.5, 0.8, 1],
+      lines: { spike: 4_000_000, characters: 42_000_000, cutscenes: 38_000_000, vehiclesProps: 14_000_000, buffer: 2_000_000 },
+    });
+  });
+
+  it('keeps the DL-OWN-07 lines inside the program cap', () => {
+    const g = genaiSection(readFileSync(YAML_PATH, 'utf8'));
+    expect(Object.values(g.lines).reduce((n, v) => n + v, 0)).toBeLessThanOrEqual(g.programCapUsdMicros);
   });
 
   it('is mirrored exactly into the generated constant the Worker reads', () => {
