@@ -170,7 +170,7 @@ describe('committed outputs (--check)', () => {
           expect(rec?.origin).toBe('derived');
           expect(rec?.derived_from).toEqual([s.maps[m].sha256]);
         }
-        const root = bySha.get(s.maps[m].sha256);
+        const root = bySha.get(s.maps[m].sha256 ?? "");
         expect(root?.origin).toBe('licensed');
         expect(checkLicensedRecord(root as ProvenanceRecord, { packs: reg.packs, snapshotSha: snap })).toEqual([]);
       }
