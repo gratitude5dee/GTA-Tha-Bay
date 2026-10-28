@@ -9,13 +9,13 @@
 4. **R-ROLL-01.** No rooms milestone (M12b1 onward) starts before M05c2 is deployed to staging and its ACs pass there. **R-AUTH-02.** M14a (Thirdweb) is the last v1 milestone; Bay expansion (M15) follows it.
 5. **Spend (DL-OWN-01, split amended by DL-OWN-07 and DL-740).** fal total ≤ $100: M00c ≤ $4; M10a1+M10a2 ≤ $42 (Coast included); cutscenes ≤ $38 (M05c3 ≤ $16, spent through M05c4; M10b the rest after Act 1, at least $22, DN-S13-02, DL-741); vehicles and props ≤ $14 (M10d1 ≤ $1.704, M10d3 the rest); $2 buffer. CI never runs live fal (`FAL_MODE=mock`); every paid run prints its estimate first and needs `--live`. No player-triggered fal in v1 (M06b4 queue is owner-approved and counts against the cap).
 6. **Gaps closed (wave5 note 11).** `RaceDef.intro` + `cut.race.intro.<raceId>` refs → M07b2. `tools/ci/econ-sim` (owner S01) → M04d, with sections in M05c1, M07b2, M05e2, M05f2. Avatar and wardrobe schemas in `packages/shared/schemas/ui/` → M04b2.
-7. **M00e gate (2026-10-19, DL-514, DL-605, DL-622, Q-43).** M00e `owner-account-hardening` (formerly the owner PR #1 follow-up list) runs next: its dependencies M00a, M00b and M01c are merged into `claude/build` (M01c at `dae8f08`). No milestone that touches `services/edge/src`, `services/edge/test` or `services/edge/wrangler.jsonc` starts until M00e has merged; the only not-yet-started such milestones without a dependency path to M00e were M05d and M13a1, which now name it in Depends on (critical path unchanged, 29.8 / 33.8: both have slack), and every other one reaches M00e through M04b1 or M05d. M00d is not gated (a docs-only `services/edge/README.md`). PRs of milestones already executing (M00…M01f) merge as before and M00e rebases over them; M05b1, started on 2026-10-19 before this rule, is row 40 (row 38 before M02e, DL-704, and row 39 before M01d2, DL-713), so its PR merges after M00e in run order and rebases over it. Order: M00e next; M00d, already executing (IN PROGRESS, not gated), merges as before; then M00f (DL-648). Its file lists the operator actions (create `main`, the production `AUTH_PASSWORD_SIGNUP` switch, dashboard settings), which are never Builder work. **Integration branch:** `claude/build` until the operator creates `main` (Q-42, DL-606), then `main`; "merged" in this register and in every start-after rule means merged to that branch, and each PR targets it (DL-641).
+7. **M00e gate (2026-10-19, DL-514, DL-605, DL-622, Q-43).** M00e `owner-account-hardening` (formerly the owner PR #1 follow-up list) runs next: its dependencies M00a, M00b and M01c are merged into `claude/build` (M01c at `dae8f08`). No milestone that touches `services/edge/src`, `services/edge/test` or `services/edge/wrangler.jsonc` starts until M00e has merged; M05d and M13a1 name it in Depends on, every other one reaches it through M04b1 or M05d. M00d is not gated (a docs-only `services/edge/README.md`). Milestones already executing then (M00…M01f, M05b1) merged as before (DL-648). Its file lists the operator actions (create `main`, the production `AUTH_PASSWORD_SIGNUP` switch, dashboard settings), which are never Builder work. **Integration branch:** `claude/build` until the operator creates `main` (Q-42, DL-606), then `main`; "merged" in this register and in every start-after rule means merged to that branch, and each PR targets it (DL-641).
 8. **M00f before vendoring (2026-10-19, DL-508, DL-523, DL-605, DL-607).** M00f `third-party-reuse-gates` (formerly the reuse-gates follow-up list) is a gate for no milestone; nothing is vendored into `third_party/` before it merges, and its `license:scan` rules are the mechanical stop, enforced by branch protection that makes the CI `static` and `ip` jobs required checks on the integration branch before the first vendoring PR (M00f Operator actions, DL-633). Vendoring is done by the operator or the Architect only (DL-502).
-9. **Study set (2026-10-23, owner request, DL-716; order amended by DL-732).** Only three study rows precede M05c2: M04e5, M04e0 and M02f1 (rows 43–45; M04e0 gates M12b1, M04e5 is the string guard every later sandbox file depends on, M02f1 records U-W8). The other eight (M04e1, M04e2, M04e3, M04e4, M04b5, M04b4, M02f2, M01d3, rows 50–57) are Block B work placed after M05c2, M05d, M05c3 and M05c4, so the A-06 vertical slice and the R-ROLL-01 gate slip by 1.0 session (the three early rows), not by 5.9. M07b3 (row 78) follows M07b2 and M10f (row 96) follows M10d4 (DL-739). M04e3 names M07a1 (row 74), which is already merged; that is the only forward reference outside Block A and rule 3 allows it for a merged dependency. M04e0 must merge before M12b1 starts (it is in M12b1's Depends on, DL-719); M04e1 and M04e4 before M11b3, and M04b5 before M11a1. M04e5 is in the Depends on of M04e1, M04e2, M04e3, M04e4, M07b3 and M10f, so every new sandbox string is written under its `trainer-*` patterns (DL-717). **Shared files, no dependency path:** M02f1, M04b5, M04b4 and M02f2 edit the same files (`packages/engine/src/assets/{rpc.ts, service.ts, client.ts, bridge.ts}`, `assets/store/{store.ts, fetch-retry.ts}`, `packages/world/src/client/{boot-world.ts, world-view.ts}`, `packages/ui/src/shell/types.ts`, `apps/web/src/{main.ts, shell-ports.ts}`). Parallel Builders (DL-246) do not run two of them at once: each starts after the previous one in this order has merged (M02f1 → M04b5 → M04b4 → M02f2), and rebases over it; the same holds for M04e1 → M04e2 → M04e3 → M04e4, which already chain through Depends on. M01d4 `media-edge-cache` is conditional: the Architect creates it only if M02f1 AC-8 records U-W8 as failed (DL-723); it is not in this table.
+9. **Study set (2026-10-23, owner request, DL-716; order amended by DL-732).** Only three study rows precede M05c2: M04e5, M04e0 and M02f1 (rows 43–45; M04e0 gates M12b1, M04e5 is the string guard every later sandbox file depends on, M02f1 records U-W8). The other eight (M04e1, M04e2, M04e3, M04e4, M04b5, M04b4, M02f2, M01d3, rows 50–57) are Block B work placed after M05c2, M05d, M05c3 and M05c4, so the A-06 vertical slice and the R-ROLL-01 gate slip by 1.0 session (the three early rows), not by 5.9. M07b3 (row 87) follows M07b2 and M10f (row 100) follows M10d4 (DL-739). M04e3 names M07a1 (row 83), and M10a1, M10a2 and M11a1 (rows 61, 64, 69) name M06a2, M08b1 and M07a2 (DL-755); all four are merged, and rule 3 allows a forward reference only to a merged dependency. M04e0 must merge before M12b1 starts (it is in M12b1's Depends on, DL-719); M04e1 and M04e4 before M11b3, and M04b5 before M11a1. M04e5 is in the Depends on of M04e1, M04e2, M04e3, M04e4, M07b3 and M10f, so every new sandbox string is written under its `trainer-*` patterns (DL-717). **Shared files, no dependency path:** M02f1, M04b5, M04b4 and M02f2 edit the same files (`packages/engine/src/assets/{rpc.ts, service.ts, client.ts, bridge.ts}`, `assets/store/{store.ts, fetch-retry.ts}`, `packages/world/src/client/{boot-world.ts, world-view.ts}`, `packages/ui/src/shell/types.ts`, `apps/web/src/{main.ts, shell-ports.ts}`). Parallel Builders (DL-246) do not run two of them at once: each starts after the previous one in this order has merged (M02f1 → M04b5 → M04b4 → M02f2), and rebases over it; the same holds for M04e1 → M04e2 → M04e3 → M04e4, which already chain through Depends on. M01d4 `media-edge-cache` is conditional: the Architect creates it only if M02f1 AC-8 records U-W8 as failed (DL-723); it is not in this table.
 
-10. **Look program (DL-OWN-07, DL-739).** Street realism comes before the real-art work. Phase 0: M02g1 `look-tune` and M02g2 `look-fixes` (rows 58–59, right after M02f2 and M01d3). Phase 1: M02h1–M02h7 (rows 60–66: markings, curbs and sidewalks, ground cover, tree forms, vegetation scatter, street furniture and parked cars, façade detail). Phase 2–3: M10d0 `art-admission`, then M10d1 (vehicles and props) and M10d4 (pedestrians and creator parts), which replace the one-session M10d1 (rows 93–95, before M10f). Phase 5: M02h8 `xr-look-traa` (row 105, after M11a1). **Shared files, one at a time:** the Phase 0–1 rows edit the same files (`chunks/mesher.ts`, `look/{surfaces.ts, look-materials.ts}`, `config/world/{look.json, look-shots.json, mesher.json}`) and chain their render-object ledgers (`docs/look/<id>-render-ledger.json`, each baseline the previous row's `after`), so each row names the previous one in Depends on and parallel Builders never run two of them at once. **Preconditions (DL-741):** the look study (capture-study frames, render-audit items, art-source study) is committed under `research/look/` (text) and `docs/look/study/` (frames) before M02g1 starts; the files cite it by section and frame name, and a Builder who cannot find a cited item stops and reports it. M02g1 does not wait for M05c3 or M05c4 (DL-747, DL-750): the dawn key and `beats.lock` its AC-9 holds are already on `claude/build`, and whichever of the two merges second re-runs AC-9 at its rebase (DL-742). M02h8 and M11b1 edit the same XR render path, so M11b1 names M02h8 in Depends on and starts only after it merges; M14b3 reaches M02h8 through M11b4.
+10. **Look program (DL-OWN-07, DL-739; two tracks since DL-OWN-09, DL-755).** The look program is the top build priority: every other block waits behind it except M10a1 and M10a2 (Coast's model). Rows 59–75: **Track A** (street code) M02g2 → M02h1 → … → M02h7 → M02h8; **Track B** (art) M10d0 → M10d1 → M10d4 → M10d5 → M10d2. Rows of one track run one at a time in order; the two tracks run at the same time; M10a1 → M10a2, then M11a1 (M02h8's prerequisite), run beside them; M10d3 waits for M07b2 and M08b2. Shared files, holds, merge order and the ledger, golden and surface-binding rules: `_PLAN-3.md` Look program. **Preconditions (DL-741):** the look study is committed under `research/look/` (text) and `docs/look/study/` (frames); a Builder who cannot find a cited item stops and reports it. M02g1 does not wait for M05c3 or M05c4 (DL-747, DL-750, DL-742). M11b1 names M02h8 in Depends on (shared XR render path); M14b3 reaches M02h8 through M11b4.
 
-## 1. Ordered index (v1: 142 milestones, ≈ 126.6 sessions; post-v1: 7 milestones, 7 sessions)
+## 1. Ordered index (v1: 143 milestones, ≈ 127.0 sessions; post-v1: 7 milestones, 7 sessions)
 Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NPC runtime · E roster, Acts 2–3, hardening, XR · F identity and multiplayer · G modding, UGC, legal · H launch · I Bay expansion.
 
 | # | ID | Slug | Sessions | Block | Depends on |
@@ -79,96 +79,97 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 57 | M01d3 | media-route-tuning | 0.4 | B | M01d2, M00e |
 | 58 | M02g1 | look-tune | 1 | B | M02e, M02f2, M01c, M05c2 |
 | 59 | M02g2 | look-fixes | 0.7 | B | M02g1, M02d2 |
-| 60 | M02h1 | street-markings | 1 | B | M02g2, M02a2 |
-| 61 | M02h2 | curbs-sidewalks | 1 | B | M02h1 |
-| 62 | M02h3 | ground-cover | 1 | B | M02h2, M02g2, M02a2 |
-| 63 | M02h4 | vegetation-forms | 0.75 | B | M02h3, M02g2 |
-| 64 | M02h5 | vegetation-scatter | 0.75 | B | M02h4, M02h3 |
-| 65 | M02h6 | street-furniture-parking | 1 | B | M02h5, M02h2, M03b1 |
-| 66 | M02h7 | facade-detail | 1 | B | M02h6, M02g2 |
-| 67 | M06a1 | npc-backend-spine | 1 | D | M05d, M04b3 |
-| 68 | M06a2 | soul-contract-compiler | 1 | D | M00b, M01d |
-| 69 | M06a3 | dialogue-proxy | 1 | D | M06a1, M06a2 |
-| 70 | M06a4 | memory-voice-lipsync | 1 | D | M06a3, M04b2 |
-| 71 | M06a5 | dialogue-panel-ui | 0.3 | D | M06a3, M04b2 |
-| 72 | M06c | npc-agency-barks | 1 | D | M06a3, M03b2 |
-| 73 | M06b1 | builder-text-private | 1 | D | M06a3 |
-| 74 | M07a1 | racing-core-director-car | 1 | D | M03a2, M04a2, M04d, M02c1 |
-| 75 | M07a2 | racing-ai-replay-ghosts | 1 | D | M07a1, M03c, M05c1 |
-| 76 | M07b1 | racing-content-events-ladder | 1 | D | M07a2, M03b2 |
-| 77 | M07b2 | racing-garage-replay-photo-visuals | 1 | D | M07b1, M05b2 |
-| 78 | M07b3 | sandbox-tune | 0.5 | D | M07b2, M04e3, M04e5 |
-| 79 | M08a1 | fight-core-sim-data | 1 | D | M01a1, M05a1 |
-| 80 | M08a2 | fight-mode-training-vs | 1 | D | M08a1, M04a2, M04b2, M04d, M05c1 |
-| 81 | M08b1 | fight-roster-kits-ai | 1 | D | M08a2, M06a2 |
-| 82 | M08b2 | fight-stages-cutscenes-arcade | 1 | D | M08b1, M05b2 |
-| 83 | M08c1 | pose-pipeline-classifier | 1 | D | M08a2 |
-| 84 | M08c2 | pose-calibration-gate | 1 | D | M08c1 |
-| 85 | M09a1 | tycoon-core-finance | 1 | D | M01a1, M04a2, M04d |
-| 86 | M09a2 | tycoon-events-balance | 1 | D | M09a1, M04d |
-| 87 | M09b1 | tycoon-ui | 1 | D | M09a2, M04b2 |
-| 88 | M09b2 | tycoon-vc-story | 1 | D | M09b1, M06a3, M05a1, M05a2 |
-| 89 | M10a1 | roster-pipeline | 1 | E | M05b1, M06a2, M01d, M05c3 |
-| 90 | M10a2 | roster-pipeline | 1 | E | M10a1, M08b1 |
-| 91 | M10b | qa-gates-kill-drill | 1 | E | M10a2, M08b2, M06a3, M05c4 |
-| 92 | M10c | roster-souls-ink-barks | 1 | E | M10a2, M06a4, M06c, M05c2 |
-| 93 | M10d0 | art-admission | 1 | E | M00f, M01d, M02h7, M10a1 |
-| 94 | M10d1 | art-integration | 1 | E | M10d0, M05c2, M03b2, M04b2, M02h6 |
-| 95 | M10d4 | art-integration | 1 | E | M10d1, M10d0, M03b2, M04b2, M10a2 |
-| 96 | M10f | emote-wheel | 0.6 | E | M10d4, M04b2, M04e5 |
-| 97 | M10d3 | art-integration | 1 | E | M10d4, M07b2, M08b2, M10a2 |
-| 98 | M10d2 | art-integration | 1 | E | M10d4, M10d3, M02d2, M02e |
-| 99 | M05e1 | story-act2-part1 | 1 | E | M05c2, M07a2, M08b2, M09b2, M07b1 |
-| 100 | M05e2 | story-act2-part2 | 1 | E | M05e1 |
-| 101 | M05f1 | story-act3-part1 | 1 | E | M05e2, M10b |
-| 102 | M05f2 | story-act3-finale | 1 | E | M05f1 |
-| 103 | M10e | audio-integration | 1 | E | M10d2, M10c, M05f2, M07b2, M08b2, M03c, M02b2 |
-| 104 | M11a1 | iphone-hardening-governor | 1 | E | M02b1, M03b1, M07a2, M04b5 |
-| 105 | M02h8 | xr-look-traa | 0.8 | E | M11a1, M02h7 |
-| 106 | M11a2 | iphone-hardening-governor | 1 | E | M11a1 |
-| 107 | M11b1 | webxr-port | 1 | E | M01c, M04b2, M11a1, M02h8 |
-| 108 | M11b3 | xr-ui-panels-comfort | 0.8 | E | M11b1, M06a5, M04e1, M04e4 |
-| 109 | M11b2 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b1, M07b2, M08b2, M11b3 |
-| 110 | M11b4 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b2, M09b1, M05b2 |
-| 111 | M12a1 | p1-identity-cloud-saves | 1 | F | M05d, M04b3, M06a1 |
-| 112 | M12a2 | age-register-cloud-save-ui | 0.5 | F | M12a1, M04b1 |
-| 113 | M06b2 | builder-images-review | 1 | F | M06b1, M12a1, M06a5 |
-| 114 | M06b3 | npc-builder-ui | 1 | F | M06b2, M04b2, M06a5, M06c |
-| 115 | M12b1 | rooms-core-protocol-v2 | 1 | F | M12a1, M05c2, M04a2, M04e0 |
-| 116 | M12b2 | rooms-core-protocol-v2 | 1 | F | M12b1, M04e3 |
-| 117 | M12c1 | rooms-hardening-presence-loadtest | 1 | F | M12b2 |
-| 118 | M12c2 | rooms-hardening-presence-loadtest | 1 | F | M12c1 |
-| 119 | M12d | online-page-invites | 0.3 | F | M12c1, M04b1 |
-| 120 | M12e | mode-leaderboards | 1 | F | M12c2, M07b1, M09a2 |
-| 121 | M13a1 | mod-sdk-manifest-validators | 1 | G | M04a2, M01d, M00e |
-| 122 | M13a2 | mod-installer-store-client | 1 | G | M13a1, M01e, M05d |
-| 123 | M13a3 | mod-runtime-data-experience | 1 | G | M13a2, M02c2, M12b1, M12c1, M04b2, M06a3 |
-| 124 | M13a4 | mod-script-sandbox | 1 | G | M13a3 |
-| 125 | M13a5 | mod-ui-tier | 1 | G | M13a3 |
-| 126 | M13a6 | mod-agent-kit | 1 | G | M13a4, M13a5 |
-| 127 | M13a7 | store-experience-pages | 0.7 | G | M13a3, M07b2, M04b1 |
-| 128 | M13b1 | forum-reports-backend | 1 | G | M05d, M06b1, M06b2, M13a2 |
-| 129 | M13b2 | forum-ugc-links | 0.8 | G | M13b1, M13a3, M02c2 |
-| 130 | M13b3 | creator-place-mode | 1 | G | M13a3, M04b2 |
-| 131 | M13b4 | forum-ui | 1 | G | M13b1, M04b1 |
-| 132 | M13c1 | device-code-publish-login | 0.8 | G | M12a1, M04b1, M13a2 |
-| 133 | M13c2 | publish-pipeline-server | 1 | G | M13c1, M13a1, M13b1, M13b2 |
-| 134 | M13c3 | publish-cli-link | 1 | G | M13c2, M13a6 |
-| 135 | M06b4 | builder-publish-assets | 0.5 | G | M13c2, M06b3, M10a1 |
-| 136 | M13d1 | legal-trust-safety-backend | 1 | G | M13b1, M06b2, M13c2 |
-| 137 | M13d2 | legal-forms-ui | 0.3 | G | M13d1, M04b1 |
-| 138 | M14c | a11y-audit-i18n-gate | 0.5 | H | M13d2, M13b4, M12d, M06b3, M11b3 |
-| 139 | M14b1 | launch-hardening-guardrails | 1 | H | M13d1, M06a4, M05b1 |
-| 140 | M14b2 | launch-hardening-guardrails | 1 | H | M14b1, M12c2 |
-| 141 | M14b3 | launch-hardening-guardrails | 1 | H | M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 |
-| 142 | M14a | thirdweb-siwe-link | 1 | H | M14b3, M12a1 |
-| 143 | M15a | bay-expansion-framework | 1 | I | M14a |
-| 144 | M15b | oakland-core | 1 | I | M15a |
-| 145 | M15c | berkeley-richmond | 1 | I | M15b |
-| 146 | M15d | marin-gateway | 1 | I | M15a |
-| 147 | M15e | peninsula-north | 1 | I | M15a |
-| 148 | M15f | peninsula-vc-row | 1 | I | M15e |
-| 149 | M15g | south-bay-san-jose | 1 | I | M15f |
+| 60 | M10d0 | art-admission | 1 | E | M00f, M01d, M02g2 |
+| 61 | M10a1 | roster-pipeline | 1 | E | M05b1, M06a2, M01d, M05c3 |
+| 62 | M02h1 | street-markings | 1 | B | M02g2, M02a2 |
+| 63 | M10d1 | art-integration | 1 | E | M10d0, M05c2, M03b2, M04b2 |
+| 64 | M10a2 | roster-pipeline | 1 | E | M10a1, M08b1 |
+| 65 | M02h2 | curbs-sidewalks | 1 | B | M02h1 |
+| 66 | M10d4 | art-integration | 1 | E | M10d1, M10d0, M10a1, M10a2, M03b2, M04b2, M02h2 |
+| 67 | M02h3 | ground-cover | 1 | B | M02h2, M02g2, M02a2 |
+| 68 | M10d5 | art-integration | 0.4 | E | M10d4, M10a2 |
+| 69 | M11a1 | iphone-hardening-governor | 1 | E | M02b1, M03b1, M07a2, M04b5 |
+| 70 | M02h4 | vegetation-forms | 0.75 | B | M02h3, M02g2 |
+| 71 | M02h5 | vegetation-scatter | 0.75 | B | M02h4, M02h3 |
+| 72 | M10d2 | art-integration | 1 | E | M10d4, M02h5, M02d2, M02e |
+| 73 | M02h6 | street-furniture-parking | 1 | B | M02h5, M02h2, M03b1, M10d1 |
+| 74 | M02h7 | facade-detail | 1 | B | M02h6, M02g2, M10d0 |
+| 75 | M02h8 | xr-look-traa | 0.8 | E | M11a1, M02h7 |
+| 76 | M06a1 | npc-backend-spine | 1 | D | M05d, M04b3 |
+| 77 | M06a2 | soul-contract-compiler | 1 | D | M00b, M01d |
+| 78 | M06a3 | dialogue-proxy | 1 | D | M06a1, M06a2 |
+| 79 | M06a4 | memory-voice-lipsync | 1 | D | M06a3, M04b2 |
+| 80 | M06a5 | dialogue-panel-ui | 0.3 | D | M06a3, M04b2 |
+| 81 | M06c | npc-agency-barks | 1 | D | M06a3, M03b2 |
+| 82 | M06b1 | builder-text-private | 1 | D | M06a3 |
+| 83 | M07a1 | racing-core-director-car | 1 | D | M03a2, M04a2, M04d, M02c1 |
+| 84 | M07a2 | racing-ai-replay-ghosts | 1 | D | M07a1, M03c, M05c1 |
+| 85 | M07b1 | racing-content-events-ladder | 1 | D | M07a2, M03b2 |
+| 86 | M07b2 | racing-garage-replay-photo-visuals | 1 | D | M07b1, M05b2 |
+| 87 | M07b3 | sandbox-tune | 0.5 | D | M07b2, M04e3, M04e5 |
+| 88 | M08a1 | fight-core-sim-data | 1 | D | M01a1, M05a1 |
+| 89 | M08a2 | fight-mode-training-vs | 1 | D | M08a1, M04a2, M04b2, M04d, M05c1 |
+| 90 | M08b1 | fight-roster-kits-ai | 1 | D | M08a2, M06a2 |
+| 91 | M08b2 | fight-stages-cutscenes-arcade | 1 | D | M08b1, M05b2 |
+| 92 | M08c1 | pose-pipeline-classifier | 1 | D | M08a2 |
+| 93 | M08c2 | pose-calibration-gate | 1 | D | M08c1 |
+| 94 | M09a1 | tycoon-core-finance | 1 | D | M01a1, M04a2, M04d |
+| 95 | M09a2 | tycoon-events-balance | 1 | D | M09a1, M04d |
+| 96 | M09b1 | tycoon-ui | 1 | D | M09a2, M04b2 |
+| 97 | M09b2 | tycoon-vc-story | 1 | D | M09b1, M06a3, M05a1, M05a2 |
+| 98 | M10b | qa-gates-kill-drill | 1 | E | M10a2, M08b2, M06a3, M05c4 |
+| 99 | M10c | roster-souls-ink-barks | 1 | E | M10a2, M06a4, M06c, M05c2 |
+| 100 | M10f | emote-wheel | 0.6 | E | M10d4, M04b2, M04e5 |
+| 101 | M10d3 | art-integration | 1 | E | M10d5, M10d2, M07b2, M08b2, M10a2 |
+| 102 | M05e1 | story-act2-part1 | 1 | E | M05c2, M07a2, M08b2, M09b2, M07b1 |
+| 103 | M05e2 | story-act2-part2 | 1 | E | M05e1 |
+| 104 | M05f1 | story-act3-part1 | 1 | E | M05e2, M10b |
+| 105 | M05f2 | story-act3-finale | 1 | E | M05f1 |
+| 106 | M10e | audio-integration | 1 | E | M10d2, M10d3, M10c, M05f2, M07b2, M08b2, M03c, M02b2 |
+| 107 | M11a2 | iphone-hardening-governor | 1 | E | M11a1 |
+| 108 | M11b1 | webxr-port | 1 | E | M01c, M04b2, M11a1, M02h8 |
+| 109 | M11b3 | xr-ui-panels-comfort | 0.8 | E | M11b1, M06a5, M04e1, M04e4 |
+| 110 | M11b2 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b1, M07b2, M08b2, M11b3 |
+| 111 | M11b4 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b2, M09b1, M05b2 |
+| 112 | M12a1 | p1-identity-cloud-saves | 1 | F | M05d, M04b3, M06a1 |
+| 113 | M12a2 | age-register-cloud-save-ui | 0.5 | F | M12a1, M04b1 |
+| 114 | M06b2 | builder-images-review | 1 | F | M06b1, M12a1, M06a5 |
+| 115 | M06b3 | npc-builder-ui | 1 | F | M06b2, M04b2, M06a5, M06c |
+| 116 | M12b1 | rooms-core-protocol-v2 | 1 | F | M12a1, M05c2, M04a2, M04e0 |
+| 117 | M12b2 | rooms-core-protocol-v2 | 1 | F | M12b1, M04e3 |
+| 118 | M12c1 | rooms-hardening-presence-loadtest | 1 | F | M12b2 |
+| 119 | M12c2 | rooms-hardening-presence-loadtest | 1 | F | M12c1 |
+| 120 | M12d | online-page-invites | 0.3 | F | M12c1, M04b1 |
+| 121 | M12e | mode-leaderboards | 1 | F | M12c2, M07b1, M09a2 |
+| 122 | M13a1 | mod-sdk-manifest-validators | 1 | G | M04a2, M01d, M00e |
+| 123 | M13a2 | mod-installer-store-client | 1 | G | M13a1, M01e, M05d |
+| 124 | M13a3 | mod-runtime-data-experience | 1 | G | M13a2, M02c2, M12b1, M12c1, M04b2, M06a3 |
+| 125 | M13a4 | mod-script-sandbox | 1 | G | M13a3 |
+| 126 | M13a5 | mod-ui-tier | 1 | G | M13a3 |
+| 127 | M13a6 | mod-agent-kit | 1 | G | M13a4, M13a5 |
+| 128 | M13a7 | store-experience-pages | 0.7 | G | M13a3, M07b2, M04b1 |
+| 129 | M13b1 | forum-reports-backend | 1 | G | M05d, M06b1, M06b2, M13a2 |
+| 130 | M13b2 | forum-ugc-links | 0.8 | G | M13b1, M13a3, M02c2 |
+| 131 | M13b3 | creator-place-mode | 1 | G | M13a3, M04b2 |
+| 132 | M13b4 | forum-ui | 1 | G | M13b1, M04b1 |
+| 133 | M13c1 | device-code-publish-login | 0.8 | G | M12a1, M04b1, M13a2 |
+| 134 | M13c2 | publish-pipeline-server | 1 | G | M13c1, M13a1, M13b1, M13b2 |
+| 135 | M13c3 | publish-cli-link | 1 | G | M13c2, M13a6 |
+| 136 | M06b4 | builder-publish-assets | 0.5 | G | M13c2, M06b3, M10a1 |
+| 137 | M13d1 | legal-trust-safety-backend | 1 | G | M13b1, M06b2, M13c2 |
+| 138 | M13d2 | legal-forms-ui | 0.3 | G | M13d1, M04b1 |
+| 139 | M14c | a11y-audit-i18n-gate | 0.5 | H | M13d2, M13b4, M12d, M06b3, M11b3 |
+| 140 | M14b1 | launch-hardening-guardrails | 1 | H | M13d1, M06a4, M05b1 |
+| 141 | M14b2 | launch-hardening-guardrails | 1 | H | M14b1, M12c2 |
+| 142 | M14b3 | launch-hardening-guardrails | 1 | H | M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 |
+| 143 | M14a | thirdweb-siwe-link | 1 | H | M14b3, M12a1 |
+| 144 | M15a | bay-expansion-framework | 1 | I | M14a |
+| 145 | M15b | oakland-core | 1 | I | M15a |
+| 146 | M15c | berkeley-richmond | 1 | I | M15b |
+| 147 | M15d | marin-gateway | 1 | I | M15a |
+| 148 | M15e | peninsula-north | 1 | I | M15a |
+| 149 | M15f | peninsula-vc-row | 1 | I | M15e |
+| 150 | M15g | south-bay-san-jose | 1 | I | M15f |
 
 ## 2. Dependency graph (acyclic; most transitive edges removed; full edges in §1)
 
@@ -278,6 +279,7 @@ flowchart LR
     M10d0
     M10d1
     M10d4
+    M10d5
     M10f
     M10d3
     M10d2
@@ -457,14 +459,16 @@ flowchart LR
   M10a2 --> M10c
   M06a4 --> M10c
   M06c --> M10c
-  M10d4 --> M10d3
+  M10d5 --> M10d3
+  M10d2 --> M10d3
   M07b2 --> M10d3
   M08b2 --> M10d3
-  M10a2 --> M10d3
-  M10d3 --> M10d2
+  M10d4 --> M10d2
+  M02h5 --> M10d2
   M02d2 --> M10d2
   M02e --> M10d2
   M10d2 --> M10e
+  M10d3 --> M10e
   M10c --> M10e
   M05f2 --> M10e
   M07b2 --> M10e
@@ -581,14 +585,18 @@ flowchart LR
   M07b2 --> M07b3
   M04e3 --> M07b3
   M10d4 --> M10f
-  M05c2 --> M02g1 --> M02g2 --> M02h1 --> M02h2 --> M02h3 --> M02h4 --> M02h5 --> M02h6 --> M02h7 --> M10d0 --> M10d1 --> M10d4
+  M05c2 --> M02g1 --> M02g2 --> M02h1 --> M02h2 --> M02h3 --> M02h4 --> M02h5 --> M02h6 --> M02h7
+  M02g2 --> M10d0 --> M10d1 --> M10d4 --> M10d5
+  M10d0 --> M02h7
+  M10d1 --> M02h6
+  M02h2 --> M10d4
+  M10a2 --> M10d5
   M02f2 --> M02g1
   M10a2 --> M10d4
   M02h8 --> M11b1
   M02d2 --> M02g2
   M03b1 --> M02h6
   M00f --> M10d0
-  M10a1 --> M10d0
   M11a1 --> M02h8
   M02h7 --> M02h8
   M04e0 --> M12b1
@@ -609,9 +617,9 @@ flowchart LR
 
 ## 3. Critical path and checkpoints
 
-**Critical path since DL-739** (look program, DL-OWN-07): M00 → … → M05c2 (19.0, unchanged) → M02g1 → M02g2 → M02h1 → M02h2 → M02h3 → M02h4 → M02h5 → M02h6 → M02h7 → M10d0 → M10d1 → M10d4 → M10d3 → M10d2 → M10e → M14b3 → M14a = **35.2 sessions** to the last v1 milestone (+5.4), and + M15a → M15e → M15f → M15g = **39.2** to the end of expansion. M05c3 left the path with DL-742 (−0.7). The Phase 0–1 chain (8.2 sessions, one row at a time, §0 rule 10) and the art chain M10d0 → M10d1 → M10d4 → M10d3 → M10d2 now set the path; the rooms → publish → legal chain (29.8) has 5.4 sessions of slack. M02h8 (ends at 28.0) now precedes M11b1 (DL-741), so the XR chain M11b1 → M11b3 → M11b2 → M11b4 ends at 31.2, 2.0 sessions before M14b3 starts; the M10a2 → M10d4 edge adds no length (M10a2 ends at 21.5). DL-750's split (M05c3 0.5, ends 19.5; M05c4 0.8, ends 20.3, feeds only M10b, which ends 22.5) adds no length.
+**Critical path since DL-755** (two look tracks, DL-OWN-09): M00 → … → M05c2 (19.0, unchanged) → M02g1 → M02g2 → M02h1 → … → M02h7 (27.2) → M02h8 (28.0) → M11b1 → M11b3 → M11b2 → M11b4 (31.2) → M14b3 → M14a = **33.2 sessions** to the last v1 milestone (−2.0 from DL-739's 35.2), and + M15a → M15e → M15f → M15g = **37.2** to the end of expansion. Track B no longer waits for M02h7: M10d0 ends at 21.7, M10d1 22.7, M10d4 23.7, M10d5 24.1, M10d2 26.2 (after M02h5, 25.2), M10d3 27.2 and M10e 28.2 (it now names M10d3), so the art chain has 3.0 sessions of slack before M14b3 (31.2) and the rooms → publish → legal chain (M14b2 ends 27.8) 3.4. The edges into Track A add no length: M10d0 → M02h7 has 4.5 sessions of slack, M10d1 → M02h6 2.5.
 
-**Critical path before DL-739:** M00 → M01a1 → M01a2 → M01c → M00d → M02a1 → M02a2 → M02b1 → M02b2 → M02c1 → M03a1 → M03b1 → M03c → M04a2 → M04b1 → M04c → M05b2 → M05c1 → M05c2 → M12b1 → M12b2 → M12c1 → M13a3 → M13b2 → M13c2 → M13d1 → M14b1 → M14b2 → M14b3 → M14a = 29.8 sessions, + M15a → M15e → M15f → M15g = 33.8 (DL-219, DL-348, DL-552); M00e, M00f, M01d2 and the study set added no length (DL-605, DL-638, DL-713, DL-716). The world bake (M02a1–M02c1), the city systems that `ModeHost` wires (M03b1–M03c) and the R-ROLL-01 gate (M05c2 before M12b1) sit on both paths, so they are not deferred.
+**Critical path before DL-739:** M00 → M01a1 → M01a2 → M01c → M00d → M02a1 → M02a2 → M02b1 → M02b2 → M02c1 → M03a1 → M03b1 → M03c → M04a2 → M04b1 → M04c → M05b2 → M05c1 → M05c2 → M12b1 → M12b2 → M12c1 → M13a3 → M13b2 → M13c2 → M13d1 → M14b1 → M14b2 → M14b3 → M14a = 29.8 sessions, + M15a → M15e → M15f → M15g = 33.8 (DL-219, DL-348, DL-552). The world bake (M02a1–M02c1), the city systems that `ModeHost` wires (M03b1–M03c) and the R-ROLL-01 gate (M05c2 before M12b1) sit on both paths, so they are not deferred.
 
 | Checkpoint | After | What must be true (proof) |
 |---|---|---|
@@ -632,11 +640,13 @@ At every checkpoint the Architect runs the three critic lenses on the next block
 
 **Rules.** Depends on (§1 and each milestone file) is unchanged and still decides merge order. Each dependency of a classified milestone is HARD (the milestone needs the merged code to build or to prove an AC) or SOFT (a stand-in is enough to build; the real dependency is needed only to re-prove). A milestone's **start-after set** is its HARD dependencies, including HARD dependencies that its Depends on omits. A milestone may START when every milestone in its start-after set is merged to `claude/build`; it builds against the stand-ins named below (a fixture, or a stub of at most 2 files, per SOFT dependency); before merge it rebases on `claude/build` with the real dependencies merged and re-runs every AC listed in the last column; every stand-in file is deleted or replaced at that rebase. A milestone that is not classified, or has no row below, starts when its whole Depends on is merged (DL-246). R-ROLL-01 and the owner gates (§5) still apply.
 
-**Classified set (2026-10-19, adversarially checked):** M02a1, M02a2, M02b1, M02b2, M02c1, M02d1, M02d2, M03a1, M03a2, M03b1, M03b2, M03c, M04a1, M04a2, M04b1, M04b2, M04c, M04d, M05a1, M05a2, M05d, M13a1. Every edge in this set is HARD, so no start-after set is smaller than its Depends on. M00e and M00f (rows 14–15, DL-605) are not classified: they start when their Depends on is merged, and §0 rule 7 still holds every milestone that touches `services/edge` until M00e has merged (M04b1, M05d and M13a1 name it in Depends on; it sits in wave 1, so no later wave moves):
+**Classified set (2026-10-19, adversarially checked):** M02a1, M02a2, M02b1, M02b2, M02c1, M02d1, M02d2, M03a1, M03a2, M03b1, M03b2, M03c, M04a1, M04a2, M04b1, M04b2, M04c, M04d, M05a1, M05a2, M05d, M13a1. Every edge in this set is HARD, so no start-after set is smaller than its Depends on. M00e and M00f (DL-605) are not classified; §0 rule 7 still holds every milestone that touches `services/edge` until M00e has merged. **Classified by DL-755 (2026-10-28, look fast-track):** M10d0, M10d4, M10d5:
 
 | ID | Start after (merged) | Stand-ins until merge (fixture or ≤ 2-file stub, per soft dep) | Re-prove at merge (ACs) |
 |---|---|---|---|
-| — | none qualifies yet; a row is added only when a later classification upholds a SOFT edge | — | — |
+| M10d0 | M00f, M01d | M02g2 (merge order only): none; its held paths (`_PLAN-3.md` Look program) wait for M02g2's merge | AC-1, AC-5, AC-6, AC-7, AC-8 |
+| M10d4 | M10d1, M10d0, M10a1, M03b2, M04b2 | M10a2: the merged Coast catalog rows without `model` (AC-7's fallback branch). M02h2: none; `peds/*` waits for its merge | AC-7, AC-8, AC-9, AC-10 |
+| M10d5 | M10d4 | M10a2: the same Coast stand-in | AC-3, AC-4 |
 
 **Start-after sets larger than Depends on** (HARD edges the Depends on omits; they bind the start, not the merge order, which the §1 run order already satisfies; the milestone files are corrected at the next Architect pass, DL-701):
 
@@ -666,13 +676,13 @@ At every checkpoint the Architect runs the three critic lenses on the next block
 | 14 | M05c2, M06a3, M07a2, M08a2, M12a1 |
 | 15 | M05c3, M06a4, M06a5, M06c, M06b1, M07b1, M08b1, M08c1, M09b2, M11a1, M12a2, M12b1, M13c1 |
 
-**Study set (DL-716; same method, merged rows count as done):** M01d3 wave 3; M04b4, M02f2 wave 11; M04e5, M04b5 wave 12; M04e0, M02f1 wave 13; M04e1 wave 14; M04e2, M04e3 wave 15; M04e4, M10f wave 16; M07b3 wave 17. The M04e5 edges of DL-732 (to M04e1–M04e4, M07b3 and M10f) and M04e3 → M12b2 move no wave (M04e5 is 12, M04e3 15, M12b2 stays 16). No existing wave moves: M12b1 stays 15 (M04e0 is 13), M11a1 15 (M04b5 is 12), M11b3 17 (M04e4 is 16).
+**Study set (DL-716; same method, merged rows count as done):** M01d3 wave 3; M04b4, M02f2 wave 11; M04e5, M04b5 wave 12; M04e0, M02f1 wave 13; M04e1 wave 14; M04e2, M04e3 wave 15; M04e4, M10f wave 16; M07b3 wave 17. The DL-732 edges move no wave, and no existing wave moves (M12b1 15, M11a1 15, M11b3 17, M12b2 16).
 
-**Look program (DL-739, amended by DL-741 and DL-742; same method):** M02g1 wave 15 (after M05c2, wave 14), M02g2 16, M02h1–M02h7 waves 17–23, M10d0 and M02h8 24, M10d1 and M11b1 25, M10d4 26. Behind them M10f moves 16 → 27, M10d3 to 27, M10d2 28, M10e 29, M14b3 30, M14a 25 → 31 and M15g 29 → 35; M05c2 stays in wave 14 and no row before M02g1 moves.
+**Look program (DL-739, amended by DL-741, DL-742 and DL-755; same method):** Track A unchanged: M02g1 wave 15 (after M05c2, wave 14), M02g2 16, M02h1–M02h7 waves 17–23, M02h8 24, M11b1 25. Track B now: M10d0 wave 2 (its start-after set is M00f and M01d), M10d1 15, M10d4 17, M10d5 18, M10d2 22 (after M02h5), M10d3 23. Behind them M10f moves 27 → 18, M10e 29 → 24, M14b3 30 → 29, M14a 31 → 30 and M15g 35 → 34; no row before M02g1 moves.
 
 **M05c4 (DL-750):** wave 16; no other wave moves.
 
-Before → after: M05d 1 → 12, M06a1 12 → 13, M06a3 13 → 14, M12a1 13 → 14, M13a2 11 → 13, M13c1 14 → 15, M06a4/M06a5/M06c/M06b1/M09b2/M12a2 14 → 15, M06b2 15 → 16, M06b3 16 → 17, M13b1 16 → 17, M13b4 17 → 18; every other wave is unchanged. M05c2 sits in wave 14, M14a in wave 25 and M15g in wave 29, before and after. **Critical path to M05c2:** 19.0 sessions from M00 before and after (the §3 chain up to M05c2), 15.0 from today counting M00d as a full session; to M14a 29.8 (25.8 from today), unchanged. The chain to M05c2 is one milestone wide from M02a1 to M02c1 and again at M04a2, so parallel Builders shorten the calendar only beside it (M04a1 now; M03a2 and M02d1–M02d2 beside M03b1–M03c; blocks D–G after wave 10), not the path itself.
+Before → after: M05d 1 → 12, M06a1 12 → 13, M06a3 13 → 14, M12a1 13 → 14, M13a2 11 → 13, M13c1 14 → 15, M06a4/M06a5/M06c/M06b1/M09b2/M12a2 14 → 15, M06b2 15 → 16, M06b3 16 → 17, M13b1 16 → 17, M13b4 17 → 18; every other wave is unchanged. M05c2 sits in wave 14, M14a in wave 25 and M15g in wave 29, before and after. The chain to M05c2 (19.0 sessions) is one milestone wide from M02a1 to M02c1 and again at M04a2, so parallel Builders shorten the calendar only beside it.
 
 ## 5. Tails and gates at a glance
 - **Multiplayer and auth tail (block F):** M12a1 → M12a2; M06b2 → M06b3 (need P1/P2 identity); M12b1 → M12b2 → M12c1 → M12c2 → M12d, M12e.

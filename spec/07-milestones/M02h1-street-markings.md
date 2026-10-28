@@ -16,7 +16,7 @@ Lines use `fwidth` antialiasing and fade with distance, so nothing sparkles. `fu
 - R-ENG-02: a render-object ledger per profile; `check:perf` stays green.
 
 ## Depends on
-- **M02g2:** the `roads` material with depth bias, the rank lifts, footprint fades, `tests/support/flicker.ts` and `docs/look/M02g2-render-ledger.json` (the baseline).
+- **M02g2:** the `roads` material with depth bias, the rank lifts, footprint fades, `tests/support/flicker.ts` and `docs/look/M02g2-render-ledger.json` (the ledger chain).
 - **M02a2:** `RoadEdge` (`lanes`, `laneWidthM`, `medianM`, `parkingSides`, flags), `Junction` (`control`, `stopApproaches`), `PedEdge` `Crosswalk` (`widthM`), and the synth roads.
 - Through M02g2: M02g1 (`layers`, `setLookLayer`, ledger shape, asphalt albedo) and M02e (surface table, `shot()`, goldens).
 - Contracts: C08 1.0 and C13 1.2, read unchanged.
@@ -33,6 +33,7 @@ Lines use `fwidth` antialiasing and fade with distance, so nothing sparkles. `fu
   - **Crosswalks:** one quad per `Crosswalk` ped edge, `widthM` wide, lifted 0.02 m † (`decalLiftM`), surface `Crosswalk`. A ladder pattern at `Signal` junctions, two transverse lines elsewhere †.
   - **Stop bars:** for each `stopApproaches` edge and each signal `inEdge`, a bar 0.40 m † deep from the centreline to the curb, 1.2 m † behind the crosswalk, surface `StopBar`.
   - New surface ids: `Junction` 35, `Crosswalk` 36, `StopBar` 37. `SURFACE_COUNT` (surfaces.ts:39) becomes 38; M02h2 takes 38–39.
+  - Bind new surfaces or list them `procedural` in M10d0's `config/world/surface-textures.json` (data only): `Junction` to asphalt, `Crosswalk` and `StopBar` procedural. If this row merges before M10d0, M10d0 binds them at its rebase (DL-755).
   - All inside the L0 `roads` object (≤ 6 objects per chunk); byte-identical across runs; `meshBytes` counts +8 B per road vertex; L1/L2 unchanged.
 - **Shader** (`look/markings.ts`, new, in M02g2's `roads` material at `look-materials.ts:152`):
   - `paintAA(d, halfW, fp)` takes its coverage from `fwidth(d)`. Once `pixelFootprint` is wider than the line, it blends to the line's mean coverage, never to 0. That blend is the distance fade.
@@ -46,7 +47,7 @@ Lines use `fwidth` antialiasing and fade with distance, so nothing sparkles. `fu
 - **Bridge (QA):** `look().markings` `{ mode: 'worn' | 'flat' | 'off', roadVerts, patches, crosswalks, stopBars }`; `setLookLayer('markings', on)`; a debug toggle `markings.aa` turns AA and fade off, to prove the flicker check detects sparkle.
 - **Shots:** `markings-near` (a synth four-lane signalised junction, 13:00 `clear`); `markings-graze` and `-b`, 0.05 m apart (a straight at 300 m, 1.6 m eye height).
 - **Goldens:** both shots at `desktop`, `mobile-low` and `xr-quest` (forced on the flat canvas, no immersive session): 6 PNGs at 256 × 144 in the look manifest.
-- **Ledger:** `@markings-ledger` writes `docs/look/M02h1-render-ledger.json` in M02g1's shape with `perLayer.markings`; baseline M02g2's `after`, `xr` from `__dvBridge.perf.live()`. Plan: +0 objects on every profile, road triangles ≤ +10 % †.
+- **Ledger:** `@markings-ledger` writes `docs/look/M02h1-render-ledger.json` in M02g1's shape with `perLayer.markings`; baseline the `after` of the ledger most recently merged at rebase, named in `baselineFrom` (M02g2's or M10d0's), `xr` from `__dvBridge.perf.live()`. Plan: +0 objects on every profile, road triangles ≤ +10 % †.
 - **Checklist:** `tools/ci/checklists/M02h1-iphone15.json`.
 
 ## Scope out
@@ -87,7 +88,7 @@ Lines use `fwidth` antialiasing and fade with distance, so nothing sparkles. `fu
   - at 640 × 360, the `markings-graze` pair flickers on ≤ 0.2 % † of road pixels at `desktop`, `mobile-low` and `xr-quest`;
   - with `markings.aa` off, the pair exceeds that bound
   - — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @markings-golden`
-- AC-6 Given the committed ledger When `@markings-ledger` toggles the layer, flat and in the `@xr` case Then `baseline` equals M02g2's `after`, the markings delta is 0 objects on every profile, `mobile-low` `after` ≤ 100, `xr` `after` equals `baseline`, and road triangles grow ≤ 10 % — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @markings-ledger && DV_WORLD=synth pnpm check:e2e:xr`
+- AC-6 Given the committed ledger When `@markings-ledger` toggles the layer, flat and in the `@xr` case Then `baseline` equals the `after` named in `baselineFrom`, the markings delta is 0 objects on every profile, `mobile-low` `after` ≤ 100, `xr` `after` equals `baseline`, and road triangles grow ≤ 10 % — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @markings-ledger && DV_WORLD=synth pnpm check:e2e:xr`
 - AC-7 Given the same build When every perf scenario runs in fail mode Then every flat tier is within budget — proof: `DV_WORLD=synth pnpm check:perf -- --fail`
 - AC-8 Given the regenerated look goldens (`golden-update` label) When the earlier suites run Then `@look-golden`, `@look-fixes`, `@world-look`, `@world-sky`, `@world-route` and `@world-backdrop` pass, and `@xr @world-markings` reports `flat` on `xr-quest3` — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@look-golden|@look-fixes|@world-look|@world-sky|@world-route|@world-backdrop" && DV_WORLD=synth pnpm check:e2e:xr`
 - AC-9 Given the untouched sim When the determinism suites run Then the state hashes equal the parent commit's — proof: `pnpm --filter @dv/engine test:determinism && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-hash`

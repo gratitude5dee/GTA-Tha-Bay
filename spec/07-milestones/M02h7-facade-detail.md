@@ -1,7 +1,7 @@
 # M02h7 — facade-detail
 
 ## Goal
-After this session SF buildings stop reading as boxes with a printed window grid (DL-OWN-07, Phase 1). Street shop walls get a storefront with a plain sign panel and an awning; flat-roof walls a cornice; ResLow and ResMid street walls bay windows; reveals a recess bump; storefront and bay glass reflect the sky through M02g1's `skyReflect`. All procedural, inside the existing `buildings` object: 0 added render objects, no texture, fal or contract change; M10d2's atlas hook keeps working. Interior mapping and rooftop clutter are deferred.
+After this session SF buildings stop reading as boxes with a printed window grid (DL-OWN-07, Phase 1). Street shop walls get a storefront with a plain sign panel and an awning; flat-roof walls a cornice; ResLow and ResMid street walls bay windows; reveals a recess bump; storefront and bay glass reflect the sky through M02g1's `skyReflect`. All procedural, inside the existing `buildings` object: 0 added render objects, no new texture asset, fal or contract change; the walls take M10d0's brick and stucco sets through the new `albedo` seam, and M10d2's atlas hook keeps working. Interior mapping and rooftop clutter are deferred.
 
 ## Requirements
 - R-MAP-01: storefronts, awnings, cornices and bays make streets read as San Francisco.
@@ -11,6 +11,7 @@ After this session SF buildings stop reading as boxes with a printed window grid
 - R-ENG-02: a render-object and triangle ledger per profile; `check:perf` green.
 
 ## Depends on
+- **M10d0** (DL-755): `withSurfaceTextures`, `config/world/surface-textures.json` and its coverage test, the `brick` and `stucco` sets. Merged about 4.8 sessions before this row starts.
 - **M02g2:** depth-bias rules, footprint fades, `tests/support/flicker.ts`, the ledger chain.
 - **Run order (`_PLAN.md` §0 rule 10):** after M02h6 (Phase 1 rows share `mesher.ts`, `surfaces.ts`, `look.json`, `look-shots.json` and the ledger chain).
 - Through M02g2: M02g1 (`look/sky-reflect.ts`, `look/windows.ts`, `setLookLayer`, ledger shape, `@look-owner`) and M02e (`facade.ts`, `FacadeAtlasHook`, `surf`/`facade` arrays, `shot()`, `@look-golden`).
@@ -36,19 +37,20 @@ Evidence: capture study "Buildings and facades" (frame `desktop-02`, Market & 4t
   - **`min` (`mobile-low`):** bands only from `facade.v` and `FLAG_SHOP` (shopfront, awning stripe, sign, night emissive), ≤ 8 ALU.
   - **Awning:** a branch on `Awning`, roughness 0.8 †, wet from `uWet`.
 - **M10d2 seam:** `wallNodes` takes `albedo?: (base: L) => L`, applied only to the wall albedo (`:173`), never to awning, sign, glass, trim or emissive; built from `FacadeAtlasHook.get()` on `full` and `lite`, never `min`; `null` leaves the graph unchanged.
+- **Wall textures** (moved here from M10d0, DL-755): the seam calls `withSurfaceTextures` for the wall albedo (`base × detail`), on `full` and `lite` only: brick on `wall.Commercial`, `wall.Industrial` and `wall.Civic`, stucco on `wall.ResLow` and `wall.ResMid`, moved from `procedural[]` to `bindings` in `surface-textures.json`; `Awning` joins `procedural[]`. **Atlas `mobile` variant:** no edge joins this row and M10d2; if M10d2 has merged, this row binds that variant on `mobile` through the seam and carries M10d2's `@art-skyline ?tier=mobile` case, else M10d2 does.
 - **Bridge (QA):** `look().facade` `{ kit, shopWalls, awnings, bays, cornices, kitTriangles, minBands }`; `setLookLayer('facade', on)` re-meshes once.
 - **Shots** (synth, `look-shots.json`, positions in a BD row): `facade-shopfront` and `facade-bays` at 13:00 `clear`, `facade-night` at 22:00, and a `facade-graze` pair 0.05 m apart for `flicker.ts`.
 - **Ledger:** `@facade-ledger` writes `docs/look/M02h7-render-ledger.json` in M02g1's shape with `perLayer.facade` and building triangles (`DV_LOOK_WRITE=1` writes, else checks); baseline the latest merged ledger's `after`, `xr` from `__dvBridge.perf.live()`. Plan: +0 objects on desktop, mobile, mobile-low (≤ 100) and legacy; building triangles ≤ +35 % † desktop, ≤ +20 % † mobile, +0 mobile-low and legacy; shadow passes unchanged.
 
 ## Scope out
 - Interior mapping, rooftop clutter, fire escapes, garage doors: a later file through the Architect.
-- Facade KTX2 atlas and its mobile variant: M10d2. Licensed PBR sets: M10d0. L1/L2 massing. `xr` profile: M02h8.
+- Facade KTX2 atlas: M10d2 (the later of the two binds its `mobile` variant). The PBR sets themselves: M10d0. L1/L2 massing. `xr` profile: M02h8.
 - Street layers: M02h1–M02h6. Story-start lighting, HUD icons (DL-738), fal or licensed assets.
 
 ## Deliverables
 - New `packages/world/src/client/chunks/facade-kit.ts`. Edits: `chunks/{mesher.ts, mesh-types.ts, chunk-renderer.ts}`, `look/{facade.ts, look-materials.ts, surfaces.ts, config.ts, windows.ts, look-view.ts}`, `client/world-bridge.ts`.
 - Tests: `packages/world/test/{facade.kit.spec.ts, facade.street.spec.ts, facade.materials.spec.ts}`, edits to `look.surfaces.spec.ts` and `look.materials.spec.ts`; `tests/e2e/world-facade.spec.ts` (`@world-facade`, `@facade-golden`, `@facade-ledger`, one `@xr @facade-ledger` case).
-- Data (not counted): `look.json`, `mesher.json`, schemas, shots, goldens in `tests/e2e/golden/facade/`, flicker baseline, ledger, BD rows. No new script, dependency or asset.
+- Data (not counted): `look.json`, `mesher.json`, `surface-textures.json` (wall bindings), schemas, shots, goldens in `tests/e2e/golden/facade/`, flicker baseline, ledger, BD rows. No new script, dependency or asset.
 
 ## Interfaces
 - C08 1.1 (`BuildingRecord`, `SimChunk.segments`) and C13 1.2 (`TierBudget`) read unchanged. `FacadeAtlasHook` keeps its shape; the seam, flags, `Awning`, `kitTriangles`, config keys and bridge field are S02 internals.
@@ -61,11 +63,12 @@ Evidence: capture study "Buildings and facades" (frame `desktop-02`, Market & 4t
   - awnings sit only on street-passing `FLAG_SHOP` walls, bays only on ResLow/ResMid street walls at or above `groundFloorM`, cornices only on `desktop` flat-roof ResMid/Commercial/Civic walls;
   - in the fixtures only the 10 m wall qualifies, the touching bay is skipped, and a shrinking allowance drops cornice, then bay, then awning;
   - no building exceeds `trisPerBuilding + kit.trisPerBuilding`, and every surface id is in the table — proof: `pnpm map:build -- --area synth && pnpm map:build -- --area civic-excerpt && pnpm check:unit -- packages/world`
-- AC-3 Given `createLookMaterials` for `full`, `lite` and `min` When `facade.materials` runs Then every material builds, the bump exists only on `full`, `facade.ts` imports `skyReflect` from `look/sky-reflect.ts` and defines none of its own, the `albedo` seam is called once on `full` and `lite` and never on `min`, a `null` hook creates no texture node, and `look.no-fetch` passes — proof: `pnpm check:unit -- packages/world/test/facade.materials.spec.ts packages/world/test/look.materials.spec.ts`
+- AC-3 Given `createLookMaterials` for `full`, `lite` and `min` When `facade.materials` runs Then every material builds, the bump exists only on `full`, `facade.ts` imports `skyReflect` from `look/sky-reflect.ts` and defines none of its own, the `albedo` seam is called once on `full` and `lite` and never on `min`, a `null` hook with textures off creates no texture node, with the wall bindings the seam samples brick and stucco on `full` and `lite`, the coverage test of `textures.config` passes, and `look.no-fetch` passes — proof: `pnpm check:unit -- packages/world/test/facade.materials.spec.ts packages/world/test/look.materials.spec.ts packages/world/test/textures.config.spec.ts`
 - AC-4 Given a QA `synth` build When `@world-facade` runs at `?tier=desktop`, `mobile` and `mobile-low` on `chromium-webgl2` and `webkit-webgl2` Then:
   - `desktop` and `mobile` report `kit: true` with awnings, bays and shop walls > 0, and cornices > 0 only at `desktop`;
   - `mobile-low` reports `kit: false`, `kitTriangles: 0`, `minBands: true`; `setLook(false)` reports `kit: false`;
   - sign emissive is > 0 at 22:00 and 0 at 13:00; `skyReflect` is true wherever `envMap` is false;
+  - `look().textures.sets` holds `brick` and `stucco` at `desktop` and `mobile` and neither at `mobile-low`;
   - the `facade-graze` pair flickers at most 10 % over its committed baseline — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-facade && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @world-facade`
 - AC-5 Given committed facade goldens (`golden-update` label) When `@facade-golden` (three shots × `desktop`, `mobile`, `mobile-low`) and the regenerated `@look-golden` run on `chromium-webgl2` and `@look-owner` on `webkit-webgl2` Then every shot is within M02e's tolerance, repeats are byte-identical, and a different synth `bakeId` fails naming both — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@facade-golden|@look-golden" && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @look-owner`
 - AC-6 Given every perf scenario in fail mode and the committed ledger When `@facade-ledger` runs flat and in the `@xr` case Then every tier is in budget, the object delta is 0 on all four profiles, `mobile-low` stays ≤ 100, `xr` `after` equals `baseline`, and building triangles grow ≤ 35 % (`desktop`), ≤ 20 % (`mobile`), 0 (`mobile-low`) — proof: `DV_WORLD=synth pnpm check:perf -- --fail && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @facade-ledger && DV_WORLD=synth pnpm check:e2e:xr`
@@ -88,7 +91,7 @@ How to see it:
 5. Reload with `&tier=mobile-low`: flat shopfront bands only.
 
 ## Effort
-1 Builder session; ≈ 17 code files; risk **medium-high** (geometry on real footprints, triangle growth, golden churn). Order: street test, awnings, bays, cornices, shader bands, bump, glass, seam, bridge, goldens, ledger. Short on time: cornices become the shader band (BD row), then the bump goes.
+1 Builder session; ≈ 19 code files; risk **medium-high** (geometry on real footprints, triangle growth, golden churn). Order: street test, awnings, bays, cornices, shader bands, bump, glass, seam, bridge, goldens, ledger. Short on time: cornices become the shader band (BD row), then the bump goes.
 
 ## Risks & fallbacks
 - **Triangles over plan:** lower `kit.trisPerBuilding` (data), then one bay per wall. Never raise a budget.
@@ -97,8 +100,8 @@ How to see it:
 - **Concave cornice mitres:** skip that ring's cornice. **Bump shimmer:** tighter `detailK`. **Flaky goldens:** nightly, bridge counts in the PR suite (DL row).
 
 ## Notes for the Builder
-- Read first: `02-world-bake.md` §4, §6; `02-world.md` §5.2–§5.4; `11-platform.md` §4.5; M02e, M02g1, M02g2; DL-704; DL-OWN-07.
+- Read first: `02-world-bake.md` §4, §6; `02-world.md` §5.2–§5.4; `11-platform.md` §4.5; M02e, M02g1, M02g2, M10d0, M10d2; `_PLAN-3.md` Look program; DL-704; DL-OWN-07, DL-OWN-09.
 - Verify TSL `bumpMap` in `three@0.186.1` (the audit lists it); if absent, a `dFdx`/`dFdy` normal in TSL plus a spec/03 §7 row.
-- The mesher stays deterministic and `three`-free; sim, collision and C08 prisms are untouched. Rebase hotspot: M02h1–M02h6 also edit `mesher.ts` and `surfaces.ts`.
-- Original content only: authored colours, no text or brand shape; the target image is never committed, sampled or fed to fal; no licensed or fal asset.
+- The mesher stays deterministic and `three`-free; sim, collision and C08 prisms are untouched. Rebase hotspot: M02h1–M02h6 also edit `mesher.ts` and `surfaces.ts`; M10d0's `art-hook` lines in `look-materials.ts` stay as they are.
+- Original content only: authored colours, no text or brand shape; the target image is never committed, sampled or fed to fal; no new licensed or fal asset.
 - Goldens: `DV_UPDATE_GOLDEN=1` outside CI under `golden-update`. Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for AC-9 and AC-10 (SKIP locally). Branch `m02h7-facade-detail`.

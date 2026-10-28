@@ -26,7 +26,7 @@ Code only: $0 fal, no asset or dependency, no contract shape change.
 
 - **Form class** (`packages/shared/src/world/tree-form.ts`, pure):
   - `TreeForm`: Plane 0, Ficus 1, Conifer 2, Eucalyptus 3, Palm 4; 5–255 reserved (meshed as Plane).
-  - `formOfSpecies(name, table)` matches the lowercased genus (first word of the botanical name) against `config/world/tree-forms.json` (with schema).
+  - `formOfSpecies(name, table)` matches the lowercased genus (first word of the botanical name) against `config/world/tree-forms.json` (with schema). Each form takes an optional `asset` (an `AssetRef`, absent by default, so every form stays procedural): a later Track B import may swap a near LOD there without touching the mesher (DL-755; unscheduled).
   - Rows †: `platanus` → Plane; `ficus` → Ficus; `cupressus`, `pinus`, `sequoia` → Conifer; `eucalyptus` → Eucalyptus; `phoenix`, `washingtonia`, `syagrus` → Palm.
   - No match: a hash-keyed split (Plane 0.6 †, Ficus 0.4 †). OSM: `species`, then `genus`; `leaf_type=needleleaved` → Conifer.
 - **Bake (S3):**

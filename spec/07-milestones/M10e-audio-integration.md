@@ -11,7 +11,8 @@ After this session every audio set the game needs is final v1 audio or a recorde
 - R-IP-01: every new audio file has a provenance record, an admitted licence or a work-for-hire record, and passes `ip:strings` and `names:lint`.
 
 ## Depends on
-- **M10d2:** `assets:final` (`tools/assets/src/final.ts`, `artFinal()` rules 1–3), `config/art-placeholders.json` and its schema; through it **M10d1**, **M10d4** and **M10d3** (stage refs on final dioramas).
+- **M10d2:** `assets:final` (`tools/assets/src/final.ts`, `artFinal()` rules 1–3), `config/art-placeholders.json` and its schema; through it **M10d1**, **M10d4** and **M10d5**.
+- **M10d3** (named since DL-755 put it after M10d2): stage refs on final dioramas, and the last art rows filled, so rules 1–3 pass for AC-3.
 - **M07b2:** racing rows of `content/audio/needs.json`, placeholder racing audio with provenance, `packages/modes/racing/src/client/audio-mixer.ts`.
 - **M08b2:** six `content/fighter/stages/<id>.json` with `music`, `ambience` and `crowd`; announcer and talk subtitles (FX9).
 - **M05f2:** all three acts compiled; through it **M05a1** (`missions:build` writes `content/audio-needs/story.json`) and the DirectorScripts with `music?` cues.

@@ -50,7 +50,7 @@ Code: `sources.json:168` fetches only `natural=coastline,water,tree`; `s3-water.
 - **Thinning** (bit 7 only, positional hash): `scatterKeep` † 1/0.7/0.5/0.35 and `shrubKeep` † 1/0.6/0.3/0.25 for full/lite/min/legacy.
 - **Switch and QA:** `world.scatter` flag (default `true`; `false` skips bit 7 and impostors) in `tier-config.ts`; `setLookLayer('scatter' | 'impostors', on)`; `look().vegetation` gains impostor, shrub, hedge, band-write and per-pool triangle counts. Synth shot `park-forest` (13:00 `clear`) at `desktop` and `mobile-low`. `sf` shots, not goldens: `sf-ggp-woods` about x −4960, z 1090; `sf-presidio-woods` about x −3580, z −1350 (BD row).
 - **Synth** gains one case of every source above.
-- **Ledger:** `@scatter-ledger` writes `docs/look/M02h5-render-ledger.json` in M02g1's shape (`DV_LOOK_WRITE=1`); the baseline is M02h4's `after`. Plan: objects `desktop` ≤ +4, `mobile` ≤ +3, `mobile-low` ≤ +1 (≤ 100 total), `legacy` and `xr` +0; `park-forest` vegetation triangles ≤ 1.2M / 250k / 60k †.
+- **Ledger:** `@scatter-ledger` writes `docs/look/M02h5-render-ledger.json` in M02g1's shape (`DV_LOOK_WRITE=1`); the baseline is the `after` of the ledger most recently merged at rebase, named in `baselineFrom`. Plan: objects `desktop` ≤ +4, `mobile` ≤ +3, `mobile-low` ≤ +1 (≤ 100 total), `legacy` and `xr` +0; `park-forest` vegetation triangles ≤ 1.2M / 250k / 60k †.
 
 ## Scope out
 - Vegetation collision (unowned).

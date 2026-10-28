@@ -1,7 +1,7 @@
 # M02h2 — curbs-sidewalks
 
 ## Goal
-After this session streets have edges: a 0.10–0.12 m curb with a gutter wherever a carriageway has a sidewalk, and sidewalk ribbons built from the C08 `PedEdge` graph instead of the 4 m ground-class grid. Lots and plazas are shaded apart; ground gets bump normals from the existing noise heights and a 50–200 m macro variation. DL-OWN-07 Phase 1, session 2: code only, no texture or fal, 0 added render objects, no contract change. Licensed PBR sets (DL-OWN-06) plug into these surface ids in M10d0.
+After this session streets have edges: a 0.10–0.12 m curb with a gutter wherever a carriageway has a sidewalk, and sidewalk ribbons built from the C08 `PedEdge` graph instead of the 4 m ground-class grid. Lots and plazas are shaded apart; ground gets bump normals from the existing noise heights and a 50–200 m macro variation. DL-OWN-07 Phase 1, session 2: code only, no texture or fal, 0 added render objects, no contract change. Licensed PBR sets (DL-OWN-06, M10d0) bind to these surface ids: concrete on the sidewalk ribbons, curbs and gutters, pavers on lots and plazas.
 
 ## Requirements
 - R-MAP-01: city blocks read as built streets: curbs, gutters and sidewalks frame the carriageway; lots and plazas differ from sidewalks.
@@ -28,7 +28,7 @@ Evidence: capture study "Ground, sidewalks and curbs" (frames `desktop-03-third-
   - curb face `curb.heightM` † 0.11 (schema range 0.10–0.12) above the road ribbon, `curb.topM` † 0.3 top band, a 2 cm bevel on desktop; foot AO from M02g2's `aoRing()`;
   - gutter: `addRibbon` emits the outer `gutterM` † 0.35 of each curbed side as an edge-adjacent strip (shared edge, no overlap);
   - `low` (`mobile-low`): a flat strip 0.02 m † above the road with a painted curb band in vertex colour, no curb faces.
-- **Surface ids** (`look/surfaces.ts`): `Curb` 38, `Gutter` 39, `Lot` 40, `Plaza` 41; `SURFACE_COUNT` 42. `look.json` `ground` gains the keys `Curb`, `Gutter`, `Lot` and `Plaza` (the map is already keyed by name, so there is no shape change).
+- **Surface ids** (`look/surfaces.ts`): `Curb` 38, `Gutter` 39, `Lot` 40, `Plaza` 41; `SURFACE_COUNT` 42. `look.json` `ground` gains the keys `Curb`, `Gutter`, `Lot` and `Plaza` (the map is already keyed by name, so there is no shape change). Bind new surfaces or list them `procedural` in M10d0's `config/world/surface-textures.json` (data only): `Curb` and `Gutter` to concrete, `Lot` and `Plaza` to pavers; `sidewalk` stays on concrete. If this row merges before M10d0, M10d0 binds them at its rebase (DL-755).
 - **Lots and plazas** (terrain `surf`): a `Paved` post within 8 m † of a `Plaza` ped edge or `PedNodeFlag.Plaza` node is `Plaza` (0.6 × 0.3 m † running-bond pavers), every other `Paved` post `Lot` (darker worn concrete, oil stains, patch seams); `Sidewalk` keeps the 1.5 m slabs; `min` uses `mesher.json` class colours.
 - **Bump normals** (`look/ground.ts`, `look-materials.ts`):
   - `groundNodes` returns a `height`: the aggregate, slab-joint, crack, paver and grass-clump terms that already exist;
@@ -38,7 +38,7 @@ Evidence: capture study "Ground, sidewalks and curbs" (frames `desktop-03-third-
 - **Macro variation** (new pure `chunks/macro.ts`, mirrored in TSL in `look/noise.ts`): `macroTone(x, z)`, a world-space value-noise fbm with 200 m and 50 m † octaves, albedo ±8 % † and roughness ±0.04 † on asphalt, sidewalk, curb, lot, plaza and grass; shader on `full` and `lite`, baked into vertex colours by the mesher on `min`.
 - **Render feet** (render only; sim and heightfield untouched): the mesher returns a per-chunk `walk` lift mask (1 m cells, 8 KiB); peds and the on-foot player figure draw with it (the BD row names the player-figure file).
 - **QA:** `look().curbs` `{ribbons, curbedM, rampCount}`; `setLookLayer` ids `curbs`, `bump`, `macro`, `lots`; `synth` shots `curb-corner` and `lot-plaza` in `@look-golden` at `desktop` and `mobile-low` (4 PNGs); existing look and `@look-owner` goldens regenerated under `golden-update`.
-- **Ledger:** `@curbs-ledger` writes `docs/look/M02h2-render-ledger.json` in M02g1's shape (`DV_LOOK_WRITE=1` writes it, otherwise the test checks it). The baseline is M02h1's `after`. Planned per profile (desktop, mobile, mobile-low, legacy): +0 objects. Triangles: ≤ +20,000 † per L0 chunk on desktop and ≤ +4,000 on `mobile-low`.
+- **Ledger:** `@curbs-ledger` writes `docs/look/M02h2-render-ledger.json` in M02g1's shape (`DV_LOOK_WRITE=1` writes it, otherwise the test checks it). The baseline is the `after` of the ledger most recently merged at rebase, named in `baselineFrom`. Planned per profile (desktop, mobile, mobile-low, legacy): +0 objects. Triangles: ≤ +20,000 † per L0 chunk on desktop and ≤ +4,000 on `mobile-low`.
 
 ## Scope out
 - Markings, crosswalks, the junction patch: M02h1. Ground cover and driveways: M02h3. Path and Stairs ribbons: not scheduled in v1 (DL-740). Trees and verges: M02h4/M02h5. Furniture and parked cars: M02h6. `xr` profile: M02h8.

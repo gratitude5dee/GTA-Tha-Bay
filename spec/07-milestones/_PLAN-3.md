@@ -182,9 +182,19 @@
 
 Gates for all M15 scopes: R-MAP-02; OSM/DataSF-equivalent sources and attribution per area (licence check per source before bake).
 
-## Look program (owner decision 2026-10-26, DL-OWN-07, DL-739; run order `_PLAN.md` §0 rule 10)
+## Look program (owner decisions DL-OWN-07, 2026-10-26, and DL-OWN-09, 2026-10-28; DL-739, DL-755; `_PLAN.md` §0 rule 10)
 
-Phase 0–1 rows sit in block B (rows 58–66, after M01d3) and run one at a time; M10d0, M10d1 and M10d4 sit in block E (rows 93–95, before M10f); M02h8 follows M11a1 (row 105). Each Phase 0–1 row writes `docs/look/<id>-render-ledger.json` with the previous row's `after` as its baseline; `mobile-low` stays ≤ 100 render objects and `legacy` adds 0.
+M02g1 is row 58 (merged). Rows 59–75 interleave two tracks and the Coast rows: 59 M02g2 · 60 M10d0 · 61 M10a1 · 62 M02h1 · 63 M10d1 · 64 M10a2 · 65 M02h2 · 66 M10d4 · 67 M02h3 · 68 M10d5 · 69 M11a1 · 70 M02h4 · 71 M02h5 · 72 M10d2 · 73 M02h6 · 74 M02h7 · 75 M02h8. M10d3 (row 101) and M10f (row 100) keep their places after M07b2 and M08b2; M11b1 still follows M02h8.
+
+**Rules (DL-755, amending rule 10):**
+1. **Two tracks.** Track A (street code): M02g2 → M02h1 → M02h2 → M02h3 → M02h4 → M02h5 → M02h6 → M02h7 → M02h8. Track B (art): M10d0 → M10d1 → M10d4 → M10d5 → M10d2. Rows of one track run one at a time, in that order; a Track A row and a Track B row may run at the same time. A third Builder runs M10a1 → M10a2, then M11a1, which is pulled into the look window as M02h8's prerequisite (no file overlaps either track; if only the Track B Builder is free, it takes M11a1 in its idle gap).
+2. **Track B never edits** `chunks/{mesher,mesh-types,chunk-renderer}.ts`, `look/{surfaces,ground,facade}.ts`, `config/world/{look,look-shots,mesher}.json` or the `tools/map` bake files (M10d2's S11 cards come after M02h5, Track A's last bake row), and adds no surface id. It edits Track A files only at the M10d0 hook sites, each fenced by an `art-hook` comment: one `withSurfaceTextures(surface, nodes)` call site in `look/look-materials.ts` (≤ 20 lines), one line in `world-view.ts`, the `look().textures` getter in `world-bridge.ts`, and the no-texture clause of `tests/e2e/world-look.spec.ts`, which reads `look().textures?.refs ?? []`.
+3. **Holds.** A held path is edited only after the named row has merged; a hold is SOFT for the start (`_PLAN.md` §4). M10d0 holds `packages/world/src/client/**`, `tests/e2e/world-look.spec.ts`, `tests/e2e/golden/look/*` and `docs/look/` until M02g2 merges; M10d4 holds `packages/world/src/client/peds/*` until M02h2 merges.
+4. **Merge order.** The tracks merge in their own order, not the interleaved §1 order. Each PR rebases on the latest `claude/build` and re-proves its ledger, golden and art ACs.
+5. **Ledger.** Each baseline is the `after` of the ledger most recently merged to `claude/build` at rebase; a `baselineFrom` field names that row. `mobile-low` stands at 87 render objects (M02g1's `after`); the planned deltas sum to 95 of the 100 allowed whatever the merge order (M02h4 +2, M02h5 +1, M02h6 +3, M10d1 +2, every other row +0); `legacy` adds 0.
+6. **Goldens** (DL-742 pattern). The later of two concurrent look rows regenerates `tests/e2e/golden/look/*` and every look suite it changes under the `golden-update` label, and re-runs the other row's golden ACs.
+7. **Surface binding.** M10d0's coverage test needs every `SURFACE_NAMES` entry in `config/world/surface-textures.json` `bindings` or `procedural[]`. A Track A row that adds a surface after M10d0 has merged fails `check:unit` until it binds or lists it; a surface that merged first is bound by M10d0 at its rebase. M02h1 binds `Junction`, M02h2 `Curb`, `Gutter`, `Lot` and `Plaza`, M02h3 its cover classes, and M02h7 the walls (brick and stucco) through its `albedo` seam.
+8. **Pairs without an edge.** M10d2 and M02h7: the later to merge binds the façade atlas's `mobile` variant through M02h7's seam and carries the `@art-skyline ?tier=mobile` case. M10d0 and M10a1 both write `config/guardrails.yaml` `genai.lines` with identical values: the later drops the duplicate and re-runs M10d0 AC-10 or M10a1 AC-9.
 
 ### M02g1 · look-tune — 1 · risk H · S02 (+S11, S03) (Phase 0 A)
 - **Goal:** per-weather grade and haze, Karl fog no longer replacing the sky, blob shadows on every flat tier and desktop casters, analytic `skyReflect`, a fitted chase camera, dawn window ratio, real asphalt albedo; m.a1.01 releases the clock at `truck`, so fog burns off on the first drive (the dawn clip key is unchanged, AC-9).
@@ -222,29 +232,34 @@ Phase 0–1 rows sit in block B (rows 58–66, after M01d3) and run one at a tim
 - **Gate** AC-11 operator `sf` re-bake and publish, R2 keys · **Proof** `@world-scatter`, `@scatter-ledger`; `DV_WORLD=synth pnpm check:perf -- --fail`
 
 ### M02h6 · street-furniture-parking — 1 · risk H · S02 (+S01) (Phase 1)
-- **Goal:** signal masts with live aspects, stop signs, hydrants, meters, shelters, benches, poles, desktop trolley wires, and render-only parked cars on `parkingSides`, in global pools (DL-740 readings: rule 12, mesher-time fill, outside `CrowdLimits`).
-- **R** R-MAP-01, R-MAP-04, R-ENG-02, R-PLAT-05 (s), R-IP-01 · **Dep** M02h5, M02h2, M03b1 · **Read** file `M02h6-street-furniture-parking.md`; `02-world-contracts.md` rules 10–12; `02-world-living.md` §1.4, §2.6, §4 · **Out** `packages/shared/src/world/furniture.ts`, `packages/world/src/client/furniture/`, `traffic/parked-dressing.ts` · **C** C08 1.0, C13 1.2, C06 1.1 (read)
+- **Goal:** signal masts with live aspects, stop signs, hydrants, meters, shelters, benches, poles, desktop trolley wires, and render-only parked cars on `parkingSides` (one instanced mesh per M10d1 family; car family only on `min`), in global pools (DL-740 readings: rule 12, mesher-time fill, outside `CrowdLimits`).
+- **R** R-MAP-01, R-MAP-04, R-ENG-02, R-PLAT-05 (s), R-IP-01 · **Dep** M02h5, M02h2, M03b1, M10d1 (parked dressing on its families; DL-755) · **Read** file `M02h6-street-furniture-parking.md`; `02-world-contracts.md` rules 10–12; `02-world-living.md` §1.4, §2.6, §4 · **Out** `packages/shared/src/world/furniture.ts`, `packages/world/src/client/furniture/`, `traffic/parked-dressing.ts` · **C** C08 1.0, C13 1.2, C06 1.1 (read)
 - **Gate** AC-10 Q-13 iPhone 15 · **Proof** `@world-furniture`; `pnpm --filter @dv/engine test:determinism`; `DV_WORLD=synth pnpm check:perf -- --fail`
 
 ### M02h7 · facade-detail — 1 · risk H · S02 (Phase 1)
-- **Goal:** storefronts with plain sign panels and awnings, cornices, bay windows, recess bump and sky-reflecting glass inside the `buildings` object; the wall `albedo` seam that M10d2's atlas uses.
-- **R** R-MAP-01, R-MAP-04, R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M02h6, M02g2 · **Read** file `M02h7-facade-detail.md`; `02-world-bake.md` §4, §6 · **Out** `packages/world/src/client/look/facade.ts`, `chunks/mesher.ts` · **C** C08 1.0, C13 1.2 (read)
+- **Goal:** storefronts with plain sign panels and awnings, cornices, bay windows, recess bump and sky-reflecting glass inside the `buildings` object; the wall `albedo` seam that M10d2's atlas uses, and brick and stucco bound to walls through it.
+- **R** R-MAP-01, R-MAP-04, R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M02h6, M02g2, M10d0 (the wall bindings; DL-755) · **Read** file `M02h7-facade-detail.md`; `02-world-bake.md` §4, §6 · **Out** `packages/world/src/client/look/facade.ts`, `chunks/mesher.ts` · **C** C08 1.0, C13 1.2 (read)
 - **Gate** AC-10 operator staging check (Mac) · **Proof** `@world-facade`, `@facade-ledger`; `DV_WORLD=synth pnpm check:perf -- --fail`
 
-### M10d0 · art-admission — 1 · risk H · S05 (+S02, S10) (Phase 2)
-- **Goal:** four third-party packs snapshotted and vetted (DL-OWN-06), `provenance:check` refusing unsnapshotted licensed files, a CC-BY-ready Credits section, six CC0 PBR sets as KTX2 with mobile variants on the Phase 1 surfaces, `assets:import`, and the DL-OWN-07 fal lines with `lineCapMicros`.
-- **R** R-IP-01, R-UI-03, R-MAP-01, R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M00f, M01d, M02h7, M10a1 · **Read** file `M10d0-art-admission.md`; `05-assets-pipeline.md` §7, §9, §11; DL-OWN-06 · **Out** `docs/legal/licenses/packs.json`, `tools/assets/src/import/`, `packages/shared/src/genai/lines.ts`, `config/guardrails.yaml` · **C** C07 1.1, C13 1.2 (read)
+### M10d0 · art-admission — 1 · risk H · S05 (+S02, S10) (Phase 2; Track B 1)
+- **Goal:** four third-party packs snapshotted and vetted (DL-OWN-06), `provenance:check` refusing unsnapshotted licensed files, a CC-BY-ready Credits section, six CC0 PBR sets as KTX2 with mobile variants on the ground and road surfaces (walls in M02h7), the coverage test, `assets:import`, and the DL-OWN-07 fal lines with `lineCapMicros`.
+- **R** R-IP-01, R-UI-03, R-MAP-01, R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M00f, M01d, M02g2 (start after M00f and M01d, `_PLAN.md` §4) · **Read** file `M10d0-art-admission.md`; `05-assets-pipeline.md` §7, §9, §11; DL-OWN-06 · **Out** `docs/legal/licenses/packs.json`, `tools/assets/src/import/`, `packages/shared/src/genai/lines.ts`, `config/guardrails.yaml` · **C** C07 1.1, C13 1.2 (read)
 - **Gate** AC-13 Q-13 iPhone 15 · **Proof** `pnpm provenance:check`; `pnpm check:unit -- tools/ci/test/guardrails`; `@art-textures`
 
-### M10d1 · art-integration — 1 · risk H · S05 (+S02) (Phase 3, split 1 of 2 of the earlier M10d1; DL-739)
+### M10d1 · art-integration — 1 · risk H · S05 (+S02) (Phase 3, split 1 of 2 of the earlier M10d1; DL-739; Track B 2)
 - **Goal:** realistic traffic, police, robotaxi, transit and prop bodies from vetted CC0/CC-BY bases, ≤ 2 fal bodies on the vehicles-and-props line and code recipes; clearcoat on desktop, meshopt LODs, instanced families; placeholder registry `config/art-placeholders.json`.
-- **R** R-MODE-02 (s), R-MAP-04, R-IP-01, R-ENG-02 · **Dep** M10d0, M05c2, M03b2, M04b2, M02h6 · **Read** file `M10d1-art-integration.md`; `05-assets-pipeline.md` §3, §7, §11; `02-world-living.md` §2.5–§2.7 · **Out** `config/art-placeholders.json`, `tools/assets/src/{recipes,import}`, `packages/world/src/client/traffic` · **C** C07 1.1, C06 1.1, C13 1.2 (read)
+- **R** R-MODE-02 (s), R-MAP-04, R-IP-01, R-ENG-02 · **Dep** M10d0, M05c2, M03b2, M04b2 · **Read** file `M10d1-art-integration.md`; `05-assets-pipeline.md` §3, §7, §11; `02-world-living.md` §2.5–§2.7 · **Out** `config/art-placeholders.json`, `tools/assets/src/{recipes,import}`, `packages/world/src/client/traffic` · **C** C07 1.1, C06 1.1, C13 1.2 (read)
 - **Gate** optional `FAL_KEY` after a live M00c spike; AC-11 manual review · **Proof** `pnpm check:unit -- tools/assets`; `pnpm check:assets`; `@art-city`, `@art-ledger`
 
-### M10d4 · art-integration — 1 · risk H · S05 (+S10) (Phase 3, split 2 of 2 of the earlier M10d1; DL-739)
+### M10d4 · art-integration — 1 · risk H · S05 (+S10) (Phase 3, split 2 of 2 of the earlier M10d1; DL-739; Track B 3)
 - **Goal:** 8 realistic adult ped bodies × 20 original outfits on `bay_rig_v1` from vetted CC0 bases with library clips; a `model` and portrait for every realistic creator row (the Coast rows keep M10a2's models, with a `fallbackPart` for its SKIP path); +0 render objects.
-- **R** R-MAP-04, R-UI-01, R-IP-01, R-IP-02, R-ENG-02 · **Dep** M10d1, M10d0, M03b2, M04b2, M10a2 (the Coast models, `assets:retarget`; DL-741) · **Read** file `M10d4-art-integration.md`; `05-assets-pipeline.md` §3, §4, §14; `10-ui-pages.md` §2.8 · **Out** `packages/world/src/client/peds`, `packages/ui/src/creator`, `content/ui/creator/catalog.json` · **C** C04 1.1, C07 1.1, C13 1.2, C11 1.0 (read)
+- **R** R-MAP-04, R-UI-01, R-IP-01, R-IP-02, R-ENG-02 · **Dep** M10d1, M10d0, M10a1 (`assets:retarget`, HARD), M10a2 (the Coast models, SOFT), M03b2, M04b2, M02h2 (hold on `peds/*`; DL-755) · **Read** file `M10d4-art-integration.md`; `05-assets-pipeline.md` §3, §4, §14; `10-ui-pages.md` §2.8 · **Out** `packages/world/src/client/peds`, `packages/ui/src/creator`, `content/ui/creator/catalog.json` · **C** C04 1.1, C07 1.1, C13 1.2, C11 1.0 (read)
 - **Gate** AC-11 manual review; Q-24 · **Proof** `@art-peds`, `@art-creator`, `@peds-ledger`; `pnpm provenance:check`
+
+### M10d5 · art-integration — 0.4 · risk L · S01 (+S10, S05) (Track B 4, carved from M10d3; DL-755)
+- **Goal:** the on-foot player (`player.default`) on the creator's `PlayerAvatar` parts and mission actors (`ped.actor`) on the ped kit, off `prop/graybox.capsule`; one render object per entity, +0 on every ledger; the `capsule` registry row filled.
+- **R** R-UI-01, R-IP-01, R-IP-02, R-ENG-02 · **Dep** M10d4, M10a2 (Coast's body, SOFT) · **Read** file `M10d5-art-integration.md`; `10-ui-pages.md` §2.8 · **Out** `packages/engine/src/client/avatar/player-body.ts`, `client/snapshot/object-pool.ts`, `assets/prefabs/{player.default,ped.actor}.json`, `tests/e2e/art-player.spec.ts` · **C** C05 1.1, C11 1.0, C04 1.1, C06 1.1 (read)
+- **Gate** none · **Proof** `pnpm --filter @dv/engine test:determinism`; `@art-player`, `@player-ledger`; `pnpm check:e2e:xr`
 
 ### M02h8 · xr-look-traa — 0.8 · risk M · S11 (+S02) (Phase 5)
 - **Goal:** an `xr` look profile (min buildings, flat markings, `skyReflect`, fog-node grade and haze, blobs, opaque crowns, vertex AO) for both XR tiers with `legacy` as fallback; multiview confirmed; TRAA on `desktop` by raising `postLevelCap` to 3 (moved from M11a1, DL-740).
