@@ -7,7 +7,8 @@
  * Wall albedo is the class palette crossed with the bake's palette index; roughness is per class. Glass is dark and low roughness and
  * reflects the environment on `full` (metallic, so the sky map is its colour), and takes a Fresnel tint toward the sky's bottom colour
  * on `lite`. At night the per-building on/off decision and the blackout stay M02b2's rule (`buildingLit`, called not copied); inside a
- * lit building a per-window hash keeps 55 to 85 % of the cells lit, and the glow is emissive HDR so bloom picks it up.
+ * lit building a per-window hash keeps a share of the cells lit (by the hour since M02g1, `look/windows.ts`), and the glow is emissive HDR
+ * so bloom picks it up. Where no environment map exists the glass carries the analytic sky reflection (`look/sky-reflect.ts`).
  *
  * The `min` profile (`mobile-low`) keeps the vertex colour by day and uses only the window grid, as the night emissive mask.
  */
@@ -15,6 +16,7 @@ import type { Texture } from 'three/webgpu';
 import { buildingLit, windowThreshold } from '../sky/night.ts';
 import { clamp, dot, float, fract, max, min, mix, mod, normalView, positionViewDirection, positionWorld, pow, select, smoothstep, step, vec2, vec3, type L } from '../sky/tsl.ts';
 import type { LookNodes } from './common.ts';
+import { reflectTerm } from './sky-reflect.ts';
 import { FACADE_KEYS, srgbHexToLinear, type LookFile } from './config.ts';
 import { around1, hash11, hash21, pickColor, pickFloat, pixelFootprint, vnoise } from './noise.ts';
 
@@ -118,7 +120,8 @@ export function wallNodes(i: WallInput): WallOut {
 
   // Night: the building's rule, then the window's own hash.
   const lit = buildingLit(n.sky, windowThreshold(hash11(seedI)));
-  const litFrac = hash11(seedI.mul(1.37)).mul(0.3).add(0.55);
+  // M02g1: the share of lit windows follows the hour (`look.json` windows.litFrac, written to the uniforms by the look); 55 to 85 % fixed before.
+  const litFrac = mix(n.uLitMin, n.uLitMax, hash11(seedI.mul(1.37)));
   const cellH = hash21(vec2(bayIdx.mul(1.713).add(seedI.mul(0.19)), floorIdx.mul(2.37).add(seedI.mul(0.31))));
   const winOn = step(float(1).sub(litFrac), cellH);
   const tint = hash21(vec2(bayIdx.mul(0.77).add(seedI.mul(0.43)), floorIdx.mul(1.91)));
@@ -135,9 +138,12 @@ export function wallNodes(i: WallInput): WallOut {
     mix(warm, vec3(0.62, 0.74, 1.0), isTower.mul(0.8)).mul(litFar).mul(litFrac).mul(belowBand),
     farGlow,
   ).mul(lit).mul(glowAt);
+  // M02g1: the sky in the glass where no environment map carries it (the layer weight is 0 otherwise); fades out with the far average.
+  const glassSky = pane.mul(reflectTerm(n.sky, 0.06, { strength: 0.9 })).mul(float(1).sub(farGlow));
+  const emissiveOut = emissive.add(glassSky);
 
   if (i.profile === 'min') {
-    return { color: vec3(1, 1, 1), roughness: wallRough, metalness: float(0), emissive, glass: pane };
+    return { color: vec3(1, 1, 1), roughness: wallRough, metalness: float(0), emissive: emissiveOut, glass: pane };
   }
 
   // ---- albedo -----------------------------------------------------------------------------------------------------------
@@ -206,7 +212,7 @@ export function wallNodes(i: WallInput): WallOut {
   const roughness = mix(mix(mix(wallRough, float(0.4), frame), glassRough, pane), mix(wallRough, glassRough, cover.mul(0.6)), farK);
   // Metal is its reflection: with no environment map (dome sky, night) a metallic pane is black, and far away the pane is an average.
   const metalness = pane.mul(glassMetal).mul(clamp(n.uEnv.mul(2), 0, 1)).mul(float(1).sub(farK));
-  return { color, roughness, metalness, emissive, glass: pane };
+  return { color, roughness, metalness, emissive: emissiveOut, glass: pane };
 }
 
 /** The wall colour of a class: the class palette indexed by the bake palette index. */

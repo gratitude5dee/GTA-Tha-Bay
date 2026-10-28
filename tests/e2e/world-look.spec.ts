@@ -164,6 +164,21 @@ test.describe('xr look @world-look', () => {
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
     const look = await world(page, (w) => w.look());
     expect(look).toMatchObject({ profile: 'legacy', postNodes: [], shadowMode: 'none', shadowPasses: 0, pipeline: 'direct' });
+    // M02g1 (AC-4): the legacy profile has no layers, so asking for any of them changes nothing and costs no render object
+    expect(look).toMatchObject({ layers: [], blobs: 0, dynamicCasters: [], skyReflect: false, gradeOn: null });
+    const LAYERS = ['grade', 'haze', 'blob', 'casters', 'skyReflect', 'windows'];
+    const liveObjects = (): Promise<number> => page.evaluate(() => (window as unknown as { __dvBridge: { platform: { perf: { live(): { renderObjects: number } } } } }).__dvBridge.platform.perf.live().renderObjects);
+    await world(page, (w) => w.hold(true));
+    const baseline = await liveObjects();
+    for (const id of LAYERS) expect(await page.evaluate((i) => (window as unknown as W).__dvBridge.world.setLookLayer(i, true), id), `${id} on a legacy tier`).toBe(false);
+    const withLayers = await liveObjects();
+    await world(page, (w) => w.hold(false));
+    expect(withLayers, 'xr after = baseline').toBe(baseline);
+    if (process.env['DV_LOOK_WRITE'] === '1') {
+      const file = 'docs/look/M02g1-render-ledger.json';
+      const prev = existsSync(file) ? read<{ commit: string; bakeId: string; tiers: Record<string, unknown>; xr?: unknown }>(file) : { commit: process.env['GITHUB_SHA'] ?? process.env['DV_COMMIT'] ?? 'local', bakeId: read<{ bakeId: string }>('dist/world/latest-synth.json').bakeId, tiers: {} };
+      writeFileSync(file, `${JSON.stringify({ ...prev, xr: { baseline, after: withLayers } }, null, 2)}\n`);
+    }
   });
 });
 

@@ -5,6 +5,7 @@
  */
 import { BackSide, Mesh, MeshBasicNodeMaterial, SphereGeometry, type Vector3 } from 'three/webgpu';
 import type { SkyNodes } from './nodes.ts';
+import { fogGrade } from './fog.ts';
 import type { CloudKind } from './tiers.ts';
 import { asNode, clamp, dot, exp, float, floor, fract, length, max, mix, normalize, positionLocal, pow, sin, smoothstep, step, vec2, vec3, type L } from './tsl.ts';
 
@@ -36,7 +37,7 @@ const fbm = (p: L, octaves: number): L => {
   return sum;
 };
 
-export function createDomeMaterial(n: SkyNodes, clouds: CloudKind, blend?: L): MeshBasicNodeMaterial {
+export function createDomeMaterial(n: SkyNodes, clouds: CloudKind, blend?: L, look = false): MeshBasicNodeMaterial {
   const dir = normalize(positionLocal);
   const y = dir.y;
 
@@ -82,7 +83,8 @@ export function createDomeMaterial(n: SkyNodes, clouds: CloudKind, blend?: L): M
   col = col.add(vec3(1, 1, 1).mul(starMask.mul(h2.mul(0.7).add(0.3)).mul(twinkle).mul(n.uStars).mul(smoothstep(0.0, 0.18, y)).mul(1.2)));
 
   const m = new MeshBasicNodeMaterial({ side: BackSide, depthWrite: false, depthTest: false, fog: false });
-  m.colorNode = asNode(col);
+  // M02g1: on a tonemap-only list the grade runs here and in the fog nodes (weight 0 otherwise).
+  m.colorNode = asNode(look ? fogGrade(n, col) : col);
   // M02e (`full` profile): the dome is blended over the physical sky with this weight (1 = the dome alone, as before).
   if (blend) {
     m.transparent = true;
@@ -92,8 +94,8 @@ export function createDomeMaterial(n: SkyNodes, clouds: CloudKind, blend?: L): M
 }
 
 /** The dome mesh. The caller keeps it centred on the camera. */
-export function createDome(n: SkyNodes, clouds: CloudKind, blend?: L): Mesh {
-  const mesh = new Mesh(new SphereGeometry(DOME_RADIUS_M, 40, 20), createDomeMaterial(n, clouds, blend));
+export function createDome(n: SkyNodes, clouds: CloudKind, blend?: L, look = false): Mesh {
+  const mesh = new Mesh(new SphereGeometry(DOME_RADIUS_M, 40, 20), createDomeMaterial(n, clouds, blend, look));
   mesh.name = 'world.sky.dome';
   mesh.renderOrder = -1000;
   mesh.frustumCulled = false;

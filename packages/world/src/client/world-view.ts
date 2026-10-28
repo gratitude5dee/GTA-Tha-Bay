@@ -31,7 +31,7 @@ import { mountLandmark } from './chunks/landmark-view.ts';
 import { MESHER, profileOf } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
-import { LOOK, lookProfileFor } from './look/config.ts';
+import { LOOK, LOOK_LAYERS, lookProfileFor, type LookLayer } from './look/config.ts';
 import { LookView, type LookReport } from './look/look-view.ts';
 import { createSkyNodes, type SkyNodes } from './sky/nodes.ts';
 import { SkyView, type LumaOptions, type LumaSample, type SkyInfo } from './sky/sky-view.ts';
@@ -330,6 +330,9 @@ export class WorldView implements WorldLayer {
         postLevel: this.o.look.postLevel as PostLevel,
         focus: () => ({ x: this.lastFocus.x, z: this.lastFocus.z }),
         freezeSkyTime: (on) => this.sky?.freezeTime(on),
+        fog: this.skyNodes.look,
+        traffic: () => this.traffic,
+        blobCap: (host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier)) + (host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier)) + 16,
       });
       this.lookView = look;
       look.start();
@@ -440,6 +443,8 @@ export class WorldView implements WorldLayer {
     this.traffic?.update(f, tSec);
     if (this.lookView && this.host) this.lookView.frame(f.dtSec, this.host.camera as PerspectiveCamera);
     this.peds?.update(f, tSec);
+    // M02g1: the blob shadows follow the poses the traffic, the pedestrians and the object pool just drew.
+    this.lookView?.feedBlobs(f);
     this.transit?.update(f);
     this.updateOverlays();
     this.map?.frame(f);
@@ -883,12 +888,19 @@ export class WorldView implements WorldLayer {
       casters: 0, casterKinds: [], exposure: this.host.ready ? this.host.renderer.toneMappingExposure : 1, envMap: false, sky: 'dome',
       windowEmissive: 0, backend: this.o.look.backend, tier: this.o.tier, fallbacks: [], envBakes: 0, envBakeMs: 0,
       pipeline: this.host.tier?.features.pipeline ?? 'direct', sun: null,
+      layers: [], blobs: 0, dynamicCasters: [], skyReflect: false, gradeOn: null, windowLit: [0.55, 0.85],
     };
   }
 
   /** M02e QA: the look on or off at runtime; false when the tier has none. */
   setLook(on: boolean): boolean {
     return this.lookView ? this.lookView.setOn(on) : !on;
+  }
+
+  /** M02g1 QA: one layer of the look's profile on or off; false when the profile has no such layer (or the look is off). */
+  setLookLayer(id: string, on: boolean): boolean {
+    if (!this.lookView || !(LOOK_LAYERS as readonly string[]).includes(id)) return false;
+    return this.lookView.setLayer(id as LookLayer, on);
   }
 
   backdropInfo(): BackdropInfo {

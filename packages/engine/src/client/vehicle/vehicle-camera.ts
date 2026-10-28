@@ -2,7 +2,7 @@
  * Vehicle cameras (R-PLAT-04, 01-engine.md 2.6; M03a1): three chase distances, hood and cockpit, switchable outside cutscenes,
  * with auto-recentre after 1.5 s without look input.
  *
- * The chase camera orbits a point 0.9 m above the vehicle's centre. The player's view angles (`look`, the same angles that go to
+ * The chase camera orbits a point at roof height above the vehicle's centre (0.9 m by default; M02g1: `hy + 0.5` of the body). The player's view angles (`look`, the same angles that go to
  * the sim as `camYaw` and `camPitch`) set where the camera is: behind the view direction, `distance` metres away. The sim casts the
  * collision sphere for the far distance along that ray (`cameraCollisionSystem`, reason `vehicle`) and publishes `allowedDistance`;
  * the nearer views are shorter on the same ray, so they are clear too. Hood and cockpit sit on the car and turn with it; the look
@@ -23,8 +23,12 @@ export const CHASE_DISTANCE_M: Readonly<Record<'chase-near' | 'chase-mid' | 'cha
 
 /** The lift of the camera over the anchor per metre of distance (the offset is [0, 0.6, d] in view space at d = 11). */
 const LIFT_PER_M = 0.6 / VEHICLE_FAR_M;
-/** Look pitch the chase camera settles at, radians (looking a little down at the car). */
-export const CHASE_REST_PITCH = -0.2;
+/**
+ * Look pitch the chase camera settles at, radians (looking a little down at the car). M02g1: -0.17 puts the horizon 37.7 % from the
+ * top of the picture at the chase field of view (70 degrees): `0.5 - tan(0.17) / (2 tan(35 degrees))`, inside the 35 to 40 % the
+ * look study asks for (-0.2 gave 35.5 %, at the edge).
+ */
+export const CHASE_REST_PITCH = -0.17;
 /** Seconds without look input before the view swings back behind the car (R-PLAT-04). */
 export const RECENTRE_AFTER_SEC = 1.5;
 /** The follow rate of the recentre, per second. */
@@ -65,6 +69,17 @@ export interface VehicleCameraFrame {
   /** Seconds since the player last moved the view. */
   idleSec: number;
   drawDistanceM: number;
+  /**
+   * M02g1: the far chase distance and the anchor height of the followed vehicle, from the sim's follow offset (`offset[2]`) and its
+   * published anchor; absent: the M03a1 constants (11 m, 0.9 m).
+   */
+  farM?: number;
+  anchorUpM?: number;
+}
+
+/** Height of the horizon below the top of the picture as a share of its height, for a camera pitch and vertical field of view (degrees). */
+export function horizonFromTop(pitchRad: number, fovDeg: number): number {
+  return 0.5 - Math.tan(-pitchRad) / (2 * Math.tan((fovDeg * Math.PI) / 360));
 }
 
 /**
@@ -161,7 +176,7 @@ export class VehicleCamera {
       this.ready = false;
     } else {
       const ax = pose.x;
-      const ay = pose.y + VEHICLE_ANCHOR_UP;
+      const ay = pose.y + (f.anchorUpM ?? VEHICLE_ANCHOR_UP);
       const az = pose.z;
       if (!this.ready || Math.hypot(ax - this.sx, ay - this.sy, az - this.sz) > 8) {
         this.sx = ax; this.sy = ay; this.sz = az;
@@ -172,7 +187,7 @@ export class VehicleCamera {
         this.sy += (ay - this.sy) * k;
         this.sz += (az - this.sz) * k;
       }
-      const want = CHASE_DISTANCE_M[view];
+      const want = (CHASE_DISTANCE_M[view] * (f.farM ?? VEHICLE_FAR_M)) / VEHICLE_FAR_M;
       const cp = Math.cos(pitch);
       const sp = Math.sin(pitch);
       const sy = Math.sin(yaw);

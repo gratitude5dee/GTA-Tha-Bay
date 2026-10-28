@@ -15,6 +15,7 @@ import type { WorldFrame } from '@dv/engine/client/boot/world-layer';
 import { ARCH, ARCHETYPES, PALETTE, type Archetype } from '../../sim/traffic/components.ts';
 import type { SkyNodes } from '../sky/nodes.ts';
 import { asNode, attribute, float, vertexColor, vec3, type L } from '../sky/tsl.ts';
+import { reflectTerm } from '../look/sky-reflect.ts';
 import { lampEmissive, type LampNodes } from './lights.ts';
 
 /** Beyond this distance from the camera a car's matrix is refreshed one frame in `FAR_EVERY`. */
@@ -122,7 +123,8 @@ export class TrafficRenderer {
     this.lamps = lampEmissive(o.sky, REF.halfWidth, REF.halfLength);
     const m = new MeshStandardNodeMaterial({ roughness: 0.6, metalness: 0.15 });
     m.colorNode = asNode((vertexColor(0) as L).mul(attribute('aTint', 'vec3') as L) as L);
-    m.emissiveNode = this.lamps.emissive;
+    // M02g1: the paint and the glass carry the analytic sky reflection where no environment map does (the layer weight is 0 otherwise).
+    m.emissiveNode = asNode((this.lamps.emissive as unknown as L).add(reflectTerm(o.sky, 0.05, { strength: 0.85 })));
     this.mesh = new InstancedMesh(geo, m, n);
     this.mesh.name = 'traffic.cars';
     this.mesh.frustumCulled = false;
@@ -138,6 +140,21 @@ export class TrafficRenderer {
   /** Total instances drawn. */
   get instances(): number {
     return this.live;
+  }
+
+  /** M02g1: the traffic mesh casts and receives sun shadows (the `casters` layer on the desktop tiers). */
+  setShadows(cast: boolean, receive: boolean): void {
+    if (this.mesh.castShadow === cast && this.mesh.receiveShadow === receive) return;
+    this.mesh.castShadow = cast;
+    if (this.mesh.receiveShadow !== receive) {
+      this.mesh.receiveShadow = receive;
+      (this.mesh.material as MeshStandardNodeMaterial).needsUpdate = true;
+    }
+  }
+
+  /** Whether the traffic mesh casts shadows now. */
+  get casting(): boolean {
+    return this.mesh.castShadow;
   }
 
   info(): TrafficInfo {

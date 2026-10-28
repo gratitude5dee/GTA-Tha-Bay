@@ -80,6 +80,9 @@ export interface LookRuntime {
   casting: boolean;
   /** L0 `buildings` objects of units within this many metres of the focus cast. */
   casterRadiusM: number;
+  /** M02g1: the trees of L0 units within `dynamicCasterRadiusM` of the focus cast too (the `casters` layer, desktop tiers). */
+  dynamicCasting?: boolean;
+  dynamicCasterRadiusM?: number;
   /** The stream focus now. */
   focus(): { x: number; z: number };
 }
@@ -259,6 +262,7 @@ export class ChunkRenderer {
       const inst = new InstancedMesh(this.trees, this.o.materials.materialFor(level, 'vegetation'), count);
       inst.userData['kind'] = 'vegetation';
       inst.receiveShadow = this.look?.receive ?? false;
+      inst.castShadow = this.treesCast(level, mesh);
       const mat = new Matrix4();
       for (let i = 0; i < count; i++) {
         const s = mesh.trees[i * 5 + 3] as number;
@@ -323,6 +327,49 @@ export class ChunkRenderer {
     return Math.hypot(cx - f.x, cz - f.z) <= look.casterRadiusM + 128;
   }
 
+  /** M02g1: whether the trees of an L0 unit cast shadows: the `casters` layer is on and the unit lies within the dynamic caster radius of the focus. */
+  private treesCast(level: RenderLevel, mesh: UnitMesh): boolean {
+    const look = this.look;
+    const radius = look?.dynamicCasterRadiusM ?? 0;
+    if (!look || look.dynamicCasting !== true || level !== 'l0' || !(radius > 0)) return false;
+    const f = look.focus();
+    const cx = mesh.originX + 128, cz = mesh.originZ + 128;
+    return Math.hypot(cx - f.x, cz - f.z) <= radius + 128;
+  }
+
+  /**
+   * M02g1: the focus moved or the `casters` layer was switched: the trees of each resident L0 unit take the flag its distance gives.
+   * A unit whose flag changes is recorded again (one re-record). Returns how many units changed.
+   */
+  refreshTreeCasters(): number {
+    let changed = 0;
+    for (const u of this.units.values()) {
+      if (u.level !== 'l0') continue;
+      const want = this.treesCast(u.level, u.mesh);
+      let flip = false;
+      for (const child of u.group.children) {
+        if (child.userData['kind'] !== 'vegetation') continue;
+        const m = child as Mesh;
+        if (m.castShadow !== want) {
+          m.castShadow = want;
+          flip = true;
+        }
+      }
+      if (flip) {
+        this.requestRerecord(u);
+        changed++;
+      }
+    }
+    return changed;
+  }
+
+  /** Trees now flagged as shadow casters (the look reports `trees` among the dynamic casters when this is above 0). */
+  treeCasterCount(): number {
+    let n = 0;
+    for (const u of this.units.values()) for (const child of u.group.children) if (child.userData['kind'] === 'vegetation' && (child as Mesh).castShadow) n++;
+    return n;
+  }
+
   /**
    * The look was switched (QA `setLook`) or its shadow state changed: every resident mesh takes the material and the shadow flags of
    * the new state and its bundle is recorded again, one re-record per resident unit.
@@ -336,7 +383,7 @@ export class ChunkRenderer {
         const m = child as Mesh;
         m.material = this.o.materials.materialFor(u.level, kind);
         m.receiveShadow = this.look?.receive ?? false;
-        m.castShadow = cast && kind === 'buildings';
+        m.castShadow = kind === 'buildings' ? cast : kind === 'vegetation' ? this.treesCast(u.level, u.mesh) : false;
       }
       this.requestRerecord(u);
     }
@@ -348,7 +395,8 @@ export class ChunkRenderer {
     let count = 0;
     for (const u of this.units.values()) {
       for (const child of u.group.children) {
-        if (!(child as Mesh).castShadow) continue;
+        // the buildings only: the trees that cast on the `casters` layer are reported by `treeCasterCount`
+        if (!(child as Mesh).castShadow || child.userData['kind'] !== 'buildings') continue;
         count++;
         kinds.add(`${u.level}:${String(child.userData['kind'] ?? '?')}`);
       }

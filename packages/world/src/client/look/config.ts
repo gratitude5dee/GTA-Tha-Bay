@@ -37,6 +37,32 @@ export interface GroundLook {
   noise: number;
 }
 
+/** The colour grade of one weather preset (see `look/grade.ts`): display-referred, identity at lift 0, gamma 1, gain 1, warm 1, cool 1, saturation 1. */
+export interface GradePreset {
+  lift: readonly [number, number, number];
+  gamma: number;
+  gain: readonly [number, number, number];
+  saturation: number;
+  /** Multiplies the lit end of the picture (the warm sun). */
+  warm: readonly [number, number, number];
+  /** Multiplies the shade (the cool sky light). */
+  cool: readonly [number, number, number];
+}
+
+/** Aerial perspective of one weather preset (see `sky/fog.ts`). */
+export interface HazePreset {
+  /** In-scatter towards the sun, 0..1. */
+  sun: number;
+  /** Rayleigh tint of distant geometry, 0..1. */
+  blue: number;
+  /** Extinction per kilometre on top of the keyed fog, 0..1. */
+  ext: number;
+}
+
+/** The layers of the M02g1 look-tune; each is gated per look profile by `LookFile.layers`. */
+export const LOOK_LAYERS = ['grade', 'haze', 'blob', 'casters', 'skyReflect', 'windows'] as const;
+export type LookLayer = (typeof LOOK_LAYERS)[number];
+
 export interface LookFile {
   schema: 'world-look/1';
   tierProfile: Record<QualityTierId, LookProfile>;
@@ -54,6 +80,18 @@ export interface LookFile {
   ground: Record<string, GroundLook>;
   water: { deep: string; shallow: string; waves: readonly (readonly [dirDeg: number, lengthM: number, amp: number, speed: number])[] };
   sky: { turbidity: Record<WeatherPreset, number>; rayleigh: Record<WeatherPreset, number>; keyframeWeight: Record<WeatherPreset, number> };
+  /** The bloom node's tuning (it was `POST_TUNING.bloom`): the threshold is high so only lit windows, the sun glint and the sun itself bloom. */
+  bloom: { strength: number; radius: number; threshold: number };
+  /** The colour grade per weather preset (M02g1). */
+  grade: Record<WeatherPreset, GradePreset>;
+  /** The aerial perspective per weather preset (M02g1). */
+  haze: Record<WeatherPreset, HazePreset>;
+  /** `litFrac`: rows of `[hour, min, max]`, the share of a lit building's windows that are lit, cyclic over 24 h (M02g1). */
+  windows: { litFrac: readonly (readonly [hour: number, min: number, max: number])[] };
+  /** The layer ids each look profile enables; `legacy` none, so the XR tiers add nothing (M02g1). */
+  layers: Record<LookProfile, readonly LookLayer[]>;
+  /** Trees and traffic within this many metres of the focus cast shadows on the `casters` layer (M02g1). */
+  dynamicCasterRadiusM: number;
   /** `gtao-half`, `bloom` or `fsr1` when they fail on the WebGL2 backend (each with a spec/03 section 7 row). Never `tonemap` or an AA node. */
   webgl2Unsupported: readonly PostNode[];
   /** AA substitution on the WebGL2 backend when the node fails there (`traa` to `smaa` or `fxaa`; `smaa` to `fxaa`). */
@@ -70,6 +108,11 @@ export const TIER_IDS: readonly QualityTierId[] = ['desktop-ultra', 'desktop', '
 /** The look profile of a tier; every tier is `legacy` when the `world.look` flag is off. */
 export function lookProfileFor(tier: QualityTierId, enabled: boolean = LOOK_FLAG, look: LookFile = LOOK): LookProfile {
   return enabled ? look.tierProfile[tier] : 'legacy';
+}
+
+/** The layers a profile enables (empty for `legacy`). */
+export function layersOf(profile: LookProfile, look: LookFile = LOOK): readonly LookLayer[] {
+  return look.layers[profile] ?? [];
 }
 
 /** The facade class of a `BuildingKind` code (0 ResLow .. 5 Civic). */
@@ -107,6 +150,16 @@ export function lookErrors(look: LookFile, shadowDistanceM: Partial<Record<Quali
     if (!POST_NODES.includes(n)) errors.push(`webgl2Unsupported names unknown node ${String(n)}`);
   }
   if (look.webgl2AaFallback.smaa !== undefined && look.webgl2AaFallback.smaa !== 'fxaa') errors.push('webgl2AaFallback.smaa can only be fxaa');
+  if (look.layers.legacy.length > 0) errors.push('layers.legacy must be empty: the legacy look adds nothing');
+  for (const [profile, ids] of Object.entries(look.layers) as [LookProfile, readonly string[]][]) {
+    for (const id of ids) if (!(LOOK_LAYERS as readonly string[]).includes(id)) errors.push(`layers.${profile} names unknown layer ${id}`);
+  }
+  if (look.layers.lite.includes('casters') || look.layers.min.includes('casters')) errors.push('the casters layer is desktop only (profile full)');
+  for (const [i, row] of look.windows.litFrac.entries()) {
+    if (row[1] > row[2]) errors.push(`windows.litFrac[${i}]: min ${row[1]} exceeds max ${row[2]}`);
+    const prev = look.windows.litFrac[i - 1];
+    if (prev && row[0] <= prev[0]) errors.push(`windows.litFrac[${i}]: hours must increase`);
+  }
   for (const k of FACADE_KEYS) {
     const c = look.facade[k];
     if (c.winW >= c.bayM) errors.push(`facade.${k}: winW ${c.winW} must be less than bayM ${c.bayM}`);

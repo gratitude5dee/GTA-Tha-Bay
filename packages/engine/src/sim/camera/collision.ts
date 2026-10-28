@@ -2,7 +2,7 @@ import {
   dcos, dsin, dsqrt, HALF_PI, SimStage,
   type CameraDirective, type EntityHandle, type EntityId, type FollowParams, type SystemDef, type Vec3 as CamVec3,
 } from '@dv/shared';
-import { CameraAnchor, LocalPlayer, PlayerControlled, Transform } from '../ecs/components.ts';
+import { BodyRef, CameraAnchor, LocalPlayer, PlayerControlled, Transform } from '../ecs/components.ts';
 import type { EcsWorld } from '../ecs/world.ts';
 import { NEUTRAL_INPUT, YAW_UNIT } from '../control/onfoot.ts';
 import type { PhysicsSystemsBackend, Vec3 } from '../physics/backend.ts';
@@ -40,8 +40,48 @@ export const DEFAULT_TP_FOLLOW: Readonly<Omit<FollowParams, 'target'>> = Object.
  * sphere for the far view; the page shortens it for the nearer ones.
  */
 export const VEHICLE_ANCHOR_UP = 0.9;
+/** The default far chase distance, used where a vehicle's body size is not known (M03a1's constant, kept as the fallback). */
 export const VEHICLE_FAR_M = 11;
 export const VEHICLE_OFFSET: Readonly<CamVec3> = Object.freeze([0, 0.6, VEHICLE_FAR_M] as CamVec3) as CamVec3;
+
+/**
+ * M02g1: the far chase distance follows the vehicle. From the half extents `[hx, hy, hz]` of its physics body (never its attachment
+ * nodes): distance = 1.6 x length + 1.5 m (the length is twice the longer horizontal half extent), the anchor stands at roof height
+ * (`hy + 0.5` above the body centre), and the lift over the anchor grows with the distance (0.6 m at 11 m, as before). Plain
+ * arithmetic only (C02): the same bytes on every machine.
+ */
+export const CHASE_PER_LENGTH = 1.6;
+export const CHASE_BASE_M = 1.5;
+export const CHASE_MIN_M = 5.5;
+export const CHASE_MAX_M = 16;
+export const ANCHOR_ABOVE_ROOF_M = 0.5;
+export const ANCHOR_UP_MIN_M = 0.8;
+export const ANCHOR_UP_MAX_M = 2.4;
+
+export interface ChaseDims {
+  /** Far chase distance along the view ray, metres. */
+  far: number;
+  /** Height of the anchor above the body centre, metres. */
+  anchorUp: number;
+  /** Lift of the camera over the anchor at `far`, metres. */
+  lift: number;
+}
+
+/** The chase dimensions of a vehicle from its body half extents; `null` or a malformed shape gives the default 11 m. */
+export function chaseDims(half: readonly number[] | null | undefined): ChaseDims {
+  const hx = half?.[0];
+  const hy = half?.[1];
+  const hz = half?.[2];
+  if (hx === undefined || hy === undefined || hz === undefined || !(hx > 0) || !(hy > 0) || !(hz > 0)) {
+    return { far: VEHICLE_FAR_M, anchorUp: VEHICLE_ANCHOR_UP, lift: 0.6 };
+  }
+  const length = 2 * (hz > hx ? hz : hx);
+  const raw = CHASE_PER_LENGTH * length + CHASE_BASE_M;
+  const far = raw < CHASE_MIN_M ? CHASE_MIN_M : raw > CHASE_MAX_M ? CHASE_MAX_M : raw;
+  const up = hy + ANCHOR_ABOVE_ROOF_M;
+  const anchorUp = up < ANCHOR_UP_MIN_M ? ANCHOR_UP_MIN_M : up > ANCHOR_UP_MAX_M ? ANCHOR_UP_MAX_M : up;
+  return { far, anchorUp, lift: (0.6 * far) / VEHICLE_FAR_M };
+}
 export const VEHICLE_FOLLOW: Readonly<Omit<FollowParams, 'target'>> = Object.freeze({
   anchor: 'root',
   shoulder: 'right',
@@ -118,17 +158,24 @@ export function cameraCollisionSystem(backend: PhysicsSystemsBackend, services: 
         const vid = (ecs as unknown as EcsWorld).resolve(cam.target as EntityHandle);
         if (vid !== null) {
           const tr = ecs.store(Transform);
+          // M02g1: the distance and the anchor follow the body's half extents.
+          const bodyId = (ecs as unknown as EcsWorld).hasId(vid, BodyRef) ? (ecs.store(BodyRef).body[vid] as number) : 0;
+          const dims = chaseDims(bodyId !== 0 ? backend.bodyShape?.(bodyId)?.dims : null);
+          cam.chaseM = dims.far;
+          cam.anchorUpM = dims.anchorUp;
           anchor[0] = tr.px[vid] as number;
-          anchor[1] = (tr.py[vid] as number) + VEHICLE_ANCHOR_UP;
+          anchor[1] = (tr.py[vid] as number) + dims.anchorUp;
           anchor[2] = tr.pz[vid] as number;
           const f = services.input ?? NEUTRAL_INPUT;
           const look = lookAngles(f.camYaw, f.camPitch);
-          const d = allowedCameraDistance(backend, anchor, tpOffsetWorld(look.yaw, look.pitch, 0, offset, VEHICLE_OFFSET));
+          const d = allowedCameraDistance(backend, anchor, tpOffsetWorld(look.yaw, look.pitch, 0, offset, [0, dims.lift, dims.far] as CamVec3));
           cam.allowedRight = d;
           cam.allowedLeft = d;
           return;
         }
       }
+      delete cam.chaseM;
+      delete cam.anchorUpM;
       const id = ids[0] as number;
       const tr = ecs.store(Transform);
       anchor[0] = tr.px[id] as number;
@@ -146,6 +193,8 @@ export function cameraCollisionSystem(backend: PhysicsSystemsBackend, services: 
 /** What the sim puts in the snapshot side block under `cam`: the C04 directive plus the left-shoulder result. */
 export interface PublishedCamera extends CameraDirective {
   allowedDistanceOpposite?: number;
+  /** M02g1: the height of the vehicle chase anchor above the body centre (engine-internal, beside `follow.offset`, not a contract field). */
+  chaseAnchorUp?: number;
 }
 
 /** The directive for the local player's tp camera, or null when no player is followed. */
@@ -155,9 +204,15 @@ export function publishedCamera(services: Pick<EngineServices, 'camera'>): Publi
   if (cam.reason === 'vehicle') {
     return {
       mode: 'tp',
-      follow: { ...VEHICLE_FOLLOW, target: cam.target, offset: [...VEHICLE_OFFSET] as CamVec3 },
+      follow: {
+        ...VEHICLE_FOLLOW,
+        target: cam.target,
+        // M02g1: [0, lift, far] of this vehicle (C04 1.1: the offset's values vary, its shape does not).
+        offset: cam.chaseM === undefined ? ([...VEHICLE_OFFSET] as CamVec3) : ([0, (0.6 * cam.chaseM) / VEHICLE_FAR_M, cam.chaseM] as CamVec3),
+      },
       allowedDistance: cam.allowedRight,
       allowedDistanceOpposite: cam.allowedLeft,
+      ...(cam.anchorUpM !== undefined ? { chaseAnchorUp: cam.anchorUpM } : {}),
       lockPlayerToggle: cam.lockPlayerToggle,
       reason: 'vehicle',
     };

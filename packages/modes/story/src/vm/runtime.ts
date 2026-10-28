@@ -14,6 +14,7 @@ import {
 } from '@dv/shared';
 import type { DirectorScript } from '@dv/shared/contracts/c09-cutscene';
 import type { ResolvedMission } from '../compiler/resolve.ts';
+import { CLOCK_CONFIG } from '@dv/engine/sim';
 import { Actors, type Vec3 } from './actors.ts';
 import { captureCheckpoint, readCheckpoint, restoreCheckpoint, writeCheckpoint } from './checkpoint.ts';
 import { BUDGET_STREAK_LIMIT, OPS_BUDGET, missionScope } from './constants.ts';
@@ -256,6 +257,25 @@ export class MissionRuntime implements OpHost {
 
   scope(): string {
     return missionScope(this.ir.id);
+  }
+
+  /**
+   * The `clock` op (C09 1.1, `03-story-missions.md` §C3 "Release, then blend"). `unlock` releases this mission's hold. A `lock` with an
+   * hour holds the clock there (and with a weather, in that weather) as before. An `unlock` together with a `lock` that names only a
+   * weather means: release, then blend to that weather over the clock's default blend (`defaultBlendGameMinutes` game minutes, 16 s of
+   * real time at 8 minutes) instead of locking again; every other combination is unchanged. Also run by a restored checkpoint for the
+   * stages before it (`restoreCheckpoint`).
+   */
+  applyClockOp(op: Extract<Op, { op: 'clock' }>): void {
+    if (op.unlock) soft(() => this.ctx.clock.unlock(this.scope()));
+    const lock = op.lock;
+    if (!lock) return;
+    if (op.unlock === true && lock.weather !== undefined && lock.hour === undefined) {
+      const weather = lock.weather;
+      soft(() => this.ctx.clock.forceWeather(weather, CLOCK_CONFIG.defaultBlendGameMinutes * 60));
+    } else {
+      soft(() => this.ctx.clock.lock(this.scope(), lock.hour, lock.weather));
+    }
   }
 
   zoneId(zone: string): string {
@@ -1206,8 +1226,7 @@ export class MissionRuntime implements OpHost {
         this.noteEvent('heat', { set: op.set ?? -1, cap: op.cap ?? -1, clear: op.clear === true });
         return;
       case 'clock':
-        if (op.unlock) soft(() => this.ctx.clock.unlock(this.scope()));
-        if (op.lock) soft(() => this.ctx.clock.lock(this.scope(), op.lock?.hour, op.lock?.weather));
+        this.applyClockOp(op);
         this.noteEvent('clock', { unlock: op.unlock === true });
         return;
       case 'ambient':
