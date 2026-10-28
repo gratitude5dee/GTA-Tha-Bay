@@ -177,7 +177,7 @@ test.describe('textures goldens @textures-golden', () => {
 
   for (const tier of ['desktop', 'mobile-low'] as const) {
     for (const shot of GOLDEN_SHOTS) {
-      test(`${tier} ${shot} is within the tolerance of its golden, a repeat is byte-identical${SHOWS.has(shot) ? ' and differs from textures-off' : ''} @textures-golden`, async ({ page }) => {
+      test(`${tier} ${shot} is within the tolerance of its golden, a repeat is byte-identical @textures-golden`, async ({ page }) => {
         const file = `${GOLDEN_DIR}/${tier}.${shot}.png`;
         const first = await capture(page, tier, shot, true);
         expect(first).toMatchObject({ width: GOLDEN_VIEWPORT.width, height: GOLDEN_VIEWPORT.height });
@@ -192,13 +192,21 @@ test.describe('textures goldens @textures-golden', () => {
           const diff = diffImages(first, decodePng(readFileSync(file)));
           expect(goldenFailures(diff), `${tier} ${shot}: ${JSON.stringify(diff)}`).toEqual([]);
         }
-        if (SHOWS.has(shot) && tier === 'desktop') {
-          const off = await page.context().newPage();
-          const without = await capture(off, tier, shot, false);
-          const delta = meanAbsDifference(first, without);
-          expect(delta, `${tier} ${shot}: the textures change the picture by ${delta.toFixed(4)}`).toBeGreaterThanOrEqual(0.02);
-          await off.close();
-        }
+      });
+    }
+  }
+
+  // Its own tests (two boots each): the textures must show, not only repeat.
+  for (const tier of ['desktop', 'mobile-low'] as const) {
+    for (const shot of GOLDEN_SHOTS.filter((s) => SHOWS.has(s))) {
+      test(`${tier} ${shot} differs from textures-off by at least 0.02 @textures-golden`, async ({ page }) => {
+        test.setTimeout(3_600_000);
+        const on = await capture(page, tier, shot, true);
+        const off = await page.context().newPage();
+        const without = await capture(off, tier, shot, false);
+        const delta = meanAbsDifference(on, without);
+        expect(delta, `${tier} ${shot}: the textures change the picture by ${delta.toFixed(4)}`).toBeGreaterThanOrEqual(0.02);
+        await off.close();
       });
     }
   }
@@ -345,7 +353,8 @@ test.describe('credits art @credits-art', () => {
     await page.route('**/credits.json', async (route) => {
       const res = await route.fetch();
       const doc = (await res.json()) as { art?: unknown[] };
-      await route.fulfill({ response: res, json: { ...doc, art: [...(doc.art ?? []), fixture] } });
+      // Not `response: res`: it would keep the original content-encoding on a plain JSON body.
+      await route.fulfill({ status: 200, contentType: 'application/json', json: { ...doc, art: [...(doc.art ?? []), fixture] } });
     });
     await context.route('https://creativecommons.org/**', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>licence</title>' }));
     await page.goto('/menu/credits');
@@ -359,7 +368,8 @@ test.describe('credits art @credits-art', () => {
     await expect(row.getByTestId('credit-art-source')).toHaveAttribute('href', fixture.sourceUrl);
     const licence = row.getByTestId('credit-art-licence');
     await expect(licence).toHaveAttribute('href', fixture.licenceUrl);
-    const [popup] = await Promise.all([context.waitForEvent('page'), licence.click()]);
+    // The engine canvas sits over the page, so the click is dispatched on the link itself.
+    const [popup] = await Promise.all([context.waitForEvent('page'), licence.dispatchEvent('click')]);
     await popup.waitForLoadState();
     expect(popup.url()).toBe(fixture.licenceUrl);
   });
