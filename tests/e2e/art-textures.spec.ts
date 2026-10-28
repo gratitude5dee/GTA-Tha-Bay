@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
+import { SMALL_VIEWPORT } from './engine-helpers.ts';
 import { decodePng, diffImages, encodePng, goldenFailures, identical, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
 
 /**
@@ -57,6 +58,25 @@ const world = <T>(page: Page, fn: (w: WorldBridge) => T | Promise<T>): Promise<T
 /** Resolves once the tier's textures have arrived (or failed); a tier with none is settled at once. */
 const texturesSettled = (page: Page): Promise<unknown> =>
   page.waitForFunction(() => (window as unknown as W).__dvBridge.world.look()?.textures?.settled === true, undefined, { timeout: 300_000, polling: 500 });
+
+async function setSky(page: Page, hour: number, weather: string): Promise<void> {
+  await page.evaluate(
+    ([h, w]) => {
+      const bridge = (window as unknown as W).__dvBridge.world;
+      bridge.setHour(h as number, true);
+      bridge.setWeather(w as never, 0);
+    },
+    [hour, weather] as const,
+  );
+  await page.waitForFunction(
+    ([h, w]) => {
+      const sky = (window as unknown as W).__dvBridge.world.sky();
+      return !!sky && Math.abs(sky.hour - (h as number)) < 0.05 && sky.weather === w && sky.next === w;
+    },
+    [hour, weather] as const,
+    { timeout: 120_000 },
+  );
+}
 
 const frames = async (page: Page, n: number): Promise<void> => {
   const f0 = await world(page, (w) => w.chunks().frame);
@@ -237,7 +257,15 @@ test.describe('textures goldens @textures-golden', () => {
 
 const LEDGER = 'docs/look/M10d0-render-ledger.json';
 interface TierRow { baseline: number; after: number; perLayer: { textures: number }; textureMB: number }
-interface Ledger { commit: string; bakeId: string; baselineFrom: string; tiers: Record<string, TierRow>; xr?: { baseline: number; after: number } }
+interface Ledger {
+  commit: string;
+  bakeId: string;
+  baselineFrom: string;
+  /** Present when a tier's baseline is not the `after` of `baselineFrom`: that ledger predates changes merged since (BD-M10d0-10). */
+  drift?: { reason: string; previousAfter: Record<string, number> };
+  tiers: Record<string, TierRow>;
+  xr?: { baseline: number; after: number };
+}
 const write = process.env['DV_LOOK_WRITE'] === '1';
 const commitOf = (): string => process.env['GITHUB_SHA'] ?? process.env['DV_COMMIT'] ?? 'local';
 const live = (page: Page): Promise<number> => page.evaluate(() => (window as unknown as W).__dvBridge.platform.perf.live().renderObjects);
@@ -262,8 +290,11 @@ test.describe('textures ledger @textures-ledger', () => {
 
   for (const tier of ['desktop-ultra', 'desktop', 'mobile', 'mobile-low'] as const) {
     test(`${tier}: the textures add no render object @textures-ledger`, async ({ page }) => {
-      await bootWorld(page, tier);
+      // The same state as the ledger it measures from (M02g1): 480 x 270, 13:00 clear, traffic resident, `fog-west` at `mobile-low`.
+      await bootWorld(page, tier, '', SMALL_VIEWPORT);
       await texturesSettled(page);
+      await setSky(page, 13, 'clear');
+      await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);
       if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));
       await frames(page, 6);
       await world(page, (w) => w.hold(true));
@@ -287,6 +318,14 @@ test.describe('textures ledger @textures-ledger', () => {
         commit: commitOf(),
         bakeId: bakeIdOf(),
         baselineFrom: prev?.file ?? 'none',
+        ...(prev && Object.entries(measured).some(([k, v]) => prev.after[k] !== undefined && prev.after[k] !== v.baseline)
+          ? {
+              drift: {
+                reason: `${prev.file} was measured before later milestones changed the scene; \`pnpm check:e2e -- --project=chromium-webgl2 --grep @look-ledger\` on this checkout reads the same textures-off counts, so the textures are measured against what the scene draws now`,
+                previousAfter: prev.after,
+              },
+            }
+          : {}),
         tiers: measured,
         ...(existsSync(LEDGER) && read<Ledger>(LEDGER).xr ? { xr: (read<Ledger>(LEDGER) as Ledger).xr as { baseline: number; after: number } } : {}),
       };
@@ -305,7 +344,7 @@ test.describe('textures ledger @textures-ledger', () => {
       expect(t.after - t.baseline, `${tier} object delta`).toBe(0);
       expect(t.perLayer.textures).toBe(0);
       const base = prev?.after[tier];
-      if (base !== undefined) expect(t.baseline, `${tier} baseline equals the latest merged after (${prev?.file})`).toBe(base);
+      if (base !== undefined && t.baseline !== base) expect(ledger.drift?.previousAfter[tier], `${tier} baseline ${t.baseline} is not the after ${base} of ${prev?.file}: the ledger says why`).toBe(base);
     }
     expect(ledger.tiers['mobile-low']?.after ?? 0).toBeLessThanOrEqual(100);
     if (ledger.xr) expect(ledger.xr.after).toBe(ledger.xr.baseline);
