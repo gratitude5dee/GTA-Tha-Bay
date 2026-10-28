@@ -97,11 +97,11 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 65 | M02h2 | curbs-sidewalks | 1 | M02h1 | READY | `M02h2-curbs-sidewalks.md` |
 | 66 | M10d4 | art-integration | 1 | M10d1, M10d0, M10a1, M10a2, M03b2, M04b2, M02h2 | READY | `M10d4-art-integration.md` |
 | 67 | M02h3 | ground-cover | 1 | M02h2, M02g2, M02a2 | READY | `M02h3-ground-cover.md` |
-| 68 | M10d5 | art-integration | 0.4 | M10d4, M10a2 | READY | `M10d5-art-integration.md` |
+| 68 | M10d5 | art-integration | 0.4 | M10d4, M02h2, M10a2 | READY | `M10d5-art-integration.md` |
 | 69 | M11a1 | iphone-hardening-governor | 1 | M02b1, M03b1, M07a2, M04b5 | READY | `M11a1-iphone-hardening-governor.md` |
 | 70 | M02h4 | vegetation-forms | 0.75 | M02h3, M02g2 | READY | `M02h4-vegetation-forms.md` |
 | 71 | M02h5 | vegetation-scatter | 0.75 | M02h4, M02h3 | READY | `M02h5-vegetation-scatter.md` |
-| 72 | M10d2 | art-integration | 1 | M10d4, M02h5, M02d2, M02e | READY | `M10d2-art-integration.md` |
+| 72 | M10d2 | art-integration | 1 | M10d5, M10d4, M02h5, M02d2, M02e | READY | `M10d2-art-integration.md` |
 | 73 | M02h6 | street-furniture-parking | 1 | M02h5, M02h2, M03b1, M10d1 | READY | `M02h6-street-furniture-parking.md` |
 | 74 | M02h7 | facade-detail | 1 | M02h6, M02g2, M10d0 | READY | `M02h7-facade-detail.md` |
 | 75 | M02h8 | xr-look-traa | 0.8 | M11a1, M02h7 | READY | `M02h8-xr-look-traa.md` |

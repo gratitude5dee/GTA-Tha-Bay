@@ -145,11 +145,11 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 65. M02h2 · curbs-sidewalks · 1 · M02h1 · AC-11 operator staging check, desktop Mac (Safari, Chrome); `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
 66. M10d4 · art-integration · 1 · M10d1, M10d0, M10a1, M10a2, M03b2, M04b2, M02h2 · starts once M10d1, M10d0, M10a1, M03b2 and M04b2 are merged (M10a2 SOFT, `peds/*` held until M02h2 merges; `_PLAN.md` §4); AC-11 manual desktop review; Q-24; no secrets
 67. M02h3 · ground-cover · 1 · M02h2, M02g2, M02a2 · AC-12 operator `sf` re-bake and staging publish; `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
-68. M10d5 · art-integration · 0.4 · M10d4, M10a2 · no secrets; `@art-player` on both engines and `xr-quest3`; M10a2 is SOFT (Coast stand-in, `_PLAN.md` §4)
+68. M10d5 · art-integration · 0.4 · M10d4, M02h2, M10a2 · no secrets; `@art-player` on both engines and `xr-quest3`; M10a2 is SOFT (Coast stand-in, `_PLAN.md` §4)
 69. M11a1 · iphone-hardening-governor · 1 · M02b1, M03b1, M07a2, M04b5 · none
 70. M02h4 · vegetation-forms · 0.75 · M02h3, M02g2 · AC-11 operator `sf` re-bake and staging pass, desktop Mac; `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
 71. M02h5 · vegetation-scatter · 0.75 · M02h4, M02h3 · AC-11 operator `sf` re-bake and staging publish; `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
-72. M10d2 · art-integration · 1 · M10d4, M02h5, M02d2, M02e · Q-39 art sourcing (default: recipes stay)
+72. M10d2 · art-integration · 1 · M10d5, M10d4, M02h5, M02d2, M02e · Q-39 art sourcing (default: recipes stay)
 73. M02h6 · street-furniture-parking · 1 · M02h5, M02h2, M03b1, M10d1 · AC-10 Q-13 iPhone 15; `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
 74. M02h7 · facade-detail · 1 · M02h6, M02g2, M10d0 · AC-10 operator staging check, desktop Mac (Safari, Chrome); `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
 75. M02h8 · xr-look-traa · 0.8 · M11a1, M02h7 · AC-11 Q-13 Quest 3; `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (AC-10, AC-11)

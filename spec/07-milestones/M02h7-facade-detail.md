@@ -11,7 +11,7 @@ After this session SF buildings stop reading as boxes with a printed window grid
 - R-ENG-02: a render-object and triangle ledger per profile; `check:perf` green.
 
 ## Depends on
-- **M10d0** (DL-755): `withSurfaceTextures`, `config/world/surface-textures.json` and its coverage test, the `brick` and `stucco` sets. Merged about 4.8 sessions before this row starts.
+- **M10d0** (DL-755): `withSurfaceTextures`, `config/world/surface-textures.json` and its coverage test, the `brick` and `stucco` sets. Merged about 4.5 sessions before this row starts (`_PLAN.md` §3).
 - **M02g2:** depth-bias rules, footprint fades, `tests/support/flicker.ts`, the ledger chain.
 - **Run order (`_PLAN.md` §0 rule 10):** after M02h6 (Phase 1 rows share `mesher.ts`, `surfaces.ts`, `look.json`, `look-shots.json` and the ledger chain).
 - Through M02g2: M02g1 (`look/sky-reflect.ts`, `look/windows.ts`, `setLookLayer`, ledger shape, `@look-owner`) and M02e (`facade.ts`, `FacadeAtlasHook`, `surf`/`facade` arrays, `shot()`, `@look-golden`).
@@ -37,7 +37,7 @@ Evidence: capture study "Buildings and facades" (frame `desktop-02`, Market & 4t
   - **`min` (`mobile-low`):** bands only from `facade.v` and `FLAG_SHOP` (shopfront, awning stripe, sign, night emissive), ≤ 8 ALU.
   - **Awning:** a branch on `Awning`, roughness 0.8 †, wet from `uWet`.
 - **M10d2 seam:** `wallNodes` takes `albedo?: (base: L) => L`, applied only to the wall albedo (`:173`), never to awning, sign, glass, trim or emissive; built from `FacadeAtlasHook.get()` on `full` and `lite`, never `min`; `null` leaves the graph unchanged.
-- **Wall textures** (moved here from M10d0, DL-755): the seam calls `withSurfaceTextures` for the wall albedo (`base × detail`), on `full` and `lite` only: brick on `wall.Commercial`, `wall.Industrial` and `wall.Civic`, stucco on `wall.ResLow` and `wall.ResMid`, moved from `procedural[]` to `bindings` in `surface-textures.json`; `Awning` joins `procedural[]`. **Atlas `mobile` variant:** no edge joins this row and M10d2; if M10d2 has merged, this row binds that variant on `mobile` through the seam and carries M10d2's `@art-skyline ?tier=mobile` case, else M10d2 does.
+- **Wall textures** (moved here from M10d0, DL-755): the seam calls `withSurfaceTextures` for the wall albedo (`base × detail`), on `full` and `lite` only: brick on `wall.Commercial`, `wall.Industrial` and `wall.Civic`, stucco on `wall.ResLow` and `wall.ResMid`, moved from `procedural[]` to `bindings` in `surface-textures.json`; `Awning` joins `procedural[]`. **Atlas `mobile` variant:** no edge joins this row and M10d2; if M10d2 has merged (the planned order: it ends at 26.2, this row runs 26.2–27.2), this row binds that variant on `mobile` through the seam and adds the `@art-skyline ?tier=mobile` case to M10d2's `tests/e2e/art.spec.ts` (AC-11), else M10d2 does (its AC-7).
 - **Bridge (QA):** `look().facade` `{ kit, shopWalls, awnings, bays, cornices, kitTriangles, minBands }`; `setLookLayer('facade', on)` re-meshes once.
 - **Shots** (synth, `look-shots.json`, positions in a BD row): `facade-shopfront` and `facade-bays` at 13:00 `clear`, `facade-night` at 22:00, and a `facade-graze` pair 0.05 m apart for `flicker.ts`.
 - **Ledger:** `@facade-ledger` writes `docs/look/M02h7-render-ledger.json` in M02g1's shape with `perLayer.facade` and building triangles (`DV_LOOK_WRITE=1` writes, else checks); baseline the latest merged ledger's `after`, `xr` from `__dvBridge.perf.live()`. Plan: +0 objects on desktop, mobile, mobile-low (≤ 100) and legacy; building triangles ≤ +35 % † desktop, ≤ +20 % † mobile, +0 mobile-low and legacy; shadow passes unchanged.
@@ -49,7 +49,7 @@ Evidence: capture study "Buildings and facades" (frame `desktop-02`, Market & 4t
 
 ## Deliverables
 - New `packages/world/src/client/chunks/facade-kit.ts`. Edits: `chunks/{mesher.ts, mesh-types.ts, chunk-renderer.ts}`, `look/{facade.ts, look-materials.ts, surfaces.ts, config.ts, windows.ts, look-view.ts}`, `client/world-bridge.ts`.
-- Tests: `packages/world/test/{facade.kit.spec.ts, facade.street.spec.ts, facade.materials.spec.ts}`, edits to `look.surfaces.spec.ts` and `look.materials.spec.ts`; `tests/e2e/world-facade.spec.ts` (`@world-facade`, `@facade-golden`, `@facade-ledger`, one `@xr @facade-ledger` case).
+- Tests: `packages/world/test/{facade.kit.spec.ts, facade.street.spec.ts, facade.materials.spec.ts}`, edits to `look.surfaces.spec.ts` and `look.materials.spec.ts`; `tests/e2e/world-facade.spec.ts` (`@world-facade`, `@facade-golden`, `@facade-ledger`, one `@xr @facade-ledger` case); when M10d2 merged first, the `@art-skyline ?tier=mobile` case in `tests/e2e/art.spec.ts`.
 - Data (not counted): `look.json`, `mesher.json`, `surface-textures.json` (wall bindings), schemas, shots, goldens in `tests/e2e/golden/facade/`, flicker baseline, ledger, BD rows. No new script, dependency or asset.
 
 ## Interfaces
@@ -68,14 +68,15 @@ Evidence: capture study "Buildings and facades" (frame `desktop-02`, Market & 4t
   - `desktop` and `mobile` report `kit: true` with awnings, bays and shop walls > 0, and cornices > 0 only at `desktop`;
   - `mobile-low` reports `kit: false`, `kitTriangles: 0`, `minBands: true`; `setLook(false)` reports `kit: false`;
   - sign emissive is > 0 at 22:00 and 0 at 13:00; `skyReflect` is true wherever `envMap` is false;
-  - `look().textures.sets` holds `brick` and `stucco` at `desktop` and `mobile` and neither at `mobile-low`;
+  - `look().textures.sets` holds `brick` and `stucco` at `desktop` and `mobile` on every backend not in M10d0's `unsupported` list (a listed backend reports neither, its walls procedural), and neither at `mobile-low`;
   - the `facade-graze` pair flickers at most 10 % over its committed baseline — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-facade && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @world-facade`
-- AC-5 Given committed facade goldens (`golden-update` label) When `@facade-golden` (three shots × `desktop`, `mobile`, `mobile-low`) and the regenerated `@look-golden` run on `chromium-webgl2` and `@look-owner` on `webkit-webgl2` Then every shot is within M02e's tolerance, repeats are byte-identical, and a different synth `bakeId` fails naming both — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@facade-golden|@look-golden" && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @look-owner`
+- AC-5 Given committed facade goldens (`golden-update` label) When `@facade-golden` (three shots × `desktop`, `mobile`, `mobile-low`) and every other committed look golden set, regenerated (`_PLAN-3.md` Look program rule 6), run on `chromium-webgl2` and `@look-owner` on `webkit-webgl2` Then every shot is within M02e's tolerance, repeats are byte-identical, and a different synth `bakeId` fails naming both — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@facade-golden|@look-golden|@markings-golden|@textures-golden" && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @look-owner`
 - AC-6 Given every perf scenario in fail mode and the committed ledger When `@facade-ledger` runs flat and in the `@xr` case Then every tier is in budget, the object delta is 0 on all four profiles, `mobile-low` stays ≤ 100, `xr` `after` equals `baseline`, and building triangles grow ≤ 35 % (`desktop`), ≤ 20 % (`mobile`), 0 (`mobile-low`) — proof: `DV_WORLD=synth pnpm check:perf -- --fail && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @facade-ledger && DV_WORLD=synth pnpm check:e2e:xr`
 - AC-7 Given the same build When the earlier suites run Then `@world-look`, `@look-tune`, `@look-fixes`, `@world-landmarks`, `@world-sky`, `@world-route`, `@world-boot-size` and the XR smoke pass — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@world-look|@look-tune|@look-fixes|@world-landmarks|@world-sky|@world-route|@world-boot-size" && DV_WORLD=synth pnpm check:e2e:xr`
 - AC-8 Given the branch When the asset and IP gates run Then they pass with no new asset, provenance record or licence entry — proof: `pnpm assets:catalog && pnpm check:assets && pnpm provenance:check && pnpm ip:strings && pnpm names:lint`
 - AC-9 Given the production build When it is verified and deployed to a Preview Then it succeeds, `__dvBridge` is absent and the header checks pass — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
 - AC-10 Given the merged default branch republished to staging When the operator plays New Game to the m.a1.01 truck stage and drives a commercial street of the `sf` bake in Safari and Chrome Then storefronts, awnings and bays read, no sign shows text or a logo, and before/after frames are in `docs/look/M02h7-sf/` — proof: manual: desktop Mac (Safari and Chrome), `pnpm deploy:prod -- --env staging`, `pnpm check:smoke -- https://tha-bay-web-staging.gratitude-8f4.workers.dev`, frames and `notes.json` committed
+- AC-11 Given M10d2 has merged before this row (the planned order; otherwise M10d2 AC-7 carries this case and the report says so) When `@art-skyline` runs its `?tier=mobile` case on a `synth` QA build Then walls on `mobile` sample the atlas's `mobile` variant through the seam, only that variant of `texture/facade-atlas` is requested, and `mobile-low` requests none — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @art-skyline`
 
 ## Test plan
 - **Unit:** the five specs of Deliverables.
@@ -91,7 +92,7 @@ How to see it:
 5. Reload with `&tier=mobile-low`: flat shopfront bands only.
 
 ## Effort
-1 Builder session; ≈ 19 code files; risk **medium-high** (geometry on real footprints, triangle growth, golden churn). Order: street test, awnings, bays, cornices, shader bands, bump, glass, seam, bridge, goldens, ledger. Short on time: cornices become the shader band (BD row), then the bump goes.
+1 Builder session; ≈ 20 code files (the `@art-skyline` case included); risk **medium-high** (geometry on real footprints, triangle growth, golden churn). Order: street test, awnings, bays, cornices, shader bands, bump, glass, seam, bridge, goldens, ledger. Short on time: cornices become the shader band (BD row), then the bump goes.
 
 ## Risks & fallbacks
 - **Triangles over plan:** lower `kit.trisPerBuilding` (data), then one bay per wall. Never raise a budget.

@@ -151,7 +151,7 @@ The one-session M10d1 is split into M10d1 (vehicles, props, the placeholder regi
 
 ### M10d2 · art-integration — 1 · risk M · S02 (+S05, S11) (DL-390, DL-460, DL-739; Track B 5, before M10d3, DL-755)
 - **Goal:** KTX2 facade atlas (desktop and a `mobile` variant, DL-740), rasterized `texture/far-bay-cards`, landmark art pass at the same AssetIds where files are supplied, `desktop-ultra` atmosphere adapter and clouds behind a flag, and the `assets:final` placeholder scan that M14b3's `art-final` gate computes.
-- **R** R-MAP-01, R-MAP-02 (s), R-MODE-02 (s), R-IP-01 · **Dep** M10d4, M02h5 (Track A's last bake row), M02d2, M02e (façade node, DL-704) · **Read** file `M10d2-…md`; `02-world-maps.md` §4; `02-world-bake.md` §6, §7; `02-world-living.md` §6 · **Out** `tools/map/src/far`, `tools/assets/src/final.ts`, `packages/world/src/client/{chunks,sky}` · **C** C07 1.1, C08 1.0, C13 1.1
+- **R** R-MAP-01, R-MAP-02 (s), R-MODE-02 (s), R-IP-01 · **Dep** M10d5, M10d4, M02h5 (the last Track A row that changes the bake output), M02d2, M02e (façade node, DL-704) · **Read** file `M10d2-…md`; `02-world-maps.md` §4; `02-world-bake.md` §6, §7; `02-world-living.md` §6 · **Out** `tools/map/src/far`, `tools/assets/src/final.ts`, `packages/world/src/client/{chunks,sky}` · **C** C07 1.1, C08 1.0, C13 1.1
 - **Gate** Q-39 (default applies) · **Proof** `pnpm check:unit -- tools/assets` (`final.repo`); `pnpm map:landmarks -- --build --check`; `DV_WORLD=synth pnpm check:perf -- --scenario route-ferry-ocean-beach --fail`; `@art-skyline`, `@art-ultra`
 
 ### M05e1 · story-act2-part1 — 1 · risk M · S03 (+S08 event host)

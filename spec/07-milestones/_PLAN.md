@@ -87,11 +87,11 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 65 | M02h2 | curbs-sidewalks | 1 | B | M02h1 |
 | 66 | M10d4 | art-integration | 1 | E | M10d1, M10d0, M10a1, M10a2, M03b2, M04b2, M02h2 |
 | 67 | M02h3 | ground-cover | 1 | B | M02h2, M02g2, M02a2 |
-| 68 | M10d5 | art-integration | 0.4 | E | M10d4, M10a2 |
+| 68 | M10d5 | art-integration | 0.4 | E | M10d4, M02h2, M10a2 |
 | 69 | M11a1 | iphone-hardening-governor | 1 | E | M02b1, M03b1, M07a2, M04b5 |
 | 70 | M02h4 | vegetation-forms | 0.75 | B | M02h3, M02g2 |
 | 71 | M02h5 | vegetation-scatter | 0.75 | B | M02h4, M02h3 |
-| 72 | M10d2 | art-integration | 1 | E | M10d4, M02h5, M02d2, M02e |
+| 72 | M10d2 | art-integration | 1 | E | M10d5, M10d4, M02h5, M02d2, M02e |
 | 73 | M02h6 | street-furniture-parking | 1 | B | M02h5, M02h2, M03b1, M10d1 |
 | 74 | M02h7 | facade-detail | 1 | B | M02h6, M02g2, M10d0 |
 | 75 | M02h8 | xr-look-traa | 0.8 | E | M11a1, M02h7 |
@@ -464,6 +464,7 @@ flowchart LR
   M07b2 --> M10d3
   M08b2 --> M10d3
   M10d4 --> M10d2
+  M10d5 --> M10d2
   M02h5 --> M10d2
   M02d2 --> M10d2
   M02e --> M10d2
@@ -591,6 +592,7 @@ flowchart LR
   M10d1 --> M02h6
   M02h2 --> M10d4
   M10a2 --> M10d5
+  M02h2 --> M10d5
   M02f2 --> M02g1
   M10a2 --> M10d4
   M02h8 --> M11b1
@@ -617,7 +619,7 @@ flowchart LR
 
 ## 3. Critical path and checkpoints
 
-**Critical path since DL-755** (two look tracks, DL-OWN-09): M00 → … → M05c2 (19.0, unchanged) → M02g1 → M02g2 → M02h1 → … → M02h7 (27.2) → M02h8 (28.0) → M11b1 → M11b3 → M11b2 → M11b4 (31.2) → M14b3 → M14a = **33.2 sessions** to the last v1 milestone (−2.0 from DL-739's 35.2), and + M15a → M15e → M15f → M15g = **37.2** to the end of expansion. Track B no longer waits for M02h7: M10d0 ends at 21.7, M10d1 22.7, M10d4 23.7, M10d5 24.1, M10d2 26.2 (after M02h5, 25.2), M10d3 27.2 and M10e 28.2 (it now names M10d3), so the art chain has 3.0 sessions of slack before M14b3 (31.2) and the rooms → publish → legal chain (M14b2 ends 27.8) 3.4. The edges into Track A add no length: M10d0 → M02h7 has 4.5 sessions of slack, M10d1 → M02h6 2.5.
+**Critical path since DL-755** (two look tracks, DL-OWN-09): M00 → … → M05c2 (19.0, unchanged) → M02g1 → M02g2 → M02h1 → … → M02h7 (27.2) → M02h8 (28.0) → M11b1 → M11b3 → M11b2 → M11b4 (31.2) → M14b3 → M14a = **33.2 sessions** to the last v1 milestone (−2.0 from DL-739's 35.2), and + M15a → M15e → M15f → M15g = **37.2** to the end of expansion. Track B no longer waits for M02h7: M10d0 ends at 21.7, M10d1 22.7, M10d4 23.7, M10d5 24.1, M10d2 26.2 (after M02h5, 25.2), M10d3 27.2 and M10e 28.2 (it now names M10d3), so the art chain has 3.0 sessions of slack before M14b3 (31.2) and the rooms → publish → legal chain (M14b2 ends 27.8) 3.4. The edges into Track A add no length: M10d0 → M02h7 has 4.5 sessions of slack, M10d1 → M02h6 2.5. All these times assume a free Builder for every ready row; under DL-OWN-09 the rows held behind the look program (M07b2, M08b2, M05f2, M10c and their chains) start only after it, so M10d3 and M10e times are lower bounds, not calendar dates (DL-756).
 
 **Critical path before DL-739:** M00 → M01a1 → M01a2 → M01c → M00d → M02a1 → M02a2 → M02b1 → M02b2 → M02c1 → M03a1 → M03b1 → M03c → M04a2 → M04b1 → M04c → M05b2 → M05c1 → M05c2 → M12b1 → M12b2 → M12c1 → M13a3 → M13b2 → M13c2 → M13d1 → M14b1 → M14b2 → M14b3 → M14a = 29.8 sessions, + M15a → M15e → M15f → M15g = 33.8 (DL-219, DL-348, DL-552). The world bake (M02a1–M02c1), the city systems that `ModeHost` wires (M03b1–M03c) and the R-ROLL-01 gate (M05c2 before M12b1) sit on both paths, so they are not deferred.
 
@@ -646,7 +648,7 @@ At every checkpoint the Architect runs the three critic lenses on the next block
 |---|---|---|---|
 | M10d0 | M00f, M01d | M02g2 (merge order only): none; its held paths (`_PLAN-3.md` Look program) wait for M02g2's merge | AC-1, AC-5, AC-6, AC-7, AC-8 |
 | M10d4 | M10d1, M10d0, M10a1, M03b2, M04b2 | M10a2: the merged Coast catalog rows without `model` (AC-7's fallback branch). M02h2: none; `peds/*` waits for its merge | AC-7, AC-8, AC-9, AC-10 |
-| M10d5 | M10d4 | M10a2: the same Coast stand-in | AC-3, AC-4 |
+| M10d5 | M10d4, M02h2 | M10a2: the same Coast stand-in | AC-3, AC-4 |
 
 **Start-after sets larger than Depends on** (HARD edges the Depends on omits; they bind the start, not the merge order, which the §1 run order already satisfies; the milestone files are corrected at the next Architect pass, DL-701):
 

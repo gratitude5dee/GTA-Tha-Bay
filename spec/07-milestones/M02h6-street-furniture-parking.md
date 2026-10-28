@@ -13,7 +13,7 @@ After this session the M02h2 sidewalks carry signal masts with live aspects, sto
 ## Depends on
 - **M02h2:** sidewalk ribbons, `curb.heightM`, the curb line, the ledger chain (other export names: use what merged, BD row).
 - **Run order (`_PLAN.md` §0 rule 10):** after M02h5 (Phase 1 rows share `mesher.ts`, `surfaces.ts`, `look.json`, `look-shots.json` and the ledger chain).
-- **M10d1** (DL-755; merged about 3.8 sessions before this row starts): the families of `traffic/archetype-mesh.ts` and `config/world/traffic-art.json`, `traffic/materials.ts` (`aTint`, `aLights`, livery bit) and the registry.
+- **M10d1** (DL-755; merged about 2.5 sessions before this row starts, `_PLAN.md` §3): the families of `traffic/archetype-mesh.ts` and `config/world/traffic-art.json`, `traffic/materials.ts` (`aTint`, `aLights`, livery bit) and the registry.
 - **M03b1:** `TrafficRenderer`, `parkedPose`, `slotUnit`, `density.json` `tierFactors.parked`.
 - Merged context: M02g1 (`layers`, `setLookLayer`, blob layer, ledger shape), M02e (profiles, `shot()`, `@look-golden`), M02b2 (lamps, blackout), M02b1 (mesher, upload gate).
 - Contracts: C08 1.1 (rule 12 pools, DL-741), C13 1.2, C06 1.1 (read).
@@ -101,7 +101,7 @@ After this session the M02h2 sidewalks carry signal masts with live aspects, sto
   - `parked.instances` is above 0;
   - `heads.aspects` changes within 30 s;
   - layers off report 0;
-  - no image or `texture/` request appears.
+  - every image or `texture/` request is a ref in `look().textures?.refs ?? []` (M10d0) or `world.art().refs` (M10d1), and switching the `furniture` and `parked` layers on adds no request (furniture and sign faces fetch nothing).
   — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-furniture && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @world-furniture`
 - AC-7 Given every perf scenario and the ledger When fail-mode perf and `@furniture-ledger` run Then:
   - budgets hold;
@@ -109,7 +109,7 @@ After this session the M02h2 sidewalks carry signal masts with live aspects, sto
   - `mobile-low` after is ≤ 100;
   - XR adds 0.
   — proof: `DV_WORLD=synth pnpm check:perf -- --fail && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @furniture-ledger && DV_WORLD=synth pnpm check:e2e:xr`
-- AC-8 Given regenerated goldens plus `junction-noon` at `desktop` and `mobile-low` When `@look-golden` runs Then all are within M02e's tolerance — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @look-golden`
+- AC-8 Given every committed look golden set regenerated (`_PLAN-3.md` Look program rule 6) plus `junction-noon` at `desktop` and `mobile-low` When the look golden suites run Then all are within M02e's tolerance — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@look-golden|@markings-golden|@textures-golden|@facade-golden" && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @look-owner`
 - AC-9 Given the branch When the asset and IP gates and the production build run Then the gates pass with no new asset, image or provenance record, `__dvBridge` is absent and the Preview passes its headers — proof: `pnpm assets:catalog && pnpm check:assets && pnpm provenance:check && pnpm ip:strings && pnpm names:lint && pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
 - AC-10 Given an operator `synth` Preview on an iPhone 15 Home Screen app at `mobile-low` When the checklist runs `downtown-rush` with the layers on, then off Then `perf:verify` passes, and `notes.json` records the delta — proof: manual: iPhone 15 (Home Screen app), Preview from `pnpm map:build -- --area synth && DV_WORLD=synth VITE_DV_QA=1 pnpm build && pnpm deploy:preview`, `pnpm perf:checklist -- tools/ci/checklists/M02h6-iphone15.json`, upload to `docs/device-runs/M02h6/iphone15/`, then `pnpm perf:verify -- docs/device-runs/M02h6/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M02h6-iphone15.json`
 

@@ -58,7 +58,7 @@ Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-
 | `min` | 6 | 8 | 0, total ≤ 100 | ≤ 1 |
 | `legacy` (XR) | 8 / 16 | 8 | 0 | ≤ 3 |
 
-- **Bridge (QA):** `world.peds().art` `{bodies, near, far, clips, textureBytes}`; creator `state.parts`.
+- **Bridge (QA):** `world.peds().art` `{bodies, near, far, clips, textureBytes}`, one block in `world-bridge.ts` fenced by an `art-hook` comment (`_PLAN-3.md` Look program rule 2); creator `state.parts`. `content/ui/creator/catalog.json` merges with M10a2 by Look program rule 9 (its Coast `model` and `portrait` fields, this row's other rows and `fallbackPart`).
 
 ## Scope out
 - Coast models: M10a2. The on-foot player and mission-actor bodies (`prop/graybox.capsule` in `player.default` and `ped.actor`): M10d5; the fighter-model fallback: M10d3; both from this session's parts. NPC and fighter models: M10a2.
@@ -110,7 +110,7 @@ Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-
   - ped texture bytes are within the table;
   - every scenario stays within its object, triangle and texture budgets, and `PED_FAR_DRAWS_MAX` stays 8.
   — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @peds-ledger && DV_WORLD=synth pnpm check:e2e:xr && DV_WORLD=synth pnpm check:perf -- --fail`
-- AC-10 Given goldens regenerated under the `golden-update` label When `@look-golden`, `@world-peds` and `@creator` run on both engines Then every shot is within M02e's tolerance, including M02g1's `webkit-webgl2` m.a1.01 truck shot — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@look-golden|@world-peds|@creator" && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep "@look-golden|@world-peds|@creator"`
+- AC-10 Given goldens regenerated under the `golden-update` label When `@look-golden` and every other committed look golden set (`_PLAN-3.md` Look program rule 6: every committed look golden set), `@world-peds` and `@creator` run on both engines Then every shot is within M02e's tolerance, including M02g1's `webkit-webgl2` m.a1.01 truck shot — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@look-golden|@markings-golden|@textures-golden|@facade-golden|@world-peds|@creator" && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep "@look-golden|@world-peds|@creator"`
 - AC-11 Given a local QA build When the reviewer walks Market Street at `desktop` and `mobile-low` with the QA crowd and opens every creator tab Then no ped or part resembles a real person, no child body appears, no outfit shows text or a mark, and the base comparison is attached, recorded in `docs/device-runs/M10d4/desktop/notes.json` — proof: manual: desktop browser, `DV_WORLD=synth pnpm dev`, open `/?debug=1&tier=desktop`, `__dvBridge.world.teleport('lm.ferry-building')`, `__dvBridge.world.call('crowd', { n: 12 })`, walk up Market Street, repeat at `tier=mobile-low`, open New Game and every tab, write the notes file
 
 ## Test plan
