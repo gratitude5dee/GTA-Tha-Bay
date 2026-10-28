@@ -34,6 +34,27 @@ export const vnoise = (p: L): L => {
 /** Two octaves of value noise, in [0, 1). */
 export const fbm2 = (p: L): L => vnoise(p).mul(0.65).add(vnoise(p.mul(2.17).add(vec2(11.3, 7.7))).mul(0.35));
 
+/**
+ * `fbm2` of `p x freq` with each octave faded to its mean (0.5) once a pixel (`fp` metres) covers more than the octave's cycle: the
+ * analytic filter of a texture's mip chain, per octave, so the large patches stay where the fine grain has gone (M02g2).
+ */
+export const fbm2AA = (p: L, freq: number, fp: L): L => {
+  const q = p.mul(freq);
+  return vnoiseFaded(q, freq, fp).mul(0.65).add(vnoiseFaded(q.mul(2.17).add(vec2(11.3, 7.7)), freq * 2.17, fp).mul(0.35));
+};
+
+/** `fbm3` of `p x freq`, each octave faded as `fbm2AA` does. */
+export const fbm3AA = (p: L, freq: number, fp: L): L => {
+  const q = p.mul(freq);
+  return vnoiseFaded(q, freq, fp)
+    .mul(0.55)
+    .add(vnoiseFaded(q.mul(2.13).add(vec2(11.3, 7.7)), freq * 2.13, fp).mul(0.28))
+    .add(vnoiseFaded(q.mul(4.37).add(vec2(3.1, 19.9)), freq * 4.37, fp).mul(0.17));
+};
+
+/** A scaled coordinate `q` of `freq` cycles per metre, value noise faded to 0.5 by the pixel footprint. */
+const vnoiseFaded = (q: L, freq: number, fp: L): L => mix(float(0.5), vnoise(q), bandFade(fp, freq));
+
 /** Three octaves of value noise, in [0, 1). */
 export const fbm3 = (p: L): L =>
   vnoise(p).mul(0.55).add(vnoise(p.mul(2.13).add(vec2(11.3, 7.7))).mul(0.28)).add(vnoise(p.mul(4.37).add(vec2(3.1, 19.9))).mul(0.17));

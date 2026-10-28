@@ -27,7 +27,7 @@ import {
 } from '@dv/shared';
 import mesherJson from '../../../../../config/world/mesher.json';
 import { facadeClassOf, lookProfileFor } from '../look/config.ts';
-import { FLAG_PARAPET, Surf, facadeDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
+import { FLAG_PARAPET, Surf, facadeDm, facadeSignedDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
 import { meshBytes, type MeshBuffers, type MeshStats, type UnitMesh } from './mesh-types.ts';
 
 // ---- configuration -------------------------------------------------------------------------------------------------------
@@ -108,6 +108,16 @@ export const roadColor = (cls: number): Rgb =>
 export function profileOf(tier: QualityTierId): { id: ProfileId; profile: MesherProfile } {
   const id = MESHER.tierProfile[tier];
   return { id, profile: MESHER.profiles[id] };
+}
+
+/**
+ * Whether an L0 chunk at `distM` from the focus has its terrain at the profile's `nearStride` (M02g2): it enters the near ring under
+ * `terrain.nearRingM` and, once in, stays until it is over `nearRingM x leaveFactor`, so a chunk at the edge is not meshed back and forth.
+ * `meshChunk` decides a first mesh with the plain ring (`wasNear` false); the streaming view asks again with what it holds.
+ */
+export function wantNearStride(wasNear: boolean, distM: number): boolean {
+  const ring = MESHER.terrain.nearRingM;
+  return wasNear ? distM <= ring * MESHER.terrain.leaveFactor : distM <= ring;
 }
 
 // ---- buffers -------------------------------------------------------------------------------------------------------------
@@ -410,6 +420,29 @@ const jitter = (seed: number, salt: number): number => (((seed * 2654435761 + sa
 
 const AO_BASE = 0.55;
 
+/**
+ * The height of the wall foot of a footprint (M02g2): the foundation skirt under `base`, or lower where the ground falls away under
+ * the walls: the lowest point of the heightfield and of the drawn terrain mesh (`stride`) along the walls, less 10 cm. So no wall foot
+ * hangs above the ground it stands on, on a steep street or on a coarse mesh. `ring` is local to the unit corner, `extentM` the unit's
+ * edge (256 m for an L0 chunk) and `field` an exact ground height to take the minimum with (L0 passes `sampleHeight`).
+ */
+export function wallFoot(heights: Int16Array, cellM: number, stride: 1 | 2 | 4, ring: readonly number[], base: number, field?: (x: number, z: number) => number, extentM = 256): number {
+  let low = base - MESHER.foundationM;
+  const n = ring.length / 2;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const x0 = ring[i * 2] as number, z0 = ring[i * 2 + 1] as number, x1 = ring[j * 2] as number, z1 = ring[j * 2 + 1] as number;
+    const steps = Math.min(64, Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0))));
+    for (let k = 0; k <= steps; k++) {
+      const t = k / steps;
+      const x = Math.min(extentM, Math.max(0, x0 + (x1 - x0) * t)), z = Math.min(extentM, Math.max(0, z0 + (z1 - z0) * t));
+      const ground = Math.min(meshSurfaceAt(heights, cellM, stride, x, z), field ? field(x, z) : Infinity);
+      if (ground - 0.1 < low) low = ground - 0.1;
+    }
+  }
+  return low;
+}
+
 export interface BuildingStats {
   triangles: number;
 }
@@ -422,6 +455,12 @@ export function addBuilding(
   b: MeshBuilder, ringIn: number[], base: number, height: number, rec: Pick<BuildingRecord, 'kind' | 'roof' | 'palette' | 'seed'>, profile: MesherProfile,
   /** The coarse levels draw every vertex of the footprint as one surface (the massing of an L1 or L2 unit). */
   surfOverride?: number,
+  /**
+   * M02g2: the absolute height of the wall foot when the ground under the walls falls lower than the foundation skirt reaches
+   * (`wallFoot`); absent, or above the skirt, the foot is `base - foundationM` as before. The facade coordinates stay anchored to
+   * the nominal foot, so the floors and bands do not move; the extra depth is below them (a negative `v`).
+   */
+  footIn?: number,
 ): number {
   let ring = ringIn.slice();
   if (signedArea(ring) < 0) {
@@ -472,7 +511,9 @@ export function addBuilding(
 
   // Walls: outward normal (dz, 0, -dx) for a counter-clockwise ring in (x, z). The foot is the foundation skirt, 1.5 m under the ground.
   b.setSurf(surfOverride ?? wallSurf(rec.kind), rec.palette, code, parapet ? FLAG_PARAPET : 0);
-  const footY = base - foundation;
+  const nominalFoot = base - foundation;
+  const footY = footIn !== undefined && footIn < nominalFoot ? footIn : nominalFoot;
+  const footV = facadeSignedDm(footY - nominalFoot);
   const rowY = base + MESHER.ao.wallRowM;
   // The row keeps the linear shading ramp of the plain wall (0.72 at the foot, 1 at the top) so only the occlusion changes.
   const rowShade = 0.72 + 0.28 * ((rowY - footY) / (wallTop - footY));
@@ -483,12 +524,12 @@ export function addBuilding(
     const len = Math.sqrt(dx * dx + dz * dz) || 1;
     const nrm: Rgb = [dz / len, 0, -dx / len];
     const uEnd = facadeDm(withFacade ? Math.max(1, Math.round(len / bayM)) * bayM : len);
-    const v0 = b.vertex(x0, footY, z0, nrm, scale(wall, 0.72), AO_BASE, [0, 0, wallHdm, seed15]);
-    const v1 = b.vertex(x1, footY, z1, nrm, scale(wall, 0.72), AO_BASE, [uEnd, 0, wallHdm, seed15]);
+    const v0 = b.vertex(x0, footY, z0, nrm, scale(wall, 0.72), AO_BASE, [0, footV, wallHdm, seed15]);
+    const v1 = b.vertex(x1, footY, z1, nrm, scale(wall, 0.72), AO_BASE, [uEnd, footV, wallHdm, seed15]);
     const v2 = b.vertex(x1, wallTop, z1, nrm, wall, 1, [uEnd, wallHdm, wallHdm, seed15]);
     const v3 = b.vertex(x0, wallTop, z0, nrm, wall, 1, [0, wallHdm, wallHdm, seed15]);
     if (wallRow) {
-      const rowDm = facadeDm(rowY - footY);
+      const rowDm = facadeDm(rowY - nominalFoot);
       const r0 = b.vertex(x0, rowY, z0, nrm, scale(wall, rowShade), MESHER.ao.wallRowAo, [0, rowDm, wallHdm, seed15]);
       const r1 = b.vertex(x1, rowY, z1, nrm, scale(wall, rowShade), MESHER.ao.wallRowAo, [uEnd, rowDm, wallHdm, seed15]);
       b.tri(v0, r1, v1);
@@ -670,7 +711,7 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
   // M02g2: a profile with a finer stride for the chunks around the focus meshes those at `nearStride`, and every chunk of such a
   // profile hangs a skirt under its borders: two chunks of different strides meet at a seam one side of which the other cannot follow.
   const mixedStrides = profile.nearStride < profile.terrainStride;
-  const near = mixedStrides && o.distM <= MESHER.terrain.nearRingM;
+  const near = mixedStrides && wantNearStride(false, o.distM);
   const stride = near ? profile.nearStride : profile.terrainStride;
 
   const stats: MeshStats = { triangles: 0, vertices: 0, buildings: 0, skipped: 0, maxBuildingTris: 0, filtered: false, bytes: 0, near, terrainStride: stride };
@@ -714,7 +755,9 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
     const bb = new MeshBuilder({ facade: withFacade });
     let maxTris = 0;
     for (const c of list) {
-      const t = addBuilding(bb, c.ring, c.rec.baseDm / 10, c.height, c.rec, profile);
+      const base = c.rec.baseDm / 10;
+      const foot = wallFoot(sim.height.dm, cellM, stride, c.ring, base, (x, z) => sampleHeight(sim.height, ox + x, oz + z));
+      const t = addBuilding(bb, c.ring, base, c.height, c.rec, profile, undefined, foot);
       if (t > maxTris) maxTris = t;
     }
     return { built: bb.build('buildings'), maxTris };

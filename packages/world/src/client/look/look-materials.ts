@@ -17,6 +17,8 @@ import { windowEmissive } from '../sky/night.ts';
 import {
   clamp, float, fract, mix, normalLocal, normalView, normalWorld, normalize, positionWorld, select, smoothstep, vec2, vertexColor, asNode, loose, step, type L,
 } from '../sky/tsl.ts';
+import { COARSE_BACK, plus, roadBias, type DepthRules } from '../chunks/depth.ts';
+import { MESHER } from '../chunks/mesher.ts';
 import type { ObjectKind } from '../chunks/mesh-types.ts';
 import { baseAttributes, coverMask, facadeNodes, fadeShown, surfNodes, type LookNodes } from './common.ts';
 import { FACADE_KEYS, type LookFile } from './config.ts';
@@ -26,9 +28,6 @@ import { around1, pickFloat, vnoise } from './noise.ts';
 import { roofNodes } from './roof.ts';
 import { Surf } from './surfaces.ts';
 import { waterNodes } from './water.ts';
-
-/** Polygon offset factor and units of the coarse (L1, L2) look materials. */
-const COARSE_DEPTH_BIAS = -64;
 
 export type MaterialProfile = 'full' | 'lite' | 'min';
 
@@ -44,12 +43,14 @@ export interface LookMaterialOptions {
   nodes: LookNodes;
   foundationM: number;
   parapetM: number;
+  /** The polygon offsets (M02g2): the coarse levels sit behind L0, a road ribbon in front of the terrain under it. */
+  depth: DepthRules;
 }
 
 const set = <K extends string>(m: MeshStandardNodeMaterial, k: K, v: unknown): void => void ((m as unknown as Record<string, unknown>)[k] = v);
 
 export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
-  const { profile, look, nodes: n } = o;
+  const { profile, look, nodes: n, depth } = o;
   const a = baseAttributes();
   const shown = fadeShown(n, a.aBirth);
   const covered = coverMask(a.aCover, a.aCell);
@@ -66,6 +67,8 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
   };
 
   // ---- ground -------------------------------------------------------------------------------------------------------------
+  // The terrain and the roads are the same node graph in two instances: a road ribbon lies 0.12 m over the terrain, which a coarse
+  // depth buffer cannot tell apart at a distance, so the roads' instance has its own polygon offset (M02g2).
   const ground = (coarse: boolean): MeshStandardNodeMaterial => {
     const m = make(coarse ? DoubleSide : FrontSide, coarse);
     const s = surfNodes();
@@ -147,23 +150,19 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
   };
 
   const l0: LookMaterialSet['l0'] = {};
-  const g0 = ground(false);
-  l0.terrain = g0;
-  l0.roads = g0;
+  l0.terrain = ground(false);
+  l0.roads = depth.set(ground(false), roadBias(MESHER.depth.roadFactor, MESHER.depth.roadUnits));
   l0.buildings = buildings();
   l0.vegetation = trees();
   const coarse: LookMaterialSet['coarse'] = {};
-  const g1 = ground(true);
-  coarse.terrain = g1;
-  coarse.roads = g1;
+  coarse.terrain = ground(true);
+  coarse.roads = ground(true);
   coarse.massing = massing();
   // A coarse wall and a detailed L0 wall can stand in the same place (a building whose footprint crosses a cell that is not masked
   // yet, or a tile the L0 chunk of which is missing): the coarse surfaces are pushed back in depth so the detailed one always wins.
-  for (const m of new Set(Object.values(coarse))) {
-    m.polygonOffset = true;
-    m.polygonOffsetFactor = COARSE_DEPTH_BIAS;
-    m.polygonOffsetUnits = COARSE_DEPTH_BIAS;
-  }
+  for (const m of new Set(Object.values(coarse))) depth.set(m, COARSE_BACK);
+  // The coarse roads keep their place in front of the coarse terrain.
+  depth.set(coarse.roads, plus(COARSE_BACK, roadBias(MESHER.depth.roadFactor, MESHER.depth.roadUnits)));
   return {
     l0,
     coarse,

@@ -28,7 +28,7 @@ import { ChunkRenderer, type RenderLevel } from './chunks/chunk-renderer.ts';
 import { createWorldMaterials, type WorldMaterials } from './chunks/materials.ts';
 import { LandmarkLayer, type LandmarkSpot, type LandmarksReport, type PreparedRemesh } from './chunks/landmark-layer.ts';
 import { mountLandmark } from './chunks/landmark-view.ts';
-import { MESHER, profileOf } from './chunks/mesher.ts';
+import { MESHER, profileOf, wantNearStride } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
 import { LOOK, LOOK_LAYERS, lookProfileFor, type LookLayer } from './look/config.ts';
@@ -252,7 +252,7 @@ export class WorldView implements WorldLayer {
 
     const fade = STREAMING_FADE_SECONDS[this.o.tier];
     const profile = this.o.look ? lookProfileFor(this.o.tier, this.o.look.enabled) : 'legacy';
-    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK } });
+    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK }, depthPolicy: host.depthPolicy });
     // The world pass draws over the backdrop pass: no scene background of its own.
     host.scene.background = null;
     const hemi = new HemisphereLight(0xdbe9ff, 0x6a6f64, 3.4);
@@ -271,6 +271,13 @@ export class WorldView implements WorldLayer {
       treeHysteresis: MESHER.tree.drawHysteresis,
     });
     host.register(this.renderer);
+    // A renderer replaced after a device loss may have the other depth buffer: the polygon offsets follow it (M02g2).
+    host.register({
+      onRendererReplaced: () => {
+        this.materials.setDepthPolicy(host.depthPolicy);
+        return Promise.resolve();
+      },
+    });
 
     this.store = new ChunkStore<UnitMesh>({
       levels: ['l0', 'l1', 'l2'],
@@ -617,13 +624,12 @@ export class WorldView implements WorldLayer {
   private remeshNear(): void {
     const profile = profileOf(this.o.tier).profile;
     if (profile.nearStride >= profile.terrainStride) return;
-    const ring = MESHER.terrain.nearRingM;
     const due: { key: ChunkKey; d: number; mesh: UnitMesh; want: boolean }[] = [];
     for (const key of this.store.residentKeys('l0')) {
       const mesh = this.store.unit('l0', key)?.payload;
       if (!mesh || mesh.stats.near === undefined) continue;
       const d = this.store.distanceTo(key);
-      const want = mesh.stats.near ? d <= ring * MESHER.terrain.leaveFactor : d <= ring;
+      const want = wantNearStride(mesh.stats.near, d);
       if (want !== mesh.stats.near) due.push({ key, d, mesh, want });
     }
     due.sort((a, b) => a.d - b.d);
