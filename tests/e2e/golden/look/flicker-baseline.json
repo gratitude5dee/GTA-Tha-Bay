@@ -1,0 +1,33 @@
+{
+  "$comment": "M02g2 flicker baselines of the parent commit (the code before the look fixes, DV_FIXES_BASELINE=1 with the same shot pairs; the pictures of both shots were kept and measured with tests/support/flicker.ts): per project, the share of pixels at 640 x 360 that differ by more than 32/255 from every pixel of the other shot within one pixel (the parallax of 0.05 m is not flicker). `ledger` holds the render objects and triangles the @fixes-ledger protocol reads at that commit, per tier (chromium-webgl2).",
+  "schema": "look-flicker-baseline/1",
+  "viewport": {
+    "width": 640,
+    "height": 360
+  },
+  "threshold": 32,
+  "baselines": {
+    "chromium-webgl2": {
+      "junction-graze": 0.000812,
+      "civic-hall-graze": 0.00082,
+      "asphalt-low": 0.000347
+    },
+    "webkit-webgl2": {
+      "asphalt-low": 0.00033
+    }
+  },
+  "ledger": {
+    "desktop": {
+      "objects": 290,
+      "triangles": 1078649
+    },
+    "mobile": {
+      "objects": 158,
+      "triangles": 267158
+    },
+    "mobile-low": {
+      "objects": 87,
+      "triangles": 127127
+    }
+  }
+}
