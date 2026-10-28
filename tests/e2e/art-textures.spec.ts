@@ -4,7 +4,6 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
 import { decodePng, diffImages, encodePng, goldenFailures, identical, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
-import { SMALL_VIEWPORT } from './engine-helpers.ts';
 
 /**
  * M10d0 surface textures in a real browser, on a `DV_WORLD=synth` QA build (the world half of the e2e legs).
@@ -18,8 +17,7 @@ import { SMALL_VIEWPORT } from './engine-helpers.ts';
  *                     object); the XR leg `@xr @textures-ledger` has no texture request and the baseline objects
  *  - @credits-art     AC-9   `/menu/credits` shows the Art section: a courtesy line per CC0 pack and the five fields of a CC-BY entry
  *
- * `DV_UPDATE_GOLDEN=1` (outside CI, under the golden-update label) writes the goldens, `DV_LOOK_WRITE=1` the ledger, `DV_TEX_PEEK=<dir>` keeps
- * a PNG of each `@art-textures` boot for a look by eye.
+ * `DV_UPDATE_GOLDEN=1` (outside CI, under the golden-update label) writes the goldens, `DV_LOOK_WRITE=1` the ledger.
  */
 type W = { __dvBridge: { world: WorldBridge; platform: { perf: { live(): { renderObjects: number } } } } };
 type FlatTier = 'desktop' | 'mobile' | 'mobile-low';
@@ -42,7 +40,10 @@ const refsFor = (mode: string): string[] => {
   return BOUND.flatMap((s) => maps.map((m) => `texture/pbr.${s}.${m}`)).sort();
 };
 
-async function bootWorld(page: Page, tier: QualityTierId, query = '', size: { width: number; height: number } = SMALL_VIEWPORT): Promise<void> {
+/** A software-rendered frame costs seconds, so every boot here is small (the goldens use it too). */
+const VIEWPORT = { width: 256, height: 144 } as const;
+
+async function bootWorld(page: Page, tier: QualityTierId, query = '', size: { width: number; height: number } = VIEWPORT): Promise<void> {
   await page.setViewportSize(size);
   await page.goto(`/?tier=${tier}&debug=1${query}`);
   await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world !== undefined, undefined, { timeout: 180_000 });
@@ -108,19 +109,6 @@ test.describe('surface textures @art-textures', () => {
       // Only the bound refs are requested (a second boot of the same context would read the pack store's copy, so this one is a cold context).
       expect([...requested].sort()).toEqual(refs);
       expect(errors).toEqual([]);
-
-      if (process.env['DV_TEX_PEEK']) {
-        const dir = process.env['DV_TEX_PEEK'];
-        mkdirSync(dir, { recursive: true });
-        await page.addStyleTag({ content: HIDE });
-        await world(page, (w) => w.shot('noon-street'));
-        await frames(page, 2);
-        writeFileSync(`${dir}/${testInfo.project.name}.${tier}.on.png`, await page.locator('#dv-engine-canvas').screenshot());
-        await page.evaluate(() => (window as unknown as W).__dvBridge.world.setLookLayer('textures', false));
-        await frames(page, 2);
-        writeFileSync(`${dir}/${testInfo.project.name}.${tier}.off.png`, await page.locator('#dv-engine-canvas').screenshot());
-        await page.evaluate(() => (window as unknown as W).__dvBridge.world.setLookLayer('textures', true));
-      }
 
       // The QA layer switch: off reads the procedural look, on brings the sets back.
       expect(await page.evaluate(() => (window as unknown as W).__dvBridge.world.setLookLayer('textures', false))).toBe(true);

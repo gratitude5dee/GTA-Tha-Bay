@@ -101,6 +101,8 @@ export interface TextureAssets {
 interface Slot {
   node: ReturnType<typeof tslTexture>;
   tex: Texture | null;
+  /** This slot's own 1 x 1 texture: the node builder shares one binding between texture nodes that hold the same texture, so a shared placeholder would alias every slot to the first texture that is swapped in. */
+  placeholder: DataTexture;
 }
 
 interface SetState {
@@ -118,7 +120,6 @@ export class SurfaceTextures {
   private readonly cfg: SurfaceTexturesFile;
   private readonly tier: QualityTierId;
   private readonly sets: SetState[] = [];
-  private readonly placeholder: DataTexture;
   private on = true;
   private decoder: Ktx2Decoder | null = null;
   private started = false;
@@ -140,14 +141,16 @@ export class SurfaceTextures {
     const mode = textureModeFor(o.tier, o.profile, o.enabled, this.cfg);
     this.configured = this.unsupported ? 'off' : mode;
     this.refs = refsFor(this.configured, this.cfg);
-    this.placeholder = new DataTexture(new Uint8Array([128, 128, 128, 255]), 1, 1, RGBAFormat, UnsignedByteType);
-    this.placeholder.minFilter = LinearFilter;
-    this.placeholder.magFilter = LinearFilter;
-    this.placeholder.needsUpdate = true;
     if (this.configured === 'off') return;
     for (const name of boundSets(this.cfg)) {
       const slots: Partial<Record<MapName, Slot>> = {};
-      for (const m of mapsOf(this.configured)) slots[m] = { node: tslTexture(this.placeholder), tex: null };
+      for (const m of mapsOf(this.configured)) {
+        const placeholder = new DataTexture(new Uint8Array([128, 128, 128, 255]), 1, 1, RGBAFormat, UnsignedByteType);
+        placeholder.minFilter = LinearFilter;
+        placeholder.magFilter = LinearFilter;
+        placeholder.needsUpdate = true;
+        slots[m] = { node: tslTexture(placeholder), tex: null, placeholder };
+      }
       this.sets.push({ name, ids: idsOfSet(name, this.cfg, names), ready: uniform(0) as unknown as { value: number }, slots, loaded: new Set() });
     }
   }
@@ -222,7 +225,7 @@ export class SurfaceTextures {
           slot.tex.dispose();
           slot.tex = null;
         }
-        if (slot) slot.node.value = this.placeholder;
+        if (slot) slot.node.value = slot.placeholder;
       }
     }
     this.gpu = 0;
@@ -274,7 +277,6 @@ export class SurfaceTextures {
             set.loaded.add(map);
           } catch (e) {
             this.failed.add(ref);
-            // eslint-disable-next-line no-console
             console.warn(`surface textures: ${ref}: ${e instanceof Error ? e.message : String(e)}`);
           } finally {
             this.pending--;
@@ -284,7 +286,6 @@ export class SurfaceTextures {
       }
     } catch (e) {
       for (const ref of this.refs) this.failed.add(ref);
-      // eslint-disable-next-line no-console
       console.warn(`surface textures: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       if (live()) this.done = true;
@@ -294,7 +295,7 @@ export class SurfaceTextures {
   dispose(): void {
     this.disposed = true;
     this.releaseTextures();
-    this.placeholder.dispose();
+    for (const s of this.sets) for (const slot of Object.values(s.slots)) slot?.placeholder.dispose();
   }
 
   // ---- shading -----------------------------------------------------------------------------------------------------------
@@ -328,7 +329,9 @@ export class SurfaceTextures {
 
     // Albedo: the set's colour at the brightness the look already draws (`keep` of the set's own brightness is let in).
     const colorFn = Fn(() => {
-      const out = vec3(base.color).toVar();
+      // The look's colour is read once, in uniform flow, and held in a variable: its noise bands read screen derivatives, which a branch would leave undefined.
+      const baseColor = vec3(base.color).toVar();
+      const out = vec3(baseColor).toVar();
       const near = nearOf().toVar();
       for (const s of this.sets) {
         const cfg = this.cfg.sets[s.name] as SurfaceTexturesFile['sets'][string];
@@ -347,8 +350,8 @@ export class SurfaceTextures {
             tex = mix(zy.add(xy).div(wx.add(wz).max(1e-4)), tex, flat);
           }
           const meanLuma = cfg.mean[0] * 0.2126 + cfg.mean[1] * 0.7152 + cfg.mean[2] * 0.0722;
-          const tone = luma(base.color).div(Math.max(1e-4, meanLuma)).max(0.05).pow(cfg.keep);
-          out.assign(mix(base.color, tex.mul(tone), near));
+          const tone = luma(baseColor).div(Math.max(1e-4, meanLuma)).max(0.05).pow(cfg.keep);
+          out.assign(mix(baseColor, tex.mul(tone), near));
         });
       }
       return out;
@@ -357,7 +360,8 @@ export class SurfaceTextures {
     const ormFn = maps.includes('orm')
       ? Fn(() => {
           // x: ambient occlusion, y: roughness.
-          const out = vec3(1, base.roughness, 0).toVar();
+          const baseRough = base.roughness.toVar();
+          const out = vec3(1, baseRough, 0).toVar();
           const near = nearOf().toVar();
           for (const s of this.sets) {
             const cfg = this.cfg.sets[s.name] as SurfaceTexturesFile['sets'][string];
@@ -367,7 +371,7 @@ export class SurfaceTextures {
               const orm = sampler(s, 'orm', lod);
               const t = tiledSample((uv, sh) => orm(uv, sh).rgb, uvWorld, mode).rgb;
               // Wet pavement keeps the glossy roughness the procedural look gave it.
-              const rough = mix(base.roughness, t.y.min(base.roughness.add(0.12)), near);
+              const rough = mix(baseRough, t.y.min(baseRough.add(0.12)), near);
               out.assign(vec3(mix(float(1), t.x, near), rough, 0));
             });
           }

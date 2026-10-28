@@ -170,4 +170,13 @@ describe('SurfaceTextures and withSurfaceTextures', () => {
     expect(t.report().settled).toBe(true);
     expect(t.report().failed).toEqual([...refsFor('albedo')].sort());
   });
+
+  it('gives every slot its own placeholder: texture nodes that hold one texture share one binding, which would alias the maps', () => {
+    const t = make('desktop');
+    const sets = (t as unknown as { sets: { slots: Record<string, { node: { value: { uuid: string } } }> }[] }).sets;
+    const ids = sets.flatMap((s) => Object.values(s.slots).map((slot) => slot.node.value.uuid));
+    expect(ids.length).toBe(12);
+    expect(new Set(ids).size).toBe(ids.length);
+    t.dispose();
+  });
 });
