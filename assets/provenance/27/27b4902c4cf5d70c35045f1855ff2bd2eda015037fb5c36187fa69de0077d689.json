@@ -1,0 +1,36 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "27b4902c4cf5d70c35045f1855ff2bd2eda015037fb5c36187fa69de0077d689",
+  "paths": [
+    "import/polyhaven/grass_ground/grass_ground_nor_gl_1k.png"
+  ],
+  "kind": "texture",
+  "origin": "licensed",
+  "license": "CC0-1.0",
+  "authors": [
+    "profile:charlotte-baglioni"
+  ],
+  "derived_from": [],
+  "review": [
+    {
+      "gate": "art-vetting",
+      "by": "profile:builder-m10d0",
+      "at": "2026-10-28T00:00:00Z",
+      "decision": "approve",
+      "note": "assets/intake/polyhaven/grass-dirt.json"
+    }
+  ],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "pass",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-28T00:00:00Z",
+  "source": {
+    "url": "https://polyhaven.com/a/grass_ground",
+    "dataset_id": "grass_ground",
+    "retrieved": "2026-10-28"
+  }
+}

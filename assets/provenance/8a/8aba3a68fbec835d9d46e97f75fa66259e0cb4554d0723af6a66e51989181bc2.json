@@ -1,0 +1,30 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "8aba3a68fbec835d9d46e97f75fa66259e0cb4554d0723af6a66e51989181bc2",
+  "paths": [
+    "assets/src/texture/pbr.grass-dirt.normal/mobile-low.ktx2"
+  ],
+  "kind": "texture",
+  "origin": "derived",
+  "license": "CC0-1.0",
+  "authors": [
+    "profile:charlotte-baglioni"
+  ],
+  "derived_from": [
+    "27b4902c4cf5d70c35045f1855ff2bd2eda015037fb5c36187fa69de0077d689"
+  ],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "pass",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-28T00:00:00Z",
+  "tool": {
+    "name": "dv-texture-set",
+    "version": "ktx2-encoder@0.6.0 (basis_universal)",
+    "args_sha256": "4815439b665e5e71de0cf0f612c63a18f40877a0f1b7cb533fb91cba926a5714"
+  }
+}

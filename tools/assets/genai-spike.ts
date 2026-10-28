@@ -14,13 +14,14 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import Ajv2020 from 'ajv/dist/2020.js';
+import { lineCapMicros } from '../../packages/shared/src/genai/lines.ts';
 import type { GenAiRegistry } from '../../packages/shared/src/genai/registry.ts';
 import { args } from '../ci/run.ts';
 import { isMain, readJson, sha256Hex, toolsRoot } from '../ci/lib/common.ts';
 import { download, findOutputs, runQueued, type FetchFn, type QueueRun } from './lib/fal-queue.ts';
 import { cropPanels, probeC2pa, probeGlb, probeMedia, toolsAvailable } from './lib/media-probe.ts';
 import {
-  checkCallable, microsToUsd, planFindings, planTotalMicros, resolveKey, SpikeLedger,
+  checkCallable, microsToUsd, planFindings, planFit, planTotalMicros, resolveKey, SpikeLedger,
   type LedgerFile, type PlanStep, type SpikeEnv, type SpikePlan,
 } from './lib/spike-ledger.ts';
 
@@ -60,8 +61,11 @@ export function pathsFor(root: string): Paths {
   };
 }
 
+/** The plan file with its cap taken from the `spike` line of config/guardrails.yaml (M10d0, DL-741); plan.json no longer holds a cap. */
 export function loadPlan(root: string): SpikePlan {
-  return readJson<SpikePlan>(path.join(root, 'tools', 'assets', 'spike', 'plan.json'));
+  const raw = readJson<Omit<SpikePlan, 'capMicros' | 'plannedMaxMicros'>>(path.join(root, 'tools', 'assets', 'spike', 'plan.json'));
+  const cap = lineCapMicros('spike');
+  return { ...raw, capMicros: cap, plannedMaxMicros: cap };
 }
 
 /** Sections of briefs.md by `## name` heading. */
@@ -79,14 +83,22 @@ export function parseBriefs(md: string): Record<string, string> {
 
 export function renderPlan(plan: SpikePlan, reg: GenAiRegistry): string[] {
   const lines = [`genai:spike plan (${plan.steps.length} steps, env ${plan.env})`];
+  const fit = planFit(plan, reg);
+  const verdictOf = new Map(fit.steps.map((f) => [f.id, f]));
   for (const s of plan.steps) {
     const keys = s.kind === 'local' ? ['local'] : [s.registryKey, ...(s.alsoRegistryKeys ?? [])].map((k) => k ?? '?');
     const r = s.registryKey && s.kind === 'fal' ? resolveKey(reg, s.registryKey) : undefined;
     const status = s.kind === 'local' ? '-' : (r?.status ?? 'unresolved');
-    lines.push(`  ${s.id.padEnd(3)} ${keys.join(' + ').padEnd(56)} ${status.padEnd(8)} ${microsToUsd(s.estimateMicros).padStart(6)}  ${s.title}`);
+    const v = verdictOf.get(s.id);
+    const mark = v?.verdict === 'refused' ? `refused ${v.code ?? ''}` : v?.verdict === 'over-cap' ? 'over cap' : v?.verdict === 'local' ? '-' : 'fits';
+    lines.push(`  ${s.id.padEnd(3)} ${keys.join(' + ').padEnd(56)} ${status.padEnd(8)} ${microsToUsd(s.estimateMicros).padStart(6)}  ${mark.padEnd(8)} ${s.title}`);
   }
   const total = planTotalMicros(plan);
-  lines.push(`total estimate ${microsToUsd(total)} (${total} micros), planned maximum ${microsToUsd(plan.plannedMaxMicros)}, hard cap ${microsToUsd(plan.capMicros)}`);
+  const ids = (f: typeof fit, k: string): string => f.steps.filter((x) => x.verdict === k).map((x) => x.id).join(' ') || 'none';
+  const noBlocked = planFit(plan, reg, { skipBlocked: true });
+  lines.push(`total estimate ${microsToUsd(total)} (${total} micros); the spike line is ${microsToUsd(plan.capMicros)} (${plan.capMicros} micros)`);
+  lines.push(`--run: reserves at most ${microsToUsd(fit.reservableMicros)}; under the line: ${ids(fit, 'fits')}; refused before reserving: ${ids(fit, 'refused')}; over the line: ${ids(fit, 'over-cap')}`);
+  lines.push(`--run --skip-blocked: reserves at most ${microsToUsd(noBlocked.reservableMicros)}; under the line: ${ids(noBlocked, 'fits')}; skipped: ${ids(noBlocked, 'skipped')}; over the line: ${ids(noBlocked, 'over-cap')}`);
   return lines;
 }
 
@@ -489,8 +501,10 @@ export function verifyResults(root: string, plan: SpikePlan): string[] {
   else {
     const sum = ledger.entries.filter((e) => e.outcome === 'submitted').reduce((a, e) => a + e.estimateMicros, 0);
     if (ledger.totalMicros !== sum) problems.push(`ledger total ${ledger.totalMicros} differs from its entries (${sum})`);
-    if (ledger.totalMicros > 10_000_000) problems.push(`ledger total ${ledger.totalMicros} micros passes 10,000,000`);
-    if (ledger.capMicros > 10_000_000) problems.push(`ledger cap ${ledger.capMicros} passes 10,000,000`);
+    const cap = lineCapMicros('spike');
+    if (ledger.totalMicros > cap) problems.push(`ledger total ${ledger.totalMicros} micros passes ${cap.toLocaleString('en-US')} (the spike line)`);
+    if (ledger.capMicros !== cap) problems.push(`ledger cap ${ledger.capMicros} is not the spike line ${cap.toLocaleString('en-US')}`);
+    if (results.capMicros !== cap) problems.push(`results cap ${results.capMicros} is not the spike line ${cap.toLocaleString('en-US')}`);
   }
   for (const u of plan.uItems) {
     const row = results.uItems?.find((r) => r.id === u.id);

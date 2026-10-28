@@ -1,0 +1,30 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "e46f200c099ccb44e0afcdc793035261d0bc94dcbb6c6d8741b90f811ba6ca00",
+  "paths": [
+    "assets/src/texture/pbr.pavers.albedo/mobile.ktx2"
+  ],
+  "kind": "texture",
+  "origin": "derived",
+  "license": "CC0-1.0",
+  "authors": [
+    "profile:amal-kumar"
+  ],
+  "derived_from": [
+    "606e7116d51b491fb9eca7793b518913a2a60041ac089f61cdbffa3116c553e2"
+  ],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "pass",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-28T00:00:00Z",
+  "tool": {
+    "name": "dv-texture-set",
+    "version": "ktx2-encoder@0.6.0 (basis_universal)",
+    "args_sha256": "c9e04bfdca9f8231041edb3a9813e6c9792424b44eda2f73b7388f25abbb17f4"
+  }
+}

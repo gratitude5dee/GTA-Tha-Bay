@@ -3,7 +3,7 @@
   "status": "skipped",
   "reason": "FAL_KEY not set",
   "env": "previs",
-  "capMicros": 10000000,
+  "capMicros": 4000000,
   "ledgerTotalMicros": 0,
   "ranAt": null,
   "tools": {

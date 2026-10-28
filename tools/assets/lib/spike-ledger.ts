@@ -90,6 +90,45 @@ export function planTotalMicros(plan: SpikePlan): number {
   return plan.steps.reduce((a, s) => a + s.estimateMicros, 0);
 }
 
+export type FitVerdict = 'fits' | 'local' | 'refused' | 'over-cap' | 'skipped';
+export interface StepFit { id: string; verdict: FitVerdict; code?: GateCode }
+
+/**
+ * What a live run would reserve, in plan order against the plan's cap (M10d0, DL-741): a local step costs nothing, a step with an endpoint
+ * the guard refuses is refused before the ledger reserves anything (checkCallable), and a step whose estimate would pass the cap is over it.
+ * With `skipBlocked` (the run flag) a step on a `blocked` endpoint is skipped and reserves nothing. Env previs lets blocked endpoints run.
+ */
+export function planFit(plan: SpikePlan, reg: GenAiRegistry, opts: { skipBlocked?: boolean } = {}): { steps: StepFit[]; reservableMicros: number } {
+  let total = 0;
+  const steps: StepFit[] = [];
+  for (const s of plan.steps) {
+    if (s.kind === 'local') {
+      steps.push({ id: s.id, verdict: 'local' });
+      continue;
+    }
+    let refused: GateCode | undefined;
+    let skipped = false;
+    for (const k of [s.registryKey, ...(s.alsoRegistryKeys ?? [])]) {
+      const r = k ? resolveKey(reg, k) : undefined;
+      if (!r) continue;
+      const v = checkCallable(reg, r.endpointId, r.status, plan.env);
+      if (v.ok && opts.skipBlocked && r.status === 'blocked') skipped = true;
+      if (!v.ok) {
+        refused = v.code;
+        break;
+      }
+    }
+    if (refused) steps.push({ id: s.id, verdict: 'refused', code: refused });
+    else if (skipped) steps.push({ id: s.id, verdict: 'skipped' });
+    else if (total + s.estimateMicros > plan.capMicros) steps.push({ id: s.id, verdict: 'over-cap' });
+    else {
+      total += s.estimateMicros;
+      steps.push({ id: s.id, verdict: 'fits' });
+    }
+  }
+  return { steps, reservableMicros: total };
+}
+
 export interface LedgerEntry { stepId: string; estimateMicros: number; outcome: 'submitted' | 'refused' }
 export interface LedgerFile { schema: 'spike-ledger/1'; capMicros: number; totalMicros: number; entries: LedgerEntry[] }
 

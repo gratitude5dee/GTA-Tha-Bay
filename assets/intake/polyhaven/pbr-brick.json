@@ -1,0 +1,46 @@
+{
+  "schema": "art-intake/1",
+  "pack": "polyhaven",
+  "item": "pbr-brick",
+  "title": "Brick Wall 09",
+  "author": "Rob Tuytel, Matterfield",
+  "sourceUrl": "https://polyhaven.com/a/brick_wall_09",
+  "licence": "CC0-1.0",
+  "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "kind": "texture",
+  "uploader": {
+    "name": "Rob Tuytel, Matterfield",
+    "franchiseShare": 0
+  },
+  "files": [
+    "brick_wall_09_diff_1k.png",
+    "brick_wall_09_nor_gl_1k.png",
+    "brick_wall_09_arm_1k.png"
+  ],
+  "tags": [
+    "rough",
+    "wall",
+    "exterior",
+    "outdoor",
+    "brick",
+    "red brick",
+    "construction",
+    "building",
+    "structure"
+  ],
+  "evidence": [
+    "vendor-page",
+    "source-files"
+  ],
+  "answers": {
+    "origin": "clear",
+    "logos": "none",
+    "people": "none",
+    "mural": "none"
+  },
+  "review": {
+    "by": "profile:builder-m10d0",
+    "at": "2026-10-28T00:00:00Z",
+    "note": "Poly Haven page https://polyhaven.com/a/brick_wall_09; authors Rob Tuytel, Matterfield named on the page; CC0 snapshot docs/legal/licenses/polyhaven.md; the 1k diffuse map was looked at for logos, people and murals."
+  }
+}

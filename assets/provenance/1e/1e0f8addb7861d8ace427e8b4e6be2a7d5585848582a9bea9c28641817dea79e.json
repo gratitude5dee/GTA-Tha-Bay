@@ -1,0 +1,30 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "1e0f8addb7861d8ace427e8b4e6be2a7d5585848582a9bea9c28641817dea79e",
+  "paths": [
+    "assets/src/texture/pbr.stucco.orm/mobile-low.ktx2"
+  ],
+  "kind": "texture",
+  "origin": "derived",
+  "license": "CC0-1.0",
+  "authors": [
+    "profile:amal-kumar"
+  ],
+  "derived_from": [
+    "6ac026a77efbfe49434082f392eefdbda7e37ba89ae9daa7912c177a2faa45e4"
+  ],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "pass",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-28T00:00:00Z",
+  "tool": {
+    "name": "dv-texture-set",
+    "version": "ktx2-encoder@0.6.0 (basis_universal)",
+    "args_sha256": "30452afbdf92030a53a1f50d61bbab8a3631b439033f2f378d3b71ecbbfae58b"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "85778239e226949e8326cca4bdac97b00953cec652f4abe67d6791ec60b93e4b",
+  "paths": [
+    "assets/src/texture/pbr.concrete.albedo/mobile.ktx2"
+  ],
+  "kind": "texture",
+  "origin": "derived",
+  "license": "CC0-1.0",
+  "authors": [
+    "profile:charlotte-baglioni"
+  ],
+  "derived_from": [
+    "eb1a433ffbb22ee124cc0d7e04e9344d73cb255550e091777450841ad3436c3e"
+  ],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "pass",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-28T00:00:00Z",
+  "tool": {
+    "name": "dv-texture-set",
+    "version": "ktx2-encoder@0.6.0 (basis_universal)",
+    "args_sha256": "c9e04bfdca9f8231041edb3a9813e6c9792424b44eda2f73b7388f25abbb17f4"
+  }
+}

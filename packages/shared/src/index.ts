@@ -25,6 +25,7 @@ export * from './genai/cutscene-offedge.ts';
 export * from './genai/prompt-lint.ts';
 export * from './genai/registry.ts';
 export { GENAI_GUARDRAILS } from './genai/guardrails.generated.ts';
+export * from './genai/lines.ts';
 export { NPC_GUARDRAILS } from './genai/npc-guardrails.generated.ts';
 export type { AssetRef, LikenessTier } from './assets/c07.ts';
 export { isMediaKey } from './assets/media-key.ts';
