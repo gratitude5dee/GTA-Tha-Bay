@@ -2,7 +2,7 @@
  * The Coast set and the batch plan (M10a2): the subject card of `pc-coast`, the owner's sheet as the first reference of the sheet stage, the
  * owner-only H1 and H3 gates, and the plan over the whole roster with the real-derived fighter slots reserved. No vendor call leaves memory.
  */
-import { cpSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { makeHarness } from '../../../services/pipeline/test/helpers/character-harness.ts';
@@ -148,5 +148,62 @@ describe('the batch plan over the whole roster (M10a2 AC-1)', () => {
     expect(a).toMatch(/room on the characters line after the batch: \$7\.95/);
     expect(a).toMatch(/pc-coast \[standard\] ok/);
     expect(await run()).toBe(a);
+  });
+});
+
+describe('outstanding jobs (M10a2 AC-1: a second plan over the published batch lists none)', () => {
+  function tree(): string {
+    const root = tempDir('dv-coast-progress-');
+    for (const f of ['config/genai-endpoints.json', 'content/npcs/roster.json', 'content/characters/pc-coast/subject.json', 'content/fighter/roster.json']) {
+      mkdirSync(path.dirname(path.join(root, f)), { recursive: true });
+      cpSync(path.join(repoRoot, f), path.join(root, f));
+    }
+    // canary-mc needs its soul to be a runnable entry
+    for (const f of ['content/npcs/canary-mc/soul.md', 'content/npcs/ro-batista/soul.md']) {
+      mkdirSync(path.dirname(path.join(root, f)), { recursive: true });
+      cpSync(path.join(repoRoot, f), path.join(root, f));
+    }
+    return root;
+  }
+  const plan = async (root: string): Promise<{ code: number; text: string }> => {
+    const logs: string[] = [];
+    const calls = { n: 0 };
+    const code = await main(['plan', '--roster', 'content/npcs/roster.json', '--tier', 'all'], { FAL_MODE: 'mock' }, (() => { calls.n++; return Promise.reject(new Error('no network')); }) as never, (l) => logs.push(l), { root });
+    expect(calls.n, 'the plan makes no request').toBe(0);
+    return { code, text: logs.join('\n') };
+  };
+
+  it('a published slug has zero outstanding jobs and a cached stage is not listed again; the reserved slots stay blocked with their estimate', async () => {
+    const root = tree();
+    const before = await plan(root);
+    expect(before.text).toMatch(/pc-coast \[standard\] ok/);
+    expect(before.text).toMatch(/canary-mc \[standard\] ok/);
+
+    // canary-mc: the sheet stage has a cached result
+    const subject = loadWorld(root).entries.find((e) => e.entry.id === 'canary-mc')!.subject!;
+    const key = 'a'.repeat(16);
+    const dir = path.join(root, `.genai/work/character/canary-mc/sheet/${key}`);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'result.json'), '{}');
+    writeFileSync(path.join(root, '.genai/work/character/canary-mc/run.json'), JSON.stringify({ schema: 'char-run/1', runId: runIdOf(subject), slug: 'canary-mc', tier: 'standard', soulVersion: 1, jobs: { sheet: [key] }, review: [], rigRejected: [], updatedAt: '2026-10-28T00:00:00Z' }));
+    const partial = await plan(root);
+    const all = partial.text.split('\n');
+    const at = all.findIndex((l) => l.startsWith('canary-mc'));
+    const canary = [all[at], ...all.slice(at + 1).filter((_, k, rest) => rest.slice(0, k + 1).every((l) => l.startsWith('  ')))].join('\n');
+    expect(canary).toMatch(/canary-mc \[standard\] ok\s+verdict ok\s+outstanding \$3\.41/);
+    expect(canary).not.toMatch(/^  sheet /m);
+
+    // both eligible slugs published
+    mkdirSync(path.join(root, 'assets'), { recursive: true });
+    writeFileSync(path.join(root, 'assets/assets.lock.json'), JSON.stringify({ schema: 'asset-lock/1', entries: { 'character/pc-coast': { rev: 1, variants: {} }, 'character/canary-mc': { rev: 1, variants: {} } } }));
+    const done = await plan(root);
+    expect(done.text).toMatch(/pc-coast \[standard\] done \(published\): zero outstanding jobs/);
+    expect(done.text).toMatch(/canary-mc \[standard\] done \(published\): zero outstanding jobs/);
+    // the stage lines belong to the Lean slug that is blocked on its endpoints; none follows a done line
+    const lines = done.text.split('\n');
+    for (const slug of ['pc-coast', 'canary-mc']) expect(lines[lines.findIndex((l) => l.startsWith(`${slug} `)) + 1]).not.toMatch(/^  /);
+    expect(done.text.split('\n').filter((l) => /blocked:research/.test(l))).toHaveLength(7);
+    expect(done.text).toMatch(/batch \$26\.72/);
+    expect(done.code).toBe(0);
   });
 });
