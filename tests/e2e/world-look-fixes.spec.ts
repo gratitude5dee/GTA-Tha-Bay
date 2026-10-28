@@ -3,7 +3,7 @@ import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { PlatformBridge } from '../../packages/engine/src/platform/probe.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
-import { decodePng, identical, type Rgba } from '../support/image-diff.ts';
+import { decodePng, encodePng, identical, type Rgba } from '../support/image-diff.ts';
 import { FLICKER_BASELINE_FILE, FLICKER_PAIRS, FLICKER_THRESHOLD, FLICKER_VIEWPORT, flickerLimit, flickerShare, type FlickerBaseline } from '../support/flicker.ts';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
 
@@ -116,41 +116,54 @@ function writeBaseline(patch: (b: BaselineFile) => void): void {
 // ---- @look-fixes --------------------------------------------------------------------------------------------------------
 
 test.describe('look fixes @look-fixes', () => {
-  test.describe.configure({ timeout: 900_000 });
+  // software GL draws a desktop frame in about two seconds (the GPU process takes every core), and a pair stands where the sky,
+  // the streaming and the shadows all have to settle first: one boot per tier, every pair of the tier in it
+  test.describe.configure({ timeout: 3_600_000 });
 
-  for (const pair of FLICKER_PAIRS) {
-    test(`${pair.id} (${pair.tier}): the shot pair flickers at most half as much as the baseline, and no tree is drawn beyond tree.drawM @look-fixes`, async ({ page }, testInfo: TestInfo) => {
+  for (const tier of ['desktop', 'mobile-low'] as const) {
+    const pairs = FLICKER_PAIRS.filter((p) => p.tier === tier);
+    test(`${tier}: the shot pairs ${pairs.map((p) => p.id).join(', ')} flicker at most half as much as the baseline, and no tree is drawn beyond tree.drawM @look-fixes`, async ({ page }, testInfo: TestInfo) => {
       test.skip(testInfo.project.name === 'chromium-webgpu', 'the pair baselines are WebGL2 baselines');
-      await bootWorld(page, pair.tier, FLICKER_VIEWPORT);
+      await bootWorld(page, tier, FLICKER_VIEWPORT);
       await page.addStyleTag({ content: HIDE_ALL });
       await setSky(page, 13, 'clear');
 
-      const a = await captureShot(page, pair.id);
-      const b = await captureShot(page, `${pair.id}-b`);
-      expect(a.width).toBe(FLICKER_VIEWPORT.width);
-      expect(a.height).toBe(FLICKER_VIEWPORT.height);
-      const share = flickerShare(a, b);
-      console.log(`flicker ${testInfo.project.name} ${pair.id}: ${(share * 100).toFixed(3)} % of pixels over ${FLICKER_THRESHOLD}/255`);
-      await testInfo.attach(`${pair.id}.png`, { body: Buffer.from(await page.locator('#dv-engine-canvas').screenshot()), contentType: 'image/png' });
+      const shares: Record<string, number> = {};
+      for (const pair of pairs) {
+        const a = await captureShot(page, pair.id);
+        const b = await captureShot(page, `${pair.id}-b`);
+        expect(a.width).toBe(FLICKER_VIEWPORT.width);
+        expect(a.height).toBe(FLICKER_VIEWPORT.height);
+        shares[pair.id] = flickerShare(a, b);
+        console.log(`flicker ${testInfo.project.name} ${pair.id}: ${((shares[pair.id] as number) * 100).toFixed(3)} % of pixels over ${FLICKER_THRESHOLD}/255`);
+        // DV_FLICKER_DIR=<dir> keeps the pictures of both shots (to look at them, or to put the before/after in docs/look)
+        const keep = process.env['DV_FLICKER_DIR'];
+        if (keep) {
+          mkdirSync(keep, { recursive: true });
+          writeFileSync(`${keep}/${testInfo.project.name}.${pair.id}.png`, encodePng(a));
+          writeFileSync(`${keep}/${testInfo.project.name}.${pair.id}-b.png`, encodePng(b));
+        }
+        // the trees beyond tree.drawM x 1.1 are not drawn
+        const veg = (await world(page, (w) => w.look()))?.vegetation;
+        if (!BASELINE_MODE) {
+          expect(veg, 'look().vegetation').toBeDefined();
+          if (veg) {
+            expect(veg.drawM).toBe(MESHER.tree.drawM[MESHER.tierProfile[tier] as string]);
+            expect(veg.farthestM, `${pair.id}: farthest shown tree unit`).toBeLessThanOrEqual(veg.drawM * 1.1);
+          }
+        }
+      }
 
       if (BASELINE_MODE) {
         writeBaseline((f) => {
-          f.baselines[testInfo.project.name] = { ...(f.baselines[testInfo.project.name] ?? {}), [pair.id]: Number(share.toFixed(6)) };
+          f.baselines[testInfo.project.name] = { ...(f.baselines[testInfo.project.name] ?? {}), ...Object.fromEntries(Object.entries(shares).map(([k, v]) => [k, Number(v.toFixed(6))])) };
         });
         return;
       }
-      const base = readBaseline()?.baselines[testInfo.project.name]?.[pair.id];
-      expect(base, `${FLICKER_BASELINE_FILE} holds ${testInfo.project.name} / ${pair.id}`).toBeDefined();
-      expect(share, `flicker of ${pair.id} against half of the baseline ${base}`).toBeLessThanOrEqual(flickerLimit(base ?? 0));
-
-      // the trees beyond tree.drawM x 1.1 are not drawn (the pair stands on the synth grid, far from the farthest trees, so the check is
-      // the figure the renderer keeps, not a lucky view)
-      const veg = (await world(page, (w) => w.look()))?.vegetation;
-      expect(veg, 'look().vegetation').toBeDefined();
-      if (veg) {
-        const profile = MESHER.tierProfile[pair.tier] as string;
-        expect(veg.drawM).toBe(MESHER.tree.drawM[profile]);
-        expect(veg.farthestM, 'farthest shown tree unit').toBeLessThanOrEqual(veg.drawM * 1.1);
+      for (const pair of pairs) {
+        const base = readBaseline()?.baselines[testInfo.project.name]?.[pair.id];
+        expect(base, `${FLICKER_BASELINE_FILE} holds ${testInfo.project.name} / ${pair.id}`).toBeDefined();
+        expect(shares[pair.id], `flicker of ${pair.id} against half of the baseline ${base}`).toBeLessThanOrEqual(flickerLimit(base ?? 0));
       }
     });
   }
