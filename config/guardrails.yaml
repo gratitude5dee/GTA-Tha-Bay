@@ -10,6 +10,8 @@ genai:
   # Fractions of the program cap that raise a log alarm.
   alarms: [0.5, 0.8, 1.0]
   # Per-line caps inside the program cap (DL-OWN-07, 2026-10-26). `assets:gen plan` and `ledger` refuse a batch that would pass a line or the program.
+  # M10d0 (DL-741): the program cap split into spending lines. The sum equals programCapUsdMicros; the spike, its ledger and --verify read
+  # `spike` through lineCapMicros (packages/shared/src/genai/lines.ts). No Worker enforces a line in v1.
   lines:
     spike: 4000000
     characters: 42000000

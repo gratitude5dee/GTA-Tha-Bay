@@ -1,0 +1,34 @@
+{
+  "kind": "texture",
+  "id": "pbr.grass-dirt.normal",
+  "variants": {
+    "desktop": "assets/src/texture/pbr.grass-dirt.normal/desktop.ktx2",
+    "mobile": "assets/src/texture/pbr.grass-dirt.normal/mobile.ktx2",
+    "mobile-low": "assets/src/texture/pbr.grass-dirt.normal/mobile-low.ktx2"
+  },
+  "deps": [],
+  "tags": [
+    "pbr",
+    "set:grass-dirt",
+    "map:normal"
+  ],
+  "codec": {
+    "tex": "ktx2-uastc"
+  },
+  "stats": {
+    "desktop": {
+      "texMaxPx": 1024,
+      "texGpuBytes": 1398128
+    },
+    "mobile": {
+      "texMaxPx": 512,
+      "texGpuBytes": 349552
+    },
+    "mobile-low": {
+      "texMaxPx": 256,
+      "texGpuBytes": 87408
+    }
+  },
+  "status": "active",
+  "visibility": "public"
+}

@@ -76,7 +76,7 @@ function manifestOf(s: LoadedSpec, lock: AssetLock | null, bySha: ReadonlyMap<st
     const contentType = contentTypeOf(f.ext);
     const v: AssetVariant = { key, sha256: f.sha256, bytes: f.bytes, contentType, encoding: 'identity' };
     if (f.ext === 'png') v.codec = { tex: 'png' };
-    if (f.ext === 'glb' && s.spec.codec) v.codec = { ...s.spec.codec };
+    if ((f.ext === 'glb' || f.ext === 'ktx2') && s.spec.codec) v.codec = { ...s.spec.codec };
     const stats = s.spec.stats?.[f.variant];
     if (stats) v.stats = { ...stats };
     variants[f.variant] = v;

@@ -1,0 +1,36 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "7879efd37544030b38578b3797c7a840d06bef2170fcc6953f8d9e3b21a2b6be",
+  "paths": [
+    "import/polyhaven/asphalt_02/asphalt_02_arm_1k.png"
+  ],
+  "kind": "texture",
+  "origin": "licensed",
+  "license": "CC0-1.0",
+  "authors": [
+    "profile:rob-tuytel"
+  ],
+  "derived_from": [],
+  "review": [
+    {
+      "gate": "art-vetting",
+      "by": "profile:builder-m10d0",
+      "at": "2026-10-28T00:00:00Z",
+      "decision": "approve",
+      "note": "assets/intake/polyhaven/asphalt.json"
+    }
+  ],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "pass",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-28T00:00:00Z",
+  "source": {
+    "url": "https://polyhaven.com/a/asphalt_02",
+    "dataset_id": "asphalt_02",
+    "retrieved": "2026-10-28"
+  }
+}

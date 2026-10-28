@@ -12,7 +12,8 @@ import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
  *
  *  - @world-look    AC-5  per flat tier: the profile, the post nodes (minus `webgl2Unsupported`, `webgl2AaFallback` applied on the WebGL2
  *                   backend), the shadow mode and pass count, the casters, the sky, the window emissive; `setLook(false)` is the legacy
- *                   look; no image or `texture/` request that a `?look=0` boot does not make
+ *                   look; no image or `texture/` request that a `?look=0` boot does not make, other than the tier's bound surface
+ *                   textures (`look().textures.refs`, M10d0)
  *  - @look-golden   AC-6  ten 256 x 144 captures against the committed goldens (`chromium-webgl2` only)
  *  - @look-compare  AC-10 the before/after pair of `docs/look` (`chromium-webgl2` only)
  *  - @xr @world-look AC-7 the Quest tier keeps the direct pipeline and the legacy look
@@ -135,8 +136,8 @@ test.describe('world look @world-look', () => {
     });
   }
 
-  test('the look makes no image or texture request that a look-off boot does not also make @world-look', async ({ browser }) => {
-    const boot = async (query: string): Promise<Set<string>> => {
+  test('the look makes no image or texture request that a look-off boot does not also make, but the tier\'s bound surface textures @world-look', async ({ browser }) => {
+    const boot = async (query: string): Promise<{ seen: Set<string>; refs: string[] }> => {
       const ctx = await browser.newContext();
       const page = await ctx.newPage();
       const seen = new Set<string>();
@@ -146,12 +147,19 @@ test.describe('world look @world-look', () => {
         if (r.resourceType() === 'image' || /\/texture\//.test(url.pathname)) seen.add(url.pathname);
       });
       await bootWorld(page, 'desktop', query);
+      // M10d0: the surface textures load after the reveal; the refs the tier asks for are the only texture requests the look may add.
+      await page.waitForFunction(() => (window as unknown as W).__dvBridge.world.look()?.textures?.settled === true, undefined, { timeout: 240_000 });
+      const refs = await world(page, (w) => w.look()?.textures?.refs ?? []);
       await ctx.close();
-      return seen;
+      return { seen, refs };
     };
     const withLook = await boot('');
     const withoutLook = await boot('&look=0');
-    for (const url of withLook) expect(withoutLook.has(url), `${url} is requested only with the look on`).toBe(true);
+    expect(withoutLook.refs).toEqual([]);
+    for (const url of withLook.seen) {
+      if (withoutLook.seen.has(url)) continue;
+      expect(withLook.refs.some((ref) => url.includes(`/${ref}/`)), `${url} is requested only with the look on and is not one of ${withLook.refs.join(', ')}`).toBe(true);
+    }
   });
 });
 

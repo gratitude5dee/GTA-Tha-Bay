@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/world-surface-textures.schema.json",
+  "title": "config/world/surface-textures.json (M10d0)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "sets", "bindings", "procedural", "modes", "budgets", "fade", "slopeDeg", "unsupported"],
+  "$defs": {
+    "tier": { "enum": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"] },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["downloadMB", "gpuMB"],
+      "properties": { "downloadMB": { "type": "number", "minimum": 0 }, "gpuMB": { "type": "number", "minimum": 0 } }
+    }
+  },
+  "properties": {
+    "schema": { "const": "world-surface-textures/1" },
+    "note": { "type": "string" },
+    "sets": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9-]*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tileM", "mean", "keep", "slopeFull"],
+          "properties": {
+            "tileM": { "type": "number", "exclusiveMinimum": 0 },
+            "mean": { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 }, "minItems": 3, "maxItems": 3 },
+            "keep": { "type": "number", "minimum": 0, "maximum": 1 },
+            "slopeFull": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "bindings": { "type": "object", "additionalProperties": { "type": "string" } },
+    "procedural": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "modes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["full", "lite", "min", "legacy", "xr"],
+      "properties": {
+        "full": { "enum": ["stochastic", "single", "albedo", "off"] },
+        "lite": { "enum": ["stochastic", "single", "albedo", "off"] },
+        "min": { "enum": ["stochastic", "single", "albedo", "off"] },
+        "legacy": { "enum": ["stochastic", "single", "albedo", "off"] },
+        "xr": { "enum": ["stochastic", "single", "albedo", "off"] }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"],
+      "properties": {
+        "desktop-ultra": { "$ref": "#/$defs/budget" },
+        "desktop": { "$ref": "#/$defs/budget" },
+        "mobile": { "$ref": "#/$defs/budget" },
+        "mobile-low": { "$ref": "#/$defs/budget" },
+        "xr-quest": { "$ref": "#/$defs/budget" },
+        "xr-visionpro": { "$ref": "#/$defs/budget" }
+      }
+    },
+    "fade": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startM", "endM"],
+      "properties": { "startM": { "type": "number", "minimum": 0 }, "endM": { "type": "number", "exclusiveMinimum": 0 } }
+    },
+    "slopeDeg": { "type": "number", "minimum": 0, "maximum": 90 },
+    "unsupported": { "type": "array", "items": { "type": "string" } }
+  }
+}

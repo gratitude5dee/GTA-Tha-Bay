@@ -16,12 +16,12 @@ Traffic, police, the Halcyon Mobility robotaxi and transit get realistic bodies 
 - **M05c2:** the vertical slice.
 - **M03b2:** transit dressing; through it **M03b1** (`TrafficRenderer`, `aTint`, `aLights`, `ARCHETYPES` at `packages/world/src/sim/traffic/components.ts:102–105`) and **M03a1** (prefabs, `anchors.ts`, `vehicle-view.ts`).
 - **M04b2:** creator catalog (seeds M10d4 rows).
-- Run order: after M02g1 (`skyReflect`, blob layer, casters, ledger shape) and M02h6 (`traffic/parked-dressing.ts`).
+- Run order: after M02g1 (`skyReflect`, blob layer, casters, ledger shape). Track B, second row (DL-OWN-09, DL-755): it runs beside the Track A street rows; M02h6 comes after it and builds parked dressing on this row's families, so this row never edits `traffic/parked-dressing.ts`.
 - Contracts: C07 1.1, C06 1.1, C13 1.2 (read).
 
 ## Scope in
 † = design value, tuned here.
-- **Registry** `config/art-placeholders.json` + schema: rows `{ id, what, owner: 'M10d1'|'M10d4'|'M10d2'|'M10d3', match, replacedBy, repoint?: Record<AssetRef, AssetRef> }` (DL-390). Seed twelve rows (the eleven of DL-390 plus the on-foot capsule, DL-741), each with its owner: `vehicle/graybox.*` ambient and police vehicles (`M10d1`), `prop/graybox.*` props other than the capsule and the stage dioramas (`M10d1`), traffic box cars (`M10d1`), ped mannequins (`M10d4`), creator rows without `model` other than the six Coast rows (`M10d4`), far-bay cards, facade atlas and `desktop-ultra` sky (`M10d2`, one row each), player-car bodies, stage dioramas, fighter capsules and `prop/graybox.capsule` in `player.default` and `ped.actor` (`M10d3`, one row each). Fill `replacedBy` and `repoint` for `M10d1` rows.
+- **Registry** `config/art-placeholders.json` + schema: rows `{ id, what, owner: 'M10d1'|'M10d4'|'M10d5'|'M10d2'|'M10d3', match, replacedBy, repoint?: Record<AssetRef, AssetRef> }` (DL-390). Seed twelve rows (the eleven of DL-390 plus the on-foot capsule, DL-741), each with its owner: `vehicle/graybox.*` ambient and police vehicles (`M10d1`), `prop/graybox.*` props other than the capsule and the stage dioramas (`M10d1`), traffic box cars (`M10d1`), ped mannequins (`M10d4`), creator rows without `model` other than the six Coast rows (`M10d4`), far-bay cards, facade atlas and `desktop-ultra` sky (`M10d2`, one row each), player-car bodies, stage dioramas and fighter capsules (`M10d3`, one row each), and `prop/graybox.capsule` in `player.default` and `ped.actor` (`M10d5`, row `capsule`). Fill `replacedBy` and `repoint` for `M10d1` rows.
 - **Assets** (24; `desktop`/`mobile`/`mobile-low` = `hi`/`mid`/`lo`):
   - `vehicle/traffic.{compact,sedan,rideshare,van,truck,pickup}`, `vehicle/robotaxi.default`, `vehicle/police.{cruiser,suv}`, `vehicle/transit.{bus,cablecar}` (the 8 `ARCHETYPES`, not the "10" of DL-390);
   - `prop/police.heli` (`rotor_main`, `rotor_tail`, spun like `buildHeli`, `vehicle-view.ts:216–227`), `prop/transit.{ferry,airliner}`;
@@ -44,8 +44,8 @@ Traffic, police, the Halcyon Mobility robotaxi and transit get realistic bodies 
 | `prop-backdrop` | `prop:backdrop` | 8,000 / 3,000 / 1,000 | 2 / 2 / 1 | 1,024² / 512² / 256² |
 
 - **Materials** (`traffic/materials.ts`, also used per entity): one TSL material per profile, a vertex part id (paint, glass, tyre, rim, lamp), lamps from `aLights`. `full`: `MeshPhysicalNodeMaterial`, clearcoat 1 †, hue flake; `lite`, `min`: `MeshStandardNodeMaterial`, roughness 0.3; glass reflects the env map or M02g1 `skyReflect`; `legacy`: vertex colour.
-- **Instanced traffic** (`traffic/archetype-mesh.ts`, `config/world/traffic-art.json` + schema): families per profile, each drawing its base body (`mid` on `full`, else `lo`, wheels merged); members use instance scale, `aTint`, `aLights` and a livery bit. `full`: car (compact, sedan, rideshare, cruiser), robotaxi, pickup, box (van, truck); `lite`: car+robotaxi, pickup, box; `min`: car+robotaxi+pickup, box; `legacy`: one. `full` splits opaque and glass. M02h6 parked dressing mirrors families; bodies cast under M02g1's rule. `TRAFFIC_DRAWS_MAX` (`tools/ci/perf-check.ts:161`) becomes the family-mesh count.
-- **Ledger** `docs/look/M10d1-render-ledger.json` (M02g1 shape plus `triangles`), baseline measured on the default branch at session start (`downtown-rush`, `story-chase`); `DV_LOOK_WRITE=1` writes it, `@art-ledger` checks it:
+- **Instanced traffic** (`traffic/archetype-mesh.ts`, `config/world/traffic-art.json` + schema): families per profile, each drawing its base body (`mid` on `full`, else `lo`, wheels merged); members use instance scale, `aTint`, `aLights` and a livery bit. `full`: car (compact, sedan, rideshare, cruiser), robotaxi, pickup, box (van, truck); `lite`: car+robotaxi, pickup, box; `min`: car+robotaxi+pickup, box; `legacy`: one. `full` splits opaque and glass. M02h6 builds parked dressing later as one `InstancedMesh` per family from `traffic-art.json` and the registry; bodies cast under M02g1's rule. `TRAFFIC_DRAWS_MAX` (`tools/ci/perf-check.ts:161`) becomes the family-mesh count.
+- **Ledger** `docs/look/M10d1-render-ledger.json` (M02g1 shape plus `triangles`), baseline the `after` of the ledger most recently merged at rebase, named in `baselineFrom` (`downtown-rush`, `story-chase`); `DV_LOOK_WRITE=1` writes it, `@art-ledger` checks it:
 
 | Profile | Families × meshes | Objects added (≤) | Traffic tris at cap (≤) |
 |---|---|---|---|
@@ -54,17 +54,19 @@ Traffic, police, the Halcyon Mobility robotaxi and transit get realistic bodies 
 | `min` | 2 × 1 | 2; total ≤ 100 | 120 × 800 |
 | `legacy` | 1 × 1 | 0 | 120 × 800 |
 
+  The bounds were set with M02h6's parked mirror included; M02h6 now builds that mirror after this row, so this row measures below them, and `mobile-low` keeps the +2 that the look program's sum of 95 counts (`_PLAN-3.md` Look program).
+
 - **Prefabs:** `assets:vehicle -- --repoint` sets `render.asset` from the registry.
-- **Bridge (QA):** `world.art()` → `{ profile, families, objects, refs, materialKind }`.
+- **Bridge (QA):** `world.art()` → `{ profile, families, objects, refs, materialKind }`, one block in `world-bridge.ts` fenced by an `art-hook` comment (`_PLAN-3.md` Look program rule 2; Track A rows edit outside it).
 
 ## Scope out
-- Peds, creator parts: M10d4 (the Coast rows are M10a2's, merged). Player cars, stages, fighter capsules and the on-foot capsule: M10d3. Surfaces: M10d2. Furniture: M02h6. `xr` profile: M02h8. Spec edits (§7, §11, `02-world-living.md` §2.6) and a tow-boom node: Architect.
+- Peds, creator parts: M10d4 (the Coast rows are M10a2's). Player cars, stages, fighter capsules: M10d3; the on-foot capsule: M10d5. Surfaces: M10d2. Furniture and parked dressing: M02h6. `xr` profile: M02h8. Spec edits (§7, §11, `02-world-living.md` §2.6) and a tow-boom node: Architect.
 
 ## Deliverables
 - `config/{art-placeholders.json, schemas/art-placeholders.schema.json, world/traffic-art.json, schemas/traffic-art.schema.json}`; edits to `config/{asset-budgets.json, genai-endpoints.json}`.
 - `tools/assets/src/{lod.ts, placeholders.ts, vehicle-gen.ts, import/vehicle.ts, recipes/vehicle.ts, recipes/wheel.ts, recipes/prop.ts}`; `tools/assets/test/{art-placeholders, recipes.vehicle, import.vehicle, vehicle-gen, lod}.spec.ts`.
 - Root script **`assets:vehicle`** (`tsx tools/assets/src/vehicle-gen.ts`): `--dry-run` (default), `--live` (`FAL_KEY`; CI `FAL_MODE=mock`), `--turntable`, `--repoint`, `--check` (prefabs, and `assets/genai/vehicles-props.ledger.json` against the line cap and 1,704,000).
-- `packages/world/src/client/traffic/{archetype-mesh.ts, materials.ts}`; edits to `traffic/{instances.ts, parked-dressing.ts}`, `world-bridge.ts`; `packages/world/test/traffic.art.spec.ts`.
+- `packages/world/src/client/traffic/{archetype-mesh.ts, materials.ts}`; edits to `traffic/instances.ts`, `world-bridge.ts`; `packages/world/test/traffic.art.spec.ts`.
 - `packages/engine/src/client/vehicle/{gltf-thing.ts, marker-beam.ts}`; edits to `vehicle-view.ts`, `anchors.ts`, `tools/ci/perf-check.ts`; `packages/engine/test/vehicle/art-nodes.spec.ts`.
 - `tests/e2e/art-city.spec.ts` (`@art-city`, `@art-ledger`, `@xr @art-city`).
 - Generated (not counted): assets, provenance, lock, credits, intake records, prefab repoints, ledger, goldens.
@@ -79,15 +81,15 @@ Traffic, police, the Halcyon Mobility robotaxi and transit get realistic bodies 
 - AC-3 Given the 24 assets When the asset gates run Then each has three variants within its budget row with LOD stats, two recipe runs are byte-identical, and every licensed record has a register snapshot, an approved vetting review, `changes` and credits lines — proof: `pnpm assets:catalog && pnpm assets:verify && pnpm check:assets && pnpm provenance:check`
 - AC-4 Given makes, liveries and file names When the IP gates run Then no make or model matches the denylist and no game extension or rip-style name exists — proof: `pnpm names:lint && pnpm ip:strings && pnpm ip:signatures && pnpm ip:extensions`
 - AC-5 Given `assets/prefabs/` When the prefab and node tests run Then:
-  - no `render.asset` matches `^[a-z_]+/graybox\.` outside rows owned by `M10d4`, `M10d2` or `M10d3`;
+  - no `render.asset` matches `^[a-z_]+/graybox\.` outside rows owned by `M10d4`, `M10d5`, `M10d2` or `M10d3`;
   - `anchors.ts` resolves body, wheels, steers, lights, `glass`, tyres and rims; wheels spin about X, steers about Y (H6);
   - per-entity meshes are ≤ the gray-box counts and state hashes are unchanged.
   — proof: `pnpm check:unit -- packages/engine tools/assets && pnpm --filter @dv/engine test:determinism && pnpm assets:vehicle -- --check`
-- AC-6 Given a mock asset client When `traffic.art` builds each profile Then families and meshes equal the ledger table, `materialKind` is `physical` only on `full`, `aTint`, `aLights` and the livery bit survive, parked dressing mirrors the families, and instances stay within `CrowdLimits` — proof: `pnpm check:unit -- packages/world`
+- AC-6 Given a mock asset client When `traffic.art` builds each profile Then families and meshes equal the ledger table, `materialKind` is `physical` only on `full`, `aTint`, `aLights` and the livery bit survive, and instances stay within `CrowdLimits` — proof: `pnpm check:unit -- packages/world`
 - AC-7 Given `FAL_MODE=mock` fixtures When `vehicle-gen` runs Then `--live` without `FAL_KEY` or a live spike prints `SKIP` and exits 0, an input not rendered by this milestone's recipes is refused, a job past 1,704,000 micros or the line cap is refused, and the ledger equals the provenance costs — proof: `pnpm check:unit -- tools/assets && pnpm assets:vehicle -- --check`
 - AC-8 Given a `synth` QA build When `@art-city` opens Market Street at `?tier=desktop` and `?tier=mobile-low` and `@xr @art-city` runs Then `world.art()` and `observe()` list no `M10d1`-owned gray-box ref, `materialKind` matches the profile, and XR reports `legacy` with one family — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @art-city && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @art-city && DV_WORLD=synth pnpm check:e2e:xr`
 - AC-9 Given the committed ledger When `@art-ledger` and every perf scenario run in fail mode Then each profile's added objects and triangles are within the table, `mobile-low` is ≤ 100, `legacy` adds 0, and every tier is within budget — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @art-ledger && DV_WORLD=synth pnpm check:e2e:xr && DV_WORLD=synth pnpm check:perf -- --fail`
-- AC-10 Given goldens regenerated under the `golden-update` label When `@look-golden` and M02g1's `@look-owner` run Then every shot is within M02e's tolerance and repeat captures are byte-identical — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @look-golden && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @look-owner`
+- AC-10 Given goldens regenerated under the `golden-update` label When every committed look golden set (`_PLAN-3.md` Look program rule 6: every committed look golden set) and M02g1's `@look-owner` run Then every shot is within M02e's tolerance and repeat captures are byte-identical — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@look-golden|@markings-golden|@textures-golden|@facade-golden" && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @look-owner`
 - AC-11 Given a local QA build When the reviewer walks Market Street at `desktop` and `mobile-low` and inspects every turntable Then no body shows a real make, badge, grille, silhouette or text (§7 (d), H6), recorded in `docs/device-runs/M10d1/desktop/notes.json` — proof: manual: desktop browser, `DV_WORLD=synth pnpm dev`, open `/?debug=1&tier=desktop`, `__dvBridge.world.teleport('lm.ferry-building')`, walk up Market Street, repeat at `tier=mobile-low`, run `pnpm assets:vehicle -- --turntable`, write the notes file
 
 ## Test plan
@@ -98,21 +100,21 @@ Traffic, police, the Halcyon Mobility robotaxi and transit get realistic bodies 
 ## Demo script
 How to see it:
 1. `pnpm map:build -- --area synth && DV_WORLD=synth pnpm dev`; open `/?debug=1&tier=desktop`.
-2. `__dvBridge.world.teleport('lm.ferry-building')`, face Market Street: glossy traffic, a Halcyon robotaxi, a bus, parked cars on blob shadows.
+2. `__dvBridge.world.teleport('lm.ferry-building')`, face Market Street: glossy traffic, a Halcyon robotaxi and a bus on blob shadows (parked cars arrive with M02h6).
 3. `__dvBridge.world.art()`: families, objects, `materialKind: 'physical'`.
 4. Reload `/?debug=1&tier=mobile-low&gl=1`: two families, standard paint.
 5. New Game, m.a1.01 `truck` stage: the final tow pickup; the beam fades near the camera.
 
 ## Effort
-1 Builder session; ≈ 32 hand-written files (26 code, 6 config); risk **high** (source quality, fal gates, `mobile-low` budget). Order: registry, recipes, renderer, ledger, licensed swaps, fal, goldens.
+1 Builder session; ≈ 31 hand-written files (25 code, 6 config); risk **high** (source quality, fal gates, `mobile-low` budget). Order: registry, recipes, renderer, ledger, licensed swaps, fal, goldens. It starts when M10d0 has merged.
 
 ## Risks & fallbacks
 - **No base, `FAL_KEY` or spike; Tripo not `commercial`; H6 rejects:** recipes at the same AssetIds, named in the report; never past 1,704,000 micros.
-- **`mobile-low` over 100:** one `min` family, then no parked mirror on `min` (data); never raise a budget.
+- **`mobile-low` over 100:** one `min` family (data); never raise a budget.
 - **Clearcoat fails on WebGL2:** `standard` there (`spec/03` §7 row).
 
 ## Notes for the Builder
-- Read first: `05-assets-pipeline.md` §2 (H6), §3, §7 (`:120`), §11; `02-world-living.md` §2.5–§2.7; the M10d0, M10d4, M02g1, M02h6 files.
+- Read first: `05-assets-pipeline.md` §2 (H6), §3, §7 (`:120`), §11; `02-world-living.md` §2.5–§2.7; the M10d0, M10d4, M10d5, M02g1, M02h6 files; `_PLAN-3.md` Look program.
 - Verify `MeshPhysicalNodeMaterial` clearcoat in `three@0.186.1` first. Licence terms only from M10d0 snapshots; `SKETCHFAB_API_TOKEN` access is UNVERIFIED, so hand-downloads only. fal runs from the CLI (queue, polling), never a browser.
 - `GLTF_FORWARD_FLIP` (`anchors.ts:28`) turns +Z assets to −Z; `isGrayboxThing` (`vehicle-view.ts:281`) stays for other owners' rows.
 - Secrets: `FAL_KEY` (optional). Owner gate: the live M00c spike. Branch `m10d1-art-integration`.

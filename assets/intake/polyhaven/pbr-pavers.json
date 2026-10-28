@@ -1,0 +1,49 @@
+{
+  "schema": "art-intake/1",
+  "pack": "polyhaven",
+  "item": "pbr-pavers",
+  "title": "Concrete Pavers",
+  "author": "Amal Kumar",
+  "sourceUrl": "https://polyhaven.com/a/concrete_pavers",
+  "licence": "CC0-1.0",
+  "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "kind": "texture",
+  "uploader": {
+    "name": "Amal Kumar",
+    "franchiseShare": 0
+  },
+  "files": [
+    "concrete_pavers_diff_1k.png",
+    "concrete_pavers_nor_gl_1k.png",
+    "concrete_pavers_arm_1k.png"
+  ],
+  "tags": [
+    "interlocking",
+    "pavers",
+    "pavement",
+    "outdoor",
+    "interlocking bricks",
+    "concrete",
+    "stamped concrete",
+    "precast",
+    "pavement patterned",
+    "patterned",
+    "sidewalk texture",
+    "patterned concrete"
+  ],
+  "evidence": [
+    "vendor-page",
+    "source-files"
+  ],
+  "answers": {
+    "origin": "clear",
+    "logos": "none",
+    "people": "none",
+    "mural": "none"
+  },
+  "review": {
+    "by": "profile:builder-m10d0",
+    "at": "2026-10-28T00:00:00Z",
+    "note": "Poly Haven page https://polyhaven.com/a/concrete_pavers; authors Amal Kumar named on the page; CC0 snapshot docs/legal/licenses/polyhaven.md; the 1k diffuse map was looked at for logos, people and murals."
+  }
+}

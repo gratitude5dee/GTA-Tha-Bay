@@ -1,0 +1,30 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "b99ba08eebbfca8b8f145444e4d6decea30aa14fd512935ddcb4a97aa32d9dff",
+  "paths": [
+    "assets/src/texture/pbr.brick.orm/mobile-low.ktx2"
+  ],
+  "kind": "texture",
+  "origin": "derived",
+  "license": "CC0-1.0",
+  "authors": [
+    "profile:rob-tuytel-matterfield"
+  ],
+  "derived_from": [
+    "a25dc09b6c3ff2b9d4d8973bb0ec70113c56b914fefe157bca1180ea67c5370c"
+  ],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "pass",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-28T00:00:00Z",
+  "tool": {
+    "name": "dv-texture-set",
+    "version": "ktx2-encoder@0.6.0 (basis_universal)",
+    "args_sha256": "30452afbdf92030a53a1f50d61bbab8a3631b439033f2f378d3b71ecbbfae58b"
+  }
+}

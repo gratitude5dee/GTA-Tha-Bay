@@ -26,6 +26,9 @@ import { around1, pickFloat, vnoise } from './noise.ts';
 import { roofNodes } from './roof.ts';
 import { Surf } from './surfaces.ts';
 import { waterNodes } from './water.ts';
+// art-hook:textures begin (M10d0): the one import of the surface textures
+import { withSurfaceTextures } from '../textures/surface-textures.ts';
+// art-hook:textures end
 
 /** Polygon offset factor and units of the coarse (L1, L2) look materials. */
 const COARSE_DEPTH_BIAS = -64;
@@ -71,17 +74,21 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     const s = surfNodes();
     const vc = vertexColor(0);
     const g = groundNodes(look, n, s.id, vc, normalWorld.y, detail);
+    // art-hook:textures begin (M10d0): the bound PBR sets over the procedural ground (L0 only; the coarse levels keep the look as it is)
+    const plain = { color: profile === 'min' ? vc : g.color, roughness: g.roughness, normal: profile === 'min' ? null : normalView };
+    const tx = coarse ? plain : withSurfaceTextures({ id: s.id, normal: normalWorld }, plain);
+    // art-hook:textures end
     if (profile === 'min') {
       // Vertex colour with the class roughness; the sea a flat colour.
-      m.colorNode = asNode(vc.mul(shade));
-      m.roughnessNode = asNode(g.roughness) as never;
+      m.colorNode = asNode(tx.color.mul(shade));
+      m.roughnessNode = asNode(tx.roughness) as never;
       return m;
     }
     const w = waterNodes(profile, look, n, g.deep, vc);
-    m.colorNode = asNode(mix(g.color, w.color, g.water).mul(shade));
-    m.roughnessNode = asNode(mix(g.roughness, w.roughness, g.water)) as never;
+    m.colorNode = asNode(mix(tx.color, w.color, g.water).mul(shade));
+    m.roughnessNode = asNode(mix(tx.roughness, w.roughness, g.water)) as never;
     m.metalnessNode = asNode(float(0)) as never;
-    set(m, 'normalNode', normalize(mix(normalView, w.normal, g.water)));
+    set(m, 'normalNode', normalize(mix(tx.normal ?? normalView, w.normal, g.water)));
     return m;
   };
 

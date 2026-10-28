@@ -1,0 +1,34 @@
+{
+  "id": "M10d0-iphone15",
+  "milestone": "M10d0",
+  "device": "iPhone 15, iOS 26.x (or the newest release), Home Screen app; floor device (Q-10): tier mobile-low at 30 fps; operator Preview built with the synth world (QA build)",
+  "urlTemplate": "https://<preview>/?perf=1&tier=mobile-low&scenario=walk-civic-center&debug=1",
+  "steps": [
+    {
+      "id": "1-build",
+      "instruction": "Build one Preview with the synth world and QA flags (Preview builds carry no world on their own, DL-653): pnpm map:build -- --area synth && DV_WORLD=synth VITE_DV_QA=1 pnpm build && pnpm deploy:preview. Write the Preview URL into notes.json as previewUrl."
+    },
+    {
+      "id": "2-install",
+      "instruction": "In Safari open the Preview URL, then Share > Add to Home Screen, and launch the app from the Home Screen icon (not from Safari). Open <preview>/?perf=1&tier=mobile-low&scenario=walk-civic-center&debug=1. The HUD must show 'mobile-low  webgl2'. After the world is up, __dvBridge.world.look().textures must read mode 'albedo', the four bound sets (asphalt, concrete, pavers, grass-dirt) and a format (ASTC4x4, ETC2 or RGBA8); write that object into notes.json as textures."
+    },
+    {
+      "id": "3-walk-civic-center",
+      "instruction": "In the sky controls set the hour to 13:00 and the weather to clear, tick Freeze, and let walk-civic-center run to its end with the textures on (the default). The roads, the sidewalks, the paving and the grass must show worn asphalt, concrete slabs, pavers and grass-dirt in place of flat colour, and nothing may shimmer or stretch at the edge of a road. Tap Export and save perf.json and notes.json to docs/device-runs/M10d0/iphone15/. In notes.json record textureMB (look().textures.gpuBytes / 1048576), heapMB (the HUD's heap figure at the end of the walk) and your verdict (pass or fail, with a sentence).",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "mobile-low" },
+        { "metric": "backend", "op": "==", "value": "webgl2" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "4-textures-delta",
+      "instruction": "Run walk-civic-center once more with __dvBridge.world.setLookLayer('textures', false) and write both median frame times and their delta (on minus off, ms) into notes.json as texturesDelta: { offMedianMs, onMedianMs, deltaMs }. If the on median is over the 30 fps budget (33.3 ms), say so; the fallback is the mode of the profile in config/world/surface-textures.json (data), never a larger budget."
+    },
+    {
+      "id": "5-verify",
+      "instruction": "Run pnpm perf:verify -- docs/device-runs/M10d0/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M10d0-iphone15.json: the median and p95 frame times, the frames over 50 ms, the render and triangle counts and the texture MB must pass at mobile-low with the textures on."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

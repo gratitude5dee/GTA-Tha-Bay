@@ -1,6 +1,6 @@
 # GenAI spike results (M00c)
 
-Status: **skipped** (FAL_KEY not set). Env `previs`. Ledger $0.00 of cap $10.00.
+Status: **skipped** (FAL_KEY not set). Env `previs`. Ledger $0.00 of cap $4.00.
 Tools: ffprobe present, c2patool absent. Metadata only: no media, no fal CDN URLs, no keys.
 
 ## Steps
