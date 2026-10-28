@@ -7,6 +7,7 @@ import { BRAND } from '../../config/brand.ts';
 import { cspForBuild } from '../../config/csp-hosts.ts';
 import tokens from '../../config/ui/tokens.json' with { type: 'json' };
 import { cutsceneFixtures } from './vite/cutscene-fixtures.ts';
+import { basisTranscoder } from './vite/basis-transcoder.ts';
 import { mediaLocal } from './vite/media-local.ts';
 import { moduleIds } from './vite/module-ids.ts';
 import { qaPrecache } from './vite/qa-precache.ts';
@@ -91,6 +92,8 @@ export default defineConfig({
   plugins: [
     isolationHeaders(),
     brandInHtml(),
+    // M10d0: the Basis transcoder of the KTX2 surface textures, same-origin at /basis/.
+    basisTranscoder(here('../..')),
     moduleIds(here('.'), here('../..'), true),
     ...(qaOnly ? [qaOnly.main()] : []),
     // QA builds only: the same-origin mirror of the asset store (M01e).

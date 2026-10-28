@@ -30,6 +30,9 @@ export { NPC_GUARDRAILS } from './genai/npc-guardrails.generated.ts';
 export type { AssetRef, LikenessTier } from './assets/c07.ts';
 export { isMediaKey } from './assets/media-key.ts';
 export { contentTypeOf } from './assets/content-type.ts';
+// M10d0: the art half of credits.json (CC-BY entries and CC0 courtesy lines).
+export { isCourtesy } from './assets/credits.ts';
+export type { ArtCredit, ArtCreditCcBy, ArtCreditCourtesy } from './assets/credits.ts';
 export * from './telemetry.ts';
 export * from './world/index.ts';
 export * from './platform/xr-comfort.ts';
