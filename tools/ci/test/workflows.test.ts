@@ -143,9 +143,9 @@ describe('ci.yml (AC-8)', () => {
     expect(step).toContain('BUILD_RESULT: ${{ needs.build.result }}');
     expect(step).toContain('SHARDS_RESULT: ${{ needs.e2e-shard.result }}');
     const shards = Number(/E2E_SHARDS: '(\d+)'/.exec(step)?.[1] ?? 0);
-    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four, BD-INTEG-M02g1-01 to six).
+    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four, BD-INTEG-M02g1-01 to six, BD-FIX-CI-SHARD8-01 to eight).
     const matrix = /^ {8}shard: \[([\d, ]+)\]$/m.exec(jobs['e2e-shard'] ?? '')?.[1]?.split(',').length ?? 0;
-    expect(shards).toBe(6);
+    expect(shards).toBe(8);
     expect(shards).toBe(matrix);
     const all = (r: string | null): (string | null)[] => Array.from({ length: shards }, () => r);
     const withAt = (i: number, r: string | null): (string | null)[] => all('success').map((v, j) => (j === i ? r : v));
