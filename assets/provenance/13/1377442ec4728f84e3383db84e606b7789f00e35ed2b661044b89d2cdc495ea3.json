@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "1377442ec4728f84e3383db84e606b7789f00e35ed2b661044b89d2cdc495ea3",
+  "paths": [
+    "assets/src/vehicle/traffic.rideshare/desktop.glb"
+  ],
+  "kind": "vehicle",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "73dd4cf46e54ea8e870bd7410007ae3281568254f0dde5f35a526b3b4f25f985"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

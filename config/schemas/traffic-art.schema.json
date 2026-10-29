@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/traffic-art.schema.json",
+  "title": "config/world/traffic-art.json (the families of the instanced traffic, M10d1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "bases", "members", "profiles"],
+  "properties": {
+    "$comment": { "type": "string" },
+    "schema": { "const": "traffic-art/1" },
+    "bases": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "type": "string", "pattern": "^(vehicle|prop)/[a-z0-9][a-z0-9._-]*$" }
+    },
+    "members": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^(vehicle|prop)/[a-z0-9][a-z0-9._-]*$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["base", "size", "tint", "liveryShare"],
+        "properties": {
+          "base": { "type": "string" },
+          "size": { "type": "array", "items": { "type": "number", "exclusiveMinimum": 0 }, "minItems": 3, "maxItems": 3 },
+          "tint": { "type": "boolean" },
+          "paint": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+          "liveryShare": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "profiles": {
+      "type": "object",
+      "required": ["full", "lite", "min", "legacy"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(full|lite|min|legacy)$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["variant", "splitGlass", "families"],
+          "properties": {
+            "variant": { "enum": ["desktop", "mobile", "mobile-low"] },
+            "splitGlass": { "type": "boolean" },
+            "families": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": { "type": "array", "items": { "type": "string" }, "minItems": 1, "uniqueItems": true }
+            }
+          }
+        }
+      }
+    }
+  }
+}

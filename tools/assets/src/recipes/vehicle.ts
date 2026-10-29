@@ -245,7 +245,7 @@ export function carBody(spec: CarSpec, f: Fidelity): MeshSet {
     // the bed: a dark floor just below the rails
     const bz0 = spec.rwBase - 0.05 - 0.0, bz1 = spec.bed.cabEnd - 0.06;
     const zEnd = zR + 0.1;
-    addBox(detail, [0, spec.bed.railY - 0.09, (Math.min(bz1, spec.bed.cabEnd - 0.06) + zEnd) / 2], [spec.width * 0.74, 0.04, spec.bed.cabEnd - 0.06 - zEnd], trim, PART.trim);
+    addBox(detail, [0, spec.bed.railY + 0.012, (Math.min(bz1, spec.bed.cabEnd - 0.06) + zEnd) / 2], [spec.width * 0.74, 0.03, spec.bed.cabEnd - 0.06 - zEnd], trim, PART.trim);
     void bz0;
   }
   if (spec.roof === 'rack') {
@@ -257,6 +257,11 @@ export function carBody(spec: CarSpec, f: Fidelity): MeshSet {
 // ---- the rest of a car ------------------------------------------------------------------------------------------------------
 
 const lampBox = (m: Mesh, c: V3, size: V3, color: number, part: number): void => addBox(m, c, size, lin(color), part);
+
+/** The glass primitives of a body as their own `glass` node (C07: `body` holds paint, `glass` and the lamps). */
+export function splitGlass(meshes: Mesh[]): { rest: Mesh[]; glass: Mesh[] } {
+  return { rest: meshes.filter((m) => m.material !== 'glass'), glass: meshes.filter((m) => m.material === 'glass') };
+}
 
 /** The nodes of a finished car for one fidelity: body, lamps, wheels, steering pivots, collider. */
 export function buildCar(spec: CarSpec, f: Fidelity, body: MeshSet, extras: Record<string, string | number | boolean | number[]> = {}): ModelDoc {
@@ -298,7 +303,8 @@ export function buildCar(spec: CarSpec, f: Fidelity, body: MeshSet, extras: Reco
     bodyChildren.push({ name: 'roof_sign', translation: [0, spec.roofY + 0.09, roofMid], meshes: [sign] });
   }
   const collider = colliderHull(spec);
-  const bodyNode: ModelNode = { name: ART_NODE.body, meshes: body.list(), children: bodyChildren };
+  const { rest, glass } = splitGlass(body.list());
+  const bodyNode: ModelNode = { name: ART_NODE.body, meshes: rest, children: [{ name: ART_NODE.glass, meshes: glass }, ...bodyChildren] };
   const roots: ModelNode[] = [bodyNode];
   const wheelNames = ART_NODE.wheels;
   const steerNames = ART_NODE.steers;

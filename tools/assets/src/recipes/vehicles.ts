@@ -8,7 +8,7 @@ import { bodyAt } from '../lod.ts';
 import { addBoxy, solid, type BoxyCell } from './boxy.ts';
 import { addBox, lin, Mesh, MeshSet, style, type V3 } from './mesh.ts';
 import type { Fidelity, ModelDoc, ModelNode } from './model.ts';
-import { buildCar, carBody, colliderHull, type CarSpec } from './vehicle.ts';
+import { buildCar, carBody, colliderHull, splitGlass, type CarSpec } from './vehicle.ts';
 import { buildRim, buildTyre } from './wheel.ts';
 
 /** Body triangle targets per fidelity (the budget row minus the wheels, lamps and details, with room to spare). */
@@ -58,7 +58,7 @@ export const SPECS = {
   pickup: {
     ref: 'vehicle/traffic.pickup', fictionalMake: 'Harlow Ridge', length: 5.3, width: 2.0, wheelbase: 3.2, track: 1.78, wheelR: 0.35, tyreW: 0.25,
     frontTip: 1.6 + 1.0, sill: 0.26, beltY: 1.06, hoodY: 0.92, deckY: 1.0, roofY: 1.72, wsBase: 0.95, roofFront: 0.4, roofRear: -0.3, rwBase: -0.5,
-    roofShare: 0.8, paint: 0x4f9a54, bed: { railY: 1.02, cabEnd: -0.55 }, solidRear: false,
+    roofShare: 0.8, paint: 0x4f9a54, bed: { railY: 0.9, cabEnd: -0.55 }, solidRear: false,
   },
 } as const satisfies Record<string, CarSpec>;
 
@@ -148,7 +148,8 @@ function transit(s: TransitSpec, f: Fidelity, target: Readonly<Record<'mid' | 'l
   const detail = set.get('detail');
   addBox(detail, [0, s.y1 + 0.1, 0.2], [s.halfWidth * 0.8, 0.14, 1.4], lin(0x2b3138), PART.trim);
   const body = bodyAt(set, f, target);
-  const bodyNode: ModelNode = { name: ART_NODE.body, meshes: body.list(), children: [] };
+  const { rest, glass } = splitGlass(body.list());
+  const bodyNode: ModelNode = { name: ART_NODE.body, meshes: rest, children: [{ name: ART_NODE.glass, meshes: glass }] };
   const lamp = (name: string, c: V3, size: V3, color: number, part: number): ModelNode => {
     const m = new Mesh('lamp');
     addBox(m, [0, 0, 0], size, lin(color), part);
@@ -156,6 +157,7 @@ function transit(s: TransitSpec, f: Fidelity, target: Readonly<Record<'mid' | 'l
   };
   const hx = s.halfWidth * 0.7;
   bodyNode.children = [
+    ...(bodyNode.children ?? []),
     lamp('light_head_l', [hx, s.y0 + 0.55, s.zFront - 0.05], [0.4, 0.14, 0.1], 0xfff3c4, PART.lampHead),
     lamp('light_head_r', [-hx, s.y0 + 0.55, s.zFront - 0.05], [0.4, 0.14, 0.1], 0xfff3c4, PART.lampHead),
     lamp('light_brake_l', [hx, s.y0 + 0.6, s.zRear + 0.05], [0.36, 0.14, 0.1], 0xc0161a, PART.lampBrake),

@@ -3,7 +3,7 @@
   "kind": "prop",
   "version": 1,
   "nameKey": "vehicle.pickup",
-  "render": { "asset": "vehicle/graybox.pickup" },
+  "render": { "asset": "vehicle/traffic.pickup" },
   "physics": { "body": "kinematic", "shape": "box", "dims": [1.0, 0.42, 2.65], "groups": ["vehicle"], "liftM": 0.67 },
   "components": {
     "Transform": { "qw": 1 },

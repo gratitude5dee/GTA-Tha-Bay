@@ -2,7 +2,7 @@
   "id": "prop.county-barrier",
   "kind": "prop",
   "version": 1,
-  "render": { "asset": "prop/graybox.county-barrier" },
+  "render": { "asset": "prop/county-barrier" },
   "physics": { "body": "fixed", "shape": "box", "dims": [7.5, 2, 0.4], "groups": ["static"] },
   "components": {
     "Transform": { "qw": 1 },

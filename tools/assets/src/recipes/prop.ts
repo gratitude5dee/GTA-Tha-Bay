@@ -108,14 +108,13 @@ function longBarrier(ref: string, f: Fidelity, halfLen: number, h: number, hw: n
   const n = f === 'hi' ? 12 : f === 'mid' ? 8 : 4;
   for (let i = 0; i < n; i++) addBox(m, [lerp(-halfLen + halfLen / n, halfLen - halfLen / n, i / (n - 1)), h - 0.1, 0], [(halfLen * 2) / n * 0.92, 0.3, hw * 2 + 0.04], lin(i % 2 === 0 ? a : b), PART.matte);
   for (const sx of [-1, 1]) addBox(m, [sx * (halfLen - 0.3), h / 2, 0], [0.5, h, hw * 2 + 0.2], lin(0x2b2f35), PART.matte);
-  const lamp = new Mesh('lamp');
-  if (lamps) for (const sx of [-1, 1]) addBox(lamp, [sx * (halfLen - 0.3), h + 0.15, 0], [0.3, 0.3, 0.3], lin(0xff7a1a), PART.amber);
-  if (lamp.idx.length > 0) set.get('lamp').append(lamp);
+  // the amber lamps are parts of the one detail primitive: a closure is one render object
+  if (lamps) for (const sx of [-1, 1]) addBox(m, [sx * (halfLen - 0.3), h + 0.15, 0], [0.3, 0.3, 0.3], lin(0xff7a1a), PART.amber);
   return doc(ref, f, set);
 }
 
-export const buildCountyBarrier = (f: Fidelity): ModelDoc => longBarrier('prop/county-barrier', f, 7.5, 2.0, 0.4, 0xf0f0ec, 0xe8532b, 0x8a8f96, false);
-export const buildPortalClosure = (f: Fidelity): ModelDoc => longBarrier('prop/portal-closure', f, 8, 2.0, 0.5, 0xf2c230, 0x2b2f35, 0x6b7077, true);
+export const buildCountyBarrier = (f: Fidelity): ModelDoc => longBarrier('prop/county-barrier', f, 7.5, 4.0, 0.4, 0xf0f0ec, 0xe8532b, 0x8a8f96, false);
+export const buildPortalClosure = (f: Fidelity): ModelDoc => longBarrier('prop/portal-closure', f, 8, 4.0, 0.5, 0xf2c230, 0x2b2f35, 0x6b7077, true);
 
 export function buildSpikestrip(f: Fidelity): ModelDoc {
   const set = new MeshSet();
@@ -156,7 +155,7 @@ export function buildPickupCash(f: Fidelity): ModelDoc {
   const g = set.get('lamp');
   const n = f === 'lo' ? 1 : 3;
   for (let i = 0; i < n; i++) addBox(g, [0, i * 0.06 - 0.06, 0], [0.5 - i * 0.02, 0.05, 0.3], lin(0x2f9a4a), PART.glow);
-  addBox(set.get('detail'), [0, 0, 0], [0.12, 0.2, 0.32], lin(0xe8e1c8), PART.matte);
+  addBox(g, [0, 0, 0], [0.12, 0.2, 0.32], lin(0xe8e1c8), PART.matte);
   return doc('prop/pickup-cash', f, set);
 }
 
@@ -164,8 +163,7 @@ export function buildPickupItem(f: Fidelity): ModelDoc {
   const set = new MeshSet();
   const g = set.get('lamp');
   addEllipsoid(g, [0, 0, 0], [0.28, 0.28, 0.28], segs(f, 16), lin(0xf2c230), PART.glow);
-  const ring = set.get('detail');
-  addLathe(ring, [0, 0, 0], 'y', [[-0.02, 0.36], [0.02, 0.36]], segs(f, 20), lin(0xe8e1c8), PART.chrome, { hardEdges: true });
+  addLathe(g, [0, 0, 0], 'y', [[-0.02, 0.36], [0.02, 0.36]], segs(f, 20), lin(0xe8e1c8), PART.chrome, { hardEdges: true });
   return doc('prop/pickup-item', f, set);
 }
 
@@ -206,7 +204,7 @@ export function buildMarkerBeam(f: Fidelity): ModelDoc {
     }
   }
   // a base ring on the ground
-  addLathe(set.get('detail'), [0, 0, 0], 'y', [[0, 0.9], [0.06, 0.9]], segs(f, 20), lin(0xf2c230), PART.glow, { flatCaps: true });
+  addLathe(g, [0, 0, 0], 'y', [[0, 0.9], [0.06, 0.9]], segs(f, 20), lin(0xf2c230), PART.glow, { flatCaps: true });
   return doc('prop/marker.beam', f, set);
 }
 

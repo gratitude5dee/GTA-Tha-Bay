@@ -10,8 +10,8 @@
     "desktop": {
       "tris": 160,
       "verts": 176,
-      "primitives": 2,
-      "materials": 2
+      "primitives": 1,
+      "materials": 1
     },
     "mobile": {
       "tris": 96,
