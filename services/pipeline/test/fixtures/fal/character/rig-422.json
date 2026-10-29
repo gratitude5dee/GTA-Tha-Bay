@@ -1,0 +1,3 @@
+{
+  "error": { "type": "http_422", "message": "the mesh cannot be rigged: no humanoid skeleton could be fitted" }
+}

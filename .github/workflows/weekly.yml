@@ -14,6 +14,10 @@ on:
 permissions:
   contents: read
 
+env:
+  # M10a1 (DL-OWN-01): every job runs the generation pipeline on its mock; no workflow holds or passes a fal key.
+  FAL_MODE: mock
+
 # Actions are pinned by commit SHA, same pins as ci.yml.
 jobs:
   npc-evals-live:

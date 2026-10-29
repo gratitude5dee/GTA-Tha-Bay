@@ -198,8 +198,9 @@ async function main(): Promise<void> {
 
   // M05b2: the gate's prompt lint over the PRIVATE names object (AC-11); M05c3: the prewarm-act1 scenario (AC-5); M05c4: the prewarm-act1-offedge
   // (AC-1, AC-2) and prewarm-act1-publish (AC-6) scenarios. All run in Node over Miniflare's R2; the last two construct the real CutsceneJobDO.
+  // M10a1: character.pipeline.test.ts runs the character chain (tier check to publish, human gates answered by fixture decisions) over MockFalPort.
   const lint = spawnSync('pnpm', ['exec', 'vitest', 'run', '--root', 'services/pipeline'], { cwd: repoRootDir, stdio: 'inherit' });
-  check(lint.status === 0, 'gate.prompt-lint, prewarm-act1, prewarm-act1-offedge and prewarm-act1-publish: the gate lints the filled prompt with the real-side names from PRIVATE; the Act 1 plan submits its keys once and the second run makes 0 calls; a live job hands off and survives the watchdog, the re-arm and a quarantine; the publish phase copies, refuses a killed cast and writes the manifest last');
+  check(lint.status === 0, 'gate.prompt-lint, prewarm-act1, prewarm-act1-offedge and prewarm-act1-publish: the gate lints the filled prompt with the real-side names from PRIVATE; the Act 1 plan submits its keys once and the second run makes 0 calls; a live job hands off and survives the watchdog, the re-arm and a quarantine; the publish phase copies, refuses a killed cast and writes the manifest last; a character runs from the tier check through publish on recorded fixtures, writes every gate report, chains its provenance to generated roots, makes zero calls on the second run and falls to the second mesh when the rig answers 422');
 
   if (failures.length > 0) {
     console.error(`check:pipeline FAIL ${failures.length} check(s)`);

@@ -15,6 +15,8 @@ permissions:
   contents: read
 
 env:
+  # M10a1 (DL-OWN-01): every job runs the generation pipeline on its mock; no workflow holds or passes a fal key.
+  FAL_MODE: mock
   # M02b1 (DL-546, DL-680): the e2e tags that need the gray-box scene or the absence of a world run on a build without DV_WORLD; every
   # other tag runs on the DV_WORLD=synth build. The one committed copy is tests/e2e/graybox-grep.txt (a unit test keeps them equal).
   GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay|@story( |$)|@racing-touch|@racing-vs'

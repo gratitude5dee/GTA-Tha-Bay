@@ -1,6 +1,6 @@
 {
   "schema": "npc-roster-bundle/1",
-  "rosterVersion": 2,
+  "rosterVersion": 3,
   "souls": [
     {
       "schema": "soul-public/1",
