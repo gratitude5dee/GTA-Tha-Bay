@@ -9,7 +9,7 @@ import { SMALL_VIEWPORT } from './engine-helpers.ts';
 
 /**
  * What the M02g2 look-fix specs share (BD-REPAIR-M02g2-03): `world-sky-look-fixes.spec.ts` (the `mobile-low` pair, the environment-map case, the
- * render-object ledger), `look-fixes-junction.spec.ts` and `look-fixes-civic.spec.ts` (one `desktop` pair each). The pairs are separate
+ * render-object ledger), `street-look-fixes-junction.spec.ts` and `look-fixes-civic.spec.ts` (one `desktop` pair each). The pairs are separate
  * files because Playwright cuts a shard out of the sorted list of tests by their count, and a `desktop` pair is the longest single case of
  * the suite (about 20 minutes on software GL); their file names place them in different, light shards.
  *
