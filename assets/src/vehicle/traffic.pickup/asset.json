@@ -37,7 +37,7 @@
   "extras": {
     "t": "vehicle",
     "class": "traffic",
-    "fictionalMake": "Harlow Ridge",
+    "fictionalMake": "Harlow Dray",
     "wheelRadiusM": 0.35,
     "nodes": {
       "body": "body",

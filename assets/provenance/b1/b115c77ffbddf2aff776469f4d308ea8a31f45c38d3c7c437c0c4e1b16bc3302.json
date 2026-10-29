@@ -1,6 +1,6 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "4cdb1be28765cd8b20f385092bfebb1131af9cefb89476280bdef241c1628007",
+  "sha256": "b115c77ffbddf2aff776469f4d308ea8a31f45c38d3c7c437c0c4e1b16bc3302",
   "paths": [
     "assets/src/vehicle/traffic.pickup/desktop.glb"
   ],

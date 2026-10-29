@@ -37,7 +37,7 @@
   "extras": {
     "t": "vehicle",
     "class": "police",
-    "fictionalMake": "Northgate Interceptor",
+    "fictionalMake": "Northgate Patrol",
     "wheelRadiusM": 0.34,
     "nodes": {
       "body": "body",

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { ART_NODE, PART } from '../../../packages/shared/src/assets/art-parts.ts';
+import { compileStringMatcher, scanText } from '../../../packages/shared/src/assets/gates/ip.ts';
 import { toolsRoot } from '../../ci/lib/common.ts';
 import { simplifierReady } from '../src/lod.ts';
 import { ART_ASSETS, buildModel, refOf } from '../src/recipes/catalog.ts';
@@ -128,10 +129,19 @@ describe('the vehicle node contract (C07 1.1, H6)', () => {
     for (const p of [PART.paint, PART.glass, PART.tyre, PART.rim, PART.lampHead, PART.lampBrake, PART.sirenRed, PART.sirenBlue, PART.livery]) expect(seen.has(p)).toBe(true);
   });
 
-  it('are fictional: no real make or model in an extras string', () => {
-    const real = ['ford', 'chevrolet', 'toyota', 'honda', 'tesla', 'waymo', 'volkswagen', 'bmw', 'mercedes', 'mustang', 'camry', 'civic', 'prius', 'transit connect'];
-    const makes = ART_ASSETS.flatMap((a) => (a.vehicle ? [a.vehicle.make.toLowerCase()] : []));
+  it('are fictional: no make matches the IP denylist, the vetting lists of real makes and models, or each other', () => {
+    const cfg = JSON.parse(readFileSync(path.join(toolsRoot, 'config/ip-denylist.json'), 'utf8')) as Parameters<typeof compileStringMatcher>[0];
+    const vet = JSON.parse(readFileSync(path.join(toolsRoot, 'config/art-vetting.json'), 'utf8')) as { realMakes: string[]; realModels: string[] };
+    const matcher = compileStringMatcher(cfg);
+    const makes = ART_ASSETS.flatMap((a) => (a.vehicle ? [a.vehicle.make] : []));
     expect(makes).toHaveLength(11);
-    for (const m of makes) for (const r of real) expect(m.includes(r), `${m} contains ${r}`).toBe(false);
+    for (const m of makes) {
+      expect(scanText(m, matcher), m).toEqual([]);
+      const words = m.toLowerCase().split(/\s+/);
+      for (const real of [...vet.realMakes, ...vet.realModels, 'interceptor', 'ranger', 'ram', 'ridgeline', 'lark', 'cressida']) {
+        expect(words.includes(real) || m.toLowerCase() === real, `${m} contains ${real}`).toBe(false);
+      }
+    }
+    expect(new Set(makes.map((m) => m.toLowerCase())).size).toBeGreaterThanOrEqual(8);
   });
 });

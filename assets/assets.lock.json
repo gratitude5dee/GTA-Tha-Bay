@@ -1337,26 +1337,26 @@
       "approved_at": "2026-10-28T08:37:57Z"
     },
     "vehicle/police.cruiser": {
-      "rev": 2,
+      "rev": 3,
       "variants": {
-        "desktop": "275bc2d897939c095169a84a6fa068e483764ef1d781965b5edf456a85bd098b",
-        "mobile": "c7fa6f80faf904c1bd45a29c4bc4fb1ce4fbd842a35e9728ef84c20b0a768ee5",
-        "mobile-low": "f3c3fac20d6b15d237e4eef3314b62284a18fed72a51b58466d6a86b831cecd5"
+        "desktop": "d8cd4e13490078e5fb9253ebbe8a03d837bc44267250a2df6291e3f8663c8bbe",
+        "mobile": "fc29580e34256f40f120bed46271b11db56423ee5a8f1963fbbb2d1f75c0194d",
+        "mobile-low": "a76f828c2bc4e00802a36ca0b9c3f363a9e9f8ad4a89131e00ea05d176339671"
       },
-      "root": "275bc2d897939c095169a84a6fa068e483764ef1d781965b5edf456a85bd098b",
+      "root": "d8cd4e13490078e5fb9253ebbe8a03d837bc44267250a2df6291e3f8663c8bbe",
       "approved_by": "m10d1-builder",
-      "approved_at": "2026-10-29T02:11:23Z"
+      "approved_at": "2026-10-29T02:57:22Z"
     },
     "vehicle/police.suv": {
-      "rev": 2,
+      "rev": 3,
       "variants": {
-        "desktop": "b481ad05092beb614821150f26d17c6541fd7d1c1d6e8ad1a898fca0daca950c",
-        "mobile": "1c826c62e249da461d43b85a716af27c1cee46bffb13c045e3fdb3bb9a38701c",
-        "mobile-low": "298176356f1a41381a5da7cc314a4f56fcb6f4a346327556c6e221b991f4221e"
+        "desktop": "70d907a8ca2656f2b68dc117b978f1563014275bbe9b365b87f4d416ee5e8388",
+        "mobile": "f165f18765062d0a16fb5c844c15146a25c2a2f05e5c75748848b917bd2b2d30",
+        "mobile-low": "47253464ac50308fc70c10bab11423c7457d0b149a164090345310068fbc82b6"
       },
-      "root": "b481ad05092beb614821150f26d17c6541fd7d1c1d6e8ad1a898fca0daca950c",
+      "root": "70d907a8ca2656f2b68dc117b978f1563014275bbe9b365b87f4d416ee5e8388",
       "approved_by": "m10d1-builder",
-      "approved_at": "2026-10-29T02:11:23Z"
+      "approved_at": "2026-10-29T02:57:22Z"
     },
     "vehicle/robotaxi.default": {
       "rev": 2,
@@ -1370,37 +1370,37 @@
       "approved_at": "2026-10-29T02:11:23Z"
     },
     "vehicle/traffic.compact": {
-      "rev": 2,
-      "variants": {
-        "desktop": "a3223b028f49481a19c098ec1e15ec76747d5912cfb7822f24142ec411f2f145",
-        "mobile": "b724c53483ec24180a1bd17488f51489a7b1d63a1179b63e910c498912d5c70c",
-        "mobile-low": "bafd2b6b85884f69da43e621169abe997481e474f729b9bbfc201cfd7ac35f36"
-      },
-      "root": "a3223b028f49481a19c098ec1e15ec76747d5912cfb7822f24142ec411f2f145",
-      "approved_by": "m10d1-builder",
-      "approved_at": "2026-10-29T02:11:23Z"
-    },
-    "vehicle/traffic.pickup": {
       "rev": 3,
       "variants": {
-        "desktop": "4cdb1be28765cd8b20f385092bfebb1131af9cefb89476280bdef241c1628007",
-        "mobile": "b12aca0bf823dcaaed658f481f7934b136bb14eb0d638b3f861a7fd84c647929",
-        "mobile-low": "37fffd181bd3a287c0a77d33f5eafadcbcbc4d7727a1e454eef7634ab83f4fa2"
+        "desktop": "fae8c32ea4927d0242c5f6e1413e59b700bc778d2b97d6ff5e026dcde6b9f749",
+        "mobile": "a360cbacc3616b80ae79a2267e015d934ebf1b1889799ca1055899507e528f8c",
+        "mobile-low": "4d3e529130aad47c157780869ae8a137092d61a72ca4f4371a197ce49b7954db"
       },
-      "root": "4cdb1be28765cd8b20f385092bfebb1131af9cefb89476280bdef241c1628007",
+      "root": "fae8c32ea4927d0242c5f6e1413e59b700bc778d2b97d6ff5e026dcde6b9f749",
       "approved_by": "m10d1-builder",
-      "approved_at": "2026-10-29T02:34:28Z"
+      "approved_at": "2026-10-29T02:57:22Z"
+    },
+    "vehicle/traffic.pickup": {
+      "rev": 4,
+      "variants": {
+        "desktop": "b115c77ffbddf2aff776469f4d308ea8a31f45c38d3c7c437c0c4e1b16bc3302",
+        "mobile": "2c85c4ed07785e9ab47965d980da2ce919bf25659ee6376fcd6e5e6292bf7c8c",
+        "mobile-low": "781c995ffe1d75c74cc21bb29474a86d6bcb4d17d6dad2b61b7f9c358c9b6b46"
+      },
+      "root": "b115c77ffbddf2aff776469f4d308ea8a31f45c38d3c7c437c0c4e1b16bc3302",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T02:57:22Z"
     },
     "vehicle/traffic.rideshare": {
-      "rev": 2,
+      "rev": 3,
       "variants": {
-        "desktop": "1377442ec4728f84e3383db84e606b7789f00e35ed2b661044b89d2cdc495ea3",
-        "mobile": "30f4d4631e64f1ddfe2120ec9848fef8145717b463115e2003997900dc0dd77a",
-        "mobile-low": "f4039bd9be5f6760e8c162635191fa1dee4e07a4e2f5e265c096c2611351db0c"
+        "desktop": "f606d9a9504421808b77291e7cfd8be8977ecde5d6e44c03737d52145a966131",
+        "mobile": "ac0583f9744b40735a7d7516a90be3986bbeb16f4e54b7e347b607da69a9f2d7",
+        "mobile-low": "f01014b45f0e655f0a21736bf8b83b42ef7399025ffa6a027c57d5d4d13c143c"
       },
-      "root": "1377442ec4728f84e3383db84e606b7789f00e35ed2b661044b89d2cdc495ea3",
+      "root": "f606d9a9504421808b77291e7cfd8be8977ecde5d6e44c03737d52145a966131",
       "approved_by": "m10d1-builder",
-      "approved_at": "2026-10-29T02:11:23Z"
+      "approved_at": "2026-10-29T02:57:22Z"
     },
     "vehicle/traffic.sedan": {
       "rev": 2,

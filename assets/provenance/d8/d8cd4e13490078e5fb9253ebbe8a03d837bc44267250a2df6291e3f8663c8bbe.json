@@ -1,8 +1,8 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "bafd2b6b85884f69da43e621169abe997481e474f729b9bbfc201cfd7ac35f36",
+  "sha256": "d8cd4e13490078e5fb9253ebbe8a03d837bc44267250a2df6291e3f8663c8bbe",
   "paths": [
-    "assets/src/vehicle/traffic.compact/mobile-low.glb"
+    "assets/src/vehicle/police.cruiser/desktop.glb"
   ],
   "kind": "vehicle",
   "origin": "authored",
@@ -14,7 +14,7 @@
   "tool": {
     "name": "tools/assets vehicle",
     "version": "1.0.0",
-    "args_sha256": "0d71e67a4032a51549c7310bf2ad72cb05d20fe49692cb43dd0423d3e38f018a"
+    "args_sha256": "4c51a81df8c0f64f6b08e6d7efdc4fdc6099dcd5b85bd2e8f7dc95681cd961ee"
   },
   "review": [],
   "ip_checks": {

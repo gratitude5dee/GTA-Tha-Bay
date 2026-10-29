@@ -3,7 +3,7 @@
  * the window band, rounded ends, and a per-cell style callback. Used by the bus, the cable car and the box truck.
  */
 import { PART } from '../../../../packages/shared/src/assets/art-parts.ts';
-import { addLoft, lerp, lin, MeshSet, style, type LoftStation, type Style, type V2 } from './mesh.ts';
+import { addLoft, lerp, lin, type MeshSet, style, type LoftStation, type Style, type V2 } from './mesh.ts';
 
 export interface BoxySpec {
   /** Rear and front z of the straight part's extent (the front is +z). */

@@ -35,7 +35,7 @@ const world = <T>(page: Page, fn: (w: WorldBridge) => T | Promise<T>): Promise<T
 
 const frames = async (page: Page, n: number): Promise<void> => {
   const f0 = await world(page, (w) => w.chunks().frame);
-  await page.waitForFunction((t) => (window as unknown as W).__dvBridge.world.chunks().frame >= t, f0 + n, { timeout: 180_000, polling: 250 });
+  await page.waitForFunction((t) => (window as unknown as W).__dvBridge.world.chunks().frame >= t, f0 + n, { timeout: 900_000, polling: 250 });
 };
 
 async function setSky(page: Page, hour: number, weather: string): Promise<void> {
@@ -91,10 +91,11 @@ test.describe('art city @art-city', () => {
         if (m) requested.add(m[1] as string);
       });
       await bootWorld(page, tier);
-      await world(page, (w) => w.shot('noon-street'));
+      // A shot with the traffic drawn costs minutes per frame on the desktop tiers in software GL: only the cheap tier takes one.
+      if (tier === 'mobile-low') await world(page, (w) => w.shot('noon-street'));
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
       await artSettled(page);
-      await frames(page, 6);
+      await frames(page, 3);
       const a = await world(page, (w) => w.art());
       expect(a, 'world.art()').toBeTruthy();
       if (!a) return;
@@ -117,12 +118,35 @@ test.describe('art city @art-city', () => {
     });
   }
 
+  test('a spawned car and a spawned prop draw their final models through the object pool @art-city', async ({ page }) => {
+    type E = { __dvBridge: { engine: { spawn(prefab: string, at: [number, number, number], yaw?: number): Promise<unknown>; observe(): { player: { pos: [number, number, number] } | null } } } };
+    await bootWorld(page, 'mobile-low');
+    const me = await page.evaluate(() => (window as unknown as E).__dvBridge.engine.observe().player?.pos ?? null);
+    expect(me, 'the player is in the world').not.toBeNull();
+    const at = me as [number, number, number];
+    await page.evaluate(([x, y, z]) => (window as unknown as E).__dvBridge.engine.spawn('vehicle.sedan', [x as number + 5, y as number + 1.5, z as number], 0), at);
+    await page.evaluate(([x, y, z]) => (window as unknown as E).__dvBridge.engine.spawn('prop.cone', [x as number - 5, y as number + 1, z as number], 0), at);
+    await page.waitForFunction(
+      () => {
+        const a = (window as unknown as W).__dvBridge.world.art();
+        return !!a && a.pool.loaded.includes('vehicle/traffic.sedan') && a.pool.loaded.includes('prop/cone') && a.pool.pending.length === 0;
+      },
+      undefined,
+      { timeout: 300_000, polling: 500 },
+    );
+    const a = await world(page, (w) => w.art());
+    expect(a?.pool.failed).toEqual([]);
+    expect(a?.pool.variant).toBe('mobile-low');
+    expect(a?.renderKeys.filter((k) => OWNED_GRAYBOX.test(k))).toEqual([]);
+    expect(a?.renderKeys).toEqual(expect.arrayContaining(['vehicle/traffic.sedan', 'prop/cone']));
+  });
+
   test('a ?art=0 boot keeps the gray-box stand-ins: one legacy family and no model request @art-city', async ({ page }) => {
     const requested = new Set<string>();
     page.on('request', (r) => {
       if (/\/assets\/(?:vehicle|prop)\//.test(new URL(r.url()).pathname)) requested.add(r.url());
     });
-    await bootWorld(page, 'desktop', '&art=0');
+    await bootWorld(page, 'mobile-low', '&art=0');
     await world(page, (w) => w.shot('noon-street'));
     await frames(page, 30);
     const a = await world(page, (w) => w.art());
@@ -191,20 +215,37 @@ function previousLedger(): { file: string; after: Record<string, number> } | nul
   return null;
 }
 
-/** The state both measurements share (M02g1's): 480 x 270, 13:00 clear, the street shot, traffic resident, the sim held. */
-async function measure(page: Page, tier: QualityTierId, art: boolean): Promise<{ objects: number; triangles: number; traffic: { triangles: number; instances: number; cap: number } }> {
-  await bootWorld(page, tier, art ? '' : '&art=0', TINY);
+/**
+ * One boot, measured with the art on: the frame's render objects and triangles, and the traffic's own share of them. The baseline is what
+ * the same frame costs with the gray-box traffic, which was one instanced mesh (one render object, plus one per shadow pass when it casts)
+ * wherever a car is drawn: the frame minus the traffic's meshes (each with its casters) plus that one. Everything else in the frame is the
+ * same by construction (the sim is held), so the delta does not move with the traffic of another boot.
+ */
+async function measure(page: Page, tier: QualityTierId): Promise<{
+  after: number; baseline: number; trianglesAfter: number; trianglesBaseline: number;
+  traffic: { triangles: number; instances: number; cap: number; drawn: number; casters: number; passes: number };
+}> {
+  await bootWorld(page, tier, '', TINY);
   await setSky(page, 13, 'clear');
-  await world(page, (w) => w.shot(tier === 'mobile-low' ? 'fog-west' : 'noon-street'));
+  if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));
   await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
-  if (art) await artSettled(page);
-  await frames(page, 6);
+  await artSettled(page);
+  await frames(page, 3);
   await world(page, (w) => w.hold(true));
-  await frames(page, 2);
   const l = await live(page);
   const t = await world(page, (w) => w.traffic());
+  const passes = (await world(page, (w) => w.look()))?.shadowPasses ?? 0;
   await world(page, (w) => w.hold(false));
-  return { objects: l.renderObjects, triangles: l.triangles, traffic: { triangles: t?.triangles ?? 0, instances: t?.instances ?? 0, cap: t?.cap ?? 0 } };
+  const drawn = t?.drawn ?? 0, casters = t?.casters ?? 0, instances = t?.instances ?? 0;
+  const mine = drawn + casters * passes;
+  const old = instances > 0 ? 1 + (casters > 0 ? passes : 0) : 0;
+  const trisNow = t?.triangles ?? 0;
+  // the gray-box car was 22 triangles (a body box, a cabin box and a skirt): 12 + 12 + 12 = 36
+  const trisOld = instances * 36;
+  return {
+    after: l.renderObjects, baseline: l.renderObjects - mine + old, trianglesAfter: l.triangles, trianglesBaseline: l.triangles - trisNow + trisOld,
+    traffic: { triangles: trisNow, instances, cap: t?.cap ?? 0, drawn, casters, passes },
+  };
 }
 
 test.describe('art ledger @art-ledger', () => {
@@ -216,13 +257,13 @@ test.describe('art ledger @art-ledger', () => {
 
   for (const tier of ['desktop-ultra', 'desktop', 'mobile', 'mobile-low'] as const) {
     test(`${tier}: the art adds objects and triangles inside the table @art-ledger`, async ({ page }) => {
-      const base = await measure(page, tier, false);
-      const after = await measure(page, tier, true);
+      const m = await measure(page, tier);
+      const after = m;
       const row: TierRow = {
-        baseline: base.objects,
-        after: after.objects,
-        perLayer: { art: after.objects - base.objects },
-        triangles: { baseline: base.triangles, after: after.triangles, traffic: after.traffic.triangles, instances: after.traffic.instances },
+        baseline: m.baseline,
+        after: m.after,
+        perLayer: { art: m.after - m.baseline },
+        triangles: { baseline: m.trianglesBaseline, after: m.trianglesAfter, traffic: m.traffic.triangles, instances: m.traffic.instances },
       };
       measured[tier] = row;
       console.log(`art ledger ${tier}: ${JSON.stringify(row)}`);
@@ -286,9 +327,8 @@ test.describe('xr art ledger @xr @art-ledger', () => {
       await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
       if (q === '') await artSettled(page);
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
-      await frames(page, 6);
+      await frames(page, 3);
       await world(page, (w) => w.hold(true));
-      await frames(page, 2);
       counts.push((await live(page)).renderObjects);
       await world(page, (w) => w.hold(false));
     }

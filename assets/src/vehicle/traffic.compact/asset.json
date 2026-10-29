@@ -37,7 +37,7 @@
   "extras": {
     "t": "vehicle",
     "class": "traffic",
-    "fictionalMake": "Marlowe Cress",
+    "fictionalMake": "Marlowe Pip",
     "wheelRadiusM": 0.29,
     "nodes": {
       "body": "body",

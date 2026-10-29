@@ -1,8 +1,8 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "1c826c62e249da461d43b85a716af27c1cee46bffb13c045e3fdb3bb9a38701c",
+  "sha256": "781c995ffe1d75c74cc21bb29474a86d6bcb4d17d6dad2b61b7f9c358c9b6b46",
   "paths": [
-    "assets/src/vehicle/police.suv/mobile.glb"
+    "assets/src/vehicle/traffic.pickup/mobile-low.glb"
   ],
   "kind": "vehicle",
   "origin": "authored",
@@ -14,7 +14,7 @@
   "tool": {
     "name": "tools/assets vehicle",
     "version": "1.0.0",
-    "args_sha256": "4016def6f13656bade750b9c72949dec68cd2721c800e03bb999e8d29f4eff48"
+    "args_sha256": "5e01806d4b62329d01f0e3fad21691edf18460704a195d8962a5cd58693e4354"
   },
   "review": [],
   "ip_checks": {

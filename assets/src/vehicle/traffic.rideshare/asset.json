@@ -37,7 +37,7 @@
   "extras": {
     "t": "vehicle",
     "class": "traffic",
-    "fictionalMake": "Ferrin Lark",
+    "fictionalMake": "Ferrin Wren",
     "wheelRadiusM": 0.32,
     "nodes": {
       "body": "body",

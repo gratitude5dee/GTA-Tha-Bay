@@ -4,7 +4,7 @@
  * preset has them, and the object pool draws the stand-in until the model arrives and then swaps it.
  */
 import { beforeAll, describe, expect, it } from 'vitest';
-import { Group, Scene, type Mesh, type Object3D } from 'three/webgpu';
+import { type Group, Scene, type Mesh, type Object3D } from 'three/webgpu';
 import { artModel } from '../../../../tests/support/art-models.ts';
 import { art } from '../../src/client/vehicle/art.ts';
 import { ART_GRAYBOX, ART_VEHICLES } from '../../src/client/vehicle/art-tables.ts';

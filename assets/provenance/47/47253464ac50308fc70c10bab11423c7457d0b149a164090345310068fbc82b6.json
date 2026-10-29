@@ -1,8 +1,8 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "b481ad05092beb614821150f26d17c6541fd7d1c1d6e8ad1a898fca0daca950c",
+  "sha256": "47253464ac50308fc70c10bab11423c7457d0b149a164090345310068fbc82b6",
   "paths": [
-    "assets/src/vehicle/police.suv/desktop.glb"
+    "assets/src/vehicle/police.suv/mobile-low.glb"
   ],
   "kind": "vehicle",
   "origin": "authored",

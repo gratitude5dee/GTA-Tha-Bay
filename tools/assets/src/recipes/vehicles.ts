@@ -21,7 +21,7 @@ const reduce = (set: MeshSet, f: Fidelity, cls: 'traffic' | 'police'): MeshSet =
 
 export const SPECS = {
   compact: {
-    ref: 'vehicle/traffic.compact', fictionalMake: 'Marlowe Cress', length: 3.7, width: 1.7, wheelbase: 2.5, track: 1.46, wheelR: 0.29, tyreW: 0.19,
+    ref: 'vehicle/traffic.compact', fictionalMake: 'Marlowe Pip', length: 3.7, width: 1.7, wheelbase: 2.5, track: 1.46, wheelR: 0.29, tyreW: 0.19,
     frontTip: 1.25 + 0.75, sill: 0.2, beltY: 0.88, hoodY: 0.76, deckY: 0.86, roofY: 1.47, wsBase: 0.62, roofFront: 0.0, roofRear: -1.2, rwBase: -1.6,
     roofShare: 0.78, paint: 0xf2c230, endLen: 0.5,
   },
@@ -31,7 +31,7 @@ export const SPECS = {
     roofShare: 0.76, paint: 0x3a7bd5, liveryDoors: true, livery: 0xf4f4f4,
   },
   rideshare: {
-    ref: 'vehicle/traffic.rideshare', fictionalMake: 'Ferrin Lark', length: 4.6, width: 1.85, wheelbase: 2.7, track: 1.56, wheelR: 0.32, tyreW: 0.22,
+    ref: 'vehicle/traffic.rideshare', fictionalMake: 'Ferrin Wren', length: 4.6, width: 1.85, wheelbase: 2.7, track: 1.56, wheelR: 0.32, tyreW: 0.22,
     frontTip: 1.35 + 0.9, sill: 0.2, beltY: 0.95, hoodY: 0.8, deckY: 0.9, roofY: 1.52, wsBase: 0.78, roofFront: 0.05, roofRear: -0.95, rwBase: -1.5,
     roofShare: 0.76, paint: 0x1fb5a0, liveryDoors: true, livery: 0xf4f4f4, roof: 'sign',
   },
@@ -41,12 +41,12 @@ export const SPECS = {
     roofShare: 0.74, paint: 0xf4f6f8, liveryDoors: true, livery: 0x1f2a36, roof: 'dome', rim: 0x30343a,
   },
   cruiser: {
-    ref: 'vehicle/police.cruiser', fictionalMake: 'Northgate Interceptor', length: 5.0, width: 1.9, wheelbase: 2.9, track: 1.62, wheelR: 0.34, tyreW: 0.23,
+    ref: 'vehicle/police.cruiser', fictionalMake: 'Northgate Patrol', length: 5.0, width: 1.9, wheelbase: 2.9, track: 1.62, wheelR: 0.34, tyreW: 0.23,
     frontTip: 1.45 + 1.0, sill: 0.2, beltY: 0.97, hoodY: 0.82, deckY: 0.93, roofY: 1.5, wsBase: 0.8, roofFront: 0.05, roofRear: -0.95, rwBase: -1.55,
     roofShare: 0.76, paint: 0x16181c, liveryDoors: true, livery: 0xf4f4f4, roof: 'lightbar',
   },
   suv: {
-    ref: 'vehicle/police.suv', fictionalMake: 'Northgate Ranger', length: 4.9, width: 2.0, wheelbase: 3.0, track: 1.7, wheelR: 0.36, tyreW: 0.25,
+    ref: 'vehicle/police.suv', fictionalMake: 'Northgate Warden', length: 4.9, width: 2.0, wheelbase: 3.0, track: 1.7, wheelR: 0.36, tyreW: 0.25,
     frontTip: 1.5 + 0.95, sill: 0.28, beltY: 1.08, hoodY: 0.95, deckY: 1.08, roofY: 1.82, wsBase: 0.85, roofFront: 0.3, roofRear: -1.75, rwBase: -2.15,
     roofShare: 0.8, paint: 0x1b1f24, liveryDoors: true, livery: 0xf4f4f4, roof: 'lightbar',
   },
@@ -56,7 +56,7 @@ export const SPECS = {
     roofShare: 0.9, paint: 0xf0f0ec, solidRear: true, sideGlass: [[0.7, 1.4]], endLen: 0.6,
   },
   pickup: {
-    ref: 'vehicle/traffic.pickup', fictionalMake: 'Harlow Ridge', length: 5.3, width: 2.0, wheelbase: 3.2, track: 1.78, wheelR: 0.35, tyreW: 0.25,
+    ref: 'vehicle/traffic.pickup', fictionalMake: 'Harlow Dray', length: 5.3, width: 2.0, wheelbase: 3.2, track: 1.78, wheelR: 0.35, tyreW: 0.25,
     frontTip: 1.6 + 1.0, sill: 0.26, beltY: 1.06, hoodY: 0.92, deckY: 1.0, roofY: 1.72, wsBase: 0.95, roofFront: 0.4, roofRear: -0.3, rwBase: -0.5,
     roofShare: 0.8, paint: 0x4f9a54, bed: { railY: 0.9, cabEnd: -0.55 }, solidRear: false,
   },

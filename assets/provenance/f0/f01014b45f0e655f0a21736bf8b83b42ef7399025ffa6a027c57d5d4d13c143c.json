@@ -1,8 +1,8 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "b724c53483ec24180a1bd17488f51489a7b1d63a1179b63e910c498912d5c70c",
+  "sha256": "f01014b45f0e655f0a21736bf8b83b42ef7399025ffa6a027c57d5d4d13c143c",
   "paths": [
-    "assets/src/vehicle/traffic.compact/mobile.glb"
+    "assets/src/vehicle/traffic.rideshare/mobile-low.glb"
   ],
   "kind": "vehicle",
   "origin": "authored",
@@ -14,7 +14,7 @@
   "tool": {
     "name": "tools/assets vehicle",
     "version": "1.0.0",
-    "args_sha256": "0d71e67a4032a51549c7310bf2ad72cb05d20fe49692cb43dd0423d3e38f018a"
+    "args_sha256": "73dd4cf46e54ea8e870bd7410007ae3281568254f0dde5f35a526b3b4f25f985"
   },
   "review": [],
   "ip_checks": {

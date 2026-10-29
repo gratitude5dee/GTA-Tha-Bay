@@ -8,7 +8,7 @@
  * No licensed base is imported by this milestone's recipes (the packs are snapshot-only or not downloaded offline); this module is
  * what a base would pass through, and the recipes stand at the same AssetIds until one does.
  */
-import { Mesh, type V3 } from '../recipes/mesh.ts';
+import { type Mesh, type V3 } from '../recipes/mesh.ts';
 import { modelBounds, type ModelDoc, type ModelNode } from '../recipes/model.ts';
 
 export interface RemodelSpec {

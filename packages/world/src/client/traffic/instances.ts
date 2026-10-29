@@ -48,6 +48,9 @@ export interface TrafficInfo {
   loaded: number;
   /** Triangles the drawn instances cost: each family's live count times the triangles of its geometry. */
   triangles: number;
+  /** Meshes drawn now (visible), and how many of them cast shadows (each costs one more render object per shadow pass). */
+  drawn: number;
+  casters: number;
 }
 
 export interface TrafficRendererOptions {
@@ -280,6 +283,7 @@ export class TrafficRenderer {
 
   info(): TrafficInfo {
     const perMesh = this.families[0]?.glass ? 2 : 1;
+    const visibleMeshes = this.families.flatMap((f) => [f.opaque, ...(f.glass ? [f.glass] : [])]).filter((m) => m.visible);
     return {
       instances: this.live,
       draws: this.families.filter((f) => f.live > 0).length * perMesh,
@@ -292,6 +296,8 @@ export class TrafficRenderer {
       families: this.families.length,
       loaded: this.families.filter((f) => f.loaded).length,
       triangles: this.families.reduce((a, f) => a + f.live * f.tris, 0),
+      drawn: visibleMeshes.length,
+      casters: visibleMeshes.filter((m) => m.castShadow).length,
     };
   }
 

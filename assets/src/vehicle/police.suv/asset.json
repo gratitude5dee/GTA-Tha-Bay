@@ -37,7 +37,7 @@
   "extras": {
     "t": "vehicle",
     "class": "police",
-    "fictionalMake": "Northgate Ranger",
+    "fictionalMake": "Northgate Warden",
     "wheelRadiusM": 0.36,
     "nodes": {
       "body": "body",

@@ -1,8 +1,8 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "f4039bd9be5f6760e8c162635191fa1dee4e07a4e2f5e265c096c2611351db0c",
+  "sha256": "ac0583f9744b40735a7d7516a90be3986bbeb16f4e54b7e347b607da69a9f2d7",
   "paths": [
-    "assets/src/vehicle/traffic.rideshare/mobile-low.glb"
+    "assets/src/vehicle/traffic.rideshare/mobile.glb"
   ],
   "kind": "vehicle",
   "origin": "authored",
