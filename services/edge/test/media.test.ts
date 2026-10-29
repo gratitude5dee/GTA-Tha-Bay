@@ -149,6 +149,135 @@ describe('GET /media/<key>', () => {
   });
 });
 
+interface Spy {
+  bucket: R2Bucket;
+  calls: string[];
+}
+
+/** The real local bucket behind a Proxy that records `get` and `head`. */
+function spyOn(target: R2Bucket): Spy {
+  const calls: string[] = [];
+  const bucket = new Proxy(target, {
+    get(t, prop, receiver) {
+      if (prop === 'get' || prop === 'head') calls.push(String(prop));
+      const v = Reflect.get(t, prop, receiver) as unknown;
+      return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(t) : v;
+    },
+  });
+  return { bucket, calls };
+}
+
+function stubBucket(getError: Error): { bucket: R2Bucket; calls: string[] } {
+  const calls: string[] = [];
+  const bucket = {
+    get: () => {
+      calls.push('get');
+      return Promise.reject(getError);
+    },
+    head: () => {
+      calls.push('head');
+      return Promise.resolve({ size: 20 });
+    },
+  } as unknown as R2Bucket;
+  return { bucket, calls };
+}
+
+describe('bucket calls of a ranged read (M01d3)', () => {
+  const ranged = (range: string, bucket: R2Bucket, extra: Record<string, string> = {}): Promise<Response> =>
+    call(`/media/${KEY_TYPED}`, { headers: { Range: range, ...extra }, env: { MEDIA: bucket } });
+
+  it('a satisfiable range costs one get and no head', async () => {
+    for (const [range, expected, bytes] of [
+      ['bytes=0-9', 'bytes 0-9/20', BYTES.slice(0, 10)],
+      ['bytes=-5', 'bytes 15-19/20', BYTES.slice(15)],
+      ['bytes=15-', 'bytes 15-19/20', BYTES.slice(15)],
+    ] as const) {
+      const spy = spyOn(media());
+      const res = await ranged(range, spy.bucket);
+      expect(res.status, range).toBe(206);
+      expect(res.headers.get('content-range')).toBe(expected);
+      expect(res.headers.get('content-length')).toBe(String(bytes.length));
+      expect(new Uint8Array(await res.arrayBuffer())).toEqual(bytes);
+      expect(spy.calls, range).toEqual(['get']);
+    }
+  });
+
+  it('twenty one-byte slices return the object with 20 gets and no head', async () => {
+    const spy = spyOn(media());
+    const out = new Uint8Array(20);
+    for (let i = 0; i < 20; i++) {
+      const res = await ranged(`bytes=${i}-${i}`, spy.bucket);
+      expect(res.status).toBe(206);
+      expect(res.headers.get('content-range')).toBe(`bytes ${i}-${i}/20`);
+      out.set(new Uint8Array(await res.arrayBuffer()), i);
+    }
+    expect(out).toEqual(BYTES);
+    expect(spy.calls.filter((c) => c === 'get')).toHaveLength(20);
+    expect(spy.calls.filter((c) => c === 'head')).toHaveLength(0);
+  });
+
+  it('a matching If-None-Match with a Range answers 304 after one get', async () => {
+    const first = await call(`/media/${KEY_TYPED}`);
+    const etag = first.headers.get('etag') as string;
+    await first.arrayBuffer();
+    const spy = spyOn(media());
+    const res = await ranged('bytes=0-9', spy.bucket, { 'If-None-Match': etag });
+    expect(res.status).toBe(304);
+    expect(spy.calls).toEqual(['get']);
+  });
+
+  it('a rejected header costs one head and answers 416 with the size', async () => {
+    for (const range of ['bytes=0-1,4-5', 'bytes=5-2']) {
+      const spy = spyOn(media());
+      const res = await ranged(range, spy.bucket);
+      expect(res.status, range).toBe(416);
+      expect(res.headers.get('content-range')).toBe('bytes */20');
+      expect(res.headers.get('cache-control')).toBe('no-store');
+      expect(res.headers.get('access-control-allow-origin')).toBe('*');
+      expect(spy.calls, range).toEqual(['head']);
+    }
+  });
+
+  it('a start past the end answers 416 with the size, get first and at most one head', async () => {
+    const spy = spyOn(media());
+    const res = await ranged('bytes=999-', spy.bucket);
+    expect(res.status).toBe(416);
+    expect(res.headers.get('content-range')).toBe('bytes */20');
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    expect(spy.calls[0]).toBe('get');
+    expect(spy.calls.filter((c) => c === 'head').length).toBeLessThanOrEqual(1);
+  });
+
+  it('an InvalidRange (10039) exception from get falls back to one head', async () => {
+    const stub = stubBucket(new Error('get: Requested byte range is not satisfiable (10039)'));
+    const res = await ranged('bytes=999-', stub.bucket);
+    expect(res.status).toBe(416);
+    expect(res.headers.get('content-range')).toBe('bytes */20');
+    expect(stub.calls).toEqual(['get', 'head']);
+  });
+
+  it('any other exception from a ranged get answers 500 with the media headers and no head', async () => {
+    const stub = stubBucket(new Error('boom'));
+    const res = await ranged('bytes=0-9', stub.bucket);
+    expect(res.status).toBe(500);
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+    expect(res.headers.get('cross-origin-resource-policy')).toBe('cross-origin');
+    expect(stub.calls).toEqual(['get']);
+  });
+
+  it('a range on a missing key answers 404 after one get; a rejected header on one answers 404 after one head', async () => {
+    const missing = `/media/assets/data/nothing/default.${H12}.json`;
+    const spy = spyOn(media());
+    const res = await call(missing, { headers: { Range: 'bytes=0-1' }, env: { MEDIA: spy.bucket } });
+    expect(res.status).toBe(404);
+    expect(spy.calls).toEqual(['get']);
+    const spy2 = spyOn(media());
+    const res2 = await call(missing, { headers: { Range: 'bytes=0-1,4-5' }, env: { MEDIA: spy2.bucket } });
+    expect(res2.status).toBe(404);
+    expect(spy2.calls).toEqual(['head']);
+  });
+});
+
 describe('the unlock clips of FirstGestureUnlock (M04c)', () => {
   it('/media/blank.mp4 and /media/blank.webm come from the static assets, not from R2', async () => {
     const seen: string[] = [];

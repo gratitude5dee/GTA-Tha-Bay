@@ -861,6 +861,121 @@
         "tier"
       ],
       "additionalProperties": false
+    },
+    "fight.end": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "versus",
+            "training",
+            "story",
+            "arcade",
+            "replay"
+          ]
+        },
+        "scheme": {
+          "enum": [
+            "classic",
+            "simple"
+          ]
+        },
+        "cpu": {
+          "type": "number"
+        },
+        "rounds": {
+          "type": "number"
+        },
+        "winnerSlot": {
+          "type": "number"
+        },
+        "durationS": {
+          "type": "number"
+        },
+        "pose": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "mode",
+        "scheme",
+        "cpu",
+        "rounds",
+        "winnerSlot",
+        "durationS",
+        "pose"
+      ],
+      "additionalProperties": false
+    },
+    "racing.pursuit_end": {
+      "type": "object",
+      "properties": {
+        "heatMax": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "outcome": {
+          "enum": [
+            "evade",
+            "survive",
+            "bust",
+            "totaled",
+            "quit"
+          ]
+        },
+        "durBucket": {
+          "enum": [
+            "<60",
+            "60-120",
+            "120-240",
+            "240-480",
+            ">480"
+          ]
+        }
+      },
+      "required": [
+        "heatMax",
+        "outcome",
+        "durBucket"
+      ],
+      "additionalProperties": false
+    },
+    "racing.replay_view": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "exact",
+            "track"
+          ]
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "additionalProperties": false
+    },
+    "racing.verify_fail": {
+      "type": "object",
+      "description": "A replay that did not re-simulate to its recorded result (M07a2). The enum is the reason; no positions, no ids.",
+      "properties": {
+        "reason": {
+          "enum": [
+            "handlingRev",
+            "buildId",
+            "worldBake",
+            "endHash",
+            "finishTick",
+            "gateTicks",
+            "format"
+          ]
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "additionalProperties": false
     }
   }
 }

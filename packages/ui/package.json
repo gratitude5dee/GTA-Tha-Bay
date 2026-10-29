@@ -11,7 +11,8 @@
     "./xr-qa": "./src/screen/xr-qa.ts",
     "./tokens.css": "./src/kit/tokens.css",
     "./shell.css": "./src/kit/shell.css",
-    "./kit.css": "./src/kit/kit.css"
+    "./kit.css": "./src/kit/kit.css",
+    "./host/mode-ui-host": "./src/host/mode-ui-host.ts"
   },
   "scripts": {
     "tokens": "tsx scripts/build-tokens.ts"

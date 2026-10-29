@@ -16,7 +16,8 @@ import { mrt, normalView, output, pass, screenUV, select, texture, velocity, vec
 import type { PostNode, QualityTierId, RenderBackend, TierFeatures } from '@dv/shared';
 import type { GpuResourceOwner } from '../renderer-host.ts';
 import { adaptForBackend, effectivePostLevel, postNodes, type BackendSubstitutions, type PostLevel } from './levels.ts';
-import { createBloom, createFsr1, createFxaa, createGtao, createSmaa, createTonemap, createTraa, type PNode } from './nodes.ts';
+import { createBloom, createFsr1, createFxaa, createGtao, createSmaa, createTonemap, createTraa, DEFAULT_BLOOM, type BloomTuning, type PNode } from './nodes.ts';
+import { createGradeUniforms, gradeOwner, writeGrade, GRADE_IDENTITY, type GradeParams, type GradeUniforms } from './grade.ts';
 
 export type StackMode = 'pipeline' | 'direct';
 
@@ -35,7 +36,11 @@ export interface PostPipeline {
 }
 
 /** Builds the pipeline of a node list; the default builds the real three graph, tests pass a fake. */
-export type PipelineFactory = (ctx: PostContext, nodes: readonly PostNode[], opts: { hdr: boolean }) => PostPipeline;
+export type PipelineFactory = (
+  ctx: PostContext,
+  nodes: readonly PostNode[],
+  opts: { hdr: boolean; grade?: GradeUniforms | null; bloom?: BloomTuning },
+) => PostPipeline;
 
 export interface PostStackOptions {
   context: () => PostContext;
@@ -52,6 +57,8 @@ export interface PostStackOptions {
   factory?: PipelineFactory;
   /** Called after every (re)build with the nodes now in force. */
   onBuild?: (nodes: readonly PostNode[], mode: StackMode) => void;
+  /** `look.json` `bloom` (M02g1); absent: `DEFAULT_BLOOM`. */
+  bloom?: BloomTuning;
 }
 
 const v4 = vec4 as unknown as (...a: unknown[]) => PNode;
@@ -108,7 +115,7 @@ export const threePipeline: PipelineFactory = (ctx, nodes, opts) => {
         break;
       }
       case 'bloom': {
-        const b = createBloom(color);
+        const b = createBloom(color, opts.bloom ?? DEFAULT_BLOOM);
         disposables.push(b.node);
         color = v4(color.rgb.add(b.add.rgb), 1);
         break;
@@ -117,7 +124,7 @@ export const threePipeline: PipelineFactory = (ctx, nodes, opts) => {
         color = createTraa(color, worldPass.getTextureNode('depth'), worldPass.getTextureNode('velocity'), camera);
         break;
       case 'tonemap':
-        color = createTonemap(color);
+        color = createTonemap(color, opts.grade ?? null);
         break;
       case 'smaa':
         color = createSmaa(color);
@@ -161,6 +168,13 @@ export class PostStack implements GpuResourceOwner {
   shadowPasses = 0;
   /** Number of times the pipeline was (re)built. */
   builds = 0;
+  /**
+   * The uniforms of the colour grade that `tonemap` applies (M02g1); they outlive a rebuild. The weight is 0 until `setGrade` runs,
+   * and while the list is only `tonemap` (the fog nodes carry the grade then, `gradeOwner`).
+   */
+  readonly gradeUniforms: GradeUniforms = createGradeUniforms();
+  private gradeParams: Readonly<GradeParams> = GRADE_IDENTITY;
+  private gradeWeight = 0;
 
   private readonly o: PostStackOptions;
   private tierId: QualityTierId;
@@ -196,6 +210,21 @@ export class PostStack implements GpuResourceOwner {
     return effectivePostLevel(this.level, this.o.cap);
   }
 
+  /** Where the grade runs now: `tonemap` (this stack has a target), `fog` (the list is only `tonemap`), or null. */
+  get gradeOwner(): 'tonemap' | 'fog' | null {
+    return gradeOwner(this.list, this.currentMode);
+  }
+
+  /**
+   * The colour grade of the frame (M02g1): written into the uniforms of the `tonemap` node. `weight` 0 switches the grade off (the
+   * layer is off). It only takes effect while `gradeOwner` is `tonemap`.
+   */
+  setGrade(params: Readonly<GradeParams>, weight = 1): void {
+    this.gradeParams = params;
+    this.gradeWeight = weight;
+    writeGrade(this.gradeUniforms, params, this.currentMode === 'pipeline' ? weight : 0);
+  }
+
   /** The nodes a tier would run at a level on this backend (pure; what `rebuild` uses). */
   listFor(features: TierFeatures, level: PostLevel): PostNode[] {
     return adaptForBackend(postNodes(features, level, this.o.cap), this.o.backend, this.o.subs);
@@ -225,8 +254,14 @@ export class PostStack implements GpuResourceOwner {
     this.currentMode = onlyTonemap ? 'direct' : 'pipeline';
     if (this.currentMode === 'pipeline') {
       const factory = this.o.factory ?? threePipeline;
-      this.pipeline = factory(this.o.context(), this.list, { hdr: this.features.hdrOutput });
+      this.pipeline = factory(this.o.context(), this.list, {
+        hdr: this.features.hdrOutput,
+        grade: this.gradeUniforms,
+        ...(this.o.bloom ? { bloom: this.o.bloom } : {}),
+      });
     }
+    // The grade of the tonemap node runs only on a stack that has a target.
+    writeGrade(this.gradeUniforms, this.gradeParams, this.currentMode === 'pipeline' ? this.gradeWeight : 0);
     this.builds++;
     this.o.onBuild?.(this.list, this.currentMode);
   }

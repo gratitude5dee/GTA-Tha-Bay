@@ -40,6 +40,15 @@ class OnDemandFetcher implements PackFetcher {
   }
 }
 
+/**
+ * Polls until `ok()` holds (real timers). A fetch whose caller aborted keeps running detached: it hashes and commits later, and
+ * `settled()` only waits for commits already queued, so a loaded runner can still be hashing after one macrotask.
+ */
+async function until(ok: () => Promise<boolean>, ms = 5000): Promise<void> {
+  const end = Date.now() + ms;
+  while (!(await ok()) && Date.now() < end) await new Promise<void>((r) => setTimeout(r, 5));
+}
+
 async function fixture(count: number, size = 10 * KB, over: Parameters<typeof rig>[0] = {}) {
   const packs = await Promise.all(Array.from({ length: count }, (_, i) => makePack(200 + i, size)));
   const fetcher = new OnDemandFetcher(new Map(packs.map((p) => [p.ref.url, p])));
@@ -135,9 +144,12 @@ describe('PackStore city download (M04b4)', () => {
     ac.abort();
     await first;
     while (f.fetcher.waitingCount > 0) await f.fetcher.release();
+    const storedNow = async (): Promise<number> => (await Promise.all(f.refs.map((r) => f.r.store.has(r.sha256)))).filter(Boolean).length;
+    // Every started fetch served a valid pack, so each one commits; wait for the detached ones before counting what is stored.
+    await until(async () => (await storedNow()) === f.fetcher.calls.length);
     await f.r.store.settled();
     const before = f.fetcher.calls.length;
-    const stored = (await Promise.all(f.refs.map((r) => f.r.store.has(r.sha256)))).filter(Boolean).length;
+    const stored = await storedNow();
     expect(stored).toBeGreaterThanOrEqual(3);
 
     const second = f.r.store.downloadAll(f.refs, () => undefined);

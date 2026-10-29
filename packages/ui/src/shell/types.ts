@@ -248,6 +248,8 @@ export interface ShellHooks {
   view(on: boolean): void;
   /** Reload the page (compatibility mode, update, delete local data). */
   reload(): void;
+  /** A mode is about to start (M02f2): called once the engine is ready, before `mode.start` is sent. A refused start does not undo what the app did. */
+  modeStart?(id: GameModeId): void;
 }
 
 export interface QaPlayOptions { mode: 'sandbox' | 'story' }

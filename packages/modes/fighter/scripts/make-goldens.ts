@@ -11,7 +11,7 @@ import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  FB, FF, FIGHTER_BASE, FM, FightCore, Phase, St, encodeReplay, recordReplay,
+  FB, FF, FIGHTER_BASE, FM, FightCore, PROJ_BASE, PROJ_MAX, PROJ_WORDS, PW, Phase, St, encodeReplay, recordReplay,
 } from '@dv/shared/fight';
 import type { FightEvent, FightRules, FighterLoadout, FrameDataPack } from '@dv/shared/fight';
 import { loadPack } from '../src/pack-files.ts';
@@ -25,6 +25,11 @@ const LP = FB.LP, MP = FB.MP, HP = FB.HP, LK = FB.LK, MK = FB.MK, HK = FB.HK;
 const LINEUP: [FighterLoadout, FighterLoadout] = [
   { slot: 'PLAYER_FIGHTER', fighterId: 'player', scheme: 'classic', costume: 0 },
   { slot: 'PLAYER_FIGHTER', fighterId: 'player', scheme: 'classic', costume: 1 },
+];
+/** vs-003 (M08b1): the long-range shooter against the drone setplayer. */
+const LINEUP_003: [FighterLoadout, FighterLoadout] = [
+  { slot: 'ATH_SHOOTER', fighterId: 'dev_shooter', scheme: 'classic', costume: 0 },
+  { slot: 'TECH_VISIONARY', fighterId: 'dev_visionary', scheme: 'classic', costume: 0 },
 ];
 
 export interface View {
@@ -63,9 +68,9 @@ class Counter {
 type Joint = (v: View) => [number[], number[]] | null;
 
 /** Play a joint coach and return both input streams plus the event tally. */
-function author(rules: FightRules, p: FrameDataPack, coach: Joint, max: number): { a: number[]; b: number[]; tally: Counter; sim: FightCore; buf: Int32Array } {
+function author(rules: FightRules, p: FrameDataPack, coach: Joint, max: number, lineup: [FighterLoadout, FighterLoadout] = LINEUP, seen?: Set<string>): { a: number[]; b: number[]; tally: Counter; sim: FightCore; buf: Int32Array } {
   const sim = new FightCore();
-  const buf = sim.init(p, rules, 2026, LINEUP);
+  const buf = sim.init(p, rules, 2026, lineup);
   const a: number[] = [], b: number[] = [];
   const q0: number[] = [], q1: number[] = [];
   const tally = new Counter();
@@ -79,6 +84,16 @@ function author(rules: FightRules, p: FrameDataPack, coach: Joint, max: number):
     const i0 = q0.shift() ?? 0, i1 = q1.shift() ?? 0;
     a.push(i0); b.push(i1);
     sim.step(buf, i0, i1, sink);
+    if (seen) {
+      for (let q = 0; q < PROJ_MAX; q++) {
+        const base = PROJ_BASE + q * PROJ_WORDS;
+        const owner = (buf[base + PW.Owner] as number) - 1;
+        if (owner < 0) continue;
+        const def = (p.kits[lineup[owner as 0 | 1].slot].projectiles[buf[base + PW.Def] as number]);
+        if (def) seen.add(def.id);
+      }
+      for (const sl of [0, 1] as const) { const o = FIGHTER_BASE[sl] as number; if ((buf[o + FF.State] as number) === St.Special && (buf[o + FF.ArmorLeft] as number) > 0) seen.add(`armor:${sl}`); }
+    }
     for (const sl of [0, 1] as const) {
       const o = FIGHTER_BASE[sl] as number;
       if ((buf[o + FF.State] as number) === St.Clear) tally.clears = 1;
@@ -147,6 +162,34 @@ function coach002(): Joint {
   };
 }
 
+// ---- vs-003: drones, sine shots, arcs by hold level, armor, summon --------------------------------------------------------------
+function coach003(): Joint {
+  let seg = 0;
+  let taunts = 0;
+  const go = (n: number): void => { seg = n; };
+  const idle2: [number[], number[]] = [[0], [0]];
+  const settled = (v: View): boolean => v.free(0) && v.free(1) && v.w(0, FF.Hitstun) === 0 && v.w(1, FF.Hitstun) === 0 && v.w(0, FF.Blockstun) === 0 && v.w(1, FF.Blockstun) === 0;
+  return (v) => {
+    if (!settled(v)) return idle2;
+    switch (seg) {
+      case 0: go(1); return [B0().motion('236', LP).idle(80).out, B1().motion('236', LP).idle(60).out];                       // arc 1, first drone
+      case 1: go(2); return [B0().motion('236', LP).hold(20, 5, LP).idle(70).out, B1().motion('236', LP).idle(60).out];       // arc 2, second drone
+      case 2: go(3); return [B0().motion('236', LP).hold(36, 5, LP).idle(90).out, B1().idle(150).out];                        // arc 3, drones fire sine shots
+      case 3: go(4); return [B0().idle(30).out, B1().idle(30).out];
+      case 4:
+        if (taunts < 8 && v.w(1, FF.Hype) < 2000) { taunts++; return [B0().idle(62).out, B1().press(FB.TA).idle(62).out]; }       // build Hype for the super
+        go(5); return idle2;
+      case 5: go(6); return [B0().hold(30, 5, FB.BL).out, B1().motion('236236', LP).idle(220).out];                           // Roadmap Rush: the crew is called
+      case 6:
+        if (v.dist > 800) return [B0().hold(8, 6).out, [0]];                                                                    // close in
+        go(7); return idle2;
+      case 7: go(8); return [B0().idle(9).press(LP).idle(50).out, B1().motion('623', LP).idle(60).out];                       // Recall: the shield takes the poke
+      case 8: go(9); return [B0().press(LP).idle(40).out, B1().idle(50).out];
+      default: return idle2;
+    }
+  };
+}
+
 function describeRun(label: string, t: Counter, buf: Int32Array): void {
   if (process.env.DV_LOG === '1') console.log(t.log.join('\n'));
   console.log(`${label}: hits ${t.hits}, EX hits ${t.exHits}, counters ${t.counters}, blocks ${t.blocks}, checks ${t.checks}, supers ${t.supers}, throws ${t.throws}, techs ${t.techs}, KOs ${t.kos}, clear ${t.clears}, rattled ${t.rattled}, max combo ${t.maxCombo}, time-out ${t.timeouts}, winner ${buf[FM.Winner] as number}, rounds ${buf[FM.RoundsWon0] as number}-${buf[FM.RoundsWon1] as number}, tick ${buf[FM.Tick] as number}`);
@@ -154,6 +197,7 @@ function describeRun(label: string, t: Counter, buf: Int32Array): void {
 
 const rules001: FightRules = { roundsToWin: 1, timerFrames: 5940, simpleDmgPct: 80, leniencyX100: 100, cpuLevel: [null, null], training: false, shutdowns: false, cinematics: 'off' };
 const rules002: FightRules = { ...rules001, timerFrames: 2200 };
+const rules003: FightRules = { ...rules001, timerFrames: 3000 };
 
 const out = (a: number[], b: number[], rules: FightRules): string => {
   const rep = recordReplay(pack, rules, 2026, LINEUP, 'powell_turntable', 'm08a1', (t) => [a[t] ?? 0, b[t] ?? 0], a.length);
@@ -165,7 +209,17 @@ describeRun('vs-001', r1.tally, r1.buf);
 const r2 = author(rules002, pack, coach002(), 12000);
 describeRun('vs-002', r2.tally, r2.buf);
 
+const seen003 = new Set<string>();
+const r3 = author(rules003, pack, coach003(), 12000, LINEUP_003, seen003);
+describeRun('vs-003', r3.tally, r3.buf);
+console.log(`vs-003 projectiles and states seen: ${[...seen003].sort().join(', ')}`);
+const out3 = (a: number[], b: number[]): string => {
+  const rep = recordReplay(pack, rules003, 2026, LINEUP_003, 'powell_turntable', 'm08b1', (t) => [a[t] ?? 0, b[t] ?? 0], a.length);
+  return encodeReplay(rep);
+};
+
 if (process.env.DV_UPDATE_GOLDEN === '1') {
+  writeFileSync(path.join(here, '..', 'golden', 'vs-003.dvfight'), `${out3(r3.a, r3.b)}\n`);
   writeFileSync(path.join(here, '..', 'golden', 'vs-001.dvfight'), `${out(r1.a, r1.b, rules001)}\n`);
   writeFileSync(path.join(here, '..', 'golden', 'vs-002.dvfight'), `${out(r2.a, r2.b, rules002)}\n`);
   console.log('golden files written');

@@ -1,4 +1,4 @@
-# Milestone plan — part 3: identity and multiplayer, modding and UGC, launch, Bay expansion (blocks F–I)
+# Milestone plan — part 3: identity and multiplayer, modding and UGC, launch, Bay expansion (blocks F–I), look program (DL-739)
 
 > S13 · 2026-10-18 · same field legend as `_PLAN-1.md`. R-ROLL-01: nothing in block F from M12b1 on starts before M05c2 is shipped and tested on staging. R-AUTH-02: M14a is the last v1 milestone, directly before Bay expansion.
 
@@ -42,7 +42,7 @@
 ### M12c2 · rooms-hardening-presence-loadtest — 1 · risk H · S09, S13 (split 2 of 2)
 - **Goal:** migration 0006 progress and leaderboard tables with route 20 (`ProgressDelta`), route 21 transport with an empty validator registry (DL-183), opt-in moderated chat with `chat_turn` report evidence (DL-239), load bots (`tests/load/rooms.ts`, `13-qa.md` §3.10); `rooms.capMax` stays off in v1 (32 players need a 32-bot run, DL-239).
 - **R** R-ROLL-02, R-ENG-02 · **Dep** M12c1 · **Read** `09-backend-db.md` §3 (0006); `09-backend.md` §9; `13-qa.md` §3.10 · **Out** `tests/load`, `supabase/migrations/0006_online.sql` · **C** C11 1.0, C12 1.2 (`ProgressDelta`, `LeaderboardSubmit`)
-- **Gate** staging; operator machine as the second location · **Proof** `pnpm load:rooms -- --bots 16 --minutes 30` (tick p99 ≤ 10 ms, zero overload); `pnpm check:db`
+- **Gate** staging; operator machine as the second location; the staging load run (AC-10) needs Workers Paid (owner, DL-OWN-08, DL-746) · **Proof** `pnpm load:rooms -- --bots 16 --minutes 30` (tick p99 ≤ 10 ms, zero overload; on Free: `--target local` only); `pnpm check:db`
 
 ### M12d · online-page-invites — 0.3 · risk L · S10
 - **Goal:** online page, invites, presence, chat panel (default off), nameplates.
@@ -114,7 +114,7 @@
 ### M13c1 · device-code-publish-login — 0.8 · risk M · S09, S10
 - **Goal:** device-code login (route 10, RFC 8628) and `/link` approval page; publish identity before M14a per the DL-145 ADR; route 11 OpenAI flow behind `AUTH_OPENAI_WEB` (off unless OpenAI grants a client).
 - **R** R-AUTH-03, R-MOD-02 · **Dep** M12a1, M04b1, M13a2 (`device_codes` in 0007) · **Read** `12-modding-publish.md` C§2; `09-backend-contracts.md` §2.4 rows 10–11 · **Out** `services/edge/src/id/device-code`, `packages/ui/src/pages/link` · **C** C12 1.2 (CLI `AccessClaims`)
-- **Gate** DL-145 ADR; `OPENAI_OIDC_CLIENT_SECRET` only if granted · **Proof** `pnpm check:workers -- device-code`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @link`
+- **Gate** DL-145 ADR; `OPENAI_OIDC_CLIENT_SECRET` only if granted · **Also** one dispatcher cron per Worker (DL-746) · **Proof** `pnpm check:workers -- device-code`; `pnpm check:workers -- scheduled-dispatch`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @link`
 
 ### M13c2 · publish-pipeline-server — 1 · risk M · S12
 - **Goal:** server scan stages, routes 36 and 37 POST, publish state machine, anchor validator, rebake Workflow, revocation; `ugc.publish` stays false in production.
@@ -161,7 +161,7 @@
 ### M14b3 · launch-hardening-guardrails — 1 · risk H · S13, S05, S06 (split 3 of 3)
 - **Goal:** release-candidate gate: DoD audit H1–H10, trace report with no empty row, full device pass, `ip:history`, `ip:similarity` (Zone R), terms watch, names knock-out applied (DN-S06-02), sign-offs recorded in `docs/legal/launch-gates.json` (Q-18, Q-21, Q-23), the `art-final` gate (DL-390; audio rules from M10e, DL-500), flag-flip checklist, `release.yml`.
 - **R** R-IP-01/02, R-ENG-01/02/04, R-PLAT-05 · **Dep** M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · **Read** `13-qa-critics.md` §2; `spec/08-test-and-ci.md` §3.3, §5.7; `05-assets-pipeline.md` §9 · **Out** `.github/workflows/release.yml`, `docs/legal/launch-gates.json`, `docs/device-runs/M14b3/` · **C** C15 1.1
-- **Gate** Q-13, Q-15, Q-18, Q-21, Q-23 (release only) · **Proof** `pnpm check:unit -- tools/ci` (launch-gate record complete; trace has no empty row); `pnpm ip:history`; `pnpm names:lint`; manual `M14b3-*` device pass then `pnpm perf:verify`
+- **Gate** Q-13, Q-15, Q-18, Q-21, Q-23 (release only); Workers Paid before public traffic or production multiplayer (owner, DL-OWN-08, DL-746) · **Proof** `pnpm check:unit -- tools/ci` (launch-gate record complete; trace has no empty row); `pnpm ip:history`; `pnpm names:lint`; manual `M14b3-*` device pass then `pnpm perf:verify`
 
 ### M14a · thirdweb-siwe-link — 1 · risk M · S09 (+S10) · **last v1 milestone (R-AUTH-02)**
 - **Goal:** migration 0009, SIWE nonce and verify (route 12), merge requests (13), Thirdweb adapter behind the single `IdentityService` interface, link page, `/link` registry entry and a linked-publish proof (DL-349); re-run the release gate subset.
@@ -181,3 +181,72 @@
 | M15g | south-bay-san-jose | 1 | M15f | San Jose and the South Bay | same | district gates |
 
 Gates for all M15 scopes: R-MAP-02; OSM/DataSF-equivalent sources and attribution per area (licence check per source before bake).
+
+## Look program (owner decision 2026-10-26, DL-OWN-07, DL-739; run order `_PLAN.md` §0 rule 10)
+
+Phase 0–1 rows sit in block B (rows 58–66, after M01d3) and run one at a time; M10d0, M10d1 and M10d4 sit in block E (rows 93–95, before M10f); M02h8 follows M11a1 (row 105). Each Phase 0–1 row writes `docs/look/<id>-render-ledger.json` with the previous row's `after` as its baseline; `mobile-low` stays ≤ 100 render objects and `legacy` adds 0.
+
+### M02g1 · look-tune — 1 · risk H · S02 (+S11, S03) (Phase 0 A)
+- **Goal:** per-weather grade and haze, Karl fog no longer replacing the sky, blob shadows on every flat tier and desktop casters, analytic `skyReflect`, a fitted chase camera, dawn window ratio, real asphalt albedo; m.a1.01 releases the clock at `truck`, so fog burns off on the first drive (the dawn clip key is unchanged, AC-9).
+- **R** R-MAP-01, R-MAP-04, R-PLAT-03, R-PLAT-04, R-PLAT-05 (s), R-ENG-02 · **Dep** M02e, M02f2, M01c, M05c2 (not M05c3: AC-9's dawn key and `beats.lock` are already on `claude/build`; whichever merges second re-runs AC-9, DL-742) · **Read** file `M02g1-look-tune.md`; `11-platform.md` §4.4, §5.1; `03-story-missions.md` §C3; DL-740 (C09 reading) · **Out** `packages/world/src/client/look/{grade,sky-reflect,blob-shadows,windows}.ts`, `packages/engine/src/platform/post`, `content/missions/m.a1.01/mission.ts`, `docs/look/M02g1-*` · **C** C13 1.2, C04 1.1, C06 1.1, C08 1.0, C09 1.0 (read)
+- **Gate** AC-13 operator `sf` bake, AC-14 Q-13 iPhone 15 · **Proof** `@look-tune`, `@look-ledger`, `@look-owner`, `@story-burnoff`; `pnpm missions:build -- --check`; `DV_WORLD=synth pnpm check:perf -- --fail`
+
+### M02g2 · look-fixes — 0.7 · risk M · S02 (+S11) (Phase 0 B)
+- **Goal:** baked vertex AO, Sobel terrain normals and a near grid, roofs on wall tops, grounded and capped trees, depth-bias order, footprint fades, the floating slab, far-tree hiding, `HeadlessChrome` classified as Chromium.
+- **R** R-MAP-01, R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M02g1, M02d2 · **Read** file `M02g2-look-fixes.md`; `02-world-bake.md` §6; `02-world.md` §5.2–§5.4 · **Out** `packages/world/src/client/chunks/{mesher,chunk-renderer,materials}.ts`, `look/landmark.ts`, `packages/shared/src/platform/classify.ts`, `tests/support/flicker.ts` · **C** C08 1.0, C13 1.2 (read)
+- **Gate** AC-12 operator staging check (Mac) · **Proof** `pnpm check:unit -- packages/world/test/look.fixes.spec.ts`; `@look-fixes`, `@fixes-ledger`
+
+### M02h1 · street-markings — 1 · risk M · S02 (Phase 1)
+- **Goal:** a per-vertex `road` attribute from C08 lane data; lane lines, double yellow, edge lines, parking Ts, bus tint, crosswalks, stop bars and junction patches, antialiased and faded; flat paint on `mobile-low` and XR.
+- **R** R-MAP-01, R-PLAT-02 (part), R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M02g2, M02a2 · **Read** file `M02h1-street-markings.md`; `02-world-contracts.md` §3–§4 · **Out** `look/{road-layout,markings}.ts`, `chunks/junction-patch.ts` · **C** C08 1.0, C13 1.2 (read)
+- **Gate** AC-12 Q-13 iPhone 15 · **Proof** `@world-markings`, `@markings-golden`, `@markings-ledger`; `pnpm --filter @dv/engine test:determinism`
+
+### M02h2 · curbs-sidewalks — 1 · risk H · S02 (Phase 1)
+- **Goal:** curbs, gutters and ramps; sidewalk ribbons from the `PedEdge` graph; lots and plazas; bump normals and macro variation; render-only foot lift.
+- **R** R-MAP-01, R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M02h1 · **Read** file `M02h2-curbs-sidewalks.md`; `02-world-living.md` §4.1 · **Out** `chunks/{sidewalks,macro}.ts`, `look/{ground,surfaces}.ts` · **C** C08 1.0, C13 1.2 (read)
+- **Gate** AC-11 operator staging check (Mac) · **Proof** `pnpm check:unit -- packages/world/test/curbs.mesher.spec.ts`; `@world-curbs`, `@curbs-ledger`
+
+### M02h3 · ground-cover — 1 · risk M · S02 (Phase 1)
+- **Goal:** a bake cover stage (yard, dirt, mixed, driveway, vacant, scrub, park) written to l0 section 21 with codes 17–23 (DL-740 reading), shaded per profile; `world.cover` switch; `sf` re-baked and published to staging.
+- **R** R-MAP-01, R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M02h2, M02g2, M02a2 · **Read** file `M02h3-ground-cover.md`; `02-world-bake.md` §4, §6; `02-world-contracts.md` §4 · **Out** `tools/map/src/stages/s13-cover.ts`, `packages/shared/src/world/cover-codec.ts`, `look/cover.ts` · **C** C08 1.0, C13 1.2 (read)
+- **Gate** AC-12 operator `sf` re-bake and publish, R2 keys · **Proof** `pnpm map:build -- --area synth --repro`; `@world-cover`, `@cover-ledger`
+
+### M02h4 · vegetation-forms — 0.75 · risk M · S02 (Phase 1)
+- **Goal:** the TREE species byte carries a `TreeForm` (DL-740 reading); five original procedural SF forms with height distributions; opaque low crowns on `mobile-low` and XR; desktop wind; per-unit ranges in a few global pools.
+- **R** R-MAP-01, R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M02h3, M02g2 · **Read** file `M02h4-vegetation-forms.md`; `02-world-contracts.md` record 22 · **Out** `packages/shared/src/world/tree-form.ts`, `chunks/{tree-forms,vegetation-pool}.ts`, `look/wind.ts`, `config/world/tree-forms.json` · **C** C08 1.0, C13 1.2 (read)
+- **Gate** AC-11 operator `sf` re-bake and staging pass · **Proof** `pnpm check:unit -- packages/world/test/trees.pool.spec.ts`; `@world-trees`, `@trees-ledger`
+
+### M02h5 · vegetation-scatter — 0.75 · risk M · S02 (Phase 1)
+- **Goal:** seeded Poisson scatter over woods and park groves, shrubs and hedges, street-tree density, opaque impostors at distance; `sf` re-baked and published with M02h4's forms.
+- **R** R-MAP-01, R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M02h4, M02h3 · **Read** file `M02h5-vegetation-scatter.md`; `02-world-bake.md` §4–§6 · **Out** `tools/map/src/stages`, `packages/world/src/client/chunks` · **C** C08 1.0, C13 1.2 (read)
+- **Gate** AC-11 operator `sf` re-bake and publish, R2 keys · **Proof** `@world-scatter`, `@scatter-ledger`; `DV_WORLD=synth pnpm check:perf -- --fail`
+
+### M02h6 · street-furniture-parking — 1 · risk H · S02 (+S01) (Phase 1)
+- **Goal:** signal masts with live aspects, stop signs, hydrants, meters, shelters, benches, poles, desktop trolley wires, and render-only parked cars on `parkingSides`, in global pools (DL-740 readings: rule 12, mesher-time fill, outside `CrowdLimits`).
+- **R** R-MAP-01, R-MAP-04, R-ENG-02, R-PLAT-05 (s), R-IP-01 · **Dep** M02h5, M02h2, M03b1 · **Read** file `M02h6-street-furniture-parking.md`; `02-world-contracts.md` rules 10–12; `02-world-living.md` §1.4, §2.6, §4 · **Out** `packages/shared/src/world/furniture.ts`, `packages/world/src/client/furniture/`, `traffic/parked-dressing.ts` · **C** C08 1.0, C13 1.2, C06 1.1 (read)
+- **Gate** AC-10 Q-13 iPhone 15 · **Proof** `@world-furniture`; `pnpm --filter @dv/engine test:determinism`; `DV_WORLD=synth pnpm check:perf -- --fail`
+
+### M02h7 · facade-detail — 1 · risk H · S02 (Phase 1)
+- **Goal:** storefronts with plain sign panels and awnings, cornices, bay windows, recess bump and sky-reflecting glass inside the `buildings` object; the wall `albedo` seam that M10d2's atlas uses.
+- **R** R-MAP-01, R-MAP-04, R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M02h6, M02g2 · **Read** file `M02h7-facade-detail.md`; `02-world-bake.md` §4, §6 · **Out** `packages/world/src/client/look/facade.ts`, `chunks/mesher.ts` · **C** C08 1.0, C13 1.2 (read)
+- **Gate** AC-10 operator staging check (Mac) · **Proof** `@world-facade`, `@facade-ledger`; `DV_WORLD=synth pnpm check:perf -- --fail`
+
+### M10d0 · art-admission — 1 · risk H · S05 (+S02, S10) (Phase 2)
+- **Goal:** four third-party packs snapshotted and vetted (DL-OWN-06), `provenance:check` refusing unsnapshotted licensed files, a CC-BY-ready Credits section, six CC0 PBR sets as KTX2 with mobile variants on the Phase 1 surfaces, `assets:import`, and the DL-OWN-07 fal lines with `lineCapMicros`.
+- **R** R-IP-01, R-UI-03, R-MAP-01, R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M00f, M01d, M02h7, M10a1 · **Read** file `M10d0-art-admission.md`; `05-assets-pipeline.md` §7, §9, §11; DL-OWN-06 · **Out** `docs/legal/licenses/packs.json`, `tools/assets/src/import/`, `packages/shared/src/genai/lines.ts`, `config/guardrails.yaml` · **C** C07 1.1, C13 1.2 (read)
+- **Gate** AC-13 Q-13 iPhone 15 · **Proof** `pnpm provenance:check`; `pnpm check:unit -- tools/ci/test/guardrails`; `@art-textures`
+
+### M10d1 · art-integration — 1 · risk H · S05 (+S02) (Phase 3, split 1 of 2 of the earlier M10d1; DL-739)
+- **Goal:** realistic traffic, police, robotaxi, transit and prop bodies from vetted CC0/CC-BY bases, ≤ 2 fal bodies on the vehicles-and-props line and code recipes; clearcoat on desktop, meshopt LODs, instanced families; placeholder registry `config/art-placeholders.json`.
+- **R** R-MODE-02 (s), R-MAP-04, R-IP-01, R-ENG-02 · **Dep** M10d0, M05c2, M03b2, M04b2, M02h6 · **Read** file `M10d1-art-integration.md`; `05-assets-pipeline.md` §3, §7, §11; `02-world-living.md` §2.5–§2.7 · **Out** `config/art-placeholders.json`, `tools/assets/src/{recipes,import}`, `packages/world/src/client/traffic` · **C** C07 1.1, C06 1.1, C13 1.2 (read)
+- **Gate** optional `FAL_KEY` after a live M00c spike; AC-11 manual review · **Proof** `pnpm check:unit -- tools/assets`; `pnpm check:assets`; `@art-city`, `@art-ledger`
+
+### M10d4 · art-integration — 1 · risk H · S05 (+S10) (Phase 3, split 2 of 2 of the earlier M10d1; DL-739)
+- **Goal:** 8 realistic adult ped bodies × 20 original outfits on `bay_rig_v1` from vetted CC0 bases with library clips; a `model` and portrait for every realistic creator row (the Coast rows keep M10a2's models, with a `fallbackPart` for its SKIP path); +0 render objects.
+- **R** R-MAP-04, R-UI-01, R-IP-01, R-IP-02, R-ENG-02 · **Dep** M10d1, M10d0, M03b2, M04b2, M10a2 (the Coast models, `assets:retarget`; DL-741) · **Read** file `M10d4-art-integration.md`; `05-assets-pipeline.md` §3, §4, §14; `10-ui-pages.md` §2.8 · **Out** `packages/world/src/client/peds`, `packages/ui/src/creator`, `content/ui/creator/catalog.json` · **C** C04 1.1, C07 1.1, C13 1.2, C11 1.0 (read)
+- **Gate** AC-11 manual review; Q-24 · **Proof** `@art-peds`, `@art-creator`, `@peds-ledger`; `pnpm provenance:check`
+
+### M02h8 · xr-look-traa — 0.8 · risk M · S11 (+S02) (Phase 5)
+- **Goal:** an `xr` look profile (min buildings, flat markings, `skyReflect`, fog-node grade and haze, blobs, opaque crowns, vertex AO) for both XR tiers with `legacy` as fallback; multiview confirmed; TRAA on `desktop` by raising `postLevelCap` to 3 (moved from M11a1, DL-740).
+- **R** R-PLAT-02, R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M11a1, M02h7 · **Read** file `M02h8-xr-look-traa.md`; `11-platform-xr.md` §1–§4 · **Out** `packages/world/src/client/look/{config,look-materials,look-view}.ts`, `sky/fog.ts` · **C** C13 1.2, C08 1.0 (read)
+- **Gate** AC-11 Q-13 Quest 3 · **Proof** `@world-xr-look`, `@look-xr-ledger`, `@look-traa`; `pnpm check:e2e:xr`

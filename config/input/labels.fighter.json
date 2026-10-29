@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "context": "fighter",
+  "classic": {
+    "sim.Attack": "fighter.label.lp",
+    "sim.Ability": "fighter.label.mp",
+    "sim.FightHeavy": "fighter.label.hp",
+    "sim.Sprint": "fighter.label.lk",
+    "sim.Nitro": "fighter.label.mk",
+    "sim.Horn": "fighter.label.hk",
+    "sim.Handbrake": "fighter.label.hype",
+    "sim.Emote": "fighter.label.taunt",
+    "sim.Block": "fighter.label.block",
+    "sim.Interact": "fighter.label.dash",
+    "sim.Jump": "fighter.label.up",
+    "sim.Crouch": "fighter.label.down",
+    "axis.MoveX": "fighter.label.move",
+    "axis.MoveY": "fighter.label.move",
+    "client.Pause": "fighter.label.pause"
+  },
+  "simple": {
+    "sim.Attack": "fighter.label.light",
+    "sim.FightHeavy": "fighter.label.heavy",
+    "sim.Special": "fighter.label.special",
+    "sim.FightAssist": "fighter.label.assist",
+    "sim.Handbrake": "fighter.label.hype",
+    "sim.Emote": "fighter.label.taunt",
+    "sim.Block": "fighter.label.block",
+    "sim.Interact": "fighter.label.dash",
+    "sim.Jump": "fighter.label.up",
+    "sim.Crouch": "fighter.label.down",
+    "axis.MoveX": "fighter.label.move",
+    "axis.MoveY": "fighter.label.move",
+    "client.Pause": "fighter.label.pause"
+  }
+}

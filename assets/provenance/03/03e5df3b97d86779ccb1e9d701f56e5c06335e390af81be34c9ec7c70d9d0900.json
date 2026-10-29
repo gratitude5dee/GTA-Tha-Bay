@@ -1,0 +1,23 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "03e5df3b97d86779ccb1e9d701f56e5c06335e390af81be34c9ec7c70d9d0900",
+  "paths": [
+    "assets/src/data/npc-roster/npc-roster.json"
+  ],
+  "kind": "data",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-27T14:54:16Z"
+}

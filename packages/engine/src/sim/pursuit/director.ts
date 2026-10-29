@@ -18,6 +18,7 @@ import type { SimResource } from '../services.ts';
 import { BustModel, fineCents } from './bust.ts';
 import { hasTactic } from './config.ts';
 import { Dispatcher } from './dispatch.ts';
+import type { RacePursuitRules } from './race-rules.ts';
 import { HeatModel, ReportQueue, TICKS_PER_SEC, type ReportWitness, type RngLike } from './heat.ts';
 import type { PlayerView, PursuitHost, PursuitWorld, Vec3, VehicleDamagePort, WalletPort } from './ports.ts';
 import { SearchModel } from './search.ts';
@@ -39,6 +40,8 @@ export interface DirectorDeps {
   rng: { pursuit: RngLike; police: RngLike };
   /** Loads `PursuitProfile.configRef` (a JSON file the page ships); null when unknown. */
   loadConfig?: (ref: string) => PursuitConfig | null;
+  /** M07a2: the `race` block of `PursuitProfile.configRef`; null when the ref has none. */
+  loadRace?: (ref: string) => RacePursuitRules | null;
 }
 
 export class PursuitDirector implements PursuitApi {
@@ -50,6 +53,8 @@ export class PursuitDirector implements PursuitApi {
   readonly dispatch: Dispatcher;
   cfg: PursuitConfig;
   profile: PursuitProfile = { kind: 'story', startHeat: 0, maxHeat: 5 };
+  /** M07a2: the race rules of the current profile, or null. */
+  raceRules: RacePursuitRules | null = null;
   /** QA sandbox toggle: no heat is ever earned (the memory-only form of `sandbox.player.neverWanted`); set it with `setNeverWanted`. */
   neverWanted = false;
   /**
@@ -161,6 +166,8 @@ export class PursuitDirector implements PursuitApi {
       const c = this.deps.loadConfig(p.configRef);
       if (c) this.setConfig(c);
     }
+    this.raceRules = p.kind === 'race' && p.configRef && this.deps.loadRace ? this.deps.loadRace(p.configRef) : null;
+    this.dispatch.raceRules = this.raceRules;
     this.heat.cap = Math.min(p.maxHeat, 5) as HeatLevel;
     this.surviveTicks = 0;
     if (p.startHeat > 0) this.forceHeat(p.startHeat);
@@ -341,15 +348,17 @@ export class PursuitDirector implements PursuitApi {
     this.bustCount++;
     const level = this.heat.level;
     const cash = this.deps.wallet.cash();
-    const fine = fineCents(this.cfg, cash, level);
-    if (!this.deps.wallet.debit(fine, 'pursuit.bust', `bust:${this.bustCount}`) && cash > 0) {
+    // a bust in a race event ends the event and costs a repair fee from the racing purse, never a fine or a strike (D-S06-07; M07a2)
+    const race = this.profile.kind === 'race';
+    const fine = race ? 0 : fineCents(this.cfg, cash, level);
+    if (!race && !this.deps.wallet.debit(fine, 'pursuit.bust', `bust:${this.bustCount}`) && cash > 0) {
       // the player cannot pay it all: the wallet is emptied
       this.deps.wallet.debit(cash, 'pursuit.bust', `bust:${this.bustCount}:partial`);
     }
     this.lastFine = fine;
     this.deps.host.emit({ t: 'pursuit.busted', tick, n: fine });
     const key = player.vehicleKey ?? this.lastPlayerKey;
-    if (key) {
+    if (key && !race) {
       const strikes = this.vheat.strike(key);
       this.lastStrikes = strikes;
       if (strikes >= this.cfg.impoundStrikes) {

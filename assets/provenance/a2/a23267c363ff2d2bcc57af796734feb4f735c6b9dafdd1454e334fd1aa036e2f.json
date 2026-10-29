@@ -1,0 +1,24 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "a23267c363ff2d2bcc57af796734feb4f735c6b9dafdd1454e334fd1aa036e2f",
+  "paths": [
+    "content/races/sf.circuit.embarcadero-vanness/corridor.bin",
+    "assets/corridor-Dx7rAI3r.bin"
+  ],
+  "kind": "world_pack",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-25T00:00:00Z"
+}

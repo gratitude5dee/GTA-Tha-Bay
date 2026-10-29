@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "device": "gamepad",
+  "contexts": {
+    "fighter": {
+      "axis.MoveX": [
+        {
+          "control": "pad:a0"
+        },
+        {
+          "control": "pad:b15",
+          "scale": 1
+        },
+        {
+          "control": "pad:b14",
+          "scale": -1
+        }
+      ],
+      "axis.MoveY": [
+        {
+          "control": "pad:a1",
+          "scale": -1
+        }
+      ],
+      "sim.Jump": [
+        {
+          "control": "pad:b12"
+        }
+      ],
+      "sim.Crouch": [
+        {
+          "control": "pad:b13"
+        }
+      ],
+      "sim.Emote": [
+        {
+          "control": "pad:b8"
+        }
+      ],
+      "client.Pause": [
+        {
+          "control": "pad:b9"
+        }
+      ],
+      "sim.Attack": [
+        {
+          "control": "pad:b2"
+        }
+      ],
+      "sim.FightHeavy": [
+        {
+          "control": "pad:b3"
+        }
+      ],
+      "sim.Special": [
+        {
+          "control": "pad:b1"
+        }
+      ],
+      "sim.FightAssist": [
+        {
+          "control": "pad:b0"
+        }
+      ],
+      "sim.Handbrake": [
+        {
+          "control": "pad:b5"
+        }
+      ],
+      "sim.Interact": [
+        {
+          "control": "pad:b7"
+        }
+      ]
+    }
+  }
+}

@@ -39,6 +39,11 @@ export interface FalPort {
   cancel(sub: FalSubmission): Promise<void>;
   /** Copies the bytes of an output URL (CDN copies expire, so this runs at once). */
   fetchFile(url: string): Promise<Uint8Array>;
+  /**
+   * The same output as a stream, for the off-edge hand-off (M05c4): the Worker pipes it into PRIVATE without buffering or hashing it
+   * (Workers Free allows 10 ms of CPU per step). `size` is the length the server announced; R2 needs it to accept a stream.
+   */
+  fetchStream(url: string): Promise<{ body: ReadableStream<Uint8Array>; size: number | null; contentType: string }>;
   /** One keyframe image for a shot (a fal image-edit call in live mode; not a video submit and not counted as one). */
   keyframe(job: { jobKey: string; shotId: string; prompt: string }): Promise<{ sha256: string }>;
 }
@@ -50,7 +55,14 @@ export interface BlobHead {
 export interface BlobPort {
   head(bucket: Bucket, key: string): Promise<BlobHead | null>;
   get(bucket: Bucket, key: string): Promise<Uint8Array | null>;
-  put(bucket: Bucket, key: string, body: Uint8Array, meta?: { contentType?: string; custom?: Record<string, string> }): Promise<void>;
+  put(bucket: Bucket, key: string, body: Uint8Array, meta?: { contentType?: string; cacheControl?: string; custom?: Record<string, string> }): Promise<void>;
+  /** Writes a stream of known length without reading it into memory (M05c4). */
+  putStream(bucket: Bucket, key: string, body: ReadableStream<Uint8Array>, size: number, meta?: { contentType?: string; custom?: Record<string, string> }): Promise<void>;
+  /**
+   * Copies one object to another as a stream (one read, one write, no hashing): the publish phase moves `out/<runId>/<file>` from
+   * PRIVATE to MEDIA this way. Returns the byte count that was copied, or null when the source does not exist.
+   */
+  copy(from: { bucket: Bucket; key: string }, to: { bucket: Bucket; key: string }, meta?: { contentType?: string; cacheControl?: string; custom?: Record<string, string> }, expectBytes?: number): Promise<number | null>;
 }
 
 export interface RosterEntry {
@@ -129,7 +141,13 @@ export interface FalGatePort {
 /** The single-flight object notified when the job ends (`CutsceneJobDO.complete` / `fail`). */
 export interface JobSinkPort {
   complete(r: { manifestKey: string; costUsdMicros: number }): Promise<void>;
-  fail(err: string): Promise<void>;
+  /** `code` is the gate code of a refusal; a refused publish of a handed-off key keeps the hand-off (a kill code blocks the key). */
+  fail(err: string, code?: string): Promise<void>;
+  /**
+   * The fal job has finished and its output is in PRIVATE: the key is now `handed_off` (route 27 `pending`) until the operator's
+   * `--finish` and the publish phase end it. Nothing but a ready manifest, a kill purge or an operator reset clears the state (M05c4).
+   */
+  handoff(r: { costUsdMicros: number }): Promise<void>;
 }
 
 /**

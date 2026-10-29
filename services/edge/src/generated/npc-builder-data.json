@@ -116,11 +116,18 @@
     }
   ],
   "knownNames": {
+    "anselverge": "dev_visionary",
+    "aureliostone": "dev_power_back",
     "canarymc": "canary-mc",
     "junovale": "standin_rapper",
+    "odessaquill": "dev_lyricist",
     "pennalder": "standin_founder",
+    "pialumen": "dev_influencer",
+    "rheapatchwell": "dev_hacker",
     "robatista": "ro-batista",
-    "testernine": "npc_test"
+    "testernine": "npc_test",
+    "tobiasmarlow": "dev_shooter",
+    "uncleferrisdune": "dev_hyphy_elder"
   },
   "prompts": {
     "version": 1,

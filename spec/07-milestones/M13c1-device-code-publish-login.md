@@ -41,7 +41,8 @@ A creator's CLI can get a publish token without any browser integration. `dv log
   - tier `linked` → code field (auto-uppercase, hyphen optional), Approve, then success "Return to your terminal".
   - Error keys: expired, wrong code, rate limit with countdown, banned.
 - The Profile page's Account section gains "Approve a device code" → `/link`.
-- Hourly cron: delete `device_codes` rows past `expires_at` (retention table, `09-backend-db.md` §7).
+- Hourly job: delete `device_codes` rows past `expires_at` (retention table, `09-backend-db.md` §7).
+- **One cron per Worker (Workers Free, DL-OWN-08, DL-746; `09-backend-ops.md` §1.4 rule 3):** replace the four daily expressions of `tha-bay-web` and `tha-bay-web-staging` (03:10, 03:20, 03:30, 03:40) by one dispatcher expression `*/5 * * * *` in `services/edge/src/ops/scheduled.ts`: each run starts the jobs whose slot (UTC minute) falls in its 5-minute window, plus the hourly expiry at minute 0–4; the existing jobs keep their bodies, order and `/api/v1/_test/run-scheduled` route. Later schedules (M13c2, M13d1, M14b1) register as dispatcher jobs, never as new expressions.
 - **Provider-ladder spike** (operator, staging): check through the Supabase Management API whether the GitHub provider can be enabled on the staging project beside the registered Third-Party Auth issuer. Record the result. If it works, the link step still needs a server route that v1 does not add (DL-240): record the result for the Architect, who adds the route as a C12 minor bump only if a post-v1 milestone needs it.
 
 ## Scope out
@@ -52,7 +53,7 @@ A creator's CLI can get a publish token without any browser integration. `dv log
 
 ## Deliverables
 - `supabase/tests/server_only.sql` extended with `device_codes`; `packages/shared/src/db.gen.ts` regenerated.
-- `services/edge/src/id/{device-code,openai}.ts`; `services/edge/src/data/supabase/device-codes.ts` and the in-memory `DeviceCodeStore`; router rows 10–11; cron hook.
+- `services/edge/src/id/{device-code,openai}.ts`; `services/edge/src/data/supabase/device-codes.ts` and the in-memory `DeviceCodeStore`; router rows 10–11; dispatcher in `services/edge/src/ops/scheduled.ts` and `services/edge/wrangler.jsonc` `triggers` (one expression per environment); `services/edge/test/scheduled-dispatch.test.ts`.
 - `services/edge/test/{device-code,device-code-approve,openai-link}.test.ts`; a fake OIDC provider fixture (local ES256 JWKS) in `services/edge/test/fixtures/oidc/`.
 - `packages/ui/src/pages/link/{LinkPage,CodeField,ProviderList}.tsx`, Profile page edit, `en` strings, `tests/e2e/link.spec.ts` (`@link`).
 - `services/edge/wrangler.jsonc`: vars `OPENAI_OIDC_ISSUER`, `OPENAI_OIDC_CLIENT_ID` (empty), repeated under `previews`.
@@ -76,6 +77,7 @@ A creator's CLI can get a publish token without any browser integration. `dv log
 - AC-9 Given the production build When route and secret checks run Then no `/_test/` handler exists and the client bundle has no secret pattern — proof: `pnpm check:prod-routes && pnpm check:secrets -- apps/web/dist`
 - AC-10 Given the staging Supabase project and `SUPABASE_ACCESS_TOKEN` When the operator runs the provider-ladder spike Then `docs/device-runs/M13c1/operator/notes.json` records U-ADR-01 as pass or fail with the API responses summarized, and the PR report states which ADR-0018 step applies — proof: manual: operator workstation, run the Management API checks listed in Notes, write `notes.json`, commit it
 - AC-11 Given this branch's PR When the Preview deploys Then smoke passes and `POST /api/v1/id/device-code` returns a `DeviceCodeRes` — proof: manual: desktop browser and terminal, `curl -X POST <preview-url>/api/v1/id/device-code`; then `pnpm check:smoke -- <preview-url>`
+- AC-12 Given the dispatcher with an injected clock When it runs at 03:10, 03:15, 03:20, 03:40 and 05:00 UTC Then it starts exactly the 03:10 job, nothing, the 03:20 job, the 03:40 job and the hourly expiry, each once, and every environment of `services/edge/wrangler.jsonc` declares exactly one cron expression — proof: `pnpm check:workers -- scheduled-dispatch`
 
 ## Test plan
 - DB `server_only.sql`; Workers `device-code`, `device-code-approve`, `openai-link` (mocked clock, InMemoryDataPort, fake OIDC provider, KV stub); E2E `@link` with route fixtures; static `pnpm check:prod-routes`, `pnpm check:secrets -- apps/web/dist`; operator spike (AC-10).
@@ -87,7 +89,7 @@ A creator's CLI can get a publish token without any browser integration. `dv log
 4. With a `device` profile the page explains linking instead.
 
 ## Effort
-0.8 session; ≈ 24 files; risk **medium**. RFC 8628 timing rules and the token typing workaround need care.
+0.8 session; ≈ 26 files; risk **medium**. RFC 8628 timing rules and the token typing workaround need care.
 
 ## Risks & fallbacks
 - **OIDC library choice.** `jose` is named by `12-modding-publish.md` C§2 but not pinned in the ledger. Take the resolved version and record it in `spec/03`. If it fails in the Workers runtime, verify ES256 with WebCrypto directly (the issuer code from M12a1 already does).

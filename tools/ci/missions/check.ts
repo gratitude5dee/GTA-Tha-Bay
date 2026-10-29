@@ -22,6 +22,7 @@ import { createCanonicalRunner, type RunSpec, type StateHashTrace } from '../../
 import { checkGolden } from '../../../packages/engine/src/qa/golden.ts';
 import { readFixturePacks } from '../../../packages/engine/src/qa/node.ts';
 import { GOLDEN_SEEDS, encodeBundle, registerStoryQa, missionDetSpec, missionSpec, type MissionBundle, type MissionsHandle } from '../../../packages/modes/story/src/qa.ts';
+import { registerRacingQa } from '../../../packages/modes/racing/src/qa/index.ts';
 import { args, repoRoot } from '../run.ts';
 import { compileInMemory, type InMemoryBuild } from './bundle.ts';
 import { SF_AUTHORING_BAKE } from './build.ts';
@@ -103,6 +104,7 @@ export async function runCheck(o: CheckOptions): Promise<CheckResult> {
   const rows: RunRow[] = [];
   const skipped: string[] = [];
   registerStoryQa();
+  registerRacingQa();
   const sfBake = loadSfBake(o.root);
   if (sfBake) {
     registerSfMissionsLoader({

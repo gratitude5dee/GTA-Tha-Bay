@@ -1,0 +1,41 @@
+{
+  "id": "M02g1-iphone15",
+  "milestone": "M02g1",
+  "device": "iPhone 15, iOS 26.x (or the newest release), Home Screen app; floor device (Q-10): tier mobile-low at 30 fps; operator Preview built with the synth world (QA build)",
+  "urlTemplate": "https://<preview>/?perf=1&tier=mobile-low&scenario=walk-civic-center&debug=1",
+  "steps": [
+    {
+      "id": "1-build",
+      "instruction": "Build one Preview with the synth world and QA flags (Preview builds carry no world on their own, DL-653): pnpm map:build -- --area synth && DV_WORLD=synth VITE_DV_QA=1 pnpm build && pnpm deploy:preview. Write the Preview URL into notes.json as previewUrl."
+    },
+    {
+      "id": "2-install",
+      "instruction": "In Safari open the Preview URL, then Share > Add to Home Screen, and launch the app from the Home Screen icon (not from Safari). Open <preview>/?perf=1&tier=mobile-low&scenario=walk-civic-center&debug=1. The HUD must show 'mobile-low  webgl2'. The sky controls carry the look switch (on, the default) and the post-node list, which reads 'tonemap' on this tier: the colour grade and the haze run in the fog nodes here."
+    },
+    {
+      "id": "3-walk-civic-center",
+      "instruction": "In the sky controls set the hour to 13:00 and the weather to clear, tick Freeze, and let walk-civic-center run to its end with all layers on (the default; the debug bridge lists them: grade, haze, blob, skyReflect, windows). The street must show the M02g1 look: warmer grade, haze toward the distance, a soft shadow under each car and pedestrian, brighter asphalt, the sky in glass. Tap Export and save perf.json and notes.json to docs/device-runs/M02g1/iphone15/.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "mobile-low" },
+        { "metric": "backend", "op": "==", "value": "webgl2" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "4-layers-delta",
+      "instruction": "In the browser console of a connected Mac (Safari Web Inspector on the phone) or by the debug panel switch the layers off one at a time with __dvBridge.world.setLookLayer('<id>', false) for blob, skyReflect, haze, grade, windows, and run walk-civic-center once with every layer off and once with every layer on. Write both median frame times and their delta (on minus off, ms) into notes.json as layersDelta: { offMedianMs, onMedianMs, deltaMs }. If the on median is over the 30 fps budget (33.3 ms), say so; the fallback is turning the blob off for mobile-low through `layers` in config/world/look.json (data), never raising a budget."
+    },
+    {
+      "id": "5-a1-burnoff",
+      "instruction": "Open <preview>/?play=story&story=1&tier=mobile-low&perf=1&debug=1 on the Home Screen app, let the dawn intro play, walk to the Yard gate and take the tow truck. The fog thins over about 16 s and a low sun breaks through; the tow boom must not block the view. Export perf.json and notes.json for this run too (scenario a1-burnoff) into the same folder.",
+      "expect": [
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "6-verify",
+      "instruction": "Run pnpm perf:verify -- docs/device-runs/M02g1/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M02g1-iphone15.json: the median and p95 frame times, the frames over 50 ms and the render and triangle counts must pass at mobile-low with every layer on."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

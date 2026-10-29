@@ -11,11 +11,16 @@ import { MockSignPort } from './mock/MockSignPort.ts';
 import { MockTranscodePort } from './mock/MockTranscodePort.ts';
 import { mockJwks } from './mock/test-key.ts';
 import type { Bucket, BlobPort, BudgetPort, FalGatePort, FlagsPort, GenPorts, JobSinkPort, RosterPort, SignPort, TranscodePort } from './ports.ts';
-import { cutsceneKeyOf } from './steps/cutscene.ts';
+import { cutsceneKeyOf, type TranscodeMode } from './steps/cutscene.ts';
 import type { GenJob } from '@dv/shared';
 
 export interface PipelineEnv {
   FAL_MODE: string;
+  /**
+   * Where the transcode, QA and C2PA re-sign run (M05c4, DL-745): `offedge` (the operator's `prewarm --finish`; production, where FAL_MODE is
+   * live) or `mock` (the in-Worker path with the fixture ports; staging, previews and tests, where FAL_MODE is mock). Absent: follows FAL_MODE.
+   */
+  TRANSCODE_MODE?: string | undefined;
   /** prod | staging | preview | dev */
   ENVIRONMENT: string;
   /** Origin that serves route 29. */
@@ -42,10 +47,29 @@ interface FalGateRpc {
 }
 interface CutsceneJobRpc {
   complete(r: { manifestKey: string; costUsdMicros: number }): Promise<void>;
-  fail(err: string): Promise<void>;
+  fail(err: string, code?: string): Promise<void>;
+  handoff(r: { costUsdMicros: number }): Promise<void>;
 }
 
 export const isMock = (env: Pick<PipelineEnv, 'FAL_MODE'>): boolean => env.FAL_MODE === 'mock';
+
+/** The transcode mode of an environment; an absent var follows FAL_MODE. Any other value (`container` is parked on Workers Free) is not a mode. */
+export function transcodeModeOf(env: Pick<PipelineEnv, 'FAL_MODE' | 'TRANSCODE_MODE'>): TranscodeMode | null {
+  const v = env.TRANSCODE_MODE;
+  if (v === undefined || v === '') return isMock(env) ? 'mock' : 'offedge';
+  return v === 'mock' || v === 'offedge' ? v : null;
+}
+
+/**
+ * The pairing rule (M05c4): a live fal run must hand off to the operator. `mock` would run the fixture transcoder and signer over real fal
+ * output, so a job refuses to start before it reserves any budget or makes any FalPort call. Null when the pairing is fine.
+ */
+export function modePairingError(env: Pick<PipelineEnv, 'FAL_MODE' | 'TRANSCODE_MODE'>): string | null {
+  const mode = transcodeModeOf(env);
+  if (mode === null) return `TRANSCODE_MODE=${env.TRANSCODE_MODE ?? ''} is not supported on Workers Free (use offedge or mock)`;
+  if (!isMock(env) && mode === 'mock') return 'TRANSCODE_MODE=mock cannot be paired with FAL_MODE=live: live output would be transcoded and signed with fixtures';
+  return null;
+}
 
 /** `test` in mock mode, `production` on prod, `previs` elsewhere (GENAI_ENV of spec/domains/05-assets.md section 4.7). */
 export function genaiEnv(env: Pick<PipelineEnv, 'FAL_MODE' | 'ENVIRONMENT'>): 'production' | 'previs' | 'test' {
@@ -55,6 +79,11 @@ export function genaiEnv(env: Pick<PipelineEnv, 'FAL_MODE' | 'ENVIRONMENT'>): 'p
 
 export function gateConfig(env: Pick<PipelineEnv, 'FAL_MODE' | 'ENVIRONMENT'>): GateConfig {
   return { falMode: isMock(env) ? 'mock' : 'live', environment: env.ENVIRONMENT, registry: GENAI_REGISTRY };
+}
+
+function httpMeta(meta: { contentType?: string; cacheControl?: string } | undefined): R2HTTPMetadata | undefined {
+  if (meta?.contentType === undefined && meta?.cacheControl === undefined) return undefined;
+  return { ...(meta.contentType !== undefined ? { contentType: meta.contentType } : {}), ...(meta.cacheControl !== undefined ? { cacheControl: meta.cacheControl } : {}) };
 }
 
 export function r2Blob(env: Pick<PipelineEnv, 'MEDIA' | 'PRIVATE'>): BlobPort {
@@ -70,9 +99,34 @@ export function r2Blob(env: Pick<PipelineEnv, 'MEDIA' | 'PRIVATE'>): BlobPort {
     },
     async put(b, key, body, meta) {
       await bucket(b).put(key, body, {
-        ...(meta?.contentType !== undefined ? { httpMetadata: { contentType: meta.contentType } } : {}),
+        ...(httpMeta(meta) !== undefined ? { httpMetadata: httpMeta(meta)! } : {}),
         ...(meta?.custom !== undefined ? { customMetadata: meta.custom } : {}),
       });
+    },
+    async putStream(b, key, body, size, meta) {
+      // R2 accepts only a stream of known length. A FixedLengthStream gives any source one, and also fails the write when the source
+      // delivers a different number of bytes than the server announced. Both pipe ends are I/O only: nothing is buffered or hashed.
+      const opts = {
+        ...(httpMeta(meta) !== undefined ? { httpMetadata: httpMeta(meta)! } : {}),
+        ...(meta?.custom !== undefined ? { customMetadata: meta.custom } : {}),
+      };
+      if (typeof FixedLengthStream !== 'function') {
+        await bucket(b).put(key, body, opts); // a runtime without it (the Node proxy of the tests) takes the stream as it comes
+        return;
+      }
+      const fixed = new FixedLengthStream(size);
+      const piped = body.pipeTo(fixed.writable);
+      await Promise.all([bucket(b).put(key, fixed.readable, opts), piped]);
+    },
+    async copy(from, to, meta, expectBytes) {
+      const src = await bucket(from.bucket).get(from.key);
+      if (src === null) return null;
+      if (expectBytes !== undefined && src.size !== expectBytes) throw new Error(`${from.key} holds ${src.size} bytes, expected ${expectBytes}`);
+      await bucket(to.bucket).put(to.key, src.body, {
+        ...(httpMeta(meta) !== undefined ? { httpMetadata: httpMeta(meta)! } : {}),
+        ...(meta?.custom !== undefined ? { customMetadata: meta.custom } : {}),
+      });
+      return src.size;
     },
   };
 }
@@ -116,7 +170,7 @@ export function falGateDo(env: Pick<PipelineEnv, 'FAL_GATE' | 'ENVIRONMENT'>): F
 
 export function cutsceneSink(env: Pick<PipelineEnv, 'CUTSCENE_JOB'>, cutsceneKey: string): JobSinkPort {
   const stub = (): CutsceneJobRpc => env.CUTSCENE_JOB.get(env.CUTSCENE_JOB.idFromName(`cut:${cutsceneKey}`)) as unknown as CutsceneJobRpc;
-  return { complete: (r) => stub().complete(r), fail: (err) => stub().fail(err) };
+  return { complete: (r) => stub().complete(r), fail: (err, code) => stub().fail(err, code), handoff: (r) => stub().handoff(r) };
 }
 
 /** No roster until M06a1 and M10a1: every character is unknown, so a job with a cast is refused (TIER_UNKNOWN). */
@@ -152,19 +206,22 @@ export function r2Recorder(bucket: R2Bucket): MockRecorder {
   };
 }
 
+/** Workers Free has no Container (DL-OWN-08): live transcoding and re-signing run on the operator's workstation (`prewarm --finish`, M05c4). */
 class UnavailableTranscode implements TranscodePort {
   transcode(): never {
-    throw new Error('the Transcoder container (TRANSCODER) lands with the first live run (M05c3)');
+    throw new Error('the Worker does not transcode on Workers Free: the operator runs prewarm --finish (M05c4)');
   }
 }
 class UnavailableSign implements SignPort {
   resign(): never {
-    throw new Error('the live SignPort adapter runs where the transcoder runs (M05c3)');
+    throw new Error('the Worker does not re-sign on Workers Free: the operator runs prewarm --finish (M05c4)');
   }
 }
 
 /** Ports for one job. Mock mode replays fixtures; live mode binds fal and the not-yet-built container adapters. */
 export function makePorts(env: PipelineEnv, job: GenJob): GenPorts {
+  const pairing = modePairingError(env);
+  if (pairing !== null) throw new Error(pairing);
   const blob = r2Blob(env);
   const base = {
     blob,

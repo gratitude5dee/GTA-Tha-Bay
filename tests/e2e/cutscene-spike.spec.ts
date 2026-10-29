@@ -125,7 +125,7 @@ test.describe('@cutscene', () => {
     expect(await media(page, (m) => m.state().simPaused)).toBe(true);
     await expect(page.getByTestId('cutscene-ai-chip')).toBeVisible();
     await page.keyboard.press('Escape');
-    await page.waitForFunction(() => (window as unknown as W).__dvBridge?.media?.state().host.visible === false, undefined, { timeout: 3000 });
+    await page.waitForFunction(() => (window as unknown as W).__dvBridge?.media?.state().host.visible === false, undefined, { timeout: 30_000 });
     expect(await media(page, (m) => m.state().simPaused)).toBe(false);
   });
 

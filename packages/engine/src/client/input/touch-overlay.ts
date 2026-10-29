@@ -16,9 +16,24 @@ const DEFAULT_LABELS: Readonly<Record<string, string>> = {
   'touch.handbrake': 'Handbrake',
   'touch.reset': 'Reset',
   'touch.behind': 'Look behind',
+  'touch.fighter.light': 'Light',
+  'touch.fighter.heavy': 'Heavy',
+  'touch.fighter.special': 'Special',
+  'touch.fighter.assist': 'Assist',
+  'touch.fighter.hype': 'Hype',
+  'touch.fighter.dash': 'Dash',
 };
 
+/** A button face with a short word on it (the fighter layout, M08a2): the letters are the legend, so a button is never told apart by colour alone. */
+const word = (t: string): string => `<svg viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="16" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="${t.length > 3 ? 7 : t.length > 2 ? 9 : 12}" fill="currentColor">${t}</text></svg>`;
+
 const ICONS: Readonly<Record<string, string>> = {
+  'fight-l': word('L'),
+  'fight-h': word('H'),
+  'fight-sp': word('SP'),
+  'fight-as': word('AS'),
+  'fight-hy': word('HYPE'),
+  'fight-dash': word('DASH'),
   jump: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l7 9h-4v7H9v-7H5z" fill="currentColor"/></svg>',
   camera: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-2h6l2 2h3v11H4zm8 2.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z" fill="currentColor"/></svg>',
   enter: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4h8v16h-8v-3h5V7h-5zM4 11h8V8l5 4-5 4v-3H4z" fill="currentColor"/></svg>',

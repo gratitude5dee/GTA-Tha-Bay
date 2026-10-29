@@ -9,6 +9,7 @@ import { swimSystem } from './swim.ts';
 import { VaultStore, vaultResource } from './vault.ts';
 
 export * from './fall.ts';
+export * from './latch.ts';
 export * from './onfoot.ts';
 export * from './ownership.ts';
 export * from './swim.ts';

@@ -1,0 +1,65 @@
+{
+  "v": 1,
+  "note": "Authored trash talk (FC10.5): pre-fight and post-fight lines per pair of fighter families, shown as subtitles. Friendly, short, inside every soul's rails; no real person, brand or event. Ink and model lines arrive with M10c.",
+  "families": {
+    "RAP_HYPHY_ELDER": "rap",
+    "RAP_LYRICIST": "rap",
+    "RAP_NEW_WAVE": "creator",
+    "INFLUENCER": "creator",
+    "TECH_VISIONARY": "tech",
+    "TECH_HACKER": "tech",
+    "ATH_SHOOTER": "sport",
+    "ATH_POWER_BACK": "sport",
+    "PLAYER_FIGHTER": "player"
+  },
+  "classes": {
+    "rap-rap": {
+      "pre": ["Two veterans, one floor. Mind your feet.", "I have been stepping here longer than your shoes have existed.", "Loosen up. This is going to be a long dance."],
+      "post": ["Good floor, good fight. Run it again?", "You kept the rhythm. I kept the win.", "Next round, the first drink is yours."]
+    },
+    "rap-creator": {
+      "pre": ["Cute lights. Do they come with footwork?", "Old school, meet new school. Class is in session.", "Let me show you a step that never went viral."],
+      "post": ["Not bad for someone who films everything.", "That one is going in my memory, not on a feed.", "Teach me your tricks and I will teach you mine."]
+    },
+    "rap-tech": {
+      "pre": ["Is there a plan for this, or just a slide?", "I brought a groove. Did you bring a roadmap?", "Stand still, I want to see how you move without a screen."],
+      "post": ["Your plan was clean. My feet were cleaner.", "Ship that lesson in the next release.", "Even a good machine needs a rest. Sit."]
+    },
+    "rap-sport": {
+      "pre": ["Long arms, long stride. Let us see the dance.", "Big shoulders do not help you keep time.", "I will take the floor, you take the weight."],
+      "post": ["You hit hard. I hit the groove.", "Good legs. Need a hand up?", "Come back when the beat has moved on."]
+    },
+    "creator-creator": {
+      "pre": ["Two feeds, one ring. Smile for nobody.", "Let the crowd pick. They always do.", "May the better edit win."],
+      "post": ["That was a cut worth keeping.", "Same time next week? I will bring better lighting.", "You were great. I will say so out loud."]
+    },
+    "creator-tech": {
+      "pre": ["Do not worry, I will explain it simply.", "I will take the poll, you take the patch notes.", "Your drones are cute. My crowd is bigger."],
+      "post": ["Fixed in the next version.", "The vote is in, and so is the ring.", "Your update was fast. My timing was faster."]
+    },
+    "creator-sport": {
+      "pre": ["Pose for the cameras, big one.", "I have the crowd. You have the reach.", "Do not blink, I swap places fast."],
+      "post": ["You are strong and I am quick. Both matter.", "Gumballs and badges, a fair trade.", "I will make you look good in the recap."]
+    },
+    "tech-tech": {
+      "pre": ["We both read the same manual. Mine has notes.", "Stand back, this is a controlled demo.", "May the cleanest patch win."],
+      "post": ["Reproducible result. Thank you.", "Your fix was elegant. Mine was in time.", "Let us write this up together."]
+    },
+    "tech-sport": {
+      "pre": ["I calculated your reach. It is large.", "Plan, then pivot. That is the whole trick.", "Please keep your hands where the drones can see them."],
+      "post": ["The plan held. Your shoulders held too.", "Strong, honest, predictable. I like it.", "Rematch? I will adjust the roadmap."]
+    },
+    "sport-sport": {
+      "pre": ["Two big frames, one small ring.", "Gloves are optional. Manners are not.", "Warm up first. I want a fair fight."],
+      "post": ["Good fight. Water first, talk later.", "You made me earn it.", "Shake on it and sit down."]
+    },
+    "player-any": {
+      "pre": ["New face. Show me what you have.", "Welcome to the floor. Keep it friendly.", "Let us see if the stories are true."],
+      "post": ["Good bout. Come back stronger.", "You have a future here.", "Take a breath. You earned it."]
+    }
+  },
+  "fallback": {
+    "pre": ["Ready when you are.", "Let us make it a good one."],
+    "post": ["Good fight.", "Again?"]
+  }
+}

@@ -70,6 +70,7 @@ function countingFal(): { fal: FalPort; calls: () => number } {
       result: wrap(inner.result.bind(inner)),
       cancel: wrap(inner.cancel.bind(inner)),
       fetchFile: wrap(inner.fetchFile.bind(inner)),
+      fetchStream: wrap(inner.fetchStream.bind(inner)),
       keyframe: wrap(inner.keyframe.bind(inner)),
     },
   };
@@ -95,7 +96,7 @@ function setup(log: string[]): { ports: GenPorts; calls: () => number; ctx: Para
     transcode: new MockTranscodePort(),
     sign: new MockSignPort(),
     falGate: { acquire: () => Promise.resolve(true), release: () => Promise.resolve() },
-    sink: { complete: () => Promise.resolve(), fail: () => Promise.resolve() },
+    sink: { complete: () => Promise.resolve(), fail: () => Promise.resolve(), handoff: () => Promise.resolve() },
     names: blobNamePort(blob),
   };
   const ctx = {

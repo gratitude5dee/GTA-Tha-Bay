@@ -81,7 +81,7 @@ export class AssetService {
   private readonly aborts = new Map<number, AbortController>();
   private readonly errCounts = new Map<string, number>();
   private readonly pinnedHashes = new Set<string>();
-  private base = { hits: 0, evictions: 0 };
+  private base = { hits: 0, evictions: 0, prefetchStops: 0 };
   private softCapOverride: number | null = null;
   private catalogReported = false;
 
@@ -139,6 +139,7 @@ export class AssetService {
     if (this.storeValue) {
       this.base.hits += this.storeValue.stats.hits;
       this.base.evictions += this.storeValue.stats.evictions;
+      this.base.prefetchStops += this.storeValue.stats.prefetchStops;
       await this.storeValue.settled();
     }
     return this.openStore(force);
@@ -272,7 +273,7 @@ export class AssetService {
 
   private stats(): StatsResult {
     const f = this.fetcher?.stats ?? { network: 0, retries: 0, bytes: 0, inflightPeak: 0, waves: 0 };
-    const s = this.storeValue?.stats ?? { hits: 0, evictions: 0 };
+    const s = this.storeValue?.stats ?? { hits: 0, evictions: 0, prefetchStops: 0 };
     return {
       network: f.network,
       retries: f.retries,
@@ -280,6 +281,7 @@ export class AssetService {
       inflightPeak: f.inflightPeak,
       waves: f.waves,
       hits: this.base.hits + s.hits, evictions: this.base.evictions + s.evictions,
+      prefetchStops: this.base.prefetchStops + s.prefetchStops,
     };
   }
 
@@ -325,6 +327,11 @@ export class AssetService {
         const refs = await Promise.all(p.targets.map((t) => this.refOf(t, p.tier)));
         this.store.prefetch(refs, p.priority);
         return { result: null };
+      }
+      case 'promote': {
+        const p = msg.p as RpcOps['promote'][0];
+        const refs = await Promise.all(p.targets.map((t) => this.refOf(t, p.tier)));
+        return { result: this.store.promote(refs, p.priority) };
       }
       case 'pin': {
         const p = msg.p as RpcOps['pin'][0];

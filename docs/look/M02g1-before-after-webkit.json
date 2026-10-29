@@ -1,0 +1,21 @@
+{
+  "commit": "local",
+  "bakeId": "3537499f7cc5c17703cea67785128b51f3262dc2d693a344409c031cb9f33136",
+  "tier": "desktop",
+  "browser": "webkit-webgl2",
+  "backend": "webgl2",
+  "viewport": {
+    "width": 480,
+    "height": 270
+  },
+  "shots": [
+    "a1-truck",
+    "a1-burnoff"
+  ],
+  "layout": "rows: a1-truck (06:30 Karl fog), a1-burnoff (07:00 clear); columns: before M02g1, after",
+  "meanAbsDifference": {
+    "a1-truck": 0.11188448115871863,
+    "a1-burnoff": 0.12945052650689906
+  },
+  "sha256": "f1dbff6caf1dc6f9c31efcbe36cdbae8035f04572bffe9cf3bd83687385dcf0a"
+}

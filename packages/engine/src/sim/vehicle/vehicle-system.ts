@@ -21,6 +21,8 @@ import type { EngineServices } from '../services.ts';
 import { isSessionCar } from '../sandbox-flags.ts';
 import { CONTROL_OWNER, CONTROL_PHASE, CONTROL_REASON, CONTROL_STATE, phaseOf } from '../control/states.ts';
 import { vehicleFallRecoverySystem } from '../control/fall.ts';
+import { armMoveLatch, moveLatched, noteWaterRespawn } from '../control/latch.ts';
+import { vehicleHasPlayer } from '../control/ownership.ts';
 import { GROUP_BIT } from '../physics/groups.ts';
 import type { Vec3 } from '../physics/backend.ts';
 import { VehicleStore, vehicleResource, type VehicleInput, type VehicleRuntime } from './components.ts';
@@ -97,7 +99,11 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
         const driving = d !== 0 && co.owner[d] === CONTROL_OWNER.Vehicle && phaseOf(co.pending[d] as number) === CONTROL_PHASE.Active;
         const cmd = rt.input;
         const frame = driving && pc[d] === 0 ? services.input : null;
-        if (frame) {
+        if (frame && !rt.wet.stalled && moveLatched(services.control, frame)) {
+          // after a water respawn the pedals and the wheel are ignored until every one is released (DL-753, latch.ts)
+          cmd.throttle = 0; cmd.brake = 0; cmd.steer = 0;
+          cmd.handbrake = (frame.buttons & (1 << SimButton.Handbrake)) !== 0;
+        } else if (frame) {
           cmd.throttle = frame.throttle < 0 ? 0 : frame.throttle;
           cmd.brake = frame.brake < 0 ? 0 : frame.brake;
           cmd.steer = frame.steer;
@@ -226,12 +232,15 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
             rt.wet = r.state;
             if (r.verdict === 'stall') {
               rt.respawnFade = 0;
+              // with the player aboard, the pedals held through the fade are latched (DL-753)
+              if (vehicleHasPlayer(w, id)) armMoveLatch(services.control);
               services.events.push({ t: 'world.teleport', tick, a: handle, s: 'out' });
             }
           } else {
             rt.respawnFade++;
             if (rt.respawnFade >= RESPAWN_FADE_TICKS) {
-              respawnAtShore(backend, bounds, rt, w, id, tick, services);
+              const yaw = respawnAtShore(backend, bounds, rt, w, id);
+              if (yaw !== null && vehicleHasPlayer(w, id)) noteWaterRespawn(services.control, yaw);
               rt.wet = { wetTicks: 0, stalled: false };
               rt.respawnFade = 0;
               services.events.push({ t: 'world.teleport', tick, a: handle, s: 'in' });
@@ -275,16 +284,17 @@ function wheelWaterDepth(
   return deepest;
 }
 
+/** Puts vehicle `id` at the nearest road-adjacent shore node, facing inland; returns that yaw, or null when no shore node is known. */
 function respawnAtShore(
   backend: VehiclePhysics, bounds: NonNullable<EngineServices['world']['bounds']>, rt: VehicleRuntime,
-  w: { store: EcsWorld['store'] }, id: number, tick: number, services: EngineServices,
-): void {
-  void tick;
-  void services;
+  w: { store: EcsWorld['store'] }, id: number,
+): number | null {
   const tr = w.store(Transform);
   const shore = bounds.nearestShore(tr.px[id] as number, tr.pz[id] as number, true);
-  if (!shore) return;
-  placeVehicle(backend, rt, w, id, shore.x - shore.nx * SHORE_INLAND_M, shore.y, shore.z - shore.nz * SHORE_INLAND_M, datan2(shore.nx, shore.nz));
+  if (!shore) return null;
+  const yaw = datan2(shore.nx, shore.nz);
+  placeVehicle(backend, rt, w, id, shore.x - shore.nx * SHORE_INLAND_M, shore.y, shore.z - shore.nz * SHORE_INLAND_M, yaw);
+  return yaw;
 }
 
 /**

@@ -1,0 +1,23 @@
+{
+  "kind": "anim",
+  "id": "graybox.influencer-moves",
+  "variants": {
+    "default": "assets/src/anim/graybox.influencer-moves/default.glb"
+  },
+  "deps": [],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:influencer"
+  ],
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

@@ -67,7 +67,7 @@ describe('the gate refuses before any FalPort call (AC-8)', () => {
     const sinkCalls: string[] = [];
     const ports: GenPorts = {
       fal,
-      blob: { head: () => Promise.resolve(null), get: () => Promise.resolve(null), put: () => Promise.resolve() },
+      blob: { head: () => Promise.resolve(null), get: () => Promise.resolve(null), put: () => Promise.resolve(), putStream: () => Promise.resolve(), copy: () => Promise.resolve(null) },
       roster: { lookup: () => Promise.resolve(null) },
       budget: { reserve: () => Promise.resolve({ ok: true, level: 0 as GovLevel }), settle: () => Promise.resolve(), level: () => Promise.resolve(0 as GovLevel) },
       flags: { killSwitches: () => Promise.resolve(new Set<string>()) },
@@ -75,7 +75,7 @@ describe('the gate refuses before any FalPort call (AC-8)', () => {
       transcode: new MockTranscodePort(),
       sign: new MockSignPort(),
       falGate: { acquire: () => Promise.resolve(true), release: () => Promise.resolve() },
-      sink: { complete: () => Promise.resolve(), fail: (e) => void sinkCalls.push(e) as unknown as Promise<void> },
+      sink: { complete: () => Promise.resolve(), fail: (e) => void sinkCalls.push(e) as unknown as Promise<void>, handoff: () => Promise.resolve() },
     };
     const job = buildCutsceneJob(key, liveEnv, 'test');
     expect(job.env).toBe('previs');

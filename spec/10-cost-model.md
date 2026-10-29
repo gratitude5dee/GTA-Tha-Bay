@@ -23,7 +23,7 @@ Per MAU per month: 4 play-hours, 15 encounters, 90 NPC turns (20 % hero), about 
 
 | Line | 1k MAU | 10k MAU | 100k MAU | Basis |
 |---|---|---|---|---|
-| Cloudflare (Workers Paid, DO, R2, Queues, AE, logs) | $6 | $30 | $300 | [research/stack-cloudflare-backend.md §9] |
+| Cloudflare (Workers Paid, DO, R2, Queues, AE, logs; $0 on Workers Free, which cannot carry these volumes, §2.1) | $6 | $30 | $300 | [research/stack-cloudflare-backend.md §9] |
 | Supabase Pro and compute | $25 | $30 | ≈ $95 | same |
 | Thirdweb (from M14a) | $99 | $129 | $534 | F-059 |
 | **Infrastructure** | **$130** | **$189** | **$929** | |
@@ -36,6 +36,9 @@ Per MAU per month: 4 play-hours, 15 encounters, 90 NPC turns (20 % hero), about 
 | **All-in** | **≈ $410** | **≈ $3,000** | **≈ $28,900** | |
 
 Notes. The all-in figure is below `research/INDEX.md` §6 (≈ $430 / $3,190 / $31,000) because t2 hero voices stay off (Q-20). A Lean mix (all Haiku, baked voice only) costs $40 / $400 / $4,000 for LLM and voice together. Before M12b, Cloudflare plus Supabase is ≈ $30 / $35 / $110. Room duration dominates Cloudflare cost at scale (alert A08).
+
+### 2.1 On Workers Free (DL-OWN-08, DL-744)
+The account stays on Workers Free until the owner upgrades, so the Cloudflare line is $0 and the limits are daily caps instead of bills (`spec/03-decisions-and-facts-2.md` §8, read 2026-10-27; shared by production, staging and Previews). Architect arithmetic from §1 and §2, to re-measure: a voiced t1 line costs $0.00165 at $0.011 per 1,000 Neurons, about 150 Neurons, so the 10,000 Neurons a day voice about 66 lines a day (≈ 44 MAU at 1.5 lines per MAU-day); one settled NPC turn writes one SPEND message (at least 3 Queue operations: write, read, delete) and touches about 3 Durable Objects, so 10,000 Queue operations a day carry at most about 3,300 turns (≈ 1,100 MAU at 3 turns per MAU-day); at about 300 media requests per first City Hall boot, 100,000 Worker requests a day carry about 330 first boots before any API traffic. Past a cap the feature fails until 00:00 UTC (voice lines fail while subtitles still show, R-ENG-04; media and `/api/*` answer 429). These are RISK-31…RISK-35; the remedy for each beyond its Free path is the owner's upgrade to Workers Paid ($5 a month plus the §2 usage), which is an owner gate, never a Builder step.
 
 ## 3. The G3 ceiling
 
@@ -68,13 +71,14 @@ fal has no spend cap and locks an account below a balance threshold (F-048), so 
 
 | Line | Cap | Content | Estimate |
 |---|---|---|---|
-| Spike (M00c) | $10 | 11 steps (DL-286) | $3.76 |
+| Spike (M00c) | $4 | 11 callable steps of the 13 in `plan.json` ($4.36 listed; V2 and V4 hit `blocked` endpoints and are refused before the ledger reserves, DL-286, DL-741; cap from DL-OWN-07) | $3.76 |
 | Characters (M10a, M10b) | $42 | 8 Standard fighters × $3.67 + 12 Lean × $1.05 | $41.96 |
-| Cutscenes (M05c3, M10b) | $40 | greedy priority list stopping at a $38 running estimate | $37.60 |
-| Buffer | $8 | rejects, rig 422s, extra clips; voice design or vehicle bodies only with owner sign-off (Q-26) | $0 |
-| **Total** | **$100** | | **≈ $83** |
+| Cutscenes (M05c3, M10b) | $38 | greedy priority list stopping at a $38 running estimate | $37.60 |
+| Vehicles and props (M10d1, M10d3) | $14 | ≤ 2 traffic bodies in M10d1 (≤ $1.70); player cars or props in M10d3 within the rest (DL-OWN-07) | ≤ $14 |
+| Buffer | $2 | rejects, rig 422s, extra clips, retakes beyond the 1.5× allowance; only with owner sign-off (Q-26) | $0 |
+| **Total** | **$100** | | **≈ $97** with the vehicles line spent |
 
-Not bought with fal in v1: voice designs (Workers AI Aura or MeloTTS), generated cars and props, stand-ins (authored creator-kit bodies), player-triggered NPC looks, the 12-fighter target. Non-fal one-off work for 60 souls (normalization ≈ $5, barks ≈ $9, bark TTS ≈ $30) is billed to Anthropic and Workers AI (`04-npc-builder.md` §C7).
+Not bought with fal in v1: voice designs (Workers AI Aura or MeloTTS), generated cars and props beyond the $14 line, stand-ins (authored creator-kit bodies), player-triggered NPC looks, the 12-fighter target. Non-fal one-off work for 60 souls (normalization ≈ $5, barks ≈ $9, bark TTS ≈ $30) is billed to Anthropic and Workers AI (`04-npc-builder.md` §C7).
 
 **Which hooks get generated clips** (N = 8 fighters; provider `h3.partner` at $0.06/s; 1.5× retakes included; `03-story-cutscenes.md` §D9.1):
 

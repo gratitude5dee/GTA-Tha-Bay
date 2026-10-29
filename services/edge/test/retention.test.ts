@@ -1,7 +1,7 @@
 import { createExecutionContext, createScheduledController, env, waitOnExecutionContext } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Env } from '../src/env.ts';
-import { CRON_SCHEDULE } from '../src/ops/scheduled.ts';
+import { DISPATCH_CRON, SCHEDULE } from '../src/ops/scheduled.ts';
 import { uuidv7 } from '../src/uuidv7.ts';
 import { harness, type Harness } from './npc-helpers.ts';
 
@@ -113,26 +113,47 @@ describe('stub-profiles (03:30): local profiles unseen for 180 days, and soft-de
 });
 
 describe('the crons', () => {
-  it('map the four expressions to their jobs, with the 03:10 run keeping catalog-sync and ledger-export', () => {
-    expect(CRON_SCHEDULE).toEqual({
-      '10 3 * * *': ['catalog-sync', 'ledger-export', 'transcripts'],
-      '20 3 * * *': ['memory'],
-      '30 3 * * *': ['stub-profiles'],
-      '40 3 * * *': ['builder-drafts'],
+  it('the dispatcher table keeps the four daily times, with the 03:10 tick keeping catalog-sync and ledger-export', () => {
+    expect(SCHEDULE).toEqual({
+      '03:10': ['catalog-sync', 'ledger-export', 'transcripts'],
+      '03:20': ['memory'],
+      '03:30': ['stub-profiles'],
+      '03:40': ['builder-drafts'],
     });
   });
 
-  it('a scheduled event runs the jobs of its expression', async () => {
+  // BD-FIX-CRON-01: one `*/5 * * * *` trigger; the tick's scheduledTime picks the jobs.
+  const at = (hh: number, mm: number, day = 20_000): number => day * DAY + (hh * 60 + mm) * 60_000;
+  const tick = async (cron: string, scheduledTime: number): Promise<{ event: string; cron?: string; slot?: string; results?: { job: string }[] } | undefined> => {
+    h.logs.length = 0;
+    const ctx = createExecutionContext();
+    await h.app.scheduled(createScheduledController({ cron, scheduledTime }), env as unknown as Env, ctx);
+    await waitOnExecutionContext(ctx);
+    return h.logs.map((l) => JSON.parse(l) as { event: string; cron?: string; slot?: string; results?: { job: string }[] }).find((l) => l.event === 'cron.done');
+  };
+
+  it('a dispatcher tick at 03:20 UTC runs the memory retention', async () => {
     const pid = await profile();
     await h.port.npcMemory.write(pid, 'npc_a', [mem('soon expired')]);
     h.clock.t += 181 * DAY;
-    const ctx = createExecutionContext();
-    await h.app.scheduled(createScheduledController({ cron: '20 3 * * *', scheduledTime: Date.now() }), env as unknown as Env, ctx);
-    await waitOnExecutionContext(ctx);
-    const done = h.logs.map((l) => JSON.parse(l) as { event: string; cron?: string }).find((l) => l.event === 'cron.done');
-    expect(done?.cron).toBe('20 3 * * *');
+    const done = await tick(DISPATCH_CRON, at(3, 20));
+    expect(done).toMatchObject({ cron: DISPATCH_CRON, slot: '03:20' });
+    expect(done?.results?.map((r) => r.job)).toEqual(['memory']);
     expect(h.logs.some((l) => l.includes('retention.memory'))).toBe(true);
     expect(await h.port.npcMemory.topK(pid, 'npc_a', emb(), 1, 6)).toEqual([]);
+  });
+
+  it('a tick with nothing due runs no job and logs nothing', async () => {
+    for (const [hh, mm] of [[3, 0], [3, 5], [3, 15], [3, 45], [12, 10], [15, 20]] as const) {
+      expect(await tick(DISPATCH_CRON, at(hh, mm))).toBeUndefined();
+      expect(h.logs).toEqual([]);
+    }
+  });
+
+  it('a tick of an old daily expression, still deployed until the operator applies the trigger, runs the same jobs by its time', async () => {
+    const done = await tick('10 3 * * *', at(3, 10));
+    expect(done?.slot).toBe('03:10');
+    expect(done?.results?.map((r) => r.job)).toEqual(['catalog-sync', 'ledger-export', 'transcripts']);
   });
 
   it('without a database every job is skipped, not failed', async () => {

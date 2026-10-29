@@ -1,5 +1,6 @@
 export * from './world-view.ts';
 export * from './boot-world.ts';
+export * from './boot-prefetch.ts';
 export * from './chunks/chunk-renderer.ts';
 export * from './chunks/upload-gate.ts';
 export * from './chunks/materials.ts';

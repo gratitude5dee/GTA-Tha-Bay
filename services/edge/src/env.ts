@@ -38,12 +38,14 @@ export interface Env {
   HOST_ID: string;
   /** Absolute base URL of the Worker's media route, e.g. https://<host>/media (M01d2, DL-713). */
   HOST_MEDIA: string;
-  /** Kill switch of /media/*: "off" answers 503; anything else serves (default on). */
-  MEDIA_ROUTE?: string | undefined;
+  /** State of /media/*: "off" answers 503; "throttle" applies RL_MEDIA per network and answers 429 when denied; anything else serves (default "on"). M01d3. */
+  MEDIA_ROUTE?: 'on' | 'throttle' | 'off' | undefined;
   HOST_UGC: string;
   /** JSON object of FeatureFlag to boolean; unknown keys are ignored. */
   FLAGS_JSON: string;
   FAL_MODE: string;
+  /** `offedge` (production: transcode and re-sign run on the operator's workstation, M05c4) or `mock` (staging, previews, tests). Absent: follows FAL_MODE. */
+  TRANSCODE_MODE?: string | undefined;
   /** fal.ai key (secret) — absent in staging mock mode and local dev. */
   FAL_KEY?: string | undefined;
   /** Supabase project URL, e.g. https://<ref>.supabase.co (var, non-secret). */
@@ -69,6 +71,8 @@ export interface Env {
   /** Rate Limiting bindings of class auth (M00e). Absent in unit tests and local runs: no limit. */
   RL_AUTH?: RateLimit | undefined;
   RL_AUTH_USER?: RateLimit | undefined;
+  /** Rate Limiting binding of /media/* under MEDIA_ROUTE="throttle" (M01d3): 1000 per 10 s per network key. Absent: no limit. */
+  RL_MEDIA?: RateLimit | undefined;
   /** Rate Limiting binding of class `talk` (M06a3): 4 turns per 10 s per player, burst control only (the quotas are exact). Absent: no limit. */
   RL_TALK?: RateLimit | undefined;
   /** `live` calls Anthropic; anything else (including absent) replays recorded streams. Production must be `live` (check:prod-routes). */

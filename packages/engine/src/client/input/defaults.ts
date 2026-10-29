@@ -2,12 +2,28 @@ import type { ControlsSettings, InputMap } from '@dv/shared';
 import gamepadJson from '../../../../../config/input/defaults.gamepad.json';
 import kbmJson from '../../../../../config/input/defaults.kbm.json';
 import touchJson from '../../../../../config/input/defaults.touch.json';
+import kbmFighterClassic from '../../../../../config/input/defaults.kbm.fighter-classic.json';
+import kbmFighterSimple from '../../../../../config/input/defaults.kbm.fighter-simple.json';
+import padFighterClassic from '../../../../../config/input/defaults.pad.fighter-classic.json';
+import padFighterSimple from '../../../../../config/input/defaults.pad.fighter-simple.json';
+import touchFighterClassic from '../../../../../config/input/defaults.touch.fighter-classic.json';
+import touchFighterSimple from '../../../../../config/input/defaults.touch.fighter-simple.json';
 
 /** config/input/defaults.<device>.json (schema: config/schemas/input-map.schema.json). */
 export const DEFAULT_KBM_MAP = kbmJson as unknown as InputMap;
 export const DEFAULT_GAMEPAD_MAP = gamepadJson as unknown as InputMap;
 export const DEFAULT_TOUCH_MAP = touchJson as unknown as InputMap;
 export const DEFAULT_MAPS: readonly InputMap[] = Object.freeze([DEFAULT_KBM_MAP, DEFAULT_GAMEPAD_MAP, DEFAULT_TOUCH_MAP]);
+
+/**
+ * The bindings of the `fighter` context (M08a2, C03 1.1 `ControlsSettings.fighterScheme`): one file per device and scheme,
+ * `config/input/defaults.<kbm|pad|touch>.fighter-<classic|simple>.json`. The router merges the maps of the chosen scheme next to the
+ * default maps; the other scheme's files are not read.
+ */
+export const FIGHTER_MAPS: Readonly<Record<'classic' | 'simple', readonly InputMap[]>> = Object.freeze({
+  classic: Object.freeze([kbmFighterClassic, padFighterClassic, touchFighterClassic] as unknown as InputMap[]),
+  simple: Object.freeze([kbmFighterSimple, padFighterSimple, touchFighterSimple] as unknown as InputMap[]),
+});
 
 /**
  * Controls settings before the player changes anything (persisting them is M04a). The look values are the design

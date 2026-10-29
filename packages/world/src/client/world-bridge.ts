@@ -6,6 +6,7 @@ import type { LandmarksReport, LandmarkSwapEvent } from './chunks/landmark-layer
 import type { LumaOptions, LumaSample, SkyInfo } from './sky/sky-view.ts';
 import type { LookReport } from './look/look-view.ts';
 import { mountWorldControls } from './world-controls.ts';
+import type { PrefetchReport } from './boot-prefetch.ts';
 import type { BootReport, ChunksReport, WorldView } from './world-view.ts';
 import type { TrafficInfo } from './traffic/instances.ts';
 import type { PedInfo } from './peds/instances.ts';
@@ -41,6 +42,10 @@ export interface WorldBridge {
   backdrop(): BackdropInfo;
   /** Whether the world is revealed, when, and the bytes downloaded before the reveal (AC-8). */
   boot(): BootReport;
+  /** M02f2: the speculative boot download (state, skip reason, counts, promotion and the time from mode start to the first play); null before the world is prepared. */
+  prefetch(): PrefetchReport | null;
+  /** M02f2: the refs the boot prefetch plans (`now`: the rings, `soon`: l1, l2, far); null before the world is prepared. */
+  prefetchPlan(): { now: string[]; soon: string[] } | null;
   /** The units the current focus and plan want at a level. */
   wanted(level: Level): ChunkKey[];
   plan(): StreamingPlan;
@@ -76,6 +81,8 @@ export interface WorldBridge {
   internals(): { view: WorldView; look: unknown };
   /** M02e: the look on or off at runtime (materials, post stack, shadows; one re-record per resident chunk). False when the tier has none. */
   setLook(on: boolean): boolean;
+  /** M02g1: one layer of the look's profile (`grade`, `haze`, `blob`, `casters`, `skyReflect`, `windows`) on or off; false when the profile has no such layer. */
+  setLookLayer(id: string, on: boolean): boolean;
   /**
    * M02e: applies a shot of `config/world/look-shots.json`: pauses the sim, locks the hour and weather with a zero-second blend,
    * freezes the look clock, holds the camera, waits for `settle()` and the fade, and resolves once a frame with all of it has been
@@ -200,11 +207,13 @@ async function call(op: string, args?: Record<string, unknown>, timeoutMs = 30_0
   return null;
 }
 
-export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldBridge {
+export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetch?: { report(): PrefetchReport; planned: { now: string[]; soon: string[] } }): WorldBridge {
   const bridge: WorldBridge = {
     chunks: () => view.chunks(),
     backdrop: () => view.backdropInfo(),
     boot: () => view.bootReport(),
+    prefetch: () => prefetch?.report() ?? null,
+    prefetchPlan: () => prefetch?.planned ?? null,
     wanted: (level) => view.wanted(level),
     plan: () => view.store.plan,
     tier: () => tier,
@@ -224,6 +233,7 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
     look: () => view.lookReport(),
     internals: () => ({ view, look: view.lookView }),
     setLook: (on) => view.setLook(on),
+    setLookLayer: (id, on) => view.setLookLayer(id, on),
     shot: async (id) => {
       const lv = view.lookView;
       if (!lv) throw new Error('look shot: this view has no look');

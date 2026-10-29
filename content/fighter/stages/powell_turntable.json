@@ -1,0 +1,17 @@
+{
+  "id": "powell_turntable",
+  "nameKey": "fighter.stage.powell_turntable",
+  "district": "d4",
+  "landmarkRefs": [],
+  "scene": {
+    "day": "prop/graybox.stage-powell_turntable-day",
+    "night": "prop/graybox.stage-powell_turntable-night"
+  },
+  "halfWidth": 6000,
+  "camera": { "minD": 5200, "maxD": 9200, "a": 3800, "b": 500, "fovDeg": 36, "height": 1350, "damping": 6 },
+  "tags": ["turntable", "cable_car", "street"],
+  "hazards": [],
+  "music": "audio_music/stage-powell_turntable",
+  "ambience": "audio_sfx/ambience-powell_turntable",
+  "crowd": "sparse"
+}

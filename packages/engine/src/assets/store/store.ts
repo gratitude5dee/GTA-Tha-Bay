@@ -1,5 +1,6 @@
 import { FetchFailure } from './fetch-retry.ts';
-import type { Priority } from './lanes.ts';
+import { DOWNLOAD_ALL_QUOTA_FACTOR, quotaFits } from './quota.ts';
+import { IDLE_LANE, PRIORITY_RANK, type Priority } from './lanes.ts';
 import type { FileStore, IndexStore, PackRow, QuotaEstimate } from './ports.ts';
 import { PackUnavailable, type PackRef, type StorageUsage, type WorldPackStore } from './types.ts';
 
@@ -10,9 +11,10 @@ export const MEMORY_FALLBACK_CAP_BYTES = 48 * MIB;
 /** `WORLD_CACHE_SOFT_CAP_MB` (11-platform-pwa.md section 5, rule 3). */
 export const SOFT_CAP_MOBILE_MB = 600;
 export const SOFT_CAP_DESKTOP_MB = 2048;
-export const DOWNLOAD_ALL_QUOTA_FACTOR = 1.2;
 /** How many pack gets a city download keeps in flight at once. */
 export const DOWNLOAD_ALL_CONCURRENCY = 4;
+/** How many `soon` (or `now`) prefetched packs the store keeps between start and end at once; the lanes cap them further. */
+export const PREFETCH_SOON_WINDOW = 16;
 
 /** What a city download would need and whether the device has room for it. Not a contract. */
 export interface DownloadPlan {
@@ -26,10 +28,7 @@ export interface DownloadPlan {
   shortfallBytes: number;
 }
 
-/** The one rule for "is there room": free quota must cover 1.2 x the missing bytes. No estimate counts as room. */
-export function quotaFits(freeBytes: number | null, missingBytes: number): boolean {
-  return freeBytes === null || freeBytes >= DOWNLOAD_ALL_QUOTA_FACTOR * missingBytes;
-}
+export { DOWNLOAD_ALL_QUOTA_FACTOR, quotaFits };
 
 export function softCapBytes(mobileOrXr: boolean): number {
   return (mobileOrXr ? SOFT_CAP_MOBILE_MB : SOFT_CAP_DESKTOP_MB) * MIB;
@@ -38,6 +37,8 @@ export function softCapBytes(mobileOrXr: boolean): number {
 /** Only the part of `FetchRetry` the store needs, so tests can substitute a fake. */
 export interface PackFetcher {
   fetchBytes(url: string, o: { priority?: Priority; signal?: AbortSignal; bytes?: number }): Promise<Uint8Array>;
+  /** Raises the lane of a request that is still queued; true when it moved (M02f2). Absent: promotion is a no-op. */
+  promote?(url: string, to: Priority): boolean;
 }
 
 export type StoreEvent =
@@ -61,6 +62,8 @@ export interface PackStoreOptions {
   cutscenesBytes?: () => Promise<number>;
   /** False in a read-only second tab: the store then never writes, deletes or sweeps. Default true. */
   writable?: () => boolean;
+  /** How many `idle` prefetched packs start at once (M02f2). Default `IDLE_LANE`, the number of idle lane slots. */
+  prefetchWindow?: number;
   onEvent?: (e: StoreEvent) => void;
 }
 
@@ -80,6 +83,15 @@ export interface PackStoreStats {
   /** Reads served from the store. */
   hits: number;
   evictions: number;
+  /** Prefetch batches cut short by a quota failure (M02f2). */
+  prefetchStops: number;
+}
+
+/** One pack a prefetch batch has not yet handed to `get` (queued, or between its `has` check and its `get`). */
+interface PrefetchItem {
+  ref: PackRef;
+  priority: Priority;
+  batch: { stopped: boolean };
 }
 
 /**
@@ -87,7 +99,7 @@ export interface PackStoreStats {
  * per pack as its commit record. A plain class with an injected clock, so Node tests run it on the memory ports.
  */
 export class PackStore implements WorldPackStore {
-  readonly stats: PackStoreStats = { hits: 0, evictions: 0 };
+  readonly stats: PackStoreStats = { hits: 0, evictions: 0, prefetchStops: 0 };
   softCapBytes: number;
   private readonly files: FileStore;
   private readonly index: IndexStore;
@@ -102,6 +114,13 @@ export class PackStore implements WorldPackStore {
   private readonly onEvent: ((e: StoreEvent) => void) | undefined;
   private readonly pinned = new Set<string>();
   private readonly pending = new Map<string, Promise<Uint8Array>>();
+  private readonly prefetchWindow: number;
+  /** Prefetched packs that have not reached `get`, by hash: the deferred-priority map of `promote`. */
+  private readonly deferred = new Map<string, PrefetchItem>();
+  private prefetchQueue: PrefetchItem[] = [];
+  private prefetchActive = 0;
+  /** Hashes whose commit failed for quota, until the prefetch item that fetched them has looked. */
+  private readonly quotaFailed = new Set<string>();
   private lastTick = 0;
   private chain: Promise<unknown> = Promise.resolve();
 
@@ -118,6 +137,7 @@ export class PackStore implements WorldPackStore {
     this.cutscenesFn = o.cutscenesBytes ?? (() => Promise.resolve(0));
     this.writableFn = o.writable ?? ((): boolean => true);
     this.onEvent = o.onEvent;
+    this.prefetchWindow = Math.max(1, o.prefetchWindow ?? IDLE_LANE);
   }
 
   get writable(): boolean {
@@ -202,6 +222,8 @@ export class PackStore implements WorldPackStore {
   private fetchAndStore(ref: PackRef, o: { priority?: Priority; signal?: AbortSignal }): Promise<ArrayBuffer> {
     const key = ref.sha256;
     let shared = this.pending.get(key);
+    // A demand that joins a queued prefetch raises its lane (M02f2); an `idle` joiner has nothing to raise.
+    if (shared && o.priority && o.priority !== 'idle') this.fetcher.promote?.(ref.url, o.priority);
     if (!shared) {
       // The shared fetch ignores any one caller's signal: a caller that aborts stops waiting, and the fetch still caches the pack.
       shared = this.fetchVerified(ref, o.priority).finally(() => this.pending.delete(key));
@@ -227,6 +249,7 @@ export class PackStore implements WorldPackStore {
       } catch (e) {
         // A cache that cannot be written is not a failed read: serve the verified bytes without caching them.
         const reason = e instanceof PackUnavailable && e.reason === 'quota' ? 'quota' : 'io';
+        if (reason === 'quota') this.quotaFailed.add(ref.sha256);
         this.onEvent?.({ type: 'commit-failed', sha256: ref.sha256, reason });
       }
     }
@@ -293,12 +316,97 @@ export class PackStore implements WorldPackStore {
     return this.exclusive(() => this.remove(sha256, 'purge'));
   }
 
+  /**
+   * Fetches the missing packs of `refs` in the background as one batch (M02f2). At most `windowFor(priority)` start at once, most urgent
+   * first, so a later `promote` still reaches a pack that has not started. A quota failure while the batch runs drops its packs that
+   * have not started and counts one `prefetchStops`.
+   */
   prefetch(refs: readonly PackRef[], priority: 'soon' | 'idle'): void {
+    const batch = { stopped: false };
     for (const ref of refs) {
-      void this.has(ref.sha256)
-        .then((have) => (have ? undefined : this.get(ref, { priority })))
-        .catch(() => undefined);
+      const known = this.deferred.get(ref.sha256);
+      if (known) {
+        if (PRIORITY_RANK[priority] < PRIORITY_RANK[known.priority]) known.priority = priority;
+        continue;
+      }
+      if (this.pending.has(ref.sha256)) continue;
+      const item: PrefetchItem = { ref, priority, batch };
+      this.deferred.set(ref.sha256, item);
+      this.prefetchQueue.push(item);
     }
+    this.pumpPrefetch();
+  }
+
+  private windowFor(p: Priority): number {
+    return p === 'idle' ? this.prefetchWindow : Math.max(this.prefetchWindow, PREFETCH_SOON_WINDOW);
+  }
+
+  private pumpPrefetch(): void {
+    for (;;) {
+      let best = -1;
+      for (let i = 0; i < this.prefetchQueue.length; i++) {
+        const it = this.prefetchQueue[i] as PrefetchItem;
+        if (best < 0 || PRIORITY_RANK[it.priority] < PRIORITY_RANK[(this.prefetchQueue[best] as PrefetchItem).priority]) best = i;
+      }
+      if (best < 0) return;
+      const item = this.prefetchQueue[best] as PrefetchItem;
+      if (this.prefetchActive >= this.windowFor(item.priority)) return;
+      this.prefetchQueue.splice(best, 1);
+      this.prefetchActive++;
+      void this.runPrefetch(item).finally(() => {
+        this.prefetchActive--;
+        this.pumpPrefetch();
+      });
+    }
+  }
+
+  private async runPrefetch(item: PrefetchItem): Promise<void> {
+    const sha = item.ref.sha256;
+    try {
+      if (item.batch.stopped) return;
+      if (await this.has(sha)) return;
+      if (item.batch.stopped) return;
+      // The priority is read now, after the `has` check: a `promote` that arrived meanwhile has raised it.
+      this.quotaFailed.delete(sha);
+      const done = this.fetchAndStore(item.ref, { priority: item.priority });
+      this.deferred.delete(sha);
+      await done;
+    } catch {
+      /* a failed prefetch is a miss; the demand request reports it */
+    } finally {
+      this.deferred.delete(sha);
+    }
+    if (this.quotaFailed.delete(sha) && !item.batch.stopped) {
+      item.batch.stopped = true;
+      this.stats.prefetchStops++;
+      this.prefetchQueue = this.prefetchQueue.filter((q) => {
+        if (q.batch !== item.batch) return true;
+        this.deferred.delete(q.ref.sha256);
+        return false;
+      });
+    }
+  }
+
+  /**
+   * Raises the lane of the packs in `refs` that are still waiting: a fetch that is queued in the fetch layer moves up, and a prefetch
+   * that has not started will start at `to` or higher. A fetch that already runs keeps its priority hint. Returns how many moved.
+   */
+  promote(refs: readonly PackRef[], to: 'now' | 'soon'): number {
+    let moved = 0;
+    let deferredMoved = false;
+    for (const ref of refs) {
+      const item = this.deferred.get(ref.sha256);
+      let hit = false;
+      if (item && PRIORITY_RANK[to] < PRIORITY_RANK[item.priority]) {
+        item.priority = to;
+        deferredMoved = true;
+        hit = true;
+      }
+      if (this.pending.has(ref.sha256) && this.fetcher.promote?.(ref.url, to)) hit = true;
+      if (hit) moved++;
+    }
+    if (deferredMoved) this.pumpPrefetch();
+    return moved;
   }
 
   pin(hashes: readonly string[]): void {

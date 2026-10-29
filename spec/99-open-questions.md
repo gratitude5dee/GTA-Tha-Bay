@@ -19,7 +19,7 @@ Scope: every `## Acceptance criteria` block of the 115 `spec/07-milestones/M*.md
 |---|---|---|---|---|---|
 | Q-08 | Which licence does the open-source repository use (Q-08 chose open source; world data ODbL)? | owner | `LicenseRef-DeeVerse-Owned` placeholder in `REUSE.toml` (M00b) until the owner picks | M14b3 `public-repo` step only | 2026-10-18 |
 | Q-13 | Which physical test devices exist? (was Q-S11-01) | owner | iPhone 15, iPhone 16/17, Quest 3, Vision Pro (visionOS 26.2+), Apple Silicon Mac; Windows GPUs optional, so `desktop-ultra` stays uncalibrated without them | device ACs only of M01b2, M01c, M01e, M02b1, M02b2, M03b1, M04b2, M04c, M07b2, M08c2, M11a2, M11b1, M11b4, M13a4, M13a5, M14a, M14b3, M15b (CI parts proceed) | 2026-10-18 |
-| Q-14 | Raise the USD 100 fal cap (DL-OWN-01)? | owner | **closed: no.** Generation follows `03-story-cutscenes.md` §D9.1 and stops at the $40 line; a raise is a `programCapUsdMicros` change with `ownerApproval` | none | 2026-10-18 |
+| Q-14 | Raise the USD 100 fal cap (DL-OWN-01)? | owner | **closed: no.** Generation follows `03-story-cutscenes.md` §D9.1 and stops at the $38 line (DL-OWN-07); a raise is a `programCapUsdMicros` change with `ownerApproval` | none | 2026-10-18 |
 | Q-15 | Production and staging domains, zone plan, GitHub visibility and plan (was Q-BE-08, Q-CI-01/02) | owner | one zone with `id.`, `rt.`, `media.`, `ugc.` and `-staging` twins; until then `workers.dev`, with R2 media served by the app Worker at `<origin>/media/` (owner choice 2026-10-20, DL-713; `r2.dev` stays off); prod deploys from tags by an allowlisted actor | custom-domain steps of M00a, M01d, M12a1, M12b1, M12b2, M13a2, M13c2; production hostnames and launch M14b3 (M02c2 AC-14 no longer waits on it, DL-713) | 2026-10-18; owner action raised 2026-10-19; staging media fallback chosen 2026-10-20 |
 | Q-16 | Owner filings: NCMEC ESP, PhotoDNA, Tech Coalition Pathways, DMCA agent, Cloudflare CSAM-tool ticket (was Q-BE-07) | owner | file before M06b2; photos private-only, CyberTipline web form, own hash banks | photo publishing in M06b2; PhotoDNA and NCMEC API in M13d1; agent block in M13d2; `ugc.publish` flip after M13d1 | 2026-10-18 |
 | Q-17 | Who holds the production `FAL_KEY`? (was Q-S05-02) | owner | art lead holds the staff key locally; CI and Worker keys separately scoped with allowed-model lists | live runs of M00c, M05c3, M06b4, M10a1, M10a2, M10b | 2026-10-18 |
@@ -93,7 +93,7 @@ The world rows U-W1 onward are in `spec/99-open-questions-2.md` §2 (moved for t
 | U-AST-13 | basis_universal XUASTC with three's transcoder | 05-assets §5 | M01d | not used | none |
 | U-AST-14 | iOS decodes Ogg Opus via `decodeAudioData` | barks, TTS | M00c AC-9 (container); M06a4 R&F; M10c | AAC or mp3 | none |
 | U-AST-15 | pinned C2PA signing tool and version | `check:c2pa` | M05b1 Scope (recorded in `spec/03`) | `check:c2pa` blocks release | none |
-| U-AST-16 | H3-family US licence (ADR-GENAI-01) | 03-story; 07-fighter FX6 | M05c3 AC-9 (runs only when `cleared`, Q-30) | fallback chain; in-engine clips | M05c3 AC-9 |
+| U-AST-16 | H3-family US licence (ADR-GENAI-01) | 03-story; 07-fighter FX6 | M05c4 AC-9 (runs only when `cleared`, Q-30; DL-750) | fallback chain; in-engine clips | M05c4 AC-9 |
 | U-AST-17 | art-lead effort: 20–40 min per character; ≈ 160 fighter clip tasks | 05-assets; 07-fighter FX7 | M00c AC-9; M10a1; M10a2 R&F | estimate only; library clips (Q-24) | none |
 | U-AST-18 | Workers AI terms or AUP URL (no ledger fact; F-025 is prices only) | `vendorTerms` `workers_ai`; vendor-terms index | M13d2 Scope (`pending-manual` until recorded in `spec/03`) | entry shows "pending review"; `Q-23f` | none |
 | U-BE-1 | cross-origin WebSocket from a COEP page to `rt.<domain>` | 09-backend §2 | M12b2 AC-9 | same-origin `/rt` (Q-BE-02 fallback) | none |
@@ -117,9 +117,9 @@ The world rows U-W1 onward are in `spec/99-open-questions-2.md` §2 (moved for t
 | U-BE-20 | `wrangler deployments status --json` field names | `tools/ci/deploy.ts` | M00a R&F | `versions list --json`; else stop before deploy | none |
 | U-BE-21 | DO restarts scoped to the deploying script | split Workers | M12c1 AC-12 | split Workers anyway | none |
 | U-BE-22 | `wrangler preview` validates `secrets.required` like `deploy` and `versions upload` (research verifies only those two [research/gap-ci-cd-release-assets.md §0 item 4]) | `deploy:preview` after a secret joins `secrets.required` (DL-679) | M06a1 N (first Preview with `PLAY_TOKEN_HMAC` required) | set the Preview base secret with `wrangler preview base-config secret put` before the PR | none |
-| U-COST-1 | fal minimum top-up, lock threshold, last dollars spendable | DL-OWN-01 tranches | M00c | $8 buffer absorbs it; recharge off | none |
+| U-COST-1 | fal minimum top-up, lock threshold, last dollars spendable | DL-OWN-01 tranches | M00c | $2 buffer absorbs it (DL-OWN-07); recharge off | none |
 | U-COST-2 | fal concurrency stays 2 under $100 total | batch plan | M10a1; M10a2 | batches of two | none |
-| U-COST-3 | fal bills refused or errored requests | ledger | M05c3 R&F; M00c | assume billed; loss from the buffer | none |
+| U-COST-3 | fal bills refused or errored requests | ledger | M05c4 R&F; M00c | assume billed; loss from the buffer | none |
 | U-COST-4 | per-MAU usage and $25/h review rate | 10-cost-model | M14b1 (re-measure after launch) | research proposals | none |
 | U-COST-5 | per-request fal billing is retrievable for reconciliation | ledger | M10a2 R&F | weekly dashboard reconcile; record drift | none |
 | U-API-1 | full CSP on Safari 26, Quest Browser, visionOS; mod `srcdoc` frame under CSP and COEP (no isolation, no `SharedArrayBuffer`) | spec/05 §1.3; 12-modding §2.5 | M05b1 AC-11 (Report-Only); M13a5 AC-6, AC-9; M14b3 AC-10 | Report-Only until M14b2 enforces; frame keeps its own CSP; `mods.ui` off | none |

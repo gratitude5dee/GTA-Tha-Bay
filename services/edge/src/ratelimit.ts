@@ -12,7 +12,7 @@ import type { Ctx } from './router.ts';
 
 const RETRY_AFTER_MS = 60_000;
 
-async function allowed(binding: RateLimit | undefined, key: string): Promise<boolean> {
+export async function allowed(binding: RateLimit | undefined, key: string): Promise<boolean> {
   if (!binding) return true;
   try {
     return (await binding.limit({ key })).success;

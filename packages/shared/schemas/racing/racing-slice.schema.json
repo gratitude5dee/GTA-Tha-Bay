@@ -1,0 +1,107 @@
+{
+  "$id": "https://dv.local/schema/save/racing.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RacingSlice schema 1 (slot mode:racing; 06-racing-data.md 4.4; M07a2)",
+  "type": "object",
+  "required": ["schema", "rep", "purseCents", "settings", "ladder", "events", "ghosts", "pursuit", "vehicleHeat", "stats"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "rep": { "type": "number", "minimum": 0 },
+    "purseCents": { "type": "integer", "minimum": 0 },
+    "settings": {
+      "type": "object",
+      "required": ["difficulty", "assists", "units", "vehicleView", "hud", "ghost"],
+      "additionalProperties": false,
+      "properties": {
+        "difficulty": { "enum": ["easy", "normal", "hard"] },
+        "assists": {
+          "type": "object",
+          "required": ["steerAssist", "brakeAssist", "autoThrottle", "autoBrake", "driftAssist", "stabilityControl", "racingLine", "resetPenalty"],
+          "additionalProperties": false,
+          "properties": {
+            "steerAssist": { "enum": [0, 1, 2, 3] },
+            "brakeAssist": { "type": "boolean" },
+            "autoThrottle": { "type": "boolean" },
+            "autoBrake": { "type": "boolean" },
+            "driftAssist": { "enum": [0, 1, 2] },
+            "stabilityControl": { "type": "boolean" },
+            "racingLine": { "enum": ["off", "brake", "full"] },
+            "resetPenalty": { "type": "boolean" }
+          }
+        },
+        "units": { "enum": ["kph", "mph"] },
+        "vehicleView": { "enum": ["chase-near", "chase-mid", "chase-far", "hood", "cockpit"] },
+        "hud": { "enum": ["full", "minimal"] },
+        "ghost": { "enum": ["off", "best", "friend"] }
+      }
+    },
+    "ladder": {
+      "type": "object",
+      "required": ["beaten", "current"],
+      "additionalProperties": false,
+      "properties": {
+        "beaten": { "type": "array", "maxItems": 10, "items": { "type": "string", "maxLength": 64 } },
+        "current": { "type": "integer", "minimum": 0, "maximum": 10 }
+      }
+    },
+    "events": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["medals", "plays", "lastPlayed"],
+        "additionalProperties": false,
+        "properties": {
+          "bestMs": { "type": "integer", "minimum": 0 },
+          "bestScore": { "type": "number" },
+          "medals": { "enum": [0, 1, 2, 3] },
+          "plays": { "type": "integer", "minimum": 0 },
+          "lastPlayed": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "ghosts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["vehicleDef", "ms", "profile", "buildId", "worldBake", "inputsB64", "trackB64", "savedAt"],
+        "additionalProperties": false,
+        "properties": {
+          "vehicleDef": { "type": "string", "maxLength": 64 },
+          "ms": { "type": "integer", "minimum": 0 },
+          "profile": { "enum": ["local", "canonical"] },
+          "buildId": { "type": "string", "maxLength": 64 },
+          "worldBake": { "type": "string", "maxLength": 64 },
+          "inputsB64": { "type": ["string", "null"], "maxLength": 32768 },
+          "trackB64": { "type": "string", "maxLength": 32768 },
+          "savedAt": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "pursuit": {
+      "type": "object",
+      "required": ["bountyRecord", "longestSec", "evaded", "busted"],
+      "additionalProperties": false,
+      "properties": {
+        "bountyRecord": { "type": "number", "minimum": 0 },
+        "longestSec": { "type": "number", "minimum": 0 },
+        "evaded": { "type": "integer", "minimum": 0 },
+        "busted": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "vehicleHeat": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0, "maximum": 5 } },
+    "stats": {
+      "type": "object",
+      "required": ["races", "wins", "distanceKm", "driftScoreBest", "airtimeBestSec", "takedowns"],
+      "additionalProperties": false,
+      "properties": {
+        "races": { "type": "integer", "minimum": 0 },
+        "wins": { "type": "integer", "minimum": 0 },
+        "distanceKm": { "type": "number", "minimum": 0 },
+        "driftScoreBest": { "type": "number", "minimum": 0 },
+        "airtimeBestSec": { "type": "number", "minimum": 0 },
+        "takedowns": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

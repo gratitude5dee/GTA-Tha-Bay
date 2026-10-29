@@ -88,8 +88,9 @@ export async function handlePrewarm({ request, env, requestId, deps }: Ctx): Pro
       results.push(await stub.status(key));
       continue;
     }
-    // A ready key stays ready whatever the budget or kill state; only a new generation is held back.
-    const st = block === null ? await stub.ensure(buildCutsceneJob(key, env, 'ops:prewarm'), { allowGenerate: true }) : await stub.status(key);
+    // A ready key stays ready whatever the budget or kill state; only a new generation is held back. A handed-off key never generates:
+    // `ensure` starts its publish phase once finish.json exists, with or without `allowGenerate` (the spend was settled at the hand-off, M05c4).
+    const st = await stub.ensure(buildCutsceneJob(key, env, 'ops:prewarm'), { allowGenerate: block === null });
     results.push(block !== null && st.state === 'absent' ? { ...st, reason: block } : st);
   }
   return json({ keys: results }, { status: 202 });

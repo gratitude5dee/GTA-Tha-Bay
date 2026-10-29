@@ -1,7 +1,7 @@
 /**
  * m.a1.01 Jump Start (Act 1, D3 Bayview; 03-story-narrative.md B4). The first morning: the player walks to the Yard gate, takes the
  * tow truck, finds a stalled robotaxi on Third Street, hooks it (a collect: the car is lifted onto the truck) and tows it home. The
- * clock is locked at 06:00 in fog. The VM has no hitch, so the lifted car is carried and set down in the Yard. Passing grants district d3, the safehouse sh.yard and the tow truck (garage.add).
+ * clock is locked at 06:30 in fog until the truck stage (M02g1), where it is released and the fog burns off into morning sun (C09 1.1). The VM has no hitch, so the lifted car is carried and set down in the Yard. Passing grants district d3, the safehouse sh.yard and the tow truck (garage.add).
  * Coordinates are WGS84 and sit on the sf bake's roads (checked with `pnpm map:resolve`).
  */
 import {
@@ -10,7 +10,7 @@ import {
 
 export default defineMission({
   id: 'm.a1.01',
-  version: 1,
+  version: 2,
   act: 1,
   district: 'd3',
   tags: ['sensitivity-read'],
@@ -31,9 +31,11 @@ export default defineMission({
   outro: { director: 'm.a1.01.pod' },
   stages: [
     stage('to_gate', [goto('yard_gate', { id: 'goto_gate', onFoot: true })], {
-      onEnter: [clock({ lock: { hour: 6, weather: 'karl-fog' } }), say('odessa', 'line.m.a1.01.gate')],
+      onEnter: [clock({ lock: { hour: 6.5, weather: 'karl-fog' } }), say('odessa', 'line.m.a1.01.gate')],
     }),
-    stage('truck', [enterVehicle('tow', { id: 'enter_tow' })], { onEnter: [spawn('pod_car'), say('odessa', 'line.m.a1.01.truck')] }),
+    stage('truck', [enterVehicle('tow', { id: 'enter_tow' })], {
+      onEnter: [clock({ unlock: true, lock: { weather: 'clear' } }), spawn('pod_car'), say('odessa', 'line.m.a1.01.truck')],
+    }),
     stage('to_stall', [goto('stall', { id: 'goto_stall', inVehicle: 'tow', stopped: true })], { onEnter: [say('tavi', 'line.m.a1.01.radio')] }),
     stage('hook', [collect('pod_car', { id: 'hook_pod' })], { onComplete: [say('player', 'line.m.a1.01.hook')] }),
     stage('truck_again', [enterVehicle('tow', { id: 'enter_tow_again' })]),

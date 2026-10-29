@@ -99,7 +99,8 @@ describe('Act 1 hooks on the stub path (AC-4)', () => {
     expect(reg.emit('unlock.fighter', { kind: 'mission', ref: 'again' })).toBe(false);
     expect(reg.list()).toEqual(['unlock.fighter', 'unlock.fighter.rap_new_wave', 'unlock.racing']);
     const defs = new Map(reg.defs().map((d) => [d.id, d]));
-    expect(defs.get('unlock.fighter')?.grants).toEqual({ menuTile: 'fighter' });
+    // M08a2: the tile row also grants the starter pair (FX8.2)
+    expect(defs.get('unlock.fighter')?.grants).toEqual({ menuTile: 'fighter', fighters: ['player', 'standin_rap_new_wave'] });
     expect(defs.get('unlock.fighter.rap_new_wave')?.grants).toEqual({ fighters: ['standin_rap_new_wave'] });
     for (let n = 1; n <= 10; n++) expect(defs.get(`unlock.district.d${n}`)?.grants).toEqual({ districts: [`d${n}`] });
     // racing's registration holds only racing's rows, the story's holds the rest

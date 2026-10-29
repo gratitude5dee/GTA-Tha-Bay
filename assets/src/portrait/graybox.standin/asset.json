@@ -1,0 +1,23 @@
+{
+  "kind": "portrait",
+  "id": "graybox.standin",
+  "variants": {
+    "default": "assets/src/portrait/graybox.standin/default.png"
+  },
+  "deps": [],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:standin"
+  ],
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

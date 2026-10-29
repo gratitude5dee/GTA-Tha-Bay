@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { WALK_DRIVE_GOLDENS, walkDriveSpec } from '../../../packages/engine/src/qa/engine-specs.ts';
 import type { RunSpec } from '../../../packages/engine/src/qa/runner.ts';
-import { RACING_GOLDEN, racingSpec, racingTraceFile } from '../../../packages/modes/racing/src/qa/specs.ts';
+import { RACING_GOLDEN, race3Spec, racingSpec, racingTraceFile } from '../../../packages/modes/racing/src/qa/specs.ts';
 import { MISSIONS_GOLDEN, missionDetSpec, missionsTraceFile } from '../../../packages/modes/story/src/specs.ts';
 
 export interface DetRun {
@@ -39,8 +39,16 @@ export const DET_SUITES: readonly DetSuite[] = [
       { name: 'story.autoplayer on m.dev.sample seed 1', spec: missionDetSpec({ id: 'm.dev.sample', seed: 1, expectedSecMax: 900 }), golden: missionsTraceFile(MISSIONS_GOLDEN.sample) },
     ],
   },
-  { tag: '@racing-det', runs: [{ name: 'racing.line on sf.sprint.ferry-ocean-beach', spec: racingSpec(), golden: racingTraceFile(RACING_GOLDEN.line) }] },
-  { tag: '@fighter-hash', pending: 'M08a1' },
+  {
+    tag: '@racing-det',
+    runs: [
+      { name: 'racing.line on sf.sprint.ferry-ocean-beach', spec: racingSpec(), golden: racingTraceFile(RACING_GOLDEN.line) },
+      // M07a2: the line bot and the two AI rivals on the circuit (3 cars, 3 laps)
+      { name: 'racing.line and two AI rivals on sf.circuit.embarcadero-vanness', spec: race3Spec(), golden: racingTraceFile(RACING_GOLDEN.race3) },
+    ],
+  },
+  // M08a2: the golden .dvfight replays run inside the sim worker (__dvBridge.fighter.replay) and must match every checkpoint
+  { tag: '@fighter-hash', ownSpec: 'tests/e2e/fighter-hash.spec.ts' },
   { tag: '@world-hash', ownSpec: 'tests/e2e/world-hash.spec.ts' },
   // M09a1: the pure tycoon core replays recorded runs in the page (__dvBridge.tycoon.runDet) against tests/golden/tycoon/det-001.json
   { tag: '@tycoon-det', ownSpec: 'tests/e2e/tycoon/tycoon-det.spec.ts' },

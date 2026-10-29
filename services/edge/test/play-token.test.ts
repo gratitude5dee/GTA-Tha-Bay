@@ -106,7 +106,10 @@ describe('POST /api/v1/id/play-token (route 5)', () => {
     expect(await verify({ PLAY_TOKEN_HMAC: `k1:${b64urlEncode(new Uint8Array(32).fill(9))}` }, out.token)).toBeNull();
     expect(await verify({ PLAY_TOKEN_HMAC: SECRET }, out.token, out.exp + 1)).toBeNull();
     const [a, b, c] = out.token.split('.');
-    expect(await verify({ PLAY_TOKEN_HMAC: SECRET }, `${a}.${b}.${c!.slice(0, -2)}AA`)).toBeNull();
+    // flip a character in the middle of the signature (a fixed `AA` tail left the token unchanged whenever the signature already ended in it)
+    const mid = Math.floor(c!.length / 2);
+    const flipped = `${c!.slice(0, mid)}${c![mid] === 'A' ? 'B' : 'A'}${c!.slice(mid + 1)}`;
+    expect(await verify({ PLAY_TOKEN_HMAC: SECRET }, `${a}.${b}.${flipped}`)).toBeNull();
   });
 
   it('AC-6: without PLAY_TOKEN_HMAC the answer is 503 upstream_unavailable and the SKIP line is logged once', async () => {

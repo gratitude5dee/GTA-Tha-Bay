@@ -21,6 +21,7 @@ export type { IpDenylistConfig, StringMatcher } from './assets/gates/ip.ts';
 export * from './genai/types.ts';
 export * from './genai/job-key.ts';
 export * from './genai/cutscene-key.ts';
+export * from './genai/cutscene-offedge.ts';
 export * from './genai/prompt-lint.ts';
 export * from './genai/registry.ts';
 export { GENAI_GUARDRAILS } from './genai/guardrails.generated.ts';

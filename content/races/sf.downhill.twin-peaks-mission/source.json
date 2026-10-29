@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "id": "sf.downhill.twin-peaks-mission",
+  "version": 1,
+  "kind": "downhill",
+  "titleKey": "race.sf.downhill.twin-peaks-mission.title",
+  "district": "d9",
+  "waypoints": [
+    { "lat": 37.75267, "lng": -122.44649 },
+    { "lat": 37.76497, "lng": -122.41968 }
+  ],
+  "hour": 12,
+  "weather": "clear",
+  "traffic": "off",
+  "peds": "sidewalk",
+  "opponents": [
+    { "driverId": "rival.twin-peak", "vehicleDef": "vehicle.kestrel-quill", "skill": 0.58 },
+    { "driverId": "rival.kickstand", "vehicleDef": "vehicle.ondine-pico", "skill": 0.35 }
+  ],
+  "classLimit": ["D", "C"],
+  "loaner": "vehicle.kestrel-quill",
+  "police": { "enabled": false, "startHeat": 0, "maxHeat": 0 },
+  "rubberBand": 0.5,
+  "rewards": [
+    { "kind": "cash", "place": 1, "cents": 300000 },
+    { "kind": "rep", "place": 1, "rep": 110 }
+  ],
+  "xr": "full"
+}

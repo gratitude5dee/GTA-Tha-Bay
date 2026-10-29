@@ -46,6 +46,7 @@ export function mountMissionOverlay(host: MissionBridgeHost & { setPaused?(p: bo
   document.head.append(style);
   const root = document.createElement('div');
   root.className = 'dv-mission';
+  root.dataset['dvQa'] = '';
   root.dataset['testid'] = 'mission-overlay';
   root.setAttribute('role', 'group');
   root.setAttribute('aria-label', 'Mission debug');

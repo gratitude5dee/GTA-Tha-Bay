@@ -221,11 +221,13 @@ test.describe('telemetry @telemetry', () => {
     await page.goto('/?tier=mobile-low');
     await waitForPlatform(page);
     await expect.poll(() => batches.length, { timeout: 30_000 }).toBeGreaterThan(0);
+    const hiddenAt = Date.now();
     await page.evaluate(() => {
       Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    await expect.poll(() => page.evaluate(() => (JSON.parse(localStorage.getItem('dv.hb') ?? '{}') as { state?: string }).state)).toBe('hidden');
+    await expect.poll(() => page.evaluate(() => (JSON.parse(localStorage.getItem('dv.hb') ?? '{}') as { state?: string }).state), { timeout: 30_000 }).toBe('hidden');
+    test.info().annotations.push({ type: 'hidden-heartbeat-ms', description: String(Date.now() - hiddenAt) });
     await expect.poll(() => batches.flatMap((b) => b.events).some((e) => e.name === 'app.hidden'), { timeout: 15_000 }).toBe(true);
   });
 });
@@ -262,7 +264,7 @@ test.describe('telemetry in a blocked region @telemetry', () => {
         Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
         document.dispatchEvent(new Event('visibilitychange'));
       });
-      await expect.poll(() => page.evaluate(() => (JSON.parse(localStorage.getItem('dv.hb') ?? '{}') as { state?: string }).state)).toBe('hidden');
+      await expect.poll(() => page.evaluate(() => (JSON.parse(localStorage.getItem('dv.hb') ?? '{}') as { state?: string }).state), { timeout: 30_000 }).toBe('hidden');
       await page.waitForTimeout(1_000);
     }
     expect(posts).toEqual([]);

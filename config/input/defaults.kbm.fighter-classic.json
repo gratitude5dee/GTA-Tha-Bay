@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "device": "kbm",
+  "contexts": {
+    "fighter": {
+      "axis.MoveX": [
+        {
+          "control": "key:KeyD",
+          "scale": 1
+        },
+        {
+          "control": "key:ArrowRight",
+          "scale": 1
+        },
+        {
+          "control": "key:KeyA",
+          "scale": -1
+        },
+        {
+          "control": "key:ArrowLeft",
+          "scale": -1
+        }
+      ],
+      "sim.Jump": [
+        {
+          "control": "key:KeyW"
+        },
+        {
+          "control": "key:ArrowUp"
+        }
+      ],
+      "sim.Crouch": [
+        {
+          "control": "key:KeyS"
+        },
+        {
+          "control": "key:ArrowDown"
+        }
+      ],
+      "sim.Handbrake": [
+        {
+          "control": "key:Space"
+        }
+      ],
+      "sim.Emote": [
+        {
+          "control": "key:KeyT"
+        }
+      ],
+      "sim.Block": [
+        {
+          "control": "key:KeyB"
+        }
+      ],
+      "sim.Interact": [
+        {
+          "control": "key:ShiftLeft"
+        }
+      ],
+      "client.Pause": [
+        {
+          "control": "key:Escape"
+        },
+        {
+          "control": "key:KeyP"
+        }
+      ],
+      "sim.Attack": [
+        {
+          "control": "key:KeyU"
+        }
+      ],
+      "sim.Ability": [
+        {
+          "control": "key:KeyI"
+        }
+      ],
+      "sim.FightHeavy": [
+        {
+          "control": "key:KeyO"
+        }
+      ],
+      "sim.Sprint": [
+        {
+          "control": "key:KeyJ"
+        }
+      ],
+      "sim.Nitro": [
+        {
+          "control": "key:KeyK"
+        }
+      ],
+      "sim.Horn": [
+        {
+          "control": "key:KeyL"
+        }
+      ]
+    }
+  }
+}

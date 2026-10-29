@@ -1,7 +1,8 @@
-import { SimStage, type EntityId, type SystemDef } from '@dv/shared';
+import { datan2, dcos, dsin, SimStage, TWO_PI, type EntityId, type SystemDef } from '@dv/shared';
 import { Control, PlayerControlled, Transform, Velocity } from '../ecs/components.ts';
 import { PHYSICS_CONFIG, type CharacterConfig } from '../physics/config.ts';
 import type { EngineServices } from '../services.ts';
+import { armMoveLatch, noteWaterRespawn } from './latch.ts';
 import { requestTeleport } from './ownership.ts';
 import { CONTROL_OWNER, CONTROL_PHASE, CONTROL_STATE, OWNER_NAMES, PHASE_NAMES, packPending, phaseOf } from './states.ts';
 
@@ -25,10 +26,15 @@ export interface SwimOptions {
  * `WorldBoundsPort` (a session without a baked world) the system does nothing.
  *
  * The fade is the SimEvent `world.teleport` with `s: 'out'` and `s: 'in'` (the page draws it).
+ *
+ * DL-753 (02-world-maps.md 4.1 a): the respawn turns the player inland, along the shore node's normal away from the water, and arms
+ * the movement latch (`latch.ts`), so a stick held through the fade does not walk the player straight back in. When the fade-in starts
+ * the respawn is recorded (`noteWaterRespawn`) and the page turns its camera to the same yaw.
  */
 export function swimSystem(opts: SwimOptions): SystemDef {
   const cfg = opts.config ?? PHYSICS_CONFIG.character;
   let fadingIn = false;
+  let inlandYaw = 0;
   return {
     id: SWIM_ID, owner: 'S01', stage: SimStage.Control, order: -10,
     run: ({ ecs, tick }) => {
@@ -51,6 +57,7 @@ export function swimSystem(opts: SwimOptions): SystemDef {
         if (owner === CONTROL_OWNER.OnFoot && phaseOf(co.pending[id] as number) === CONTROL_PHASE.Ready) {
           if (fadingIn && !services.control.teleportActive && state === CONTROL_STATE.idle) {
             fadingIn = false;
+            noteWaterRespawn(services.control, inlandYaw);
             services.events.push({ t: 'world.teleport', tick, a: handle, s: 'in' });
           }
           if (state === CONTROL_STATE.teleportPending || state === CONTROL_STATE.teleportWaiting) continue;
@@ -78,8 +85,17 @@ export function swimSystem(opts: SwimOptions): SystemDef {
         co.pending[id] = packPending(CONTROL_PHASE.Ready, CONTROL_OWNER.None);
         services.events.push({ t: 'world.teleport', tick, a: handle, s: 'out' });
         const r = requestTeleport(ecs, services, handle, [shore.x - shore.nx * SHORE_INLAND_M, shore.y, shore.z - shore.nz * SHORE_INLAND_M], tick);
-        if (r.ok) fadingIn = true;
-        else {
+        if (r.ok) {
+          fadingIn = true;
+          // facing inland: forward (-sin yaw, -cos yaw) is minus the normal, which points to the water
+          const yaw = datan2(shore.nx, shore.nz);
+          inlandYaw = yaw < 0 ? yaw + TWO_PI : yaw;
+          tr.qx[id] = 0;
+          tr.qy[id] = dsin(inlandYaw / 2);
+          tr.qz[id] = 0;
+          tr.qw[id] = dcos(inlandYaw / 2);
+          armMoveLatch(services.control);
+        } else {
           services.events.push({ t: 'control.refused', tick, a: handle, s: r.reason });
           services.events.push({ t: 'world.teleport', tick, a: handle, s: 'in' });
         }

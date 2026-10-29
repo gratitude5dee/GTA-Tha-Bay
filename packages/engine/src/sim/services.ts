@@ -25,6 +25,8 @@ export interface EngineServices extends SimServices {
   readonly rng: RngStreams;
   /** Player 0's quantized input for the tick about to run (C02 determinism rule 4); null when there is none. */
   input: InputFrame | null;
+  /** Player 1's input (a second pad, local Versus; M08a2). Nothing sets it yet, so `ModeContext.input.frame(1)` reads neutral until the router carries a second device. */
+  input1?: InputFrame | null;
   /** The physics backend once the session has one (M01a2); null in physics-free sims. */
   physics: PhysicsSystemsBackend | null;
   /** Facts for the page and other systems (ownership transitions). Drained by the host once per frame. */
@@ -93,6 +95,14 @@ export interface ControlShared {
   teleportX: number;
   teleportY: number;
   teleportZ: number;
+  /**
+   * DL-753 (`control/latch.ts`): the local player's movement input is ignored until a frame with every movement axis centred, after a
+   * water respawn.
+   */
+  moveLatch: boolean;
+  /** DL-753: water respawns so far this session, and the inland yaw of the last one (for the page's camera; the sim never reads them). */
+  respawnSeq: number;
+  respawnYaw: number;
 }
 
 /**
@@ -107,6 +117,12 @@ export interface CameraDirectiveState {
   /** Collision result along the tp offset for the right and the left shoulder, metres from the anchor. Derived. */
   allowedRight: number;
   allowedLeft: number;
+  /**
+   * M02g1: the chase distance and the anchor height of the followed vehicle, from the half extents of its physics body (derived by the
+   * camera collision system each tick, not simulation state: neither is hashed or checkpointed). Absent: the defaults of `collision.ts`.
+   */
+  chaseM?: number;
+  anchorUpM?: number;
 }
 
 export function createSimServices(seed: number): EngineServices {
@@ -116,7 +132,7 @@ export function createSimServices(seed: number): EngineServices {
     input: null,
     physics: null,
     events: new SimEventLog(),
-    control: { teleportActive: false, teleportX: 0, teleportY: 0, teleportZ: 0 },
+    control: { teleportActive: false, teleportX: 0, teleportY: 0, teleportZ: 0, moveLatch: false, respawnSeq: 0, respawnYaw: 0 },
     camera: { lockPlayerToggle: false, reason: 'player', target: 0, allowedRight: 0, allowedLeft: 0 },
     clock: null,
     world: createWorldHub(),
@@ -132,6 +148,8 @@ export function createSimServices(seed: number): EngineServices {
   };
 }
 
+const latchUsed = (c: ControlShared): boolean => c.moveLatch || c.respawnSeq !== 0;
+
 /** The ownership machine's shared state and the camera lock as a hashed, checkpointed resource. */
 export function controlResource(services: Pick<EngineServices, 'control' | 'camera'>): SimResource {
   const reasons = ['player', 'vehicle', 'mission', 'cutscene', 'mode', 'debug'] as const;
@@ -141,6 +159,8 @@ export function controlResource(services: Pick<EngineServices, 'control' | 'came
       const c = services.control;
       h.u8(c.teleportActive ? 1 : 0).f64(c.teleportX).f64(c.teleportY).f64(c.teleportZ);
       h.u8(services.camera.lockPlayerToggle ? 1 : 0).u8(reasons.indexOf(services.camera.reason));
+      // DL-753: only once a water respawn has happened, so every run without one hashes exactly as before
+      if (latchUsed(c)) h.u8(c.moveLatch ? 1 : 0).u32(c.respawnSeq).f64(c.respawnYaw);
     },
     save(w) {
       const c = services.control;
@@ -150,6 +170,12 @@ export function controlResource(services: Pick<EngineServices, 'control' | 'came
       w.f64(c.teleportZ);
       w.u8(services.camera.lockPlayerToggle ? 1 : 0);
       w.u8(reasons.indexOf(services.camera.reason));
+      // DL-753: a trailing block, written only once in use; a checkpoint without it loads with the latch off
+      if (latchUsed(c)) {
+        w.u8(c.moveLatch ? 1 : 0);
+        w.u32(c.respawnSeq);
+        w.f64(c.respawnYaw);
+      }
     },
     load(r) {
       const c = services.control;
@@ -159,6 +185,10 @@ export function controlResource(services: Pick<EngineServices, 'control' | 'came
       c.teleportZ = r.f64();
       services.camera.lockPlayerToggle = r.u8() !== 0;
       services.camera.reason = reasons[r.u8()] ?? 'player';
+      const more = r.remaining > 0;
+      c.moveLatch = more ? r.u8() !== 0 : false;
+      c.respawnSeq = more ? r.u32() : 0;
+      c.respawnYaw = more ? r.f64() : 0;
     },
   };
 }

@@ -363,7 +363,7 @@ Facts: presigned URLs work only on the S3 endpoint, not custom domains; Content-
 | `ks:<name>` | `{on, reason, by, ts, expiresAt}` — names `genai:all`, `anthropic`, `anthropic:sonnet`, `fal`, `fal:<endpointId>`, `cutscene_gen`, `npc_builder`, `tts:elevenlabs`, `tts:all`, `likeness:<npcId>`, `telemetry:verbose`, `rooms:new` | `PUT /admin/flags/:flag`, `tools/ops/ks.ts` (audited) | all genAI paths (30 s) |
 | `gov:level` | `{level: 0..3, at, byVendor}` | BudgetGovernorDO on each transition and every 60 s | all genAI paths (30 s) |
 | `flags:features` | `Record<FeatureFlag, boolean>` | admin | `/boot` (60 s) |
-| `lb:<board>` | top-100 JSON | leaderboard writer | `/leaderboards` (30 s) |
+| `lb:<board>` | top-100 JSON | leaderboard writer | `/leaderboards` (30 s); held in isolate memory, not KV, while on Workers Free (1,000 KV writes a day; DL-746) |
 | `jwks:fal` | fal webhook JWKS (≤ 24 h) | webhook route | webhook route |
 
 KV is eventually consistent (≥ 60 s) and allows 1 write/s per key [research/stack-cloudflare-backend.md §1.5]; anything needing an immediate stop also goes through a DO (`BudgetGovernorDO.forceLevel`, `EncounterDO.kill`).

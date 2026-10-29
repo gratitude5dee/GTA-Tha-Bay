@@ -1,0 +1,25 @@
+{
+  "schema": "fame-domains/1",
+  "note": "Fame-domain exclusion (spec/domains/07-fighter-content.md FX1, FX4). `domains` maps a domain to the words a kit may not use; `slots` is the domain each roster slot reserves whoever fills it (so a kit stays clean when a real-derived character takes the slot); `forbiddenStageTags` maps a domain to the stage tags its fighters may not fight on. Words match whole words after splitting camelCase and punctuation.",
+  "domains": {
+    "rap_performance": ["mic", "song", "lyric", "verse", "beat", "track", "perform", "concert", "stage light"],
+    "basketball": ["hoop", "dunk", "court", "jersey", "three-pointer"],
+    "football": ["tackle", "pads", "helmet", "endzone", "jersey"],
+    "streaming": ["stream", "subscribe", "viewer", "donate"]
+  },
+  "slots": {
+    "RAP_HYPHY_ELDER": ["rap_performance"],
+    "RAP_LYRICIST": ["rap_performance"],
+    "RAP_NEW_WAVE": ["rap_performance"],
+    "TECH_HACKER": ["streaming"],
+    "ATH_SHOOTER": ["basketball"],
+    "ATH_POWER_BACK": ["football"],
+    "INFLUENCER": ["streaming"]
+  },
+  "forbiddenStageTags": {
+    "basketball": ["arena_court"],
+    "football": ["arena_field"],
+    "rap_performance": ["concert_stage"],
+    "streaming": ["broadcast_booth"]
+  }
+}

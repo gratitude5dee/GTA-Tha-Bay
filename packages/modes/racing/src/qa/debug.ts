@@ -4,6 +4,8 @@
  * production sim bundle has none of it (`verify-dist` greps for `modes.reply.`).
  */
 import type { RacingQaHandler } from '../sim/module.ts';
+import { createRacingLineDriver } from './line-driver.ts';
+import type { RacingObservation } from './scenario.ts';
 
 export const runRacingQa: RacingQaHandler = (cx, cmd, send) => {
   const reply = (data: unknown): void => send(`modes.reply.${cmd.id}`, data);
@@ -30,6 +32,36 @@ export const runRacingQa: RacingQaHandler = (cx, cmd, send) => {
       if (!s || typeof a['amount'] !== 'number') return reply({ ok: false, reason: 'no race or no amount' });
       s.qaFillNitro(a['amount']);
       return reply({ ok: true });
+    }
+    case 'racing.slice':
+      return reply(cx.slice ? { ok: true, slice: cx.slice } : { ok: false, reason: 'no racing slice' });
+    case 'racing.bot': {
+      // the line bot drives the player's car through the sim worker's input source (QA builds only)
+      if (a['on'] !== true) {
+        cx.setBot(null);
+        return reply({ ok: true, on: false });
+      }
+      if (!s) return reply({ ok: false, reason: 'no race' });
+      const raceId = a['raceId'];
+      if (typeof raceId !== 'string') return reply({ ok: false, reason: 'racing.bot needs the raceId' });
+      const driver = createRacingLineDriver();
+      driver.init(
+        {
+          observe: () => {
+            const st = s.state();
+            const car = st.car;
+            const o: RacingObservation = {
+              phase: st.phase, tick: st.tick, s: st.s, x: car ? car.pos[0] : 0, z: car ? car.pos[2] : 0, yaw: car ? car.yaw : 0,
+              speed: car ? car.speedMps : 0, gate: st.gate, outcome: st.outcome,
+            };
+            return o as unknown as Record<string, unknown>;
+          },
+          rng: () => () => 0.5,
+        },
+        { raceId, ...(typeof a['vehicle'] === 'string' ? { vehicle: a['vehicle'] } : {}) },
+      );
+      cx.setBot({ device: 'bot', frame: (tick) => driver.frame(tick) });
+      return reply({ ok: true, on: true });
     }
     case 'racing.quit':
       return reply({ ok: cx.host?.quit() ?? false });

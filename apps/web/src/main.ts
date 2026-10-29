@@ -8,6 +8,7 @@ import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/clien
 import platformFlags from '../../../config/platform-flags.json';
 import { createVoicePreview, creatorVoiceRef, CREATOR_VOICES, loadPrefs, memoryPrefs, defaultPrefs, mountShell, registerTexts, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps, type VoicePreview } from '@dv/ui';
 import type { TtsAudioHost } from '@dv/npc/voice';
+import type { FighterUiHandle } from './fighter-ui.ts';
 import { TERMS_VERSION } from '../../../config/terms.ts';
 import { installIdentityBridge, wireIdentity } from './identity.ts';
 import type { CutsceneGlue } from './cutscene.ts';
@@ -36,12 +37,17 @@ const update = 'serviceWorker' in navigator
 
 // The QA play bypass (M04b1, DL-650): `?play=sandbox|story`, the QA-only key `dv-qa-play`, or `?scenario=<id>` skips the gates and starts
 // that mode. It runs on an in-memory profile of preferences: nothing about the attestation or the Terms is persisted.
-const qaPlay = QA && (flags.play === 'sandbox' || flags.play === 'story') ? ({ mode: flags.play } as const) : null;
+// `?fighter=versus|training|demo` (M08a2) takes the same bypass, so the arena opens with no gate in front of it.
+const qaPlay = QA && (flags.play === 'sandbox' || flags.play === 'story')
+  ? ({ mode: flags.play } as const)
+  : QA && flags.fighterStart !== null ? ({ mode: 'sandbox' } as const) : null;
 
 // What the shell last asked of the engine and the canvas. The shell exists before the engine does, so these are applied when each appears.
 const want = { play: qaPlay !== null || flags.debug, paused: false, view: qaPlay !== null || flags.debug };
 let canvasRef: HTMLCanvasElement | null = null;
 let engineRef: EngineHandle | null = null;
+// The speculative boot download of the baked world (M02f2); set once the world is prepared.
+let bootPrefetch: { promote(): Promise<number>; markPlay(): void } | null = null;
 const applyView = (): void => {
   document.documentElement.classList.toggle('dv-playing', want.view);
   document.documentElement.classList.add('dv-world');
@@ -50,8 +56,10 @@ const applyView = (): void => {
 const hooks: ShellHooks = {
   play: (on) => {
     want.play = on;
+    if (on) bootPrefetch?.markPlay();
     engineRef?.setPlay(on);
   },
+  modeStart: () => void bootPrefetch?.promote(),
   setPaused: (p) => {
     want.paused = p;
     engineRef?.setPaused(p);
@@ -238,12 +246,17 @@ async function boot(): Promise<void> {
           postLevel: platform.quality.dynamic.postLevel,
         },
         labels: { redownload: t('world.redownload'), offline: t('world.offline') },
+        // The rest of the boot set downloads at idle priority behind the menu once the world is revealed (M02f2); `?prefetch=0` (QA builds)
+        // turns that off for the start-to-play comparison of the demo.
+        menu: () => !want.play,
+        prefetch: !(QA && new URLSearchParams(location.search).get('prefetch') === '0'),
         container,
         emit: (name, props) => platform.telemetry.emit(name, props),
         qa: QA,
         // The neighbourhood banner (M02c2): the HUD shows `hud.area` { key: 'nhood.<slug>' }, at most once per 3 s.
         onArea: (p) => engineRef?.vm.setLocal('hud.area', { key: p.key, name: p.slug }),
       });
+      bootPrefetch = prepared.prefetch;
       const layer = prepared.view.map;
       if (layer) {
         mapPort = {
@@ -370,6 +383,15 @@ async function boot(): Promise<void> {
         });
     });
   }
+  // Culture Wars (M08a2): the HUD, the screens and the arena while the fighter runs. A failure here never stops the game.
+  let fighterUi: FighterUiHandle | null = null;
+  if (engine) {
+    void import('./fighter-ui.ts')
+      .then((m) => {
+        fighterUi = m.installFighterUi({ engine, host: platform.host, report: (name, props) => platform.telemetry.emit(name, props) });
+      })
+      .catch((e: unknown) => console.warn('fighter ui failed', e));
+  }
   // The map palette follows the HUD palette setting (default, deutan, protan, tritan; M02c2).
   if (engine && prepared?.view.map) {
     const map = prepared.view.map;
@@ -459,11 +481,29 @@ async function boot(): Promise<void> {
     if (assets) installAssetsBridge(assets);
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});
-    if (prepared && qaChunks.world) (await qaChunks.world).installWorldBridge(prepared.view, platform.quality.tier.id);
+    if (prepared && qaChunks.world) (await qaChunks.world).installWorldBridge(prepared.view, platform.quality.tier.id, prepared.prefetch);
     // ?racing=1 (M07a1): __dvBridge.racing; ?racing=demo also starts the straight demo race at once.
     if (flags.racing) {
       const racing = (await import('@dv/mode-racing/qa/bridge')).installRacingBridge();
       if (flags.racingDemo) void racing.demo().catch((e: unknown) => console.warn('racing demo failed', e));
+    }
+    // ?fighter=1|versus|training|demo (M08a2): __dvBridge.fighter and __dvBridge.fighterStage; versus, training and demo also start that match.
+    if (flags.fighter) {
+      const fighter = (await import('@dv/mode-fighter/qa/bridge')).installFighterBridge();
+      const w = window as unknown as { __dvBridge?: Record<string, unknown> };
+      w.__dvBridge = {
+        ...w.__dvBridge,
+        fighterStage: {
+          state: () => fighterUi?.stage()?.state ?? null,
+          objects: () => fighterUi?.stage()?.objects() ?? 0,
+        },
+      };
+      if (flags.fighterStart) {
+        const kind = flags.fighterStart;
+        void fighter
+          .start({ kind, ...(flags.fighterDemo ? { bot: true, cpu: 2 as const } : {}), ...(kind === 'training' ? {} : { cpu: flags.fighterDemo ? 2 : 1 }) })
+          .catch((e: unknown) => console.warn('fighter start failed', e));
+      }
     }
     // ?tycoon=1 (M09a1): the Business Tycoon QA panel and __dvBridge.tycoon (text panel, seeded runs, the cross-browser det check).
     if (flags.tycoon) (await import('@dv/mode-tycoon/qa/bridge')).installTycoonBridge();

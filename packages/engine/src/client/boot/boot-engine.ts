@@ -19,13 +19,14 @@ import type { ObjectPool } from '../snapshot/object-pool.ts';
 import { CameraRigImpl, type CameraLike } from '../camera/rig.ts';
 import { CONTROL_OWNER } from '../../sim/control/states.ts';
 import type { PursuitSide } from '../snapshot/reader.ts';
-import { headingOf, VehicleCamera, type VehiclePose } from '../vehicle/vehicle-camera.ts';
+import { headingOf, horizonFromTop, VehicleCamera, type VehiclePose } from '../vehicle/vehicle-camera.ts';
 import {
   GamepadBinder, InputRouterImpl, KbmBinder, pitchToI16, TouchBinder, writeInputFrame, yawToU16,
   type GamepadLike, type PointerLockTarget, type TouchLayout,
 } from '../input/index.ts';
 import touchLayoutJson from '../../../../../config/input/touch/default-right.json';
 import racingTouchLayoutJson from '../../../../../config/input/touch/vehicle-racing.json';
+import fighterTouchLayoutJson from '../../../../../config/input/touch/fighter-simple.json';
 import { ENGINE_TIERS } from '../anim/lod.ts';
 import { AUDIO_CONFIG, AudioServiceImpl, type AudioContextLike } from '../audio/audio-service.ts';
 import { createFirstGestureUnlock, type FirstGestureUnlock } from '../../platform/media/first-gesture.ts';
@@ -144,6 +145,8 @@ export interface EngineObservation {
     mode: string; allowedDistance: number | null; lastToggleRefused: boolean; locked: boolean; opacity: number; near: number; far: number;
     /** World position of the draw camera, ENU metres. */
     pos: [number, number, number];
+    /** The player's view yaw, radians (the `camYaw` the page sends; forward is (-sin yaw, -cos yaw)). */
+    yaw: number;
   } | null;
   /** The gray-box block (M01b2); null for the other scenarios. */
   world: GrayboxInfo | null;
@@ -164,7 +167,13 @@ export interface EngineObservation {
   /** The heat (side key `pursuit`, M03c); null at level 0. */
   pursuit: PursuitSide | null;
   /** The vehicle camera: which of the five views, whether it drives the draw camera now, and where the last frame put it. */
-  vehicleCamera: { view: string; active: boolean; x: number; y: number; z: number; distance: number };
+  vehicleCamera: {
+    view: string; active: boolean; x: number; y: number; z: number; distance: number;
+    /** M02g1: the far chase distance the sim published for the followed vehicle, its anchor height, the camera pitch, and where the horizon falls (share of the picture from the top). */
+    farM: number | null; anchorUpM: number | null; pitch: number; horizon: number; attachOpacity: number;
+  };
+  /** M02g1: the player's view angles (what the sim gets as `camYaw`/`camPitch`) and the heading of the player's mesh, for the camera checks. */
+  look: { yaw: number; pitch: number; playerHeading: number | null };
   /** QA tools (M03a1): the entity inspector and the physics wireframe. */
   tools: { inspector: boolean; inspectorComponents: string[]; physics: boolean; physicsBodies: number; physicsShapes: string[] } | null;
 }
@@ -317,8 +326,13 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
 
   // QA `?unlockAll=1`: unlocks in memory only; the sim ignores it unless it was started as a QA build (M04a2).
   if (opts.qa && opts.flags.unlockAll) boot = { ...boot, config: { ...boot.config, unlockAll: true } };
-  // QA `?racing=1`: the sim worker boots the racing module (M07a1).
-  if (opts.qa && opts.flags.racing) boot = { ...boot, config: { ...boot.config, racing: true } };
+  // Racing is on for every session (M07a2: the mode is `available`, the menu and the story hook start races); the sim worker boots the
+  // racing module, which registers its components and the engine port. `?racing=1` (QA) still opens `__dvBridge.racing` (M07a1).
+  boot = { ...boot, config: { ...boot.config, racing: true } };
+  // The fighter module (M08a2): the ECS mirror of a match (components 1280 to 1283). A player's build always has it; a QA build only with `?fighter=...`.
+  if (!opts.qa || opts.flags.fighter) boot = { ...boot, config: { ...boot.config, fighter: true } };
+  // QA `?hooks=stub|bot`: the story mode runs the mode hooks of every mission it starts that way (`?mission=<id>` carries it in its own block).
+  if (opts.qa && opts.flags.hooks !== null) boot = { ...boot, config: { ...boot.config, hooks: opts.flags.hooks } };
   // QA `?npcCast=<n>`: the NPC agency module stands n named NPCs at the hub (the perf scenario npc-mission-crowd, M06c).
   if (opts.qa && opts.flags.npcCast > 0) boot = { ...boot, config: { ...boot.config, npcCast: opts.flags.npcCast } };
 
@@ -401,6 +415,11 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   let drivingCtx = false;
   let snapBehind = false;
   let idleSec = 0;
+  /** The last water respawn the camera has turned for (DL-753); null until the page has seen the player. */
+  let respawnSeen: number | null = null;
+  // M02g1: after a teleport or a respawn (`world.teleport` `in`) the view turns to the player's heading for a few frames.
+  let alignYawUntil = -1;
+  let lastAttachOpacity = 1;
   let inspector: Inspector | null = null;
   let physicsDraw: PhysicsDraw | null = null;
   let physicsPoll = 0;
@@ -478,6 +497,10 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         }
         if (e.t === 'audio.cue' && e.s) audio?.play({ tick: e.tick, cue: e.s, bus: AUDIO_CONFIG.footstep.bus, ...(e.a !== undefined ? { entity: e.a } : {}) });
         else if (e.t === 'world.chunk') chunksLoaded = Math.max(chunksLoaded, e.n ?? 0);
+        else if (e.t === 'world.teleport' && e.s === 'in') {
+          alignYawUntil = frames + 12;
+          if (drivingCtx) snapBehind = true;
+        }
       }
     },
   });
@@ -602,7 +625,25 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     if (!recovering && host.view && view.update(host.view)) {
       pool?.sync(view.poses, view.count, (k) => view.keys.get(k), dtSec, camPos);
     }
+    // M02g1: a teleport or a respawn turns the view to the player's heading (the camera stood where it looked before the move).
+    if (alignYawUntil >= frames && !drivingCtx && view.camera?.follow) {
+      const pose = targetFull(view.camera.follow.target);
+      if (pose) look.yaw = headingOf(pose);
+    }
     mirrorHud();
+    // A water respawn turns the view inland, the way the sim turned the player (DL-753): on foot the look takes the yaw at once (the
+    // veil is down), in a vehicle the chase camera snaps behind the car, which the sim put down facing inland.
+    if (view.player) {
+      const seq = view.player.respawn?.seq ?? 0;
+      if (respawnSeen !== null && seq !== respawnSeen && view.player.respawn) {
+        if (view.player.owner === CONTROL_OWNER.Vehicle) snapBehind = true;
+        else {
+          look.yaw = view.player.respawn.yaw;
+          rig?.snap();
+        }
+      }
+      respawnSeen = seq;
+    }
     pursuitUi?.update(view.pursuit);
     if (physicsDraw?.visible) {
       physicsDraw.sync(view.poses, view.count);
@@ -628,12 +669,17 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         vcam.recentre(look, heading, idleSec, dtSec);
         vcam.update({
           camera: rig.camera, pose: vpose, look, allowed: view.camera?.allowedDistance ?? null, dtSec, idleSec,
+          ...(vfollow.offset[2] > 0 ? { farM: vfollow.offset[2] } : {}),
+          ...(view.camera?.chaseAnchorUp !== undefined ? { anchorUpM: view.camera.chaseAnchorUp } : {}),
           drawDistanceM: (tier?.budget.world.buildingDrawDistanceM ?? FALLBACK_DRAW_DISTANCE_M) + (worldBoot ? (tier?.budget.world.altitudeBoostM ?? 0) : 0),
         });
         if (pool) {
           pool.hiddenHandle = null;
           pool.fadeHandle = null;
           pool.fadeOpacity = 1;
+          // M02g1: the vehicle's own attachments (the tow boom) fade while they stand between the camera and the vehicle.
+          const up = view.camera?.chaseAnchorUp ?? 0.9;
+          lastAttachOpacity = pool.fadeAttachments(vfollow.target, { x: vcam.last.x, y: vcam.last.y, z: vcam.last.z }, { x: vpose.x, y: vpose.y + up, z: vpose.z }, dtSec);
         }
         if (xrSmoke) xrSmoke.update();
         xrPanels?.update(nowMs / 1000);
@@ -771,10 +817,24 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     pad.attach(window as unknown as BinderTarget);
     touchBinder.attach(overlay.root as unknown as BinderTarget);
     // A mode with its own touch layout (racing, M07a1) swaps it in while it is the root of the mode stack.
+    // The fighter (M08a2) brings its own layout and the `fighter` input context while it runs, as the root mode or embedded in the story.
+    let fightingCtx = false;
     cleanups.push(vm.subscribe('sys.mode', (v) => {
-      const rootMode = (v as { stack?: { id: string }[] } | undefined)?.stack?.[0]?.id;
-      modeTouch = rootMode === 'racing' ? (racingTouchLayoutJson as unknown as TouchLayout) : null;
+      const stack = (v as { stack?: { id: string }[] } | undefined)?.stack ?? [];
+      const rootMode = stack[0]?.id;
+      const fighting = stack.some((e) => e.id === 'fighter');
+      modeTouch = rootMode === 'racing' ? (racingTouchLayoutJson as unknown as TouchLayout) : fighting ? (fighterTouchLayoutJson as unknown as TouchLayout) : null;
       applyTouch();
+      if (router && fighting !== fightingCtx) {
+        fightingCtx = fighting;
+        if (fighting) router.push('fighter');
+        else router.pop('fighter');
+      }
+    }));
+    // The scheme the fighter menu holds picks the binding files of the `fighter` context (C03 1.1 `fighterScheme`).
+    cleanups.push(vm.subscribe('mode.fighter.menu', (v) => {
+      const scheme = (v as { scheme?: string } | undefined)?.scheme;
+      if (scheme === 'classic' || scheme === 'simple') router?.setFighterScheme(scheme);
     }));
     overlay.setEnabled(playing);
     cleanups.push(() => kbm.detach(), () => pad.detach(), () => touchBinder?.detach(), () => overlay?.dispose());
@@ -971,6 +1031,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
               near: cam?.near ?? 0,
               far: cam?.far ?? 0,
               pos: cam ? [cam.position.x, cam.position.y, cam.position.z] : [0, 0, 0],
+              yaw: look.yaw,
             }
           : null,
         world: world ? world.info() : null,
@@ -987,7 +1048,18 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         vehicle: view.vehicle,
         prompt: view.prompt,
         pursuit: view.pursuit,
-        vehicleCamera: { view: vcam.view, active: drivingCtx, x: vcam.last.x, y: vcam.last.y, z: vcam.last.z, distance: vcam.last.distance },
+        vehicleCamera: {
+          view: vcam.view, active: drivingCtx, x: vcam.last.x, y: vcam.last.y, z: vcam.last.z, distance: vcam.last.distance,
+          farM: drivingCtx && view.camera?.follow ? view.camera.follow.offset[2] : null,
+          anchorUpM: drivingCtx ? view.camera?.chaseAnchorUp ?? null : null,
+          pitch: look.pitch,
+          horizon: horizonFromTop(look.pitch, 70),
+          attachOpacity: lastAttachOpacity,
+        },
+        look: {
+          yaw: look.yaw, pitch: look.pitch,
+          playerHeading: view.camera?.follow ? ((): number | null => { const p = targetFull(view.camera.follow.target); return p ? headingOf(p) : null; })() : null,
+        },
         tools: inspector && physicsDraw
           ? {
               inspector: inspector.visible, inspectorComponents: inspector.components, physics: physicsDraw.visible,

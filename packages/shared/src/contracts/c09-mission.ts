@@ -1,4 +1,4 @@
-// C09 MissionScript (1.0.0): the mission IR types of spec/domains/03-story-missions.md section C3, verbatim.
+// C09 MissionScript (1.1.0; 1.1: `clock` with `unlock` and a weather-only `lock` releases, then blends): the mission IR types of spec/domains/03-story-missions.md section C3, verbatim.
 // M05b1 created this file as a stub because M04c had not landed; M05a1 completes it. The first four type lines below the version are
 // the stub's and stay unchanged. Differences from the spec text, all type-level: the three `import('...')` type aliases of the spec
 // became `import type` lines (lint rule consistent-type-imports); `JsonObject` comes from c05-save.
@@ -8,7 +8,7 @@ import type { UnlockEventId } from './c06-ids.ts';
 import type { JsonObject } from './c05-save.ts';
 import type { LandmarkId } from '../world/c08.ts';
 
-export const C09_VERSION = '1.0.0' as const;
+export const C09_VERSION = '1.1.0' as const;
 
 export type LineId = `line.${string}`;             // key into lines.<lang>.json; every line has subtitle text
 export type CastName = string;                     // ^[a-z][a-z0-9_]{0,31}$

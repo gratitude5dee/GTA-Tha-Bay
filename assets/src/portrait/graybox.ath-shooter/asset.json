@@ -1,0 +1,23 @@
+{
+  "kind": "portrait",
+  "id": "graybox.ath-shooter",
+  "variants": {
+    "default": "assets/src/portrait/graybox.ath-shooter/default.png"
+  },
+  "deps": [],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:ath-shooter"
+  ],
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

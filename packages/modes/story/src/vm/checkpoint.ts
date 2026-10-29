@@ -144,6 +144,13 @@ export function restoreCheckpoint(rt: MissionRuntime, cp: MissionCheckpointV1, l
   }
   rt.walletDelta = cp.walletDeltaCents;
 
+  // M02g1: the world clock is not part of the checkpoint, and a stage that holds or releases it ran before this one. The `clock` ops of the
+  // stages before the checkpoint stage run again, in order, so a resume or a retry finds the clock as the mission left it (m.a1.01: the
+  // dawn lock at `to_gate`, then the release and the blend to clear at `truck`: never fogged at `tow_home`).
+  for (let i = 0; i < cp.stage && i < rt.ir.stages.length; i++) {
+    for (const op of rt.ir.stages[i]?.onEnter ?? []) if (op.op === 'clock') rt.applyClockOp(op);
+  }
+
   rt.rng.setState(cp.rng);
   rt.clock = Math.round(cp.elapsedSec * 60);
   rt.doneIds = new Set(cp.objectivesDone);

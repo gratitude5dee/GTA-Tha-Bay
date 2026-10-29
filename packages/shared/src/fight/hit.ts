@@ -5,10 +5,11 @@ import type { CMove } from './pack.ts';
 import { Cls } from './pack.ts';
 import { FB } from './input.ts';
 import { dirHas, ringDir, ringInput } from './motion.ts';
-import { St, canBlockFrom, isAirborne, isMoveState, isThrowable } from './states.ts';
+import { St, canBlockFrom, isActionable, isAirborne, isMoveState, isThrowable } from './states.ts';
 import type { Ctx } from './ctx.ts';
 import { MAX_CAND, emit, kitOf } from './ctx.ts';
 import { addHype } from './meters.ts';
+import { takeArmorTick } from './gimmicks.ts';
 
 // ---- geometry ------------------------------------------------------------------------------------------------------
 function clamp01(v: number): number { return v < 0 ? 0 : v > 1 ? 1 : v; }
@@ -233,6 +234,9 @@ function guardMode(c: Ctx, buf: Int32Array, tick: number, v: number, h: HitDef):
   return crouch ? 2 : 1;
 }
 
+/** The poll armor tick only covers a fighter who is on his feet and free (not mid-hit, not blocking, not airborne). */
+function isStrikeTarget(s: number): boolean { return isActionable(s); }
+
 function armorActive(m: CMove | undefined, buf: Int32Array, o: number): boolean {
   if (m === undefined || m.def.armor === undefined) return false;
   const mf = buf[o + FF.MoveFrame] as number;
@@ -337,11 +341,14 @@ function applyCand(c: Ctx, buf: Int32Array, tick: number, k: number): void {
 
   // ---- armor ----------------------------------------------------------------------------------------------------
   const vm = curMove(c, buf, v);
-  if (h.guard !== 'unblockable' && armorActive(vm, buf, ov)) {
+  const moveArmor = h.guard !== 'unblockable' && armorActive(vm, buf, ov);
+  if (moveArmor || (h.guard !== 'unblockable' && isStrikeTarget(vs) && takeArmorTick(c, buf, v))) {
     const prev = buf[ov + FF.ComboHits] as number;
     const scale = Math.max(T.COMBO_SCALE[Math.min(prev, T.COMBO_SCALE.length - 1)] as number, mv?.minScale ?? T.SCALE_FLOOR);
     const dmg = Math.trunc(damageOf(c, h.damage, scale, false, ex, mv?.def.ex?.damage !== undefined, simple) / 2);
-    buf[ov + FF.ArmorLeft] = (buf[ov + FF.ArmorLeft] as number) - 1;
+    if (moveArmor) buf[ov + FF.ArmorLeft] = (buf[ov + FF.ArmorLeft] as number) - 1;
+    // A `counter` stance (patch) answers the absorbed strike: the move jumps to its last frame before startup ends.
+    if (moveArmor && vm !== undefined && vm.def.tags.includes('counter')) buf[ov + FF.MoveFrame] = Math.max(buf[ov + FF.MoveFrame] as number, vm.S - 1);
     loseHp(buf, ov, dmg, a, false, c);
     addHype(c, buf, oa, h.hype.hit);
     buf[oa + FF.MoveResult] = 1;

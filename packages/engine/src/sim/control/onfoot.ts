@@ -5,6 +5,7 @@ import { Anim, BodyRef, CharacterBody, Control, PlayerControlled, Transform, Vel
 import type { PhysicsSystemsBackend, Vec3 } from '../physics/backend.ts';
 import { PHYSICS_CONFIG, type CharacterConfig } from '../physics/config.ts';
 import { GROUP_BIT } from '../physics/groups.ts';
+import { moveLatched } from './latch.ts';
 import { animStateOf, CONTROL_OWNER, CONTROL_STATE } from './states.ts';
 import { probeVault, vaultPoint, VAULT_TICKS, type VaultStore } from './vault.ts';
 
@@ -13,7 +14,7 @@ export const ONFOOT_ID = 'engine.control.onfoot';
 export interface OnFootOptions {
   backend: PhysicsSystemsBackend;
   /** Supplies player 0's InputFrame (`services.input`); `events` receives the `foot.step` audio cues. */
-  services: Pick<EngineServices, 'input'> & Partial<Pick<EngineServices, 'events' | 'sandboxFlags'>>;
+  services: Pick<EngineServices, 'input'> & Partial<Pick<EngineServices, 'events' | 'sandboxFlags' | 'control'>>;
   /** Vaults in progress. Without a store the controller never vaults (the earlier scenarios and their goldens). */
   vault?: VaultStore;
   /** Defaults to the `character` block of config/physics.json. */
@@ -125,10 +126,13 @@ export function onFootSystem(opts: OnFootOptions): SystemDef {
           vaults?.plans.delete(id);
         }
 
+        // --- after a water respawn the stick is ignored until it is centred (DL-753, latch.ts)
+        const latched = players[id] === 0 && services.control !== undefined && moveLatched(services.control, frame);
+
         // --- wish direction, camera-relative. Forward is (-sin yaw, -cos yaw); moveY < 0 pushes forward.
         const yaw = frame.camYaw * YAW_UNIT;
-        let mx = Math.max(-1, Math.min(1, frame.moveX / 127));
-        let my = Math.max(-1, Math.min(1, frame.moveY / 127));
+        let mx = latched ? 0 : Math.max(-1, Math.min(1, frame.moveX / 127));
+        let my = latched ? 0 : Math.max(-1, Math.min(1, frame.moveY / 127));
         let mag = dsqrt(mx * mx + my * my);
         if (mag > 1) {
           mx /= mag;

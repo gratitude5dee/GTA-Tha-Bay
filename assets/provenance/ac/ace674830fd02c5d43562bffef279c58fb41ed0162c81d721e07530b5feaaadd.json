@@ -1,0 +1,30 @@
+{
+  "ai_generated": false,
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "created_at": "2026-10-25T00:00:00Z",
+  "derived_from": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "kind": "character",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "origin": "authored",
+  "paths": [
+    "assets/src/character/graybox.rap-hyphy-elder/default.glb"
+  ],
+  "review": [],
+  "schema": "provenance/1.0",
+  "sha256": "ace674830fd02c5d43562bffef279c58fb41ed0162c81d721e07530b5feaaadd",
+  "status": "active"
+}

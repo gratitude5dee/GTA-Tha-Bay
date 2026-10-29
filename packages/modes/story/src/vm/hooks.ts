@@ -42,6 +42,8 @@ export function hookStep(rt: MissionRuntime, o: ObjRt, d: ModeObjective): () => 
       if (rt.flagsCfg.hooks !== 'stub') {
         const params: JsonObject = { ...(hook.params ?? {}), missionId: rt.ir.id, hookId: hook.id };
         if (hook.unlockOnFirstEncounter !== undefined) params['unlockOnFirstEncounter'] = hook.unlockOnFirstEncounter;
+        // M08a2: under `hooks: 'bot'` the fighter.cpu bot plays the player's side of the bout.
+        if (rt.flagsCfg.hooks === 'bot') params['bot'] = true;
         real = rt.ctx.startChild(hook.mode, { defId: hook.defId, params, seed: hash32(rt.seed, hook.id, rt.attempt, tries) });
       }
       if (real) {
