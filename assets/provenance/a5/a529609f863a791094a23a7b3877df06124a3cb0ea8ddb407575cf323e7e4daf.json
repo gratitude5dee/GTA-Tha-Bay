@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "a529609f863a791094a23a7b3877df06124a3cb0ea8ddb407575cf323e7e4daf",
+  "paths": [
+    "assets/src/prop/transit.airliner/mobile-low.glb"
+  ],
+  "kind": "prop",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "7389577c00bd971ea8a57cfc056b8ddc4a053fe80c6e9ac0a665faa0793177c8"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

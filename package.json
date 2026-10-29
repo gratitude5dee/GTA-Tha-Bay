@@ -67,6 +67,7 @@
     "assets:optimize": "tsx tools/assets/src/optimize-cli.ts",
     "assets:retarget": "tsx tools/assets/src/retarget-cli.ts",
     "assets:import": "tsx tools/assets/src/import/cli.ts",
+    "assets:vehicle": "tsx tools/assets/src/vehicle-gen.ts",
     "assets:lock": "tsx tools/assets/src/cli.ts lock",
     "assets:plates": "tsx tools/assets/plates/cli.ts",
     "assets:verify": "tsx tools/assets/src/cli.ts verify",

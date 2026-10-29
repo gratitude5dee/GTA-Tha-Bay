@@ -1,0 +1,39 @@
+{
+  "kind": "prop",
+  "id": "spikestrip",
+  "variants": {
+    "desktop": "assets/src/prop/spikestrip/desktop.glb",
+    "mobile": "assets/src/prop/spikestrip/mobile.glb",
+    "mobile-low": "assets/src/prop/spikestrip/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 192,
+      "verts": 234,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile": {
+      "tris": 120,
+      "verts": 150,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile-low": {
+      "tris": 62,
+      "verts": 84,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "prop:street",
+    "art:m10d1"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

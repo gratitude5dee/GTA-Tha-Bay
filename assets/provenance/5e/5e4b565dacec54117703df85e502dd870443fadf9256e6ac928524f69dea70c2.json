@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "5e4b565dacec54117703df85e502dd870443fadf9256e6ac928524f69dea70c2",
+  "paths": [
+    "assets/src/prop/pickup-cash/desktop.glb"
+  ],
+  "kind": "prop",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "192f092268f704e231d764448619968a5d8e5e4dbbadff104f8a6ace6cbaee09"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "96c1b1462b27ef4af43d16b983721f4bda285fb66145b3173f9e66f627a44504",
+  "paths": [
+    "assets/src/prop/crate/desktop.glb"
+  ],
+  "kind": "prop",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "a50a92eb2dfe37d286da28b0900f9e3fe1dd0e6ad2b048d5f40e74d5f4d6fcd8"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

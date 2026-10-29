@@ -112,6 +112,25 @@
       "acceptsFaceRefs": false,
       "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md"
     },
+    "tripo3d/h3.1/multiview-to-3d": {
+      "id": "tripo3d/h3.1/multiview-to-3d",
+      "vendor": "fal",
+      "role": "mesh_alt",
+      "status": "pending",
+      "price": {
+        "usd": 0.3,
+        "per": "gen",
+        "checkedAt": "2026-10-18",
+        "note": "standard textures, 2 to 4 views [research/genai-pipeline-fal.md:93]; the M10d1 vehicle bodies (at most two), pending until the genai:liveness run reports its licence type"
+      },
+      "pinnedUpdatedAt": null,
+      "licenseType": "commercial",
+      "tiers": [
+        "original"
+      ],
+      "acceptsFaceRefs": false,
+      "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md"
+    },
     "fal-ai/meshy/rigging/multi-animation": {
       "id": "fal-ai/meshy/rigging/multi-animation",
       "vendor": "fal",

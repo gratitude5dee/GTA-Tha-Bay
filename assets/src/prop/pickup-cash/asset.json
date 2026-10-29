@@ -1,0 +1,39 @@
+{
+  "kind": "prop",
+  "id": "pickup-cash",
+  "variants": {
+    "desktop": "assets/src/prop/pickup-cash/desktop.glb",
+    "mobile": "assets/src/prop/pickup-cash/mobile.glb",
+    "mobile-low": "assets/src/prop/pickup-cash/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 48,
+      "verts": 96,
+      "primitives": 2,
+      "materials": 2
+    },
+    "mobile": {
+      "tris": 48,
+      "verts": 96,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile-low": {
+      "tris": 24,
+      "verts": 48,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "prop:street",
+    "art:m10d1"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

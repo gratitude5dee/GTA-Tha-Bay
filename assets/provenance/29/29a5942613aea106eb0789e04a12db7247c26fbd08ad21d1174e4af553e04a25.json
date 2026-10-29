@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "29a5942613aea106eb0789e04a12db7247c26fbd08ad21d1174e4af553e04a25",
+  "paths": [
+    "assets/src/vehicle/police.suv/mobile.glb"
+  ],
+  "kind": "vehicle",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "4016def6f13656bade750b9c72949dec68cd2721c800e03bb999e8d29f4eff48"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

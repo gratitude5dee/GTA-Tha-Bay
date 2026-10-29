@@ -984,6 +984,149 @@
       "approved_by": "m08b1-builder",
       "approved_at": "2026-10-27T14:38:06Z"
     },
+    "prop/barrier": {
+      "rev": 1,
+      "variants": {
+        "desktop": "ee2e5e034f8eb996e8f1e692bbda90d2e2284e13392bd83cd746e877ef4f62c7",
+        "mobile": "8e7254c8d07b820a2e60e9105b6dbab23cc66ea5d730b2d96851ed7d67e9f05f",
+        "mobile-low": "92efd87cddd867be3c7e2c46039043a576a9097deae8ca2c0bba8a1d4bf7bab9"
+      },
+      "root": "ee2e5e034f8eb996e8f1e692bbda90d2e2284e13392bd83cd746e877ef4f62c7",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "prop/cone": {
+      "rev": 1,
+      "variants": {
+        "desktop": "7e6decd590d07e87d192f1e299eae8cad5232837054d73689862b9f9db2dbb42",
+        "mobile": "be7b0022ee17ee799d0b639a8fe8941d84ec35b1f26323b15b54544efc4bfc46",
+        "mobile-low": "ab4befac65292e48d25774b1c07ff464330cd4c5cf21a864c5bd88fce250d6ec"
+      },
+      "root": "7e6decd590d07e87d192f1e299eae8cad5232837054d73689862b9f9db2dbb42",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "prop/county-barrier": {
+      "rev": 1,
+      "variants": {
+        "desktop": "4996a8dcf3fff1165911f630383d8d8f883de85e33f7f3d76dd656955f27a659",
+        "mobile": "b425508895938da7b56bb764fc2e3b2518324e1accd1b15979ecf1a882ea5ab1",
+        "mobile-low": "21e0911950567addaa200b36bdffd1fe373476a966cb0b044299d023d88d380b"
+      },
+      "root": "4996a8dcf3fff1165911f630383d8d8f883de85e33f7f3d76dd656955f27a659",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "prop/crate": {
+      "rev": 1,
+      "variants": {
+        "desktop": "96c1b1462b27ef4af43d16b983721f4bda285fb66145b3173f9e66f627a44504",
+        "mobile": "14d2cca019394220868d9cb3361f4d33eb2829654af6cb3130082f944c9bef5c",
+        "mobile-low": "493f551db8867d6d20400cbd47708349634821768a5e9355b6c3d18f7ec826dc"
+      },
+      "root": "96c1b1462b27ef4af43d16b983721f4bda285fb66145b3173f9e66f627a44504",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "prop/marker.beam": {
+      "rev": 1,
+      "variants": {
+        "desktop": "720508b63fe06cb7142e892d18d46f3e6bd507c925720eeaa3ee051103a10cbc",
+        "mobile": "83b28394cd3edc8c061c5d819fb1d4ad516da46b0cdce1a1f3c6b7546a0800ad",
+        "mobile-low": "0ec095b57aede94a119997609f455a2b92f49bb2990c33eab49cdf32b546a441"
+      },
+      "root": "720508b63fe06cb7142e892d18d46f3e6bd507c925720eeaa3ee051103a10cbc",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "prop/pickup-cash": {
+      "rev": 1,
+      "variants": {
+        "desktop": "5e4b565dacec54117703df85e502dd870443fadf9256e6ac928524f69dea70c2",
+        "mobile": "b7da5fd65c09161ddd9ea3e671a7cb55b353ddcec45827e1a80145f85850d456",
+        "mobile-low": "24945bf50c0641afdda5844bb8a04230a3ec2f42dec67141f64f99f91a116f5f"
+      },
+      "root": "5e4b565dacec54117703df85e502dd870443fadf9256e6ac928524f69dea70c2",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "prop/pickup-item": {
+      "rev": 1,
+      "variants": {
+        "desktop": "e393587006918c96908c34cae646e22d95da6aa3709d6c5ed95c882d17000ff4",
+        "mobile": "78fc086e6d4c059ffe58cb6009db51c2631e4d906b42b52e81c6e9f22a2a5731",
+        "mobile-low": "8ac87854486a90c7cc7e9b0663546a24eeff9614a9db6191f5eb5abce7fb8f55"
+      },
+      "root": "e393587006918c96908c34cae646e22d95da6aa3709d6c5ed95c882d17000ff4",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "prop/police.heli": {
+      "rev": 1,
+      "variants": {
+        "desktop": "12c09863dfb226c69d5c8395a869b108be904c911614abb54e4a9ff295e1deb9",
+        "mobile": "604062ec5b4697aee127dba006c85161b6ea71d650308c657e43f8925268b456",
+        "mobile-low": "f3716f61a0fb48f2c8406961c3f49bfefd4ab14c7ee47c45afa4e67de014ca5c"
+      },
+      "root": "12c09863dfb226c69d5c8395a869b108be904c911614abb54e4a9ff295e1deb9",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "prop/portal-closure": {
+      "rev": 1,
+      "variants": {
+        "desktop": "bc682ef3d6b51b3797192c886e7c14c8fc8b9f8f9d1963705902fbeb9e718868",
+        "mobile": "b172747e5a979001a01b75d89ef0a8462aeb0f4eccb5e61c2d869f029cf9d1b2",
+        "mobile-low": "30675a6ad0d3acd4c8401757bd62e29fadd60b6e794cf6d2f504af0d4d934ef4"
+      },
+      "root": "bc682ef3d6b51b3797192c886e7c14c8fc8b9f8f9d1963705902fbeb9e718868",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "prop/spikestrip": {
+      "rev": 1,
+      "variants": {
+        "desktop": "379612cf465099efb00b88a6d42adb9a765306e59fe872d7c305ffcdbbb0586c",
+        "mobile": "e1f8f3e1f888540cfaada3777fd3dac0926f6f003319b2b7f1e99f999abcd791",
+        "mobile-low": "0d78badad551cf4385d4f44f996f35e218285e912cfa6c4094d21d74075daaab"
+      },
+      "root": "379612cf465099efb00b88a6d42adb9a765306e59fe872d7c305ffcdbbb0586c",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "prop/transit-entrance": {
+      "rev": 1,
+      "variants": {
+        "desktop": "7484a40322e8b6cc0124c876b90f9a2485122794f98f59173dfb7b3e4d65adbb",
+        "mobile": "f7b888a9ea8c359b7f3f6f5f9c63a1984c6a0f1ddefed089c20a0ddd4ca48316",
+        "mobile-low": "5324b302ac125523d140cd0e1843e7275852a441064a110476a71a66693b7c16"
+      },
+      "root": "7484a40322e8b6cc0124c876b90f9a2485122794f98f59173dfb7b3e4d65adbb",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "prop/transit.airliner": {
+      "rev": 1,
+      "variants": {
+        "desktop": "7a151deba6039948fdb24f4822b4e41f3cf04d65ad40766fe4dc881a68ab1caa",
+        "mobile": "6613e1f29e6602d4553f5e2e3ffcb8fc77559f471195e8ba3d9ac17fe0c62d25",
+        "mobile-low": "a529609f863a791094a23a7b3877df06124a3cb0ea8ddb407575cf323e7e4daf"
+      },
+      "root": "7a151deba6039948fdb24f4822b4e41f3cf04d65ad40766fe4dc881a68ab1caa",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "prop/transit.ferry": {
+      "rev": 1,
+      "variants": {
+        "desktop": "f7e123cbd12e7e93b194ecd5a3c406cb1ca216042e4cbc39fa342e45c827e5c6",
+        "mobile": "e39f8bc2a92d45a49db7452c9d811250e4a7b073cd4d9db8f5ae0f5d9622b3c3",
+        "mobile-low": "681bbb6dcb21bd62253ef0e2be4817d4a49364fe0987ca91f47871352c874070"
+      },
+      "root": "f7e123cbd12e7e93b194ecd5a3c406cb1ca216042e4cbc39fa342e45c827e5c6",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
     "texture/asset-smoke": {
       "rev": 1,
       "variants": {
@@ -1192,6 +1335,127 @@
       "root": "6ac026a77efbfe49434082f392eefdbda7e37ba89ae9daa7912c177a2faa45e4",
       "approved_by": "m10d0-builder",
       "approved_at": "2026-10-28T08:37:57Z"
+    },
+    "vehicle/police.cruiser": {
+      "rev": 1,
+      "variants": {
+        "desktop": "ce2fdeb8334bf5b53e03357419ae9387201a406aeaa52603953150d803685b23",
+        "mobile": "4f006cfa6b5afbaa3f963a1e93a9f0be7131aca6342ad7e21c36ccd978553663",
+        "mobile-low": "a885051baba731bfff0731d3ba1f4e82138927c050602da11b5450b567876d6b"
+      },
+      "root": "ce2fdeb8334bf5b53e03357419ae9387201a406aeaa52603953150d803685b23",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "vehicle/police.suv": {
+      "rev": 1,
+      "variants": {
+        "desktop": "02863da077fe429de8d7363c4cc377f8a03fe783f6888f3a344c316c3d080731",
+        "mobile": "29a5942613aea106eb0789e04a12db7247c26fbd08ad21d1174e4af553e04a25",
+        "mobile-low": "af4e037b754017d5b638ad924ec63bd48a7226023111f1ac759ee5c5aff79c3b"
+      },
+      "root": "02863da077fe429de8d7363c4cc377f8a03fe783f6888f3a344c316c3d080731",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "vehicle/robotaxi.default": {
+      "rev": 1,
+      "variants": {
+        "desktop": "d150e71af71b9b0e134e86f6530539e0a1a363f10ed2f1b73cb9299a2d8d482d",
+        "mobile": "f16783672f84779979563d8cc3aeb0076cb396fc02027e66eb7ab08d733d4689",
+        "mobile-low": "5618aeff4e93a2e6411fabf3239661a385a493d0794d165ada43bb0bab274dbc"
+      },
+      "root": "d150e71af71b9b0e134e86f6530539e0a1a363f10ed2f1b73cb9299a2d8d482d",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "vehicle/traffic.compact": {
+      "rev": 1,
+      "variants": {
+        "desktop": "802bf6fb620d11e18d0f9b49ce609f5694aa80f4a28b44b436ab60d6c0195302",
+        "mobile": "4de9ccea0518142da9b05b37821c70dce4936aca8b9ed48fe4182059aec197ef",
+        "mobile-low": "1aa0807ec708eab1dbbe271900a939cdf2887ae52e89f8c6eab882a533d84075"
+      },
+      "root": "802bf6fb620d11e18d0f9b49ce609f5694aa80f4a28b44b436ab60d6c0195302",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "vehicle/traffic.pickup": {
+      "rev": 1,
+      "variants": {
+        "desktop": "a16782a01c864877775302ce56949796fe797cce86846b65b770a982dbc20d55",
+        "mobile": "b2249472173306b2d303413d0804d7be31663b50b89135b6c586ca010f9d819d",
+        "mobile-low": "6933c2ca12342e967595360c4befd96fc1114e16a6976a632e0198ab7eb0a965"
+      },
+      "root": "a16782a01c864877775302ce56949796fe797cce86846b65b770a982dbc20d55",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "vehicle/traffic.rideshare": {
+      "rev": 1,
+      "variants": {
+        "desktop": "e6b36dc245c39d301e04c6762c4f83057bf6743847647192df19f14b6e281104",
+        "mobile": "01556c2be3b892b4656b1eccab971ba1aa51d5262aceb707d341166b94d6fe71",
+        "mobile-low": "af151b31c7bfc555c5b30009d8f57109345c3003821aa66353e23976839d890b"
+      },
+      "root": "e6b36dc245c39d301e04c6762c4f83057bf6743847647192df19f14b6e281104",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "vehicle/traffic.sedan": {
+      "rev": 1,
+      "variants": {
+        "desktop": "8065438d0036f1d27ea7453099061873fb3b522beb36f692bd0cc36ddfb64002",
+        "mobile": "e5106d3a7378c06fcc4c5827d82b892861a129bb22cc5f3f15f8184820cc6847",
+        "mobile-low": "db79d0953ff669568c586ac5cca3b067cac2b52e6a6b7558448829179631ce7f"
+      },
+      "root": "8065438d0036f1d27ea7453099061873fb3b522beb36f692bd0cc36ddfb64002",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "vehicle/traffic.truck": {
+      "rev": 1,
+      "variants": {
+        "desktop": "ae5cfbf53c1825dc327cbb193e5f89cfb8aba4410ceee7af4144fe95ce399d97",
+        "mobile": "029d3a2ba8ef0127beb6eb90c96b7863896098d5dd78888a11803248e13fd287",
+        "mobile-low": "3946d7b9f7216cc722c733339ed82d5fc75b5839569f070a419732b3ef17cf67"
+      },
+      "root": "ae5cfbf53c1825dc327cbb193e5f89cfb8aba4410ceee7af4144fe95ce399d97",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "vehicle/traffic.van": {
+      "rev": 1,
+      "variants": {
+        "desktop": "0ce1c301da2fd18589911e82d4f82876c189fdf570a02a21156aada9119a079a",
+        "mobile": "d3bd490a0233f5ccf5e17a6d2b2e8205f2543a4476c3bac7817d7eedb4da840a",
+        "mobile-low": "4a141c428aee52772ebddeb07fd32b6dd80cefb4cbffa77468733f8ac98d0822"
+      },
+      "root": "0ce1c301da2fd18589911e82d4f82876c189fdf570a02a21156aada9119a079a",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "vehicle/transit.bus": {
+      "rev": 1,
+      "variants": {
+        "desktop": "c0aca5bbfea9c945dec3b20578bc0bfce9db58342392d15d16f627430064ce1a",
+        "mobile": "33cf29b4709e652e4a4b512399b641e22423070e9362d9457547cd0d0df8c976",
+        "mobile-low": "b1582f5944d23fd056d19843bf79c155323ea2ca557f9f23494fb54f0c106253"
+      },
+      "root": "c0aca5bbfea9c945dec3b20578bc0bfce9db58342392d15d16f627430064ce1a",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
+    },
+    "vehicle/transit.cablecar": {
+      "rev": 1,
+      "variants": {
+        "desktop": "cdd330cb4af4e0f5314bd6d77863e04651a1f8b4f37e8b936e2ffa17c9b76ff7",
+        "mobile": "0a19a127c629afbe2f849bbdcca2f4b786a5bca645b3e161d48c382471271400",
+        "mobile-low": "600c50da95d699c076c494013fd5bda245333b265234f0e4aba37c1e19285e66"
+      },
+      "root": "cdd330cb4af4e0f5314bd6d77863e04651a1f8b4f37e8b936e2ffa17c9b76ff7",
+      "approved_by": "m10d1-builder",
+      "approved_at": "2026-10-29T01:40:41Z"
     },
     "world_pack/l0-64-64": {
       "rev": 1,

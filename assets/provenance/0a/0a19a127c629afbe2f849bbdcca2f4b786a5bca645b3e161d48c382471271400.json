@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "0a19a127c629afbe2f849bbdcca2f4b786a5bca645b3e161d48c382471271400",
+  "paths": [
+    "assets/src/vehicle/transit.cablecar/mobile.glb"
+  ],
+  "kind": "vehicle",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "09519651708836c213d8e26fd1486c19b285e713f19481a2c48812dc1f4a73a7"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

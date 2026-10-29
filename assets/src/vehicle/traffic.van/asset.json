@@ -1,0 +1,65 @@
+{
+  "kind": "vehicle",
+  "id": "traffic.van",
+  "variants": {
+    "desktop": "assets/src/vehicle/traffic.van/desktop.glb",
+    "mobile": "assets/src/vehicle/traffic.van/mobile.glb",
+    "mobile-low": "assets/src/vehicle/traffic.van/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 3880,
+      "verts": 2553,
+      "primitives": 15,
+      "materials": 4
+    },
+    "mobile": {
+      "tris": 2392,
+      "verts": 1693,
+      "primitives": 15,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 608,
+      "verts": 606,
+      "primitives": 13,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "class:traffic",
+    "art:m10d1"
+  ],
+  "extras": {
+    "t": "vehicle",
+    "class": "traffic",
+    "fictionalMake": "Boreal Hauler",
+    "wheelRadiusM": 0.34,
+    "nodes": {
+      "body": "body",
+      "wheels": [
+        "wheel_fl",
+        "wheel_fr",
+        "wheel_rl",
+        "wheel_rr"
+      ],
+      "steer": [
+        "steer_fl",
+        "steer_fr"
+      ],
+      "lights": [
+        "light_head_l",
+        "light_head_r",
+        "light_brake_l",
+        "light_brake_r"
+      ],
+      "collider": "collider_hull"
+    }
+  },
+  "status": "active",
+  "visibility": "public"
+}
