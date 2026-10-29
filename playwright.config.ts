@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@playwright/test';
 import { NO_ENV_FILE, scrubProcessEnv, WORKER_LOCAL_SECRETS } from './tools/ci/secret-env.ts';
 import { enterTmpRoot, tmpRootEnv } from './tools/ci/tmp-root.ts';
+import { qaStorageState } from './tests/support/qa-storage.ts';
 
 // BD-FIX-TMP-01: the runner, its workers, the web server (QA build and wrangler dev) and every spec work inside one per-run temporary
 // root (TMPDIR/TEMP/TMP). It is made here, at config load, because Playwright starts the web server before globalSetup; the runner
@@ -55,10 +56,9 @@ const unsetSecrets: Record<string, string> = Object.fromEntries(E2E_UNSET_SECRET
 
 // The QA play bypass (M04b1, DL-650): every spec loads straight into play unless it opts out with
 // `test.use({ storageState: { cookies: [], origins: [] } })` (the gate specs under tests/e2e/ui and the title tests of shell.spec.ts).
-export const QA_PLAY_STORAGE = {
-  cookies: [],
-  origins: [{ origin: `http://localhost:${PORT}`, localStorage: [{ name: 'dv-qa-play', value: 'sandbox' }] }],
-};
+// M11a1 (DL-756): the same state also holds `dv-qa-governor=off`, so no page the default fixture opens runs the runtime governor
+// (tests/support/qa-storage.ts); a spec opts in with `?governor=on`.
+export const QA_PLAY_STORAGE = qaStorageState(PORT);
 
 // CI downloads the build artifact first and sets DV_SKIP_BUILD=1.
 // --local: the Workers AI binding (M06a4) is remote-only; without it wrangler would need CLOUDFLARE_API_TOKEN to start. env.AI then fails on use and the Worker degrades to text.

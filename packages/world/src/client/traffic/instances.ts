@@ -103,6 +103,8 @@ export class TrafficRenderer {
   private readonly archOfSlot: number[] = [];
   private readonly free: number[] = [];
   private high = 0;
+  /** The governor's `crowdDensity` (M11a1): the share of `cap` drawn, 0 to 1. */
+  private densityScale = 1;
   private live = 0;
   private readonly liveBy: number[] = ARCHETYPES.map(() => 0);
   private frame = 0;
@@ -140,6 +142,11 @@ export class TrafficRenderer {
   /** Total instances drawn. */
   get instances(): number {
     return this.live;
+  }
+
+  /** The governor's `crowdDensity` (M11a1): at most `cap x scale` instances are drawn; the traffic itself still runs. */
+  setDensityScale(scale: number): void {
+    this.densityScale = Math.min(1, Math.max(0, Number.isFinite(scale) ? scale : 1));
   }
 
   /** M02g1: the traffic mesh casts and receives sun shadows (the `casters` layer on the desktop tiers). */
@@ -192,7 +199,7 @@ export class TrafficRenderer {
       const key = keys.get(p.renderKey);
       const ai = key === undefined ? undefined : this.archByKey.get(key);
       if (ai === undefined) continue;
-      if (drawn >= this.cap) {
+      if (drawn >= Math.floor(this.cap * this.densityScale)) {
         this.dropped++;
         continue;
       }

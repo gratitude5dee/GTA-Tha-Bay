@@ -6,6 +6,7 @@ import type { WorkerLike } from '@dv/engine/sim';
 import { bootChoice } from '@dv/world/sim/boot';
 import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/client';
 import platformFlags from '../../../config/platform-flags.json';
+import lookConfig from '../../../config/world/look.json';
 import { createVoicePreview, creatorVoiceRef, CREATOR_VOICES, loadPrefs, memoryPrefs, defaultPrefs, mountShell, registerTexts, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps, type VoicePreview } from '@dv/ui';
 import type { TtsAudioHost } from '@dv/npc/voice';
 import type { FighterUiHandle } from './fighter-ui.ts';
@@ -199,8 +200,20 @@ async function boot(): Promise<void> {
   });
   platformPort = createPlatformPort(platform, (name, props) => platform.telemetry.emit(name, props), {
     // The player's render scale reaches the canvas at once (M04b5); the engine may not exist yet, and takes the stored value at boot.
-    onChange: (next) => engineRef?.setRenderScale(next.renderScale),
+    // The frame cap and a fixed scale reach the pacer and the governor too (M11a1, DL-727).
+    onChange: (next) => {
+      engineRef?.setRenderScale(next.renderScale);
+      platform.applyPlayerSettings(next);
+    },
   });
+  // The governor never touches a knob that nothing in the page reads (BD-M11a1-03). The world adds its knobs once it exists.
+  platform.governor.setLiveKnobs(['renderScale', 'targetFps']);
+  platform.governor.setPostLevelCap(lookConfig.postLevelCap);
+  // A tier change (the governor's demotion, the memory budget's, a Settings override) lands only at a safe point: the title, a menu, the
+  // pause menu or a loading screen, never in the middle of play (11-platform.md section 5.3).
+  const syncSafePoint = (): void => platform.quality.setSafePoint(shell.core.state !== 'InMode' && shell.core.state !== 'Recovering');
+  shell.core.subscribe(syncSafePoint);
+  syncSafePoint();
   shell.attachPlatform(platformPort);
   applyPendingConsent();
 
@@ -443,7 +456,19 @@ async function boot(): Promise<void> {
   if (prepared) {
     const view = prepared.view;
     view.setAtmosphereLevel(platform.quality.dynamic.atmosphereLevel);
+    // The governor's streaming and crowd knobs, and the memory budget's responses (M11a1).
+    platform.governor.setLiveKnobs(['renderScale', 'buildingDistanceScale', 'lodBias', 'crowdDensity', 'postLevel', 'atmosphereLevel', 'targetFps']);
+    const worldKnobs = (q: Readonly<typeof platform.quality.dynamic>): void =>
+      view.setQualityKnobs({ lodBias: q.lodBias, buildingDistanceScale: q.buildingDistanceScale, crowdDensity: q.crowdDensity });
+    worldKnobs(platform.quality.dynamic);
+    const memory = view.memoryHooks();
+    platform.memoryBudget.evictors.register('world-chunks', () => {
+      memory.evict();
+    });
+    platform.memoryActions.dropRadius = memory.dropRadius;
+    platform.memoryActions.restoreRadius = memory.restoreRadius;
     platform.quality.onDynamicChange((q) => {
+      worldKnobs(q);
       view.setAtmosphereLevel(q.atmosphereLevel);
       // The governor's postLevel moves the post stack (M02e; the effective level is capped by look.json postLevelCap).
       view.lookView?.setPostLevel(q.postLevel);

@@ -125,6 +125,12 @@ interface NearSlot {
 
 export class PedRenderer {
   readonly group = new Group();
+
+  /** The governor's `crowdDensity` (M11a1): at most `cap x scale` pedestrians are drawn; the crowd itself still runs. */
+  setDensityScale(scale: number): void {
+    this.densityScale = Math.min(1, Math.max(0, Number.isFinite(scale) ? scale : 1));
+  }
+
   private readonly bodies: BodyMesh[] = [];
   private readonly archByKey = new Map<string, number>();
   private readonly near: NearSlot[] = [];
@@ -134,6 +140,8 @@ export class PedRenderer {
   private readonly geo: BufferGeometry;
   private info0: PedInfo;
   private lastT = 0;
+  /** The governor's `crowdDensity` (M11a1): the share of `cap` drawn, 0 to 1. */
+  private densityScale = 1;
 
   constructor(private readonly o: PedRendererOptions) {
     this.group.name = 'peds';
@@ -201,7 +209,7 @@ export class PedRenderer {
       if ((p.flags & 2) === 0) continue;
       const key = keys.get(p.renderKey);
       if (key === undefined || !this.archByKey.has(key)) continue;
-      if (drawn >= this.o.cap) {
+      if (drawn >= Math.floor(this.o.cap * this.densityScale)) {
         info.dropped++;
         continue;
       }

@@ -4,6 +4,8 @@ import type { Platform } from './create-platform.ts';
 import { buildNotes, exportReport } from './perf/export.ts';
 import { PerfHud } from './perf/hud.ts';
 import { RenderBudgetMeter } from './perf/meter.ts';
+import type { GovernorState } from './governor/governor.ts';
+import type { MemoryLevel, MemoryState } from './memory/memory-budget.ts';
 import type { MemoryCounters } from './perf/probe.ts';
 import { PerfScenarioRunner, type RunInfo, type WorldScenarioDriver } from './perf/scenario-runner.ts';
 import type { QaFlags } from './qa-flags.ts';
@@ -42,6 +44,22 @@ export interface XrState {
   error: string | null;
 }
 
+/** `window.__dvBridge.platform.memory`: callable for the counters (M01c), with the budget's QA members (M11a1). */
+export interface MemoryBridge {
+  (): MemoryCounters;
+  /** The MemoryBudget now: level, the worst used/cap ratio, the injected MB and the response counters. */
+  pressure(): MemoryState;
+  /** Adds `mb` of accounted heap on top of the reading (0 clears it) and samples the budget at once; returns the level. */
+  injectMB(mb: number): MemoryLevel;
+}
+
+/** `window.__dvBridge.platform.governor` (M11a1). */
+export interface GovernorBridge {
+  state(): GovernorState;
+  /** Feeds synthetic rendered-frame times (ms) to the governor as if they had just been drawn. A disabled governor ignores them. */
+  inject(frameMs: number[]): void;
+}
+
 export interface PlatformBridge {
   /** Backend of the renderer if one exists; null before the platform is up. */
   backend(): RenderBackend | null;
@@ -53,8 +71,10 @@ export interface PlatformBridge {
   depthPolicy(): 'reversed' | 'standard';
   /** The raw device signals the profile was classified from. */
   signals(): DeviceSignals;
-  /** Counters from `renderer.info.memory` plus registered wasm bytes. */
-  memory(): MemoryCounters;
+  /** Counters from `renderer.info.memory` plus registered wasm bytes; `.pressure()` and `.injectMB()` reach the MemoryBudget. */
+  memory: MemoryBridge;
+  /** The runtime quality governor: `state()` and `inject(frameMs)`. */
+  governor: GovernorBridge;
   /** The drawing-buffer sizing now (M04b5): `pixelRatio` as the renderer holds it, `budgetRatio` the tier's own ratio at scale 1. */
   resolution(): { cssW: number; cssH: number; dpr: number; pixelRatio: number; budgetRatio: number };
   /** Flat frames drawn and frames the GPU pacer held back (QA builds on WebGL2, BD-FIX-CI7-F03). */
@@ -271,6 +291,8 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: 
     build: platform.build,
     now: () => Date.now(),
     wasm: new Map(),
+    // The governor is held off during a scenario run unless the page forces it on (`?governor=on`): counts never follow frame times.
+    governor: flags.governor === 'on' ? 'on' : 'off',
     errors: () => ({ gpuLost: platform.errors.counts.gpuLost, uncaptured: platform.errors.counts.uncaptured, js: platform.errors.counts.js }),
     ...(opts.worldDriver ? { worldDriver: opts.worldDriver } : {}),
   });
@@ -300,7 +322,7 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: 
         renderObjects: live.renderObjects,
         triangles: live.triangles,
         memory: platform.memory(),
-        governor: 'off',
+        governor: platform.governor.enabled ? 'on' : 'off',
         running: runner.isRunning,
       }),
       onRun: (durationS) => {
@@ -321,7 +343,17 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: 
     setTier: (id) => platform.quality.setTier(id, 'url-override'),
     depthPolicy: () => host.depthPolicy,
     signals: () => platform.profile.signals,
-    memory: () => platform.memory(),
+    memory: Object.assign(() => platform.memory(), {
+      pressure: () => platform.memoryBudget.state(performance.now()),
+      injectMB: (mb: number) => {
+        platform.memoryBudget.injectMB(mb);
+        return platform.memoryBudget.sample(performance.now());
+      },
+    }),
+    governor: {
+      state: () => platform.governor.state(),
+      inject: (frameMs) => platform.governor.inject(frameMs),
+    },
     pacing: () => ({ frames: host.frames, held: host.pacedFrames }),
     resolution: () => {
       const canvas = host.currentCanvas;
@@ -355,8 +387,11 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: 
     perf: {
       run: (id, opts) => {
         liveOn = false;
+        const governorWas = platform.governor.enabled;
+        if (flags.governor !== 'on') platform.governor.setEnabled(false);
         return runner.run(id, opts ?? {}).finally(() => {
           liveOn = flags.perf;
+          platform.governor.setEnabled(governorWas);
         });
       },
       report: () => runner.report(),

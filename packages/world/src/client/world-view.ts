@@ -476,6 +476,25 @@ export class WorldView implements WorldLayer {
     this.sky?.setAtmosphereLevel(level);
   }
 
+  /** The governor's world knobs (M11a1): the streaming rings (`lodBias`, `buildingDistanceScale`) and the crowd draw cap (`crowdDensity`). */
+  setQualityKnobs(k: { lodBias: number; buildingDistanceScale: number; crowdDensity: number }): void {
+    this.store?.setKnobs({ lodBias: k.lodBias, buildingDistanceScale: k.buildingDistanceScale });
+    this.traffic?.setDensityScale(k.crowdDensity);
+    this.peds?.setDensityScale(k.crowdDensity);
+  }
+
+  /**
+   * The MemoryBudget's world responses (M11a1): evict the L0 units outside their ring; one streaming-radius step down (false on the
+   * last step); back to the nominal radius.
+   */
+  memoryHooks(): { evict(): number; dropRadius(): boolean; restoreRadius(): void } {
+    return {
+      evict: () => this.store?.trimToRing(1) ?? 0,
+      dropRadius: () => this.store?.stepPressureDown() ?? false,
+      restoreRadius: () => this.store?.restorePressure(),
+    };
+  }
+
   /** World positions (x, y, z triples) of the street lamps of the resident L0 chunks. */
   private collectLamps(): Float32Array {
     if (!this.store) return new Float32Array(0);

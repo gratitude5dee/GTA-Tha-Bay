@@ -87,7 +87,7 @@ export class QualityGovernor {
   private xr_ = false;
   private pinned = false;
   private cap: number | null = null;
-  private readonly postCap: number | null;
+  private postCap: number | null;
   private live: ReadonlySet<KnobId> | null = null;
 
   private now = 0;
@@ -131,6 +131,12 @@ export class QualityGovernor {
   setRenderScalePinned(on: boolean): void {
     if (this.pinned === on) return;
     this.pinned = on;
+    this.clearTimers();
+  }
+
+  /** `look.json` `postLevelCap`, once the look is known (levels above it draw the same as the cap). */
+  setPostLevelCap(cap: number | null): void {
+    this.postCap = cap;
     this.clearTimers();
   }
 
