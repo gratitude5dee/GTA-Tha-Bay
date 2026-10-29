@@ -4,83 +4,419 @@
   "title": "config/world/mesher.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "tierProfile", "profiles", "foundationM", "parapetM", "roofLiftMaxM", "palette", "kindTint", "roofColor", "ground", "road", "landuse", "tree", "lod"],
+  "required": [
+    "schema",
+    "tierProfile",
+    "profiles",
+    "foundationM",
+    "parapetM",
+    "roofLiftMaxM",
+    "palette",
+    "kindTint",
+    "roofColor",
+    "ground",
+    "road",
+    "landuse",
+    "tree",
+    "lod",
+    "ao",
+    "terrain",
+    "depth"
+  ],
   "$defs": {
-    "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+    "hex": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    },
     "profile": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["trisPerBuilding", "terrainStride", "roofs", "parapets", "equipment", "skip", "lodStride"],
+      "required": [
+        "trisPerBuilding",
+        "terrainStride",
+        "nearStride",
+        "roofs",
+        "parapets",
+        "equipment",
+        "skip",
+        "lodStride"
+      ],
       "properties": {
-        "trisPerBuilding": { "type": "integer", "minimum": 12, "maximum": 200 },
-        "terrainStride": { "enum": [1, 2, 4] },
-        "roofs": { "type": "boolean" },
-        "parapets": { "type": "boolean" },
-        "equipment": { "type": "boolean" },
-        "lodStride": { "enum": [1, 2, 4] },
+        "trisPerBuilding": {
+          "type": "integer",
+          "minimum": 12,
+          "maximum": 200
+        },
+        "terrainStride": {
+          "enum": [
+            1,
+            2,
+            4
+          ]
+        },
+        "roofs": {
+          "type": "boolean"
+        },
+        "parapets": {
+          "type": "boolean"
+        },
+        "equipment": {
+          "type": "boolean"
+        },
+        "lodStride": {
+          "enum": [
+            1,
+            2,
+            4
+          ]
+        },
         "skip": {
           "oneOf": [
-            { "type": "null" },
+            {
+              "type": "null"
+            },
             {
               "type": "object",
               "additionalProperties": false,
-              "required": ["minAreaM2", "maxHeightM", "beyondM"],
+              "required": [
+                "minAreaM2",
+                "maxHeightM",
+                "beyondM"
+              ],
               "properties": {
-                "minAreaM2": { "type": "number", "minimum": 0 },
-                "maxHeightM": { "type": ["number", "null"], "minimum": 0 },
-                "beyondM": { "type": "number", "minimum": 0 }
+                "minAreaM2": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "maxHeightM": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "beyondM": {
+                  "type": "number",
+                  "minimum": 0
+                }
               }
             }
+          ]
+        },
+        "nearStride": {
+          "enum": [
+            1,
+            2,
+            4
           ]
         }
       }
     }
   },
   "properties": {
-    "$comment": { "type": "string" },
-    "schema": { "const": "world-mesher/1" },
+    "$comment": {
+      "type": "string"
+    },
+    "schema": {
+      "const": "world-mesher/1"
+    },
     "tierProfile": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["desktop-ultra", "desktop", "xr-visionpro", "mobile", "xr-quest", "mobile-low"],
-      "patternProperties": { "^.+$": { "enum": ["desktop", "visionpro", "mobile", "low"] } }
+      "required": [
+        "desktop-ultra",
+        "desktop",
+        "xr-visionpro",
+        "mobile",
+        "xr-quest",
+        "mobile-low"
+      ],
+      "patternProperties": {
+        "^.+$": {
+          "enum": [
+            "desktop",
+            "visionpro",
+            "mobile",
+            "low"
+          ]
+        }
+      }
     },
     "profiles": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["desktop", "visionpro", "mobile", "low"],
+      "required": [
+        "desktop",
+        "visionpro",
+        "mobile",
+        "low"
+      ],
       "properties": {
-        "desktop": { "$ref": "#/$defs/profile" },
-        "visionpro": { "$ref": "#/$defs/profile" },
-        "mobile": { "$ref": "#/$defs/profile" },
-        "low": { "$ref": "#/$defs/profile" }
+        "desktop": {
+          "$ref": "#/$defs/profile"
+        },
+        "visionpro": {
+          "$ref": "#/$defs/profile"
+        },
+        "mobile": {
+          "$ref": "#/$defs/profile"
+        },
+        "low": {
+          "$ref": "#/$defs/profile"
+        }
       }
     },
-    "foundationM": { "type": "number", "minimum": 0 },
-    "parapetM": { "type": "number", "minimum": 0 },
-    "roofLiftMaxM": { "type": "number", "minimum": 0 },
-    "palette": { "type": "array", "minItems": 16, "maxItems": 64, "items": { "$ref": "#/$defs/hex" } },
-    "kindTint": { "type": "object", "additionalProperties": { "type": "number", "exclusiveMinimum": 0 } },
-    "roofColor": { "$ref": "#/$defs/hex" },
-    "ground": { "type": "array", "minItems": 12, "maxItems": 12, "items": { "$ref": "#/$defs/hex" } },
-    "road": { "type": "object", "additionalProperties": { "$ref": "#/$defs/hex" } },
-    "landuse": { "type": "object", "additionalProperties": { "$ref": "#/$defs/hex" } },
+    "foundationM": {
+      "type": "number",
+      "minimum": 0
+    },
+    "parapetM": {
+      "type": "number",
+      "minimum": 0
+    },
+    "roofLiftMaxM": {
+      "type": "number",
+      "minimum": 0
+    },
+    "palette": {
+      "type": "array",
+      "minItems": 16,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/hex"
+      }
+    },
+    "kindTint": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      }
+    },
+    "roofColor": {
+      "$ref": "#/$defs/hex"
+    },
+    "ground": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "$ref": "#/$defs/hex"
+      }
+    },
+    "road": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/hex"
+      }
+    },
+    "landuse": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/hex"
+      }
+    },
     "tree": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["trunk", "leaves"],
-      "properties": { "trunk": { "$ref": "#/$defs/hex" }, "leaves": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/hex" } } }
+      "required": [
+        "trunk",
+        "leaves",
+        "heightM",
+        "minHeightM",
+        "maxHeightM",
+        "eaveRadiusM",
+        "eaveClearM",
+        "sinkM",
+        "trunkRadiusM",
+        "drawM",
+        "drawHysteresis"
+      ],
+      "properties": {
+        "trunk": {
+          "$ref": "#/$defs/hex"
+        },
+        "leaves": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/hex"
+          }
+        },
+        "heightM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "minHeightM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maxHeightM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "eaveRadiusM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "trunkRadiusM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "eaveClearM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "sinkM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "drawHysteresis": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "drawM": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "desktop",
+            "visionpro",
+            "mobile",
+            "low"
+          ],
+          "properties": {
+            "desktop": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "visionpro": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "mobile": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "low": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        }
+      }
     },
     "lod": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["skirtM", "roadWidthM", "roadLiftM", "waterLevelM", "massingRoof"],
+      "required": [
+        "skirtM",
+        "roadWidthM",
+        "roadLiftM",
+        "waterLevelM",
+        "massingRoof"
+      ],
       "properties": {
-        "skirtM": { "type": "number", "minimum": 0 },
-        "roadWidthM": { "type": "object", "additionalProperties": { "type": "number", "exclusiveMinimum": 0 } },
-        "roadLiftM": { "type": "number" },
-        "waterLevelM": { "type": "number" },
-        "massingRoof": { "$ref": "#/$defs/hex" }
+        "skirtM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "roadWidthM": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "roadLiftM": {
+          "type": "number"
+        },
+        "waterLevelM": {
+          "type": "number"
+        },
+        "massingRoof": {
+          "$ref": "#/$defs/hex"
+        }
+      }
+    },
+    "ao": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ringM",
+        "ringStrength",
+        "wallRowM",
+        "wallRowAo",
+        "eaveAo"
+      ],
+      "properties": {
+        "ringM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "ringStrength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "wallRowM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "wallRowAo": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "eaveAo": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "terrain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nearRingM",
+        "leaveFactor",
+        "skirtM"
+      ],
+      "properties": {
+        "nearRingM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "leaveFactor": {
+          "type": "number",
+          "minimum": 1
+        },
+        "skirtM": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "depth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "roadFactor",
+        "roadUnits",
+        "ribbonStepM"
+      ],
+      "properties": {
+        "roadFactor": {
+          "type": "number"
+        },
+        "roadUnits": {
+          "type": "number"
+        },
+        "ribbonStepM": {
+          "type": "number",
+          "minimum": 0
+        }
       }
     }
   }

@@ -278,15 +278,20 @@ jobs:
           path: apps/web/dist
           retention-days: 3
 
-  # BD-FIX-CI2-04: the e2e of one project runs as E2E_SHARDS Playwright shards (`--shard=<n>/8`, both halves, each shard its own share
+  # BD-FIX-CI2-04: the e2e of one project runs as E2E_SHARDS Playwright shards (`--shard=<n>/9`, both halves, each shard its own share
   # of the tests). On e72e1fc the chromium-webgl2 leg took 1.1 h in one job against its 75-minute limit (BD-FIX-CI-03), with the
   # DV_WORLD=synth half at 80 tests on 2 workers, and every milestone adds tests. The required checks keep their names: `e2e
   # (<project>)` below is the job that reports the project's result from the results of all of its shards.
   e2e-shard:
     needs: build
     runs-on: ubuntu-24.04
-    # One shard holds about a quarter of the suite (the longest single test is about 20 min, world-landmarks at desktop on software GL); 60 leaves
-    # room for growth. BD-FIX-CI8-S01: with three shards, chromium-webgpu shard 2 of run 39964617132 hit the 60-minute limit with every test passing.
+    # One shard holds about a ninth of the suite (the longest single test is about 20 min, a desktop shot pair or world-landmarks at desktop
+    # on software GL); 60 leaves room for growth. BD-FIX-CI8-S01: with three shards, chromium-webgpu shard 2 of run 39964617132 hit the
+    # 60-minute limit with every test passing. BD-REPAIR-M02g2-03: Playwright cuts the shards by test count over the sorted file names, not
+    # by duration, and a desktop shot pair of world-look-fixes took 41 and 46 minutes in shard 7 of run 40903387571 (the streamer never
+    # settles at desktop on software GL, so the shot's two 10-minute waits ran out, four times over for a pair, and the shard also held
+    # world-look, 80 worker-minutes). The pairs now take about half that (the second shot is `shotMove`) and sit in files of their own, the
+    # other look-fix cases sort after world-look, and the matrix has nine shards, so the limit stays 60 (BD-REPAIR-M02g2-02 had raised it to 90).
     timeout-minutes: 60
     # chromium-webgl2 is required in M00; the others become required in the milestone that first depends on them.
     # webkit-webgl2 joined in M01a2 (the cross-browser determinism test); chromium-webgpu and xr-quest3 stay advisory.
@@ -295,10 +300,11 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3]
-        # Keep equal to E2E_SHARDS of the e2e job and to the `/8` of both check:e2e steps. BD-FIX-CI-SHARD8-01: six shards left
+        # Keep equal to E2E_SHARDS of the e2e job and to the `/9` of both check:e2e steps. BD-FIX-CI-SHARD8-01: six shards left
         # chromium-webgl2 shards 1 and 5 at 55 and 56 of 60 minutes on claude/build (world-look and world-landmarks share a shard; Playwright
-        # shards by file), and the look rows each add desktop cost on software GL.
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        # shards by file), and the look rows each add desktop cost on software GL. BD-REPAIR-M02g2-03: nine, because eight still put
+        # world-look and the tail of world-landmarks (about 100 worker-minutes on two workers) in one shard.
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9]
     env:
       # BD-FIX-CI10-P01: the browser engines this leg launches (playwright.config.ts: webkit-webgl2 on WebKit, the other projects on
       # Chromium); chromium-webgl2 shard 1 also runs check:coi, which launches both.
@@ -374,7 +380,7 @@ jobs:
       # Two invocations (M02b1, DL-546): the gray-box tags on the build job's artifact (no world), then everything else on a fresh
       # DV_WORLD=synth build. DV_SKIP_BUILD belongs to the first step only: a job-level value would serve the world-less artifact twice.
       - name: e2e, gray-box tags (build without a world)
-        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep "$GRAYBOX_GREP" --shard=${{ matrix.shard }}/8 --pass-with-no-tests
+        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep "$GRAYBOX_GREP" --shard=${{ matrix.shard }}/9 --pass-with-no-tests
         env:
           DV_SKIP_BUILD: '1'
       - name: Header and isolation checks against the local Worker
@@ -385,7 +391,7 @@ jobs:
           pnpm check:headers -- --serve http://localhost:8790
           pnpm check:coi -- --serve http://localhost:8790
       - name: e2e, every other tag (DV_WORLD=synth build)
-        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep-invert "$GRAYBOX_GREP" --shard=${{ matrix.shard }}/8 --pass-with-no-tests
+        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep-invert "$GRAYBOX_GREP" --shard=${{ matrix.shard }}/9 --pass-with-no-tests
         env:
           DV_WORLD: synth
           DV_SKIP_BUILD: ''
@@ -441,7 +447,7 @@ jobs:
       - name: Every shard of the project passed
         env:
           PROJECT: ${{ matrix.project }}
-          E2E_SHARDS: '8'
+          E2E_SHARDS: '9'
           BUILD_RESULT: ${{ needs.build.result }}
           SHARDS_RESULT: ${{ needs.e2e-shard.result }}
         run: |

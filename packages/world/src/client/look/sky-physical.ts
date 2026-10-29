@@ -165,6 +165,15 @@ export class PhysicalSky {
 
   private lastPair = '';
 
+  /**
+   * QA shots (`WorldBridge.shot`): the next frame bakes the environment from the sky as it is then. The probe rule watches the sun and the
+   * darkness; the cloud cover and the air go on easing after the sun has stopped, so a map baked in that stretch lights the ground differently
+   * from one baked on the settled sky, and which one a golden got depended on the speed of the machine (BD-REPAIR-M02g2-02).
+   */
+  refreshEnvironment(): void {
+    if (this.o.envMap) this.probe.invalidate();
+  }
+
   private skies(): SkyMesh[] {
     return this.envSky ? [this.mesh, this.envSky] : [this.mesh];
   }

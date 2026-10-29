@@ -34,16 +34,22 @@ describe('meshChunk on the gray-box fixture', () => {
   });
 
   it.each(TIERS)('%s: every terrain vertex lies on the physics surface within 1 mm, and a chunk has at most six render objects', (tier) => {
-    for (const c of sim) {
-      const m = meshChunk(c, renderOf(c), { tier, distM: 0 });
-      expect(objectCountOf(m)).toBeLessThanOrEqual(6);
-      const terrain = m.objects.find((o) => o.kind === 'terrain') as MeshBuffers;
-      const stride = profileOf(tier).profile.terrainStride;
-      expect(terrain.positions.length / 3).toBe((64 / stride + 1) ** 2);
-      for (let i = 0; i < terrain.positions.length; i += 3) {
-        const x = (terrain.positions[i] as number) + m.originX;
-        const z = (terrain.positions[i + 2] as number) + m.originZ;
-        expect(Math.abs((terrain.positions[i + 1] as number) - sampleHeight(c.height, x, z))).toBeLessThan(1e-3);
+    const prof = profileOf(tier).profile;
+    // M02g2: the chunks near the focus (distM 0) use `nearStride`, the others `terrainStride`; a profile with two strides adds the skirt
+    for (const [distM, stride] of [[0, prof.nearStride], [5000, prof.terrainStride]] as const) {
+      for (const c of sim) {
+        const m = meshChunk(c, renderOf(c), { tier, distM });
+        expect(objectCountOf(m)).toBeLessThanOrEqual(6);
+        const terrain = m.objects.find((o) => o.kind === 'terrain') as MeshBuffers;
+        expect(m.stats.terrainStride).toBe(stride);
+        const grid = (64 / stride + 1) ** 2;
+        const mixed = prof.nearStride < prof.terrainStride;
+        expect(terrain.positions.length / 3).toBe(grid + (mixed ? 4 * (64 / stride) : 0));
+        for (let i = 0; i < grid * 3; i += 3) {
+          const x = (terrain.positions[i] as number) + m.originX;
+          const z = (terrain.positions[i + 2] as number) + m.originZ;
+          expect(Math.abs((terrain.positions[i + 1] as number) - sampleHeight(c.height, x, z))).toBeLessThan(1e-3);
+        }
       }
     }
   });
@@ -79,13 +85,14 @@ describe('meshChunk on the gray-box fixture', () => {
   });
 });
 
-/** Every triangle of a mesh faces the way its vertex normals say. */
-function windingProblems(o: MeshBuffers): number {
+/** Every triangle of a mesh faces the way its vertex normals say; `skipFrom`: the first vertex of a skirt (terrain), whose faces hang vertically under normals that point up. */
+function windingProblems(o: MeshBuffers, skipFrom = Infinity): number {
   let bad = 0;
   const p = o.positions;
   const n = o.normals;
   for (let t = 0; t < o.indices.length; t += 3) {
     const a = o.indices[t] as number, b = o.indices[t + 1] as number, c = o.indices[t + 2] as number;
+    if (a >= skipFrom || b >= skipFrom || c >= skipFrom) continue;
     const ux = (p[b * 3] as number) - (p[a * 3] as number), uy = (p[b * 3 + 1] as number) - (p[a * 3 + 1] as number), uz = (p[b * 3 + 2] as number) - (p[a * 3 + 2] as number);
     const vx = (p[c * 3] as number) - (p[a * 3] as number), vy = (p[c * 3 + 1] as number) - (p[a * 3 + 1] as number), vz = (p[c * 3 + 2] as number) - (p[a * 3 + 2] as number);
     const gx = uy * vz - uz * vy, gy = uz * vx - ux * vz, gz = ux * vy - uy * vx;
@@ -97,12 +104,21 @@ function windingProblems(o: MeshBuffers): number {
   return bad;
 }
 
+/** The first skirt vertex of a terrain object (the grid comes first), Infinity for anything else. */
+const skirtStart = (o: MeshBuffers, tier: QualityTierId): number => {
+  if (o.kind !== 'terrain') return Infinity;
+  const prof = profileOf(tier).profile;
+  // distM 0: the chunk is in the near ring
+  const grid = (64 / prof.nearStride + 1) ** 2;
+  return o.positions.length / 3 > grid ? grid : Infinity;
+};
+
 describe('winding', () => {
   it('every face of the fixture meshes agrees with its normal (walls, flat roofs, terrain, roads)', () => {
     for (const tier of ['desktop', 'mobile-low'] as const) {
       for (const c of sim) {
         const m = meshChunk(c, renderOf(c), { tier, distM: 0 });
-        for (const o of m.objects) expect(windingProblems(o), `${c.key} ${o.kind} ${tier}`).toBe(0);
+        for (const o of m.objects) expect(windingProblems(o, skirtStart(o, tier)), `${c.key} ${o.kind} ${tier}`).toBe(0);
       }
     }
   });
@@ -110,8 +126,9 @@ describe('winding', () => {
   it.each([1, 2] as const)('a pitched roof (%i) on a rectangle has six roof triangles and outward faces', (roof) => {
     const b = new MeshBuilder();
     const tris = addBuilding(b, [0, 0, 20, 0, 20, 10, 0, 10], 10, 9, { kind: 0, roof, palette: 3, seed: 7 }, MESHER.profiles.desktop);
-    expect(tris).toBe(8 + 6);
-    expect(b.triangleCount).toBe(14);
+    // 8 wall triangles, 6 roof triangles, and (M02g2) 8 more for the wall row at 1.2 m, which an 80 triangle budget has room for
+    expect(tris).toBe(8 + 6 + 8);
+    expect(b.triangleCount).toBe(22);
     const out = b.build('buildings') as MeshBuffers;
     expect(windingProblems(out)).toBe(0);
     // The ridge is higher than the eave and lower than eave + roofLiftMaxM.
@@ -181,7 +198,7 @@ describe('meshChunk on the synth bake', () => {
       const cap = profileOf(tier).profile.trisPerBuilding;
       expect(m.stats.maxBuildingTris).toBeLessThanOrEqual(cap);
       expect(objectCountOf(m)).toBeLessThanOrEqual(6);
-      for (const o of m.objects) expect(windingProblems(o), `${tier} ${o.kind}`).toBe(0);
+      for (const o of m.objects) expect(windingProblems(o, skirtStart(o, tier)), `${tier} ${o.kind}`).toBe(0);
     }
   });
 });

@@ -35,8 +35,8 @@ const fixtures = readdirSync(fixtureDir)
 describe('classifyDevice (AC-2)', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('covers the five device fixtures', () => {
-    expect(fixtures.map((f) => f.name)).toEqual(['desktop-chrome', 'desktop-safari', 'iphone-safari', 'quest-browser', 'visionpro-safari']);
+  it('covers the six device fixtures', () => {
+    expect(fixtures.map((f) => f.name)).toEqual(['desktop-chrome', 'desktop-headless-chrome', 'desktop-safari', 'iphone-safari', 'quest-browser', 'visionpro-safari']);
   });
 
   for (const { name, fx } of fixtures) {
@@ -62,6 +62,8 @@ describe('classifyDevice (AC-2)', () => {
     const by = (n: string): ReturnType<typeof classifyDevice> => classifyDevice(fixtures.find((f) => f.name === n)!.fx.signals);
     expect(by('desktop-chrome').browser).toBe('chrome');
     expect(by('desktop-chrome').textureFamily).toBe('bc');
+    // M02g2: headless Chromium (the CI browsers) is Chromium, not WebKit.
+    expect(by('desktop-headless-chrome').browser).toBe('chrome');
     expect(by('desktop-safari').browser).toBe('safari');
     expect(by('iphone-safari').browser).toBe('safari');
     expect(by('iphone-safari').displayMode).toBe('standalone');
@@ -69,6 +71,19 @@ describe('classifyDevice (AC-2)', () => {
     expect(by('iphone-safari').touch).toBe(true);
     expect(by('quest-browser').browser).toBe('quest-browser');
     expect(by('quest-browser').textureFamily).toBe('none');
+  });
+
+  it('names the browser from the user agent: HeadlessChrome is chrome, desktop Safari safari, CriOS chrome on WebKit (M02g2)', () => {
+    const base = fixtures.find((f) => f.name === 'desktop-chrome')!.fx.signals;
+    const browserOf = (userAgent: string): string => classifyDevice({ ...base, userAgent }).browser;
+    expect(browserOf('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/146.0.0.0 Safari/537.36')).toBe('chrome');
+    expect(browserOf('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15')).toBe('safari');
+    expect(browserOf('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0')).toBe('chrome');
+    const phone = fixtures.find((f) => f.name === 'iphone-safari')!.fx.signals;
+    const crios = classifyDevice({ ...phone, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/146.0.0.0 Mobile/15E148 Safari/604.1' });
+    expect(crios.browser).toBe('chrome');
+    expect(crios.class).toBe('iphone');
+    expect(classifyDevice(phone).browser).toBe('safari');
   });
 
   it('lowMemoryHint follows deviceMemory and core count', () => {

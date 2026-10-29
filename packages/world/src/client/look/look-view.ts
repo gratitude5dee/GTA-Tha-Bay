@@ -11,7 +11,7 @@ import { GRADE_IDENTITY, PostStack, type PostLevel, type StackMode } from '@dv/e
 import type { PostNode, QualityTierId, RenderBackend, ShadowMode } from '@dv/shared';
 import type { DirectionalLight, HemisphereLight, Light, Object3D, PerspectiveCamera } from 'three/webgpu';
 import type { BackdropLayer } from '../backdrop/backdrop-layer.ts';
-import type { ChunkRenderer, LookRuntime } from '../chunks/chunk-renderer.ts';
+import type { ChunkRenderer, LookRuntime, VegetationReport } from '../chunks/chunk-renderer.ts';
 import type { WorldMaterials } from '../chunks/materials.ts';
 import type { SkyInput, SkyUniforms } from '../sky/types.ts';
 import type { TrafficRenderer } from '../traffic/instances.ts';
@@ -83,6 +83,8 @@ export interface LookReport {
   gradeOn: 'tonemap' | 'fog' | null;
   /** M02g1: the share of lit windows `[min, max]` the façade shader uses now. */
   windowLit: [number, number];
+  /** M02g2: the trees of the L0 units: units drawing theirs and the distance of the farthest, against `tree.drawM`. */
+  vegetation: VegetationReport;
 }
 
 export interface LookViewOptions {
@@ -409,6 +411,13 @@ export class LookView {
     return this.on ? this.allowed.filter((id) => this.layerSet.has(id)) : [];
   }
 
+  /** QA shots: asks for one environment bake from the sky as it is now. False when there is no environment map to bake. */
+  refreshEnvironment(): boolean {
+    if (!this.on || !this.sky?.envMapInUse) return false;
+    this.sky.refreshEnvironment();
+    return true;
+  }
+
   /** QA: switches one layer of the profile on or off. False for a layer the profile does not have (or with the look off). */
   setLayer(id: LookLayer, on: boolean): boolean {
     if (!this.on || !this.allowed.includes(id)) return false;
@@ -512,6 +521,7 @@ export class LookView {
       skyReflect: on && this.lastReflect,
       gradeOn: on && this.layerSet.has('grade') ? this.stack?.gradeOwner ?? null : null,
       windowLit: [this.lastLitRange[0], this.lastLitRange[1]],
+      vegetation: this.o.chunks.vegetationReport(),
     };
   }
 
