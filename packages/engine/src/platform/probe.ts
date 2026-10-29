@@ -58,6 +58,8 @@ export interface GovernorBridge {
   state(): GovernorState;
   /** Feeds synthetic rendered-frame times (ms) to the governor as if they had just been drawn. A disabled governor ignores them. */
   inject(frameMs: number[]): void;
+  /** The frame pacer: the target it holds, the callbacks it was asked about and the ones it let render. */
+  pacer(): { targetFps: number; seen: number; rendered: number; bypassed: boolean };
 }
 
 export interface PlatformBridge {
@@ -353,6 +355,7 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: 
     governor: {
       state: () => platform.governor.state(),
       inject: (frameMs) => platform.governor.inject(frameMs),
+      pacer: () => ({ targetFps: platform.pacer.targetFps, seen: platform.pacer.seen, rendered: platform.pacer.rendered, bypassed: platform.pacer.bypassed }),
     },
     pacing: () => ({ frames: host.frames, held: host.pacedFrames }),
     resolution: () => {
