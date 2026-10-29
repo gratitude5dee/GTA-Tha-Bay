@@ -133,7 +133,7 @@ export class StageContext {
     if (!verdict.ok) return { kind: 'refused', job, detail: `${verdict.code}: ${verdict.detail}` };
     const plan = this.deps.plans.get(stage) as StagePlan;
     const est = job.budgetUsdMicros;
-    ports.budget.tag?.(job.jobKey, this.subject.slug, stage);
+    ports.budget.tag?.(job.jobKey, this.subject.slug, stage, (this.deps.cfg.attempts?.[stage] ?? 0) > 0);
     const res = await ports.budget.reserve('fal', est, job.jobKey);
     if (!res.ok) return { kind: 'refused', job, detail: `BUDGET: the ledger refuses a reservation of ${est} micros (governor level ${res.level})` };
 

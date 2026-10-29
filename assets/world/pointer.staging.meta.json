@@ -1,6 +1,16 @@
 {
   "schema": "world-pointer-meta/1",
-  "assetsLockSha256": "8ba0b2c9c8a1f9af96d2778d9571d75f66662a34f6f32cc3d9bdf57ea270e639",
+  "assetsLockSha256": "1e9b7f823411d154c84b2814ea9d1bf291486017668da5817ec202ed09362e0d",
   "worldLockSha256": "30214f41fa038dbc6d9ef1cc3a602e3d21335d1e04b54fc3fdc4b70755c4bd52",
-  "worldIndexSha256": "a72b1a26f0245b8f700eb7eec1c3c8c0487cfcb9fe6f6a5ab70189c3b2f76c62"
+  "worldIndexSha256": "a72b1a26f0245b8f700eb7eec1c3c8c0487cfcb9fe6f6a5ab70189c3b2f76c62",
+  "odblOffer": {
+    "bakeId": "bf9c29c4ba5369f9de50aef5b9c1845dad637837443e9c640775f794e0d1a9ae",
+    "url": "https://tha-bay-web-staging.gratitude-8f4.workers.dev/media/odbl/bf9c29c4ba5369f9de50aef5b9c1845dad637837443e9c640775f794e0d1a9ae/index.json",
+    "index": "odbl/bf9c29c4ba5369f9de50aef5b9c1845dad637837443e9c640775f794e0d1a9ae/index.json",
+    "tarball": {
+      "key": "odbl/bf9c29c4ba5369f9de50aef5b9c1845dad637837443e9c640775f794e0d1a9ae/bake-scripts.tar.gz",
+      "bytes": 357723,
+      "sha256": "0f8d1d545ba1ffa10b7c278eedb9ed4fbc9ad1b9be9a8989fe945b2bc83ce64d"
+    }
+  }
 }

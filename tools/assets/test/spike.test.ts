@@ -4,11 +4,12 @@ import path from 'node:path';
 import { Document, NodeIO } from '@gltf-transform/core';
 import { PNG } from 'pngjs';
 import { afterEach, describe, expect, it } from 'vitest';
+import { lineCapMicros } from '../../../packages/shared/src/genai/lines.ts';
 import type { GenAiRegistry } from '../../../packages/shared/src/genai/registry.ts';
 import { readJson, toolsRoot } from '../../ci/lib/common.ts';
 import { runQueued } from '../lib/fal-queue.ts';
 import { cropPanels, parseFfprobe, probeGlb, proposeAliases, scanC2pa } from '../lib/media-probe.ts';
-import { checkCallable, planFindings, planTotalMicros, resolveKey, SpikeLedger, type SpikePlan } from '../lib/spike-ledger.ts';
+import { checkCallable, planFindings, planFit, planTotalMicros, resolveKey, SpikeLedger, type SpikePlan } from '../lib/spike-ledger.ts';
 import { diffPrices } from '../genai-price.ts';
 import { loadPlan, parseBriefs, pathsFor, renderPlan, runSpike, verifyResults, type SpikeResults } from '../genai-spike.ts';
 import { scanText } from '../../ci/check-secrets.ts';
@@ -129,14 +130,32 @@ let clock = 1_000;
 const now = (): number => (clock += 50);
 
 describe('plan (AC-1)', () => {
-  it('has 13 steps that all resolve, a total estimate <= $6 and the $10 cap', () => {
+  it('has 13 steps that all resolve, a total estimate <= $6 and the cap of the spike line (M10d0)', () => {
     expect(plan.steps).toHaveLength(13);
     expect(planFindings(plan, registry)).toEqual([]);
     expect(planTotalMicros(plan)).toBeLessThanOrEqual(6_000_000);
-    expect(plan.capMicros).toBe(10_000_000);
+    expect(plan.capMicros).toBe(lineCapMicros('spike'));
+    expect(plan.capMicros).toBe(4_000_000);
     const lines = renderPlan(plan, registry);
-    expect(lines).toHaveLength(plan.steps.length + 2);
-    expect(lines.join('\n')).toContain('hard cap $10.00');
+    expect(lines).toHaveLength(plan.steps.length + 4);
+    expect(lines.join('\n')).toContain('the spike line is $4.00');
+  });
+
+  it('lists the steps that fit under the line, with and without --skip-blocked (M10d0 AC-10)', () => {
+    const run = planFit(plan, registry);
+    expect(run.reservableMicros).toBeLessThanOrEqual(plan.capMicros);
+    expect(run.steps.filter((s) => s.verdict === 'over-cap').map((s) => s.id)).toEqual(['V5']);
+    const skip = planFit(plan, registry, { skipBlocked: true });
+    expect(skip.reservableMicros).toBe(3_760_000);
+    expect(skip.steps.filter((s) => s.verdict === 'skipped').map((s) => s.id)).toEqual(['V2', 'V4']);
+    expect(skip.steps.some((s) => s.verdict === 'over-cap')).toBe(false);
+    expect(renderPlan(plan, registry).join('\n')).toContain('--run --skip-blocked: reserves at most $3.76');
+  });
+
+  it('plan.json holds no cap of its own; the line is the one source', () => {
+    const raw = JSON.parse(readFileSync(path.join(toolsRoot, 'tools/assets/spike/plan.json'), 'utf8')) as Record<string, unknown>;
+    expect('capMicros' in raw).toBe(false);
+    expect('plannedMaxMicros' in raw).toBe(false);
   });
 
   it('every id is an integer micros estimate and every U-item need is a plan step', () => {
@@ -266,7 +285,8 @@ describe('queue lifecycle (AC-5)', () => {
     const p = pathsFor(root);
     mkdirSync(p.researchDir, { recursive: true });
     writeFileSync(p.notesJson, JSON.stringify(notes));
-    const results = await runSpike({ root, plan, registry, briefs, env: { FAL_KEY: 'test' }, fetch: m.fetch, now, ...instant });
+    // A wider cap than the $4 spike line, so this test still exercises every step of the plan (the line itself is tested above).
+    const results = await runSpike({ root, plan: { ...plan, capMicros: 10_000_000, plannedMaxMicros: 10_000_000 }, registry, briefs, env: { FAL_KEY: 'test' }, fetch: m.fetch, now, ...instant });
 
     const posts = m.calls.filter((c) => c.method === 'POST');
     expect(posts.length).toBeGreaterThanOrEqual(10);
@@ -322,7 +342,12 @@ describe('queue lifecycle (AC-5)', () => {
       expect(text).not.toMatch(/fal\.media|https?:\/\//);
       expect(scanText(text, f)).toEqual([]);
     }
-    expect(verifyResults(root, plan)).toEqual([]);
+    // The wide cap of this test is what --verify refuses: only the spike line is valid (M10d0).
+    expect(verifyResults(root, plan).map((x) => x.replace(/\d[\d,]*/g, 'N'))).toEqual([
+      'ledger total N micros passes N (the spike line)',
+      'ledger cap N is not the spike line N',
+      'results cap N is not the spike line N',
+    ]);
     expect(readFileSync(p.resultsMd, 'utf8')).toContain('| U-AST-3 |');
   });
 
@@ -350,12 +375,13 @@ describe('verify (AC-7)', () => {
     const root = tmpRoot();
     await runSpike({ root, plan, registry, briefs, env: {}, now, sleep: instant.sleep, fetch: async () => { throw new Error('no'); } });
     const p = pathsFor(root);
-    writeFileSync(p.ledgerJson, JSON.stringify({ schema: 'spike-ledger/1', capMicros: 10_000_000, totalMicros: 10_000_001, entries: [{ stepId: 'x', estimateMicros: 10_000_001, outcome: 'submitted' }] }));
+    writeFileSync(p.ledgerJson, JSON.stringify({ schema: 'spike-ledger/1', capMicros: 10_000_000, totalMicros: 4_000_001, entries: [{ stepId: 'x', estimateMicros: 4_000_001, outcome: 'submitted' }] }));
     const res = JSON.parse(readFileSync(p.resultsJson, 'utf8')) as SpikeResults;
     res.uItems = res.uItems.filter((u) => u.id !== 'U-AST-1');
     writeFileSync(p.resultsJson, JSON.stringify(res));
     const problems = verifyResults(root, plan);
-    expect(problems.some((x) => x.includes('passes 10,000,000'))).toBe(true);
+    expect(problems.some((x) => x.includes('passes 4,000,000'))).toBe(true);
+    expect(problems.some((x) => x.includes('ledger cap 10000000 is not the spike line 4,000,000'))).toBe(true);
     expect(problems.some((x) => x.includes('U-item U-AST-1 has no outcome'))).toBe(true);
   });
 });

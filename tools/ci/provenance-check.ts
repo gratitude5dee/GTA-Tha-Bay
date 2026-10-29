@@ -5,7 +5,8 @@
  *
  *   tsx tools/ci/provenance-check.ts [--root <dir>] [--dist <dir>] [--emit-credits [--emit-only]] [--release]
  *
- * `--emit-credits` writes dist/credits.json: the record attributions, the vendored-item NOTICE lines and (M02c2, DL-662) the `world`
+ * `--emit-credits` writes dist/credits.json: the record attributions, the vendored-item NOTICE lines, the `art` array (M10d0: one entry
+ * per CC-BY record, a courtesy line per used CC0 pack) and (M02c2, DL-662) the `world`
  * array of config/attribution.world.json with the ODbL notice and the OSM `offerUrl`. `--emit-only` writes the file and runs no gate
  * (the root `build` script ends with it so every dist holds the file; the gate runs in the CI `ip` job).
  */
@@ -15,9 +16,14 @@ import { parseArgs } from 'node:util';
 import {
   checkCredits,
   checkDerivation,
+  checkDerivedKtx2Roots,
+  checkLicensedRecord,
+  checkPackRegister,
   checkRecord,
   collectAttributions,
 } from '../../packages/shared/src/assets/gates/provenance.ts';
+import { buildArtCredits } from '../../packages/shared/src/assets/credits.ts';
+import { loadPackRegister, snapshotHashes } from '../assets/src/import/packs.ts';
 import { finding, type GateFinding } from '../../packages/shared/src/assets/gates/types.ts';
 import type { ProvenanceRecord } from '../../packages/shared/src/assets/provenance.ts';
 import { worldCreditsOf, type WorldAttributionFile } from '../../packages/shared/src/world/credits.ts';
@@ -166,7 +172,8 @@ export function runProvenanceCheck(opts: ProvenanceCheckOptions): ProvenanceChec
   const writeCredits = (): void => {
     const attributions = collectAttributions(records).map((a) => ({ license: a.license, attribution: a.attribution }));
     attributions.push(...vendoredCredits(opts.root));
-    const doc = { schema: 'credits/1', attributions, ...worldCreditsOf(readWorldAttribution(opts.root)) };
+    const art = buildArtCredits(records, loadPackRegister(opts.root).packs);
+    const doc = { schema: 'credits/1', attributions, art, ...worldCreditsOf(readWorldAttribution(opts.root)) };
     writeFileSync(path.join(opts.dist, 'credits.json'), `${JSON.stringify(doc, null, 2)}\n`);
   };
   if (opts.emitCredits && opts.emitOnly) {
@@ -177,6 +184,13 @@ export function runProvenanceCheck(opts: ProvenanceCheckOptions): ProvenanceChec
   const gateOpts = { recordLicenses: cfg.licenses.record, release: opts.release === true };
   for (const rec of records) findings.push(...checkRecord(rec, gateOpts));
   findings.push(...checkDerivation(records));
+  // M10d0: third-party art enters through the pack register (DL-OWN-06).
+  const reg = loadPackRegister(opts.root);
+  findings.push(...reg.findings);
+  const snapshotSha = snapshotHashes(opts.root, reg.packs);
+  findings.push(...checkPackRegister(reg.packs, snapshotSha));
+  for (const rec of records) findings.push(...checkLicensedRecord(rec, { packs: reg.packs, snapshotSha }));
+  findings.push(...checkDerivedKtx2Roots(records));
 
   const ship = listDist(opts.dist).filter(isShipFile);
   for (const rel of ship) {

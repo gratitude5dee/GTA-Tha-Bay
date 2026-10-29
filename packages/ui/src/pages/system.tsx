@@ -3,7 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { BRAND } from '../../../../config/brand.ts';
 import { PRIVACY_DOC, TERMS_DOC } from '../../../../config/terms.ts';
 import worldAttribution from '../../../../config/attribution.world.json';
-import { worldCreditsOf, type WorldAttributionFile, type WorldCredits } from '@dv/shared';
+import { isCourtesy, worldCreditsOf, type ArtCredit, type WorldAttributionFile, type WorldCredits } from '@dv/shared';
 import { lk, t } from '../i18n/index.ts';
 import { ERROR_TOPIC } from './help.tsx';
 import { Button, Progress } from '../kit/widgets.tsx';
@@ -103,9 +103,67 @@ export function useWorldCredits(): WorldCredits {
   return credits;
 }
 
+/** The art credits of the build (M10d0): the `art` array of `/credits.json`, empty until it arrives and when the file has none. */
+export function useArtCredits(): ArtCredit[] {
+  const [art, setArt] = useState<ArtCredit[]>([]);
+  useEffect(() => {
+    let live = true;
+    void fetch('/credits.json', { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`credits.json ${r.status}`))))
+      .then((doc: { art?: unknown }) => {
+        if (live && Array.isArray(doc.art)) setArt(doc.art.filter(isArtCredit));
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
+  return art;
+}
+
+const isString = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
+
+/** A credits entry read from JSON: a courtesy line, or the five CC-BY fields with their licence name. Anything else is left out. */
+export function isArtCredit(v: unknown): v is ArtCredit {
+  if (typeof v !== 'object' || v === null) return false;
+  const o = v as Record<string, unknown>;
+  if (!isString(o['pack'])) return false;
+  if ('courtesy' in o) return isString(o['courtesy']);
+  return ['title', 'author', 'sourceUrl', 'licence', 'licenceUrl', 'changes'].every((k) => isString(o[k])) && /^https:\/\//.test(String(o['sourceUrl'])) && /^https:\/\//.test(String(o['licenceUrl']));
+}
+
+/** The Art section of the credits page: a courtesy line per CC0 pack and, per CC-BY file, its title, author, source, licence and what changed. Nothing without entries. */
+export function ArtCreditsSection(props: { art: readonly ArtCredit[] }) {
+  if (props.art.length === 0) return null;
+  return (
+    <section data-testid="credits-art">
+      <h2>{t('credits.art')}</h2>
+      <p>{t('credits.art.body')}</p>
+      <ul class="dv-credits-art">
+        {props.art.map((a, i) =>
+          isCourtesy(a) ? (
+            <li key={`${a.pack}-courtesy`} data-testid={`credit-art-${a.pack}`}>{a.courtesy}</li>
+          ) : (
+            <li key={`${a.pack}-${i}`} data-testid={`credit-art-${a.pack}-${i}`}>
+              <q>{a.title}</q> {t('credits.art.by')} {a.author}
+              {' '}
+              (<a href={a.sourceUrl} rel="noreferrer noopener" target="_blank" data-testid="credit-art-source">{t('credits.art.source')}</a>),
+              {' '}
+              <a href={a.licenceUrl} rel="noreferrer noopener" target="_blank" data-testid="credit-art-licence">{a.licence}</a>.
+              {' '}
+              {t('credits.art.changes')}: {a.changes}
+            </li>
+          ),
+        )}
+      </ul>
+    </section>
+  );
+}
+
 export function CreditsPage(_props: PageProps) {
   const { shell } = useShell();
   const world = useWorldCredits();
+  const art = useArtCredits();
   return (
     <main class="dv-page dv-credits" data-testid="credits">
       <h1>{t('credits.title')}</h1>
@@ -124,6 +182,7 @@ export function CreditsPage(_props: PageProps) {
         </ul>
         <p data-testid="odbl-notice">{world.odblNotice}</p>
       </section>
+      <ArtCreditsSection art={art} />
       <section>
         <h2>{t('credits.ai')}</h2>
         <p>{t('credits.ai.body')}</p>

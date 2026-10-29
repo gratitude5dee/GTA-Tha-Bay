@@ -53,14 +53,15 @@ export function parseGuardrailsYaml(text: string): { [k: string]: YamlValue } {
   return root;
 }
 
-export const GENAI_LINES = ['spike', 'characters', 'cutscenes', 'vehiclesProps', 'buffer'] as const;
+export const GENAI_LINE_NAMES = ['spike', 'characters', 'cutscenes', 'vehiclesProps', 'buffer'] as const;
+export type GenaiLineName = (typeof GENAI_LINE_NAMES)[number];
 
 export interface GenaiGuardrails {
   programCapUsdMicros: number;
   falConcurrency: number;
   alarms: number[];
-  /** M10a1: per-line caps in USD micros; together they stay within the program cap. */
-  lines: Record<(typeof GENAI_LINES)[number], number>;
+  /** M10d0: the program cap split into lines (USD micros); they sum to `programCapUsdMicros`. */
+  lines: Record<GenaiLineName, number>;
 }
 
 export function genaiSection(text: string): GenaiGuardrails {
@@ -74,9 +75,9 @@ export function genaiSection(text: string): GenaiGuardrails {
   if (!Array.isArray(alarms) || alarms.length === 0 || alarms.some((a) => typeof a !== 'number' || a <= 0 || a > 1)) {
     throw new Error('guardrails.yaml: genai.alarms must be fractions in (0, 1]');
   }
-  const lines = intMap(genai['lines'], GENAI_LINES, 'genai.lines');
-  const sum = GENAI_LINES.reduce((n, k) => n + lines[k], 0);
-  if (sum > programCapUsdMicros) throw new Error('guardrails.yaml: genai.lines must sum to at most genai.programCapUsdMicros');
+  const lines = intMap(genai['lines'], GENAI_LINE_NAMES, 'genai.lines');
+  const sum = GENAI_LINE_NAMES.reduce((a, k) => a + lines[k], 0);
+  if (sum !== programCapUsdMicros) throw new Error(`guardrails.yaml: genai.lines sum to ${sum} micros, not the program cap ${programCapUsdMicros}`);
   return { programCapUsdMicros, falConcurrency, alarms: alarms as number[], lines };
 }
 
@@ -148,7 +149,7 @@ export function renderGenerated(g: GenaiGuardrails): string {
     `  falConcurrency: ${g.falConcurrency},`,
     `  alarms: [${g.alarms.join(', ')}],`,
     '  lines: {',
-    ...GENAI_LINES.map((k) => `    ${k}: ${g.lines[k]},`),
+    ...GENAI_LINE_NAMES.map((k) => `    ${k}: ${g.lines[k]},`),
     '  },',
     '} as const;',
     '',

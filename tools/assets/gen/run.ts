@@ -10,7 +10,7 @@
  * skips its call; concurrency is `genai.falConcurrency` (2).
  */
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import type { ConsentIndex } from '../../../packages/shared/src/assets/gates/index.ts';
@@ -25,6 +25,7 @@ import { LEDGER_FILE, usd } from './ledger.ts';
 import { loadWorld, type World } from './plan.ts';
 import { LedgerBudget, QueueFalPort, fsBlob, mapRoster } from './ports.ts';
 import { fsPublisher } from './stages/publish.ts';
+import { refPaths } from './subject-card.ts';
 import { BAY_RIG } from './stages/rig.ts';
 import { ktxTool } from '../src/optimize.ts';
 
@@ -41,6 +42,8 @@ export interface RunArgs {
   withMoves: boolean;
   retake: PaidStage[];
   attempt: number;
+  /** The owner's sign-off for a retake (Q-26): required with `--retake`, kept in the ledger rows of the retake. */
+  ownerSignoff: string | undefined;
   styleBible: string;
   roster: string | undefined;
   registry: string | undefined;
@@ -53,7 +56,7 @@ export function parseRunArgs(argv: readonly string[]): RunArgs {
     args: [...argv],
     options: {
       slug: { type: 'string' }, until: { type: 'string', default: 'sheet' }, live: { type: 'boolean', default: false }, by: { type: 'string', default: 'art-lead' },
-      'with-moves': { type: 'boolean', default: false }, retake: { type: 'string' }, attempt: { type: 'string', default: '1' }, 'style-bible': { type: 'string', default: DEFAULT_STYLE_BIBLE },
+      'with-moves': { type: 'boolean', default: false }, retake: { type: 'string' }, 'owner-signoff': { type: 'string' }, attempt: { type: 'string', default: '1' }, 'style-bible': { type: 'string', default: DEFAULT_STYLE_BIBLE },
       roster: { type: 'string' }, registry: { type: 'string' }, ledger: { type: 'string' }, kill: { type: 'string' },
     },
   });
@@ -64,7 +67,7 @@ export function parseRunArgs(argv: readonly string[]): RunArgs {
   const attempt = Number(values.attempt);
   if (!Number.isInteger(attempt) || attempt < 1) throw new Error('--attempt must be a positive integer');
   return {
-    retake: retake as PaidStage[], attempt,
+    retake: retake as PaidStage[], attempt, ownerSignoff: values['owner-signoff'],
     slug: values.slug, until: values.until as RunUntil, live: values.live, by: values.by as string, withMoves: values['with-moves'], styleBible: values['style-bible'] as string,
     roster: values.roster, registry: values.registry, ledger: values.ledger, kill: values.kill,
   };
@@ -107,6 +110,11 @@ export async function runCommand(argv: readonly string[], d: RunDeps): Promise<n
   const subject = found.subject;
   const plans = stagePlans(subject, w.registry, { withMoves: a.withMoves });
   const est = estimateMicros(plans);
+  // A retake is a new seed and costs again; it comes from the buffer line only with the owner's word (DL-OWN-07, Q-26).
+  if (a.retake.length > 0 && (a.ownerSignoff === undefined || a.ownerSignoff.trim() === '')) {
+    d.log(`assets:gen run: refused: --retake ${a.retake.join(',')} spends the buffer line and needs the owner's sign-off (Q-26): add --owner-signoff "<who, when, why>"`);
+    return 1;
+  }
 
   // 2. --live is never allowed in CI
   if (a.live && d.env['CI'] !== undefined && d.env['CI'] !== '') {
@@ -146,7 +154,7 @@ function buildLive(d: RunDeps) {
     const clock = { now: d.now };
     const entries = new Map<string, RosterEntry>();
     for (const e of w.entries) if (e.subject !== null) entries.set(e.entry.id, { id: e.entry.id, tier: e.subject.tier, soulVersion: e.subject.soulVersion, killed: e.subject.killed });
-    const budget = new LedgerBudget({ file: abs(a.ledger ?? LEDGER_FILE), line: 'characters', clock });
+    const budget = new LedgerBudget({ file: abs(a.ledger ?? LEDGER_FILE), line: 'characters', clock, ...(a.ownerSignoff !== undefined ? { retakeNote: a.ownerSignoff } : {}) });
     const lifecycle = (JSON.parse(readFileSync(abs('tools/assets/spike/plan.json'), 'utf8')) as { lifecycleHeader: string }).lifecycleHeader;
     const fal = new QueueFalPort({ key: d.env['FAL_KEY'] as string, fetch: d.fetch, sleep: (ms) => new Promise((r) => setTimeout(r, ms)), now: d.now, lifecycleHeader: lifecycle });
     const matchers = compileRealNames([...PROMPT_LINT_CONFIG.displayNames, ...(w.realNames ?? [])].map((s, i) => ({ id: `n${i}`, real: s })));
@@ -157,8 +165,8 @@ function buildLive(d: RunDeps) {
     const row = budgets.rows.find((r) => r.id === (subject.hero ? 'character-hero' : 'character-npc'));
     if (row === undefined) throw new Error(`${BUDGETS_FILE} has no row for ${subject.hero ? 'character-hero' : 'character-npc'}`);
     const sb = abs(`${WORK_DIR}/style-bible/${a.styleBible}.png`);
-    const refsDir = abs(`content/npcs/${subject.slug}/refs`);
-    const refs = existsSync(refsDir) ? readdirSync(refsDir).filter((f) => f.endsWith('.png')).sort().map((f) => new Uint8Array(readFileSync(path.join(refsDir, f)))) : [];
+    const card = w.entries.find((x) => x.entry.id === subject.slug)?.card;
+    const refs = refPaths(d.root, subject.slug, card).map((rel) => new Uint8Array(readFileSync(abs(rel))));
     const license = JSON.parse(readFileSync(abs('config/license-allowlist.json'), 'utf8')) as { record: string[] };
     const consent = JSON.parse(readFileSync(abs('config/consent-index.json'), 'utf8')) as ConsentIndex;
     const terms = readFileSync(abs(TERMS_FILE));

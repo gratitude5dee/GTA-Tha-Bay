@@ -138,6 +138,10 @@ export default defineConfig({
   },
   // /api goes to `wrangler dev` (services/edge) on :8788; `pnpm dev` starts both.
   server: { proxy: { '/api': 'http://localhost:8788' } },
+  // M10d0: three's KTX2Loader finds the Basis transcoder by `new URL('../libs/basis/...', import.meta.url)`. A build emits both files as
+  // hashed same-origin assets (assets/basis_transcoder-<hash>.js and .wasm, under the isolation headers, no CDN); the dev server must not
+  // pre-bundle the loader, or that URL no longer points at the package.
+  optimizeDeps: { exclude: ['three/examples/jsm/loaders/KTX2Loader.js'] },
   worker: { format: 'es', plugins: () => [moduleIds(here('.'), here('../..'), false), ...(qaOnly ? [qaOnly.worker()] : [])], rollupOptions: { output: { chunkFileNames: chunkName } } },
   build: {
     outDir: 'dist',

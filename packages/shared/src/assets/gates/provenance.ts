@@ -5,6 +5,7 @@
  * attribution coverage.
  */
 import type { ProvenanceRecord } from '../provenance.ts';
+import { missingCcByFields, packOfUrl, parseCcByAttribution } from '../credits.ts';
 import { finding, type GateFinding } from './types.ts';
 import { licenseAllowed } from './license.ts';
 
@@ -109,6 +110,114 @@ export function checkCredits(records: readonly ProvenanceRecord[], creditsText: 
   for (const a of collectAttributions(records)) {
     if (creditsText === null || !creditsText.includes(JSON.stringify(a.attribution).slice(1, -1))) {
       out.push(finding(GATE, 'credits.json', 'attribution-not-in-credits', `${a.license}: ${a.attribution}`));
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------------------------
+// M10d0: third-party art (DL-OWN-06). A `licensed` record is admitted only through a dated licence snapshot.
+
+/** One row of docs/legal/licenses/packs.json. */
+export interface ArtPack {
+  id: string;
+  hosts: string[];
+  spdx: string;
+  snapshot: { path: string; sha256: string; retrieved: string };
+  courtesy?: string;
+  use: 'import' | 'snapshot-only';
+}
+
+export interface ArtPackRegister { schema: 'art-packs/1'; packs: ArtPack[] }
+
+/** The fields of a provenance record that the credits builder reads. */
+export type ArtRecordView = Pick<ProvenanceRecord, 'origin' | 'status' | 'license' | 'attribution' | 'source'>;
+
+/** `tool.name` of the records `assets:import -- textures` writes for its KTX2 outputs. */
+export const TEXTURE_TOOL = 'dv-texture-set';
+
+/** The review gate and decision a licensed file needs before it ships. */
+export const ART_VETTING_GATE = 'art-vetting';
+
+export interface LicensedGateOptions {
+  packs: readonly ArtPack[];
+  /** SHA-256 of each pack's snapshot file as found on disk, by pack id; null when the file is missing. */
+  snapshotSha: Readonly<Record<string, string | null>>;
+}
+
+const RESTRICTED_LICENCE = /(^|[-\s])(nc|nd|sa)([-\s]|$)|editorial|noncommercial|non-commercial|noderiv/i;
+
+/** True for a licence id that carries a non-commercial, no-derivatives, share-alike or editorial-only term. */
+export function restrictedLicence(license: string): boolean {
+  return RESTRICTED_LICENCE.test(license);
+}
+
+/** The register itself: every snapshot file exists and matches its recorded hash. One finding per pack. */
+export function checkPackRegister(packs: readonly ArtPack[], snapshotSha: Readonly<Record<string, string | null>>): GateFinding[] {
+  const out: GateFinding[] = [];
+  for (const p of packs) {
+    const actual = snapshotSha[p.id];
+    if (actual === undefined || actual === null) out.push(finding(GATE, p.snapshot.path, 'art-snapshot-missing', `pack ${p.id}: snapshot file not found`));
+    else if (actual !== p.snapshot.sha256) {
+      out.push(finding(GATE, p.snapshot.path, 'art-snapshot-altered', `pack ${p.id}: snapshot sha256 ${actual.slice(0, 12)} differs from the register ${p.snapshot.sha256.slice(0, 12)}`));
+    }
+  }
+  return out;
+}
+
+/** The licensed-file rules (DL-OWN-06): a known host with an intact snapshot, the pack's licence, a vetting approval, a complete CC-BY attribution. */
+export function checkLicensedRecord(rec: ProvenanceRecord, opts: LicensedGateOptions): GateFinding[] {
+  if (rec.origin !== 'licensed') return [];
+  const out: GateFinding[] = [];
+  const file = fileOf(rec);
+  const add = (rule: string, detail: string): void => {
+    out.push(finding(GATE, file, rule, detail));
+  };
+  const url = rec.source?.url ?? null;
+  const pack = packOfUrl(opts.packs, url);
+  if (!pack) add('art-host-unknown', url ? `source.url host of ${url} is in no pack of docs/legal/licenses/packs.json` : 'a licensed record needs a source.url');
+  else {
+    const actual = opts.snapshotSha[pack.id];
+    if (actual === undefined || actual === null) add('art-snapshot-missing', `pack ${pack.id}: snapshot file not found`);
+    else if (actual !== pack.snapshot.sha256) add('art-snapshot-altered', `pack ${pack.id}: snapshot sha256 ${actual.slice(0, 12)} differs from the register`);
+    if (rec.license !== pack.spdx) add('art-licence-mismatch', `licence ${rec.license} is not ${pack.spdx} of pack ${pack.id}`);
+  }
+  if (restrictedLicence(rec.license)) add('art-licence-restricted', `licence ${rec.license} carries a non-commercial, no-derivatives, share-alike or editorial term`);
+  if (!rec.review.some((r) => r.gate === ART_VETTING_GATE && r.decision === 'approve')) {
+    add('art-vetting-missing', `no review {gate: '${ART_VETTING_GATE}', decision: 'approve'}`);
+  }
+  if (rec.license === 'CC-BY-4.0') {
+    const missing = missingCcByFields(rec.attribution ? parseCcByAttribution(rec.attribution) : {});
+    if (missing.length > 0) add('art-attribution-incomplete', `CC-BY attribution lacks ${missing.join(', ')}`);
+  }
+  return out;
+}
+
+/** A derived KTX2 written by the texture importer must reach only licensed roots. */
+export function checkDerivedKtx2Roots(records: readonly ProvenanceRecord[]): GateFinding[] {
+  const bySha = new Map<string, ProvenanceRecord>();
+  for (const r of records) bySha.set(r.sha256, r);
+  const out: GateFinding[] = [];
+  const rootsOf = (rec: ProvenanceRecord, seen: Set<string>): ProvenanceRecord[] => {
+    if (seen.has(rec.sha256)) return [];
+    seen.add(rec.sha256);
+    if (rec.derived_from.length === 0) return [rec];
+    const roots: ProvenanceRecord[] = [];
+    for (const raw of rec.derived_from) {
+      const parent = bySha.get(normalizeSha(raw));
+      if (parent) roots.push(...rootsOf(parent, seen));
+    }
+    return roots;
+  };
+  for (const rec of records) {
+    if (rec.origin !== 'derived' || rec.tool?.name !== TEXTURE_TOOL || !rec.paths.some((p) => p.endsWith('.ktx2'))) continue;
+    const roots = rootsOf(rec, new Set());
+    if (roots.length === 0) {
+      out.push(finding(GATE, fileOf(rec), 'art-derived-root', 'derived KTX2 has no root record'));
+      continue;
+    }
+    for (const root of roots) {
+      if (root.origin !== 'licensed') out.push(finding(GATE, fileOf(rec), 'art-derived-root', `derived KTX2 needs a licensed root; ${root.sha256.slice(0, 12)} is ${root.origin}`));
     }
   }
   return out;

@@ -5,6 +5,9 @@ import type { BackdropInfo } from './backdrop/backdrop-layer.ts';
 import type { LandmarksReport, LandmarkSwapEvent } from './chunks/landmark-layer.ts';
 import type { LumaOptions, LumaSample, SkyInfo } from './sky/sky-view.ts';
 import type { LookReport } from './look/look-view.ts';
+// art-hook:textures begin (M10d0)
+import type { TexturesReport } from './textures/surface-textures.ts';
+// art-hook:textures end
 import { mountWorldControls } from './world-controls.ts';
 import type { PrefetchReport } from './boot-prefetch.ts';
 import type { BootReport, ChunksReport, WorldView } from './world-view.ts';
@@ -76,7 +79,7 @@ export interface WorldBridge {
   /** Renders the scene into a 128 x 72 target looking `pitchDeg` up along `yawDeg` and reads back the mean and variance of its luminance. */
   luma(pitchDeg: number, yawDeg?: number, opts?: LumaOptions): Promise<LumaSample>;
   /** M02e: what the look pass is doing (profile, post nodes, shadow mode and passes, casters, exposure, environment, sky, window glow). */
-  look(): LookReport | null;
+  look(): (LookReport & { textures: TexturesReport | null }) | null;
   /** QA only: the live objects, for debugging in the page (not JSON-friendly). */
   internals(): { view: WorldView; look: unknown };
   /** M02e: the look on or off at runtime (materials, post stack, shadows; one re-record per resident chunk). False when the tier has none. */
@@ -230,7 +233,12 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
     rain: (v) => view.sky?.setRainOverride(v),
     sky: () => view.skyInfo(),
     luma: (pitch, yaw, opts) => view.sampleLuma(pitch, yaw, opts),
-    look: () => view.lookReport(),
+    // art-hook:textures begin (M10d0): `look().textures`, the surface textures of the tier (null in a view without a look)
+    look: () => {
+      const r = view.lookReport();
+      return r ? { ...r, textures: view.textures?.report() ?? null } : null;
+    },
+    // art-hook:textures end
     internals: () => ({ view, look: view.lookView }),
     setLook: (on) => view.setLook(on),
     setLookLayer: (id, on) => view.setLookLayer(id, on),

@@ -1,0 +1,30 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "6cf17dc889352c42e9acf8897107978d127005fe3386c36a0e3845e27967630a",
+  "paths": [
+    "assets/basis_transcoder-VXdx5NbI.wasm",
+    "node_modules/three/examples/jsm/libs/basis/basis_transcoder.wasm"
+  ],
+  "kind": "data",
+  "origin": "open_data",
+  "license": "Apache-2.0",
+  "attribution": "Basis Universal transcoder (Binomial LLC and contributors), Apache License 2.0, shipped as basis_transcoder.wasm from the three package; used to read the KTX2 surface textures.",
+  "authors": [
+    "studio:binomial-llc"
+  ],
+  "source": {
+    "url": "https://github.com/BinomialLLC/basis_universal",
+    "dataset_id": "three@0.186.1 examples/jsm/libs/basis",
+    "retrieved": "2026-10-28"
+  },
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "pass",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-28T00:00:00Z"
+}

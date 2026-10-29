@@ -1,0 +1,185 @@
+{
+  "schema": "texture-import/1",
+  "sets": [
+    {
+      "set": "asphalt",
+      "pack": "polyhaven",
+      "assetId": "asphalt_02",
+      "name": "Asphalt 02",
+      "author": "Rob Tuytel",
+      "pageUrl": "https://polyhaven.com/a/asphalt_02",
+      "tileM": 3,
+      "retrieved": "2026-10-28",
+      "maps": {
+        "albedo": {
+          "file": "asphalt_02_diff_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/asphalt_02/asphalt_02_diff_1k.png",
+          "sha256": "68f85c76965ea664d500839c7ffe28fc7f2ddd297db32323dd63976589316bd3",
+          "bytes": 2485545
+        },
+        "normal": {
+          "file": "asphalt_02_nor_gl_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/asphalt_02/asphalt_02_nor_gl_1k.png",
+          "sha256": "b2069741070f0107c81d001eabfffd6d6644f249cd4ffdf52852e4b5e746a959",
+          "bytes": 2323825
+        },
+        "orm": {
+          "file": "asphalt_02_arm_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/asphalt_02/asphalt_02_arm_1k.png",
+          "sha256": "7879efd37544030b38578b3797c7a840d06bef2170fcc6953f8d9e3b21a2b6be",
+          "bytes": 1784946
+        }
+      }
+    },
+    {
+      "set": "concrete",
+      "pack": "polyhaven",
+      "assetId": "concrete_pavement",
+      "name": "Concrete Pavement",
+      "author": "Charlotte Baglioni",
+      "pageUrl": "https://polyhaven.com/a/concrete_pavement",
+      "tileM": 1.8,
+      "retrieved": "2026-10-28",
+      "maps": {
+        "albedo": {
+          "file": "concrete_pavement_diff_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/concrete_pavement/concrete_pavement_diff_1k.png",
+          "sha256": "eb1a433ffbb22ee124cc0d7e04e9344d73cb255550e091777450841ad3436c3e",
+          "bytes": 5754280
+        },
+        "normal": {
+          "file": "concrete_pavement_nor_gl_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/concrete_pavement/concrete_pavement_nor_gl_1k.png",
+          "sha256": "9800e6b905862cbe4c5729d60d62b1c9dbf8e9cb52a7a468489131c556ec5e7c",
+          "bytes": 5974518
+        },
+        "orm": {
+          "file": "concrete_pavement_arm_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/concrete_pavement/concrete_pavement_arm_1k.png",
+          "sha256": "71f96ee4526ce17f98d004c8bd4119e5646e0b72d7c7b6ddc89f0b089424155a",
+          "bytes": 4392233
+        }
+      }
+    },
+    {
+      "set": "pavers",
+      "pack": "polyhaven",
+      "assetId": "concrete_pavers",
+      "name": "Concrete Pavers",
+      "author": "Amal Kumar",
+      "pageUrl": "https://polyhaven.com/a/concrete_pavers",
+      "tileM": 1.92,
+      "retrieved": "2026-10-28",
+      "maps": {
+        "albedo": {
+          "file": "concrete_pavers_diff_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/concrete_pavers/concrete_pavers_diff_1k.png",
+          "sha256": "606e7116d51b491fb9eca7793b518913a2a60041ac089f61cdbffa3116c553e2",
+          "bytes": 5579959
+        },
+        "normal": {
+          "file": "concrete_pavers_nor_gl_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/concrete_pavers/concrete_pavers_nor_gl_1k.png",
+          "sha256": "d37c8a777529005149e02dad1182434cade24cd70161e98e5c3a66e6948a27ea",
+          "bytes": 5555670
+        },
+        "orm": {
+          "file": "concrete_pavers_arm_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/concrete_pavers/concrete_pavers_arm_1k.png",
+          "sha256": "b65d9f3c0e4909be0cb124dbd4425a5ce904a318ab772a7967118f65c49efaac",
+          "bytes": 3965954
+        }
+      }
+    },
+    {
+      "set": "grass-dirt",
+      "pack": "polyhaven",
+      "assetId": "grass_ground",
+      "name": "Grass Ground",
+      "author": "Charlotte Baglioni",
+      "pageUrl": "https://polyhaven.com/a/grass_ground",
+      "tileM": 2.51,
+      "retrieved": "2026-10-28",
+      "maps": {
+        "albedo": {
+          "file": "grass_ground_diff_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/grass_ground/grass_ground_diff_1k.png",
+          "sha256": "fbab95206455b849677a07372ea2050956afbb559d9da6db946e3e6c02aae6a1",
+          "bytes": 5696034
+        },
+        "normal": {
+          "file": "grass_ground_nor_gl_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/grass_ground/grass_ground_nor_gl_1k.png",
+          "sha256": "27b4902c4cf5d70c35045f1855ff2bd2eda015037fb5c36187fa69de0077d689",
+          "bytes": 6072059
+        },
+        "orm": {
+          "file": "grass_ground_arm_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/grass_ground/grass_ground_arm_1k.png",
+          "sha256": "ec5d434f3d5a0a471f74cb4050e45b0e83ffb4035d6125631f68690c6232c0ca",
+          "bytes": 4284843
+        }
+      }
+    },
+    {
+      "set": "brick",
+      "pack": "polyhaven",
+      "assetId": "brick_wall_09",
+      "name": "Brick Wall 09",
+      "author": "Rob Tuytel, Matterfield",
+      "pageUrl": "https://polyhaven.com/a/brick_wall_09",
+      "tileM": 2.01,
+      "retrieved": "2026-10-28",
+      "maps": {
+        "albedo": {
+          "file": "brick_wall_09_diff_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/brick_wall_09/brick_wall_09_diff_1k.png",
+          "sha256": "79d149257c12327d369045769f8c446301c0b31bc84be85977b9890e7b1943a5",
+          "bytes": 5495107
+        },
+        "normal": {
+          "file": "brick_wall_09_nor_gl_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/brick_wall_09/brick_wall_09_nor_gl_1k.png",
+          "sha256": "e9438c0741bbb94ffaee2f5523a3bfc2c894aa70a09952606ea7a0b7922f17ad",
+          "bytes": 5756520
+        },
+        "orm": {
+          "file": "brick_wall_09_arm_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/brick_wall_09/brick_wall_09_arm_1k.png",
+          "sha256": "a25dc09b6c3ff2b9d4d8973bb0ec70113c56b914fefe157bca1180ea67c5370c",
+          "bytes": 4213285
+        }
+      }
+    },
+    {
+      "set": "stucco",
+      "pack": "polyhaven",
+      "assetId": "white_stucco",
+      "name": "White Stucco",
+      "author": "Amal Kumar",
+      "pageUrl": "https://polyhaven.com/a/white_stucco",
+      "tileM": 2,
+      "retrieved": "2026-10-28",
+      "maps": {
+        "albedo": {
+          "file": "white_stucco_diff_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/white_stucco/white_stucco_diff_1k.png",
+          "sha256": "24ed9486ac78892b34a47cba0cde44a27f356b7c34d3c93c0da7b464be0de131",
+          "bytes": 5328938
+        },
+        "normal": {
+          "file": "white_stucco_nor_gl_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/white_stucco/white_stucco_nor_gl_1k.png",
+          "sha256": "0d2f0911ca98b84f78fcf35878e027bdaffb6d661d763f6141642e5581b06d69",
+          "bytes": 5675112
+        },
+        "orm": {
+          "file": "white_stucco_arm_1k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/white_stucco/white_stucco_arm_1k.png",
+          "sha256": "6ac026a77efbfe49434082f392eefdbda7e37ba89ae9daa7912c177a2faa45e4",
+          "bytes": 3506134
+        }
+      }
+    }
+  ]
+}

@@ -33,6 +33,10 @@ import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
 import { LOOK, LOOK_LAYERS, lookProfileFor, type LookLayer } from './look/config.ts';
 import { LookView, type LookReport } from './look/look-view.ts';
+// art-hook:textures begin (M10d0)
+import { TEXTURES_FLAG } from './textures/config.ts';
+import { SurfaceTextures, installSurfaceTextures, installedSurfaceTextures } from './textures/surface-textures.ts';
+// art-hook:textures end
 import { createSkyNodes, type SkyNodes } from './sky/nodes.ts';
 import { SkyView, type LumaOptions, type LumaSample, type SkyInfo } from './sky/sky-view.ts';
 import { TeleportFade } from './teleport-fade.ts';
@@ -170,6 +174,8 @@ export class WorldView implements WorldLayer {
   materials!: WorldMaterials;
   /** M02e: the look pass (post stack, shadows, physical sky); null in a view built without `look`. */
   lookView: LookView | null = null;
+  /** M10d0: the tiled PBR surface textures of the ground; null in a view built without `look`. */
+  textures: SurfaceTextures | null = null;
   /** The landmark models of the world (M02d1); null when the catalog holds none. */
   landmarks: LandmarkLayer | null = null;
   /** The sky of the world path (M02b2); set in `attach`. */
@@ -252,6 +258,19 @@ export class WorldView implements WorldLayer {
 
     const fade = STREAMING_FADE_SECONDS[this.o.tier];
     const profile = this.o.look ? lookProfileFor(this.o.tier, this.o.look.enabled) : 'legacy';
+    // art-hook:textures begin (M10d0): built before the materials, which read it; the files load after the reveal (`startTextures`)
+    if (this.o.look) {
+      const off = this.o.qa === true && new URLSearchParams(globalThis.location?.search ?? '').get('textures') === '0';
+      this.textures = new SurfaceTextures({ tier: this.o.tier, profile, enabled: TEXTURES_FLAG && !off, backend: this.o.look.backend, browser: this.o.look.browser });
+      installSurfaceTextures(this.textures);
+      host.register({
+        onRendererReplaced: () => {
+          this.textures?.onRendererReplaced(this.o.assets, () => (host.ready ? host.renderer : null));
+          return Promise.resolve();
+        },
+      });
+    }
+    // art-hook:textures end
     this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK } });
     // The world pass draws over the backdrop pass: no scene background of its own.
     host.scene.background = null;
@@ -534,6 +553,11 @@ export class WorldView implements WorldLayer {
     this.disposed = true;
     this.lookView?.dispose();
     this.lookView = null;
+    // art-hook:textures begin (M10d0)
+    if (installedSurfaceTextures() === this.textures) installSurfaceTextures(null);
+    this.textures?.dispose();
+    this.textures = null;
+    // art-hook:textures end
     this.sky?.dispose();
     this.sky = null;
     this.traffic?.dispose();
@@ -758,8 +782,16 @@ export class WorldView implements WorldLayer {
     }
     document.documentElement.dataset.dvWorld = 'revealed';
     if (this.o.bootStartMs !== undefined) this.bootRevealMs = Math.max(1, Math.round(this.now() - this.o.bootStartMs));
-    void this.readBootFigures();
+    // art-hook:textures begin (M10d0): after the boot figures are read, so the textures add nothing to the boot's request counts
+    void this.readBootFigures().finally(() => this.startTextures());
+    // art-hook:textures end
     for (const w of this.revealWaiters.splice(0)) w();
+  }
+
+  private startTextures(): void {
+    const host = this.host;
+    if (!this.textures || !host || this.disposed) return;
+    this.textures.start(this.o.assets, () => (host.ready ? host.renderer : null));
   }
 
   /**
@@ -918,6 +950,9 @@ export class WorldView implements WorldLayer {
 
   /** M02g1 QA: one layer of the look's profile on or off; false when the profile has no such layer (or the look is off). */
   setLookLayer(id: string, on: boolean): boolean {
+    // art-hook:textures begin (M10d0): the surface textures are a layer of the look that has no entry in look.json
+    if (id === 'textures') return this.textures?.setOn(on) ?? false;
+    // art-hook:textures end
     if (!this.lookView || !(LOOK_LAYERS as readonly string[]).includes(id)) return false;
     return this.lookView.setLayer(id as LookLayer, on);
   }

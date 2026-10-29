@@ -1,0 +1,36 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "0d2f0911ca98b84f78fcf35878e027bdaffb6d661d763f6141642e5581b06d69",
+  "paths": [
+    "import/polyhaven/white_stucco/white_stucco_nor_gl_1k.png"
+  ],
+  "kind": "texture",
+  "origin": "licensed",
+  "license": "CC0-1.0",
+  "authors": [
+    "profile:amal-kumar"
+  ],
+  "derived_from": [],
+  "review": [
+    {
+      "gate": "art-vetting",
+      "by": "profile:builder-m10d0",
+      "at": "2026-10-28T00:00:00Z",
+      "decision": "approve",
+      "note": "assets/intake/polyhaven/stucco.json"
+    }
+  ],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "pass",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-28T00:00:00Z",
+  "source": {
+    "url": "https://polyhaven.com/a/white_stucco",
+    "dataset_id": "white_stucco",
+    "retrieved": "2026-10-28"
+  }
+}

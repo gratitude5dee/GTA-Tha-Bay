@@ -1,7 +1,5 @@
 {
   "schema": "genai-spike-plan/1",
-  "capMicros": 10000000,
-  "plannedMaxMicros": 6000000,
   "env": "previs",
   "lifecycleHeader": "{\"expiration_duration_seconds\": 86400}",
   "tokens": "Param strings starting with @brief:<name> are replaced by that section of briefs.md; @file:<stepId>/<name> by a data URI of a local file under .spike/out/; @files:<stepId>/<a>,<b> by an array of such URIs.",

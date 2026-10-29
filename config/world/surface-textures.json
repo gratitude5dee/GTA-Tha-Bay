@@ -1,0 +1,63 @@
+{
+  "schema": "world-surface-textures/1",
+  "note": "M10d0 (DL-OWN-07): the PBR sets that are tiled onto the ground and road surfaces. Values marked as design values are tuned here; budgets are per tier and never raised: over a budget a set drops to the next smaller variant, then loses its orm map (docs in the milestone file).",
+  "sets": {
+    "asphalt": { "tileM": 3, "mean": [0.1125, 0.11, 0.0984], "keep": 0.5, "slopeFull": false },
+    "concrete": { "tileM": 1.8, "mean": [0.2161, 0.1782, 0.1363], "keep": 0.5, "slopeFull": false },
+    "pavers": { "tileM": 1.92, "mean": [0.1405, 0.1155, 0.089], "keep": 0.5, "slopeFull": false },
+    "grass-dirt": { "tileM": 2.51, "mean": [0.1586, 0.119, 0.0491], "keep": 0.5, "slopeFull": true },
+    "brick": { "tileM": 2.01, "mean": [0.3584, 0.2349, 0.1674], "keep": 0.5, "slopeFull": false },
+    "stucco": { "tileM": 2, "mean": [0.6807, 0.6507, 0.6298], "keep": 0.5, "slopeFull": false }
+  },
+  "bindings": {
+    "road.freeway": "asphalt",
+    "road.ramp": "asphalt",
+    "road.arterial": "asphalt",
+    "road.collector": "asphalt",
+    "road.local": "asphalt",
+    "road.service": "asphalt",
+    "ground.Asphalt": "asphalt",
+    "sidewalk": "concrete",
+    "ground.Sidewalk": "concrete",
+    "ground.Paved": "pavers",
+    "ground.Grass": "grass-dirt",
+    "ground.Park": "grass-dirt",
+    "ground.Dirt": "grass-dirt"
+  },
+  "procedural": [
+    "ground.Sand",
+    "ground.Rock",
+    "ground.Pier",
+    "ground.WaterShallow",
+    "ground.Water",
+    "ground.Rail",
+    "wall.ResLow",
+    "wall.ResMid",
+    "wall.Commercial",
+    "wall.Tower",
+    "wall.Industrial",
+    "wall.Civic",
+    "roof.flat",
+    "roof.gable",
+    "roof.hip",
+    "parapet",
+    "equipment",
+    "trunk",
+    "leaves",
+    "massing.l1",
+    "massing.l2",
+    "sea"
+  ],
+  "modes": { "full": "stochastic", "lite": "single", "min": "albedo", "legacy": "off", "xr": "off" },
+  "budgets": {
+    "desktop-ultra": { "downloadMB": 12, "gpuMB": 40 },
+    "desktop": { "downloadMB": 12, "gpuMB": 40 },
+    "mobile": { "downloadMB": 4, "gpuMB": 12 },
+    "mobile-low": { "downloadMB": 1, "gpuMB": 3 },
+    "xr-quest": { "downloadMB": 0, "gpuMB": 0 },
+    "xr-visionpro": { "downloadMB": 0, "gpuMB": 0 }
+  },
+  "fade": { "startM": 60, "endM": 160 },
+  "slopeDeg": 25,
+  "unsupported": []
+}

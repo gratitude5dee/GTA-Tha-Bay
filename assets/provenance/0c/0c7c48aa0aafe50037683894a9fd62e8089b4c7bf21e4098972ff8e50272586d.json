@@ -1,0 +1,30 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "0c7c48aa0aafe50037683894a9fd62e8089b4c7bf21e4098972ff8e50272586d",
+  "paths": [
+    "assets/src/texture/pbr.pavers.normal/desktop.ktx2"
+  ],
+  "kind": "texture",
+  "origin": "derived",
+  "license": "CC0-1.0",
+  "authors": [
+    "profile:amal-kumar"
+  ],
+  "derived_from": [
+    "d37c8a777529005149e02dad1182434cade24cd70161e98e5c3a66e6948a27ea"
+  ],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "pass",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-28T00:00:00Z",
+  "tool": {
+    "name": "dv-texture-set",
+    "version": "ktx2-encoder@0.6.0 (basis_universal)",
+    "args_sha256": "db8687e85fd66d11f190cd7f412da75fa3d3618942e43c7edefd1c7b848f59d6"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "schema": "art-intake/1",
+  "pack": "polyhaven",
+  "item": "pbr-grass-dirt",
+  "title": "Grass Ground",
+  "author": "Charlotte Baglioni",
+  "sourceUrl": "https://polyhaven.com/a/grass_ground",
+  "licence": "CC0-1.0",
+  "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "kind": "texture",
+  "uploader": {
+    "name": "Charlotte Baglioni",
+    "franchiseShare": 0
+  },
+  "files": [
+    "grass_ground_diff_1k.png",
+    "grass_ground_nor_gl_1k.png",
+    "grass_ground_arm_1k.png"
+  ],
+  "tags": [
+    "grass",
+    "dry grass",
+    "dirt",
+    "root",
+    "dead grass",
+    "turf",
+    "dry"
+  ],
+  "evidence": [
+    "vendor-page",
+    "source-files"
+  ],
+  "answers": {
+    "origin": "clear",
+    "logos": "none",
+    "people": "none",
+    "mural": "none"
+  },
+  "review": {
+    "by": "profile:builder-m10d0",
+    "at": "2026-10-28T00:00:00Z",
+    "note": "Poly Haven page https://polyhaven.com/a/grass_ground; authors Charlotte Baglioni named on the page; CC0 snapshot docs/legal/licenses/polyhaven.md; the 1k diffuse map was looked at for logos, people and murals."
+  }
+}

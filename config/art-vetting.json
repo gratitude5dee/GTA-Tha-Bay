@@ -1,0 +1,27 @@
+{
+  "schema": "art-vetting/1",
+  "note": "Automated rules of tools/assets/src/import/vet.ts (docs/legal/art-vetting-checklist.md). Franchise terms, the makes the IP denylist already names, and file extensions come from config/ip-denylist.json, not from this file.",
+  "realMakes": [
+    "acura", "alfa romeo", "aston martin", "audi", "bentley", "bmw", "bugatti", "buick", "cadillac", "chevrolet", "chevy",
+    "chrysler", "citroen", "dodge", "ducati", "ferrari", "fiat", "ford", "freightliner", "genesis", "gmc", "harley",
+    "harley-davidson", "honda", "hummer", "hyundai", "infiniti", "isuzu", "jaguar", "jeep", "kawasaki", "kenworth", "kia",
+    "koenigsegg", "lamborghini", "land rover", "lexus", "lincoln", "maserati", "mazda", "mclaren", "mercedes", "mercury",
+    "mitsubishi", "nissan", "oldsmobile", "pagani", "peterbilt", "peugeot", "plymouth", "polestar", "pontiac", "porsche",
+    "renault", "rivian", "rolls-royce", "saab", "scion", "subaru", "suzuki", "toyota", "triumph", "volkswagen",
+    "volvo", "vespa", "yamaha"
+  ],
+  "realModels": [
+    "mustang", "camaro", "corvette", "charger", "challenger", "civic", "accord", "camry", "corolla", "prius", "tacoma",
+    "wrangler", "cybertruck", "f-150", "f150", "silverado", "impala", "mx-5", "miata", "gt-r", "skyline", "supra",
+    "beetle", "model 3", "model y", "model s", "model x", "highlander", "4runner", "bronco", "explorer", "tahoe",
+    "suburban", "escalade", "crown victoria", "crown vic", "sprinter", "transit connect", "cayenne", "carrera", "911"
+  ],
+  "gameNamePatterns": [
+    { "id": "lod0", "regex": "_lod0", "flags": "i" },
+    { "id": "vehshare", "regex": "vehshare", "flags": "i" },
+    { "id": "hi", "regex": "_hi($|[_.\\- ])", "flags": "i" }
+  ],
+  "uploaderFranchiseShare": 0.25,
+  "silhouetteKinds": ["vehicle"],
+  "allowedLicences": ["CC0-1.0", "CC-BY-4.0"]
+}
