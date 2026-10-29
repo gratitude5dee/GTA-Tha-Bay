@@ -5,6 +5,7 @@ import type { BackdropInfo } from './backdrop/backdrop-layer.ts';
 import type { LandmarksReport, LandmarkSwapEvent } from './chunks/landmark-layer.ts';
 import type { LumaOptions, LumaSample, SkyInfo } from './sky/sky-view.ts';
 import type { LookReport } from './look/look-view.ts';
+import { lookShot } from './look/shots.ts';
 // art-hook:textures begin (M10d0)
 import type { TexturesReport } from './textures/surface-textures.ts';
 // art-hook:textures end
@@ -92,6 +93,14 @@ export interface WorldBridge {
    * presented (the spec then screenshots the canvas; no extra offscreen render). `clearShot` releases the camera and the clock.
    */
   shot(id: string): Promise<{ id: string; hour: number; weather: string }>;
+  /**
+   * M02g2 QA (BD-REPAIR-M02g2-03): moves the held shot camera to another shot of the same hour and weather, standing next to the
+   * current one (the `-b` shot of a flicker pair, 0.05 m away), and resolves two presented frames later. It does not move the
+   * stream focus, wait for `settle()` or bake the environment again: the streamer, the sky and the environment map are the ones of the
+   * `shot` before it, so the two pictures of a pair differ by the camera alone. Throws without a look, without a held shot, or when the
+   * sky is not at the new shot's hour and weather.
+   */
+  shotMove(id: string): Promise<{ id: string; hour: number; weather: string }>;
   clearShot(): void;
   /** M02e QA: stops or restarts the render loop; the canvas keeps its last frame while stopped (for captures on a slow renderer). */
   hold(on: boolean): void;
@@ -274,6 +283,21 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
         await until(() => lv.report().envBakes > bakes, 120_000, 'the environment bake');
         await nextFrames(2);
       }
+      return { id: s.id, hour: s.hour, weather: s.weather };
+    },
+    shotMove: async (id) => {
+      const lv = view.lookView;
+      if (!lv) throw new Error('look shot: this view has no look');
+      if (lv.shotCamera === null) throw new Error('look shot: no shot is held; call shot() first');
+      const s = lookShot(id);
+      const k = view.skyInfo();
+      if (!k || Math.abs(k.hour - s.hour) >= 0.05 || k.weather !== s.weather || k.next !== s.weather) {
+        throw new Error(`look shot: the sky is not at ${s.hour}:00 ${s.weather} for ${id}`);
+      }
+      lv.holdShot(id);
+      const gy = view.groundY(s.x, s.z);
+      if (gy !== null) lv.placeShot(id, gy);
+      await nextFrames(2);
       return { id: s.id, hour: s.hour, weather: s.weather };
     },
     hold: (on) => view.holdRender(on),
