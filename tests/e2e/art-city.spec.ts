@@ -285,7 +285,7 @@ test.describe('art ledger @art-ledger', () => {
         ...(prev && Object.entries(measured).some(([k, v]) => prev.after[k] !== undefined && prev.after[k] !== v.baseline)
           ? {
               drift: {
-                reason: `${prev.file} was measured before later milestones changed the scene; the gray-box baseline here is the same state measured with \`?art=0\` on this checkout, so the art is measured against what the scene draws now`,
+                reason: `${prev.file} was measured before later milestones changed the scene; the baseline here is the same frame with the gray-box traffic mesh (one render object, one more per shadow pass) in place of the art's meshes, so the art is measured against what the scene draws now`,
                 previousAfter: prev.after,
               },
             }
@@ -320,19 +320,22 @@ test.describe('art ledger @art-ledger', () => {
 test.describe('xr art ledger @xr @art-ledger', () => {
   test('the Quest tier adds no render object over the gray-box baseline @xr @art-ledger', async ({ page }) => {
     test.setTimeout(600_000);
-    const counts: number[] = [];
-    for (const q of ['', '&art=0']) {
-      await page.setViewportSize(TINY);
-      await page.goto(`/?tier=xr-quest&xr-emulate=quest3&debug=1${q}`);
-      await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
-      if (q === '') await artSettled(page);
-      await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
-      await frames(page, 3);
-      await world(page, (w) => w.hold(true));
-      counts.push((await live(page)).renderObjects);
-      await world(page, (w) => w.hold(false));
-    }
-    const [after, baseline] = counts as [number, number];
+    await page.setViewportSize(TINY);
+    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1');
+    await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
+    await artSettled(page);
+    await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
+    await frames(page, 3);
+    await world(page, (w) => w.hold(true));
+    const after = (await live(page)).renderObjects;
+    const t = await world(page, (w) => w.traffic());
+    const passes = (await world(page, (w) => w.look()))?.shadowPasses ?? 0;
+    await world(page, (w) => w.hold(false));
+    // the same arithmetic as the flat tiers: the frame minus the traffic's meshes (with their casters) plus the one gray-box mesh
+    const mine = (t?.drawn ?? 0) + (t?.casters ?? 0) * passes;
+    const old = (t?.instances ?? 0) > 0 ? 1 + ((t?.casters ?? 0) > 0 ? passes : 0) : 0;
+    const baseline = after - mine + old;
+    expect(t?.families, 'one family on legacy').toBe(1);
     expect(after, 'xr after = baseline').toBe(baseline);
     if (write) {
       const prev = existsSync(LEDGER) ? read<Ledger>(LEDGER) : { commit: commitOf(), bakeId: bakeIdOf(), baselineFrom: previousLedger()?.file ?? 'none', tiers: {} };

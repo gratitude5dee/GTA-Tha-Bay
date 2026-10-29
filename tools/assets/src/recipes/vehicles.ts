@@ -51,7 +51,7 @@ export const SPECS = {
     roofShare: 0.8, paint: 0x1b1f24, liveryDoors: true, livery: 0xf4f4f4, roof: 'lightbar',
   },
   van: {
-    ref: 'vehicle/traffic.van', fictionalMake: 'Boreal Hauler', length: 5.4, width: 2.0, wheelbase: 3.3, track: 1.8, wheelR: 0.34, tyreW: 0.24,
+    ref: 'vehicle/traffic.van', fictionalMake: 'Boreal Freight', length: 5.4, width: 2.0, wheelbase: 3.3, track: 1.8, wheelR: 0.34, tyreW: 0.24,
     frontTip: 1.65 + 0.85, sill: 0.25, beltY: 1.06, hoodY: 0.98, deckY: 1.04, roofY: 2.1, wsBase: 1.5, roofFront: 1.0, roofRear: -2.5, rwBase: -2.6,
     roofShare: 0.9, paint: 0xf0f0ec, solidRear: true, sideGlass: [[0.7, 1.4]], endLen: 0.6,
   },

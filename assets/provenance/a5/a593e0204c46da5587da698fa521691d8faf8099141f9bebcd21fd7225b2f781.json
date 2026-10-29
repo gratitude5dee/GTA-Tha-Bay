@@ -1,8 +1,8 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "70e6013d5ffce64fe15707f8597b05a32e2cf92674e4a492e7fdb34f8b03f9bb",
+  "sha256": "a593e0204c46da5587da698fa521691d8faf8099141f9bebcd21fd7225b2f781",
   "paths": [
-    "assets/src/vehicle/traffic.van/mobile.glb"
+    "assets/src/vehicle/traffic.van/desktop.glb"
   ],
   "kind": "vehicle",
   "origin": "authored",

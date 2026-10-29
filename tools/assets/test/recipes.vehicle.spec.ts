@@ -137,9 +137,10 @@ describe('the vehicle node contract (C07 1.1, H6)', () => {
     expect(makes).toHaveLength(11);
     for (const m of makes) {
       expect(scanText(m, matcher), m).toEqual([]);
-      const words = m.toLowerCase().split(/\s+/);
+      // whole-word matches inside the name, multi-word models included (`transit connect`, `crown victoria`, `model 3`)
       for (const real of [...vet.realMakes, ...vet.realModels, 'interceptor', 'ranger', 'ram', 'ridgeline', 'lark', 'cressida']) {
-        expect(words.includes(real) || m.toLowerCase() === real, `${m} contains ${real}`).toBe(false);
+        const re = new RegExp(`(^|[^a-z0-9])${real.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z0-9]|$)`, 'i');
+        expect(re.test(m), `${m} contains ${real}`).toBe(false);
       }
     }
     expect(new Set(makes.map((m) => m.toLowerCase())).size).toBeGreaterThanOrEqual(8);

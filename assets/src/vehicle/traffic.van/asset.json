@@ -37,7 +37,7 @@
   "extras": {
     "t": "vehicle",
     "class": "traffic",
-    "fictionalMake": "Boreal Hauler",
+    "fictionalMake": "Boreal Freight",
     "wheelRadiusM": 0.34,
     "nodes": {
       "body": "body",

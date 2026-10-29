@@ -1,6 +1,6 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "bc532e1bcc27a6e8297185c9bfdcdb9b4c88d8c15c72b5a44724212ef1fd3988",
+  "sha256": "f324d6279157c07a315871da99a00a26b66f5775f22fcdf2ead491865a471067",
   "paths": [
     "assets/src/vehicle/traffic.van/mobile-low.glb"
   ],

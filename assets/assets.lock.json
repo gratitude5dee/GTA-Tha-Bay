@@ -1425,15 +1425,15 @@
       "approved_at": "2026-10-29T02:11:23Z"
     },
     "vehicle/traffic.van": {
-      "rev": 2,
+      "rev": 3,
       "variants": {
-        "desktop": "0dd75a2030d8698554486ebb7b1d713fe1af9233f0a35694197ea700c4585275",
-        "mobile": "70e6013d5ffce64fe15707f8597b05a32e2cf92674e4a492e7fdb34f8b03f9bb",
-        "mobile-low": "bc532e1bcc27a6e8297185c9bfdcdb9b4c88d8c15c72b5a44724212ef1fd3988"
+        "desktop": "a593e0204c46da5587da698fa521691d8faf8099141f9bebcd21fd7225b2f781",
+        "mobile": "c1c05a040295b1a7e3a02d218c10537db5e64ba7ba62fc373cee23b434d5d805",
+        "mobile-low": "f324d6279157c07a315871da99a00a26b66f5775f22fcdf2ead491865a471067"
       },
-      "root": "0dd75a2030d8698554486ebb7b1d713fe1af9233f0a35694197ea700c4585275",
+      "root": "a593e0204c46da5587da698fa521691d8faf8099141f9bebcd21fd7225b2f781",
       "approved_by": "m10d1-builder",
-      "approved_at": "2026-10-29T02:11:23Z"
+      "approved_at": "2026-10-29T03:41:52Z"
     },
     "vehicle/transit.bus": {
       "rev": 2,
