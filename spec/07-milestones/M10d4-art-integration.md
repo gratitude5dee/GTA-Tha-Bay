@@ -3,7 +3,7 @@
 ## Goal
 After this session pedestrians and the creator kit are final v1 art, not mannequins. **Split boundary (DL-OWN-07 Phase 3, split 2 of 2 of the earlier one-session M10d1, DL-739):** M10d1 did vehicles, props and the registry; this session does pedestrians and creator parts; M10d3 does player cars and stages; M10d2 does surfaces.
 
-Pedestrians become 8 realistic adult bodies × 20 original outfits on `bay_rig_v1`, from vetted CC0 bases (Quaternius, admitted by M10d0) with Universal Animation Library clips. Every realistic creator row gets a `model` and a portrait. The six Coast rows (DL-737) already have their models from M10a2 (row 89, merged before this session); this session only checks them and gives each a `fallbackPart` for the case where M10a2 left one without a `model`. Ledger: +0 render objects per profile.
+Pedestrians become 8 realistic adult bodies × 20 original outfits on `bay_rig_v1`, from vetted CC0 bases (Quaternius, admitted by M10d0) with Universal Animation Library clips. Every realistic creator row gets a `model` and a portrait. The six Coast rows (DL-737) get their models from M10a2, a SOFT dependency (DL-755); this session checks the ones M10a2 has set and gives each a `fallbackPart` for a Coast row without a `model`. Ledger: +0 render objects per profile.
 
 Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-low-01-creator.png`); look study item 14; art-source study "Pedestrian bodies". On `claude/build`: `peds/mannequin.ts:5`, `peds/instances.ts:6` and `:367–368`, `tools/ci/perf-check.ts:69–72`, `packages/ui/src/creator/stage.ts:4`.
 
@@ -17,10 +17,12 @@ Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-
 ## Depends on
 - **M10d1:** `config/art-placeholders.json` (`M10d4` rows), `tools/assets/src/lod.ts`.
 - **M10d0:** `quaternius` snapshot, vetting checklist, intake records, `credits.json` `art[]`, `tools/assets/src/import/cli.ts` and the root script `assets:import`.
-- **M10a2** (through it **M10a1**): the six Coast rows with `model` and `portrait` (`character/pc-<slot>-coast`), and the root script `assets:retarget` (`tools/assets/src/retarget.ts`, M10a1) with its flags.
+- **M10a1** (HARD): the root script `assets:retarget` (`tools/assets/src/retarget.ts`) with its flags.
+- **M10a2** (SOFT, `_PLAN.md` §4): the six Coast rows with `model` and `portrait` (`character/pc-<slot>-coast`). Stand-in: the merged catalog's Coast rows without `model` (AC-7's fallback branch). The later of this row and M10a2 to merge re-runs AC-7.
+- **M02h2** (hold, Track A): its walk lift edits `peds/{instances.ts, mannequin.ts}`; this row edits `packages/world/src/client/peds/*` only after M02h2 has merged.
 - **M03b2:** `PedRenderer`, `PED_ASSETS`, `PED_PALETTE`, `world.peds()`.
 - **M04b2:** creator catalog and schema, `CreatorStage`, `AppearanceV1` goldens.
-- Run order: after M02g1 (blobs, ledger, WebKit golden).
+- Run order: after M02g1 (blobs, ledger, WebKit golden). Track B, third row (DL-OWN-09, DL-755).
 - Contracts: C04 1.1, C07 1.1, C13 1.2, C11 1.0 (read only).
 
 ## Scope in
@@ -34,7 +36,7 @@ Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-
 - **Creator kit:**
   - `character/pc-<slot>-<id>` and `portrait/pc-<slot>-<id>` for every Body (12), Face (24), Hair (16), top (12), bottom (8), shoes (6) and accessory (8) row except the six Coast rows, which M10a2 modelled. The Coast rows gain `fallbackPart` (new optional field in `wardrobe-item.v1.schema.json`: a same-slot realistic row, tinted with the Coast row's `color`), used only while a Coast row has no `model`.
   - `avatar/assemble.ts` (engine) builds the preview: one skeleton, three atlases (`texture/pc.{skin,cloth,hair}`), face morphs.
-  - Coast rows (M10a2's models, `10-ui-pages.md` §2.8 rule 6): the Coast body–face pair renders its own models, and Coast hair and clothes draw their own models on any body, since all parts share `bay_rig_v1`. **If M10a2 left a Coast row without `model`** (its SKIP path: no `FAL_KEY`, the operator batch still pending, or `pc-coast` listed `pending`), that row draws its `fallbackPart`, and the Coast body–face pair without models stays on the mannequin path; the report names those rows, and M10a2's follow-up commit sets them later with no change here.
+  - Coast rows (M10a2's models, `10-ui-pages.md` §2.8 rule 6): the Coast body–face pair renders its own models, and Coast hair and clothes draw their own models on any body, since all parts share `bay_rig_v1`. **If M10a2 left a Coast row without `model`** (M10a2 not merged yet, or its SKIP path: no `FAL_KEY`, the operator batch still pending, or `pc-coast` listed `pending`), that row draws its `fallbackPart`, and the Coast body–face pair without models stays on the mannequin path; the report names those rows, and M10a2's follow-up commit sets them later with no change here.
   - `StageParams.parts: {slot, ref, path: 'model'|'fallback'|'mannequin'}[]`; `AppearanceV1` unchanged.
   - Portraits: `@art-portraits` with `DV_ART_WRITE=1` captures 256² cards, `assets:import -- portraits` encodes them; `derived_from` holds the part's sha256.
 - **Registry:** fill `replacedBy` for the `M10d4` rows (ped mannequins, creator rows without `model`). The Coast rows are not registry rows: they are M10a2's, and its batch report tracks them (DL-741).
@@ -47,7 +49,7 @@ Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-
 | `character-creator` | `class:creator` | 10,000 / 5,000 / 2,500 per part | 1 | atlas |
 
   The assembled `mid` preview stays ≤ 40,000 triangles and ≤ 3 textures at ≤ 1,024 px (`10-ui-pages.md` §2.8 rule 3).
-- **Ledger** `docs/look/M10d4-render-ledger.json` (M02g1 shape), with the baseline measured on the default branch at session start (`downtown-rush` plus the QA crowd of 12). `DV_LOOK_WRITE=1` writes it; `@peds-ledger` checks it.
+- **Ledger** `docs/look/M10d4-render-ledger.json` (M02g1 shape), with the baseline the `after` of the ledger most recently merged at rebase, named in `baselineFrom` (`downtown-rush` plus the QA crowd of 12). `DV_LOOK_WRITE=1` writes it; `@peds-ledger` checks it.
 
 | Profile | Near cap | Far meshes | Objects added | Ped texture GPU MB † |
 |---|---|---|---|---|
@@ -56,10 +58,10 @@ Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-
 | `min` | 6 | 8 | 0, total ≤ 100 | ≤ 1 |
 | `legacy` (XR) | 8 / 16 | 8 | 0 | ≤ 3 |
 
-- **Bridge (QA):** `world.peds().art` `{bodies, near, far, clips, textureBytes}`; creator `state.parts`.
+- **Bridge (QA):** `world.peds().art` `{bodies, near, far, clips, textureBytes}`, one block in `world-bridge.ts` fenced by an `art-hook` comment (`_PLAN-3.md` Look program rule 2); creator `state.parts`. `content/ui/creator/catalog.json` merges with M10a2 by Look program rule 9 (its Coast `model` and `portrait` fields, this row's other rows and `fallbackPart`).
 
 ## Scope out
-- Coast models: M10a2 (merged). The on-foot player and mission-actor bodies (`prop/graybox.capsule` in `player.default` and `ped.actor`) and the fighter-model fallback: M10d3, from this session's parts. NPC and fighter models: M10a2.
+- Coast models: M10a2. The on-foot player and mission-actor bodies (`prop/graybox.capsule` in `player.default` and `ped.actor`): M10d5; the fighter-model fallback: M10d3; both from this session's parts. NPC and fighter models: M10a2.
 - Vehicles: M10d1. Surfaces: M10d2. XR profile: M02h8. Emotes: M10f.
 
 ## Deliverables
@@ -79,7 +81,7 @@ Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-
 
 ## Acceptance criteria
 - AC-1 Given the branch When install, typecheck, lint, unit tests and build run Then all exit 0 with no GLSL — proof: `pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm check:unit && pnpm build`
-- AC-2 Given `config/art-placeholders.json` When its test runs Then every `M10d4` row's `replacedBy` is non-empty and resolves, no row matches a Coast row, the owner enum is unchanged (`M10d1`, `M10d4`, `M10d2`, `M10d3`), and a fixture with an empty `M10d4` row fails naming its id — proof: `pnpm check:unit -- tools/assets`
+- AC-2 Given `config/art-placeholders.json` When its test runs Then every `M10d4` row's `replacedBy` is non-empty and resolves, no row matches a Coast row, the owner enum is unchanged (`M10d1`, `M10d4`, `M10d5`, `M10d2`, `M10d3`), and a fixture with an empty `M10d4` row fails naming its id — proof: `pnpm check:unit -- tools/assets`
 - AC-3 Given the new assets When the asset gates run Then:
   - each has three variants within its budget row;
   - recipe and atlas outputs are byte-identical across two runs;
@@ -108,7 +110,7 @@ Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-
   - ped texture bytes are within the table;
   - every scenario stays within its object, triangle and texture budgets, and `PED_FAR_DRAWS_MAX` stays 8.
   — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @peds-ledger && DV_WORLD=synth pnpm check:e2e:xr && DV_WORLD=synth pnpm check:perf -- --fail`
-- AC-10 Given goldens regenerated under the `golden-update` label When `@look-golden`, `@world-peds` and `@creator` run on both engines Then every shot is within M02e's tolerance, including M02g1's `webkit-webgl2` m.a1.01 truck shot — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@look-golden|@world-peds|@creator" && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep "@look-golden|@world-peds|@creator"`
+- AC-10 Given goldens regenerated under the `golden-update` label When `@look-golden` and every other committed look golden set (`_PLAN-3.md` Look program rule 6: every committed look golden set), `@world-peds` and `@creator` run on both engines Then every shot is within M02e's tolerance, including M02g1's `webkit-webgl2` m.a1.01 truck shot — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@look-golden|@markings-golden|@textures-golden|@facade-golden|@world-peds|@creator" && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep "@look-golden|@world-peds|@creator"`
 - AC-11 Given a local QA build When the reviewer walks Market Street at `desktop` and `mobile-low` with the QA crowd and opens every creator tab Then no ped or part resembles a real person, no child body appears, no outfit shows text or a mark, and the base comparison is attached, recorded in `docs/device-runs/M10d4/desktop/notes.json` — proof: manual: desktop browser, `DV_WORLD=synth pnpm dev`, open `/?debug=1&tier=desktop`, `__dvBridge.world.teleport('lm.ferry-building')`, `__dvBridge.world.call('crowd', { n: 12 })`, walk up Market Street, repeat at `tier=mobile-low`, open New Game and every tab, write the notes file
 
 ## Test plan
@@ -120,10 +122,10 @@ How to see it:
 1. `pnpm map:build -- --area synth && DV_WORLD=synth pnpm dev`, open `/?debug=1&tier=desktop`.
 2. `__dvBridge.world.teleport('lm.ferry-building')`, then `__dvBridge.world.call('crowd', { n: 12 })`; `__dvBridge.world.peds()` shows `art.near: 'kit'`.
 3. Reload `/?debug=1&tier=mobile-low&gl=1`: ≤ 6 near peds.
-4. New Game: Coast leads each tab with M10a2's stylized model; pick `body-athletic` for a realistic body still wearing Coast hair and the hoodie.
+4. New Game: Coast leads each tab with M10a2's stylized model (its `fallbackPart` until M10a2 merges); pick `body-athletic` for a realistic body still wearing Coast hair and the hoodie.
 
 ## Effort
-1 Builder session; ≈ 32 hand-written files plus generated assets; risk **high** (skinning, 80 creator parts, realism ceiling). Order: intake, ped kit, ledger, creator parts, portraits, goldens. The on-foot capsule goes to M10d3 (DL-741), which keeps this session inside L7.
+1 Builder session; ≈ 32 hand-written files plus generated assets; risk **high** (skinning, 80 creator parts, realism ceiling). Order: intake, creator parts, portraits, then the ped kit (after M02h2 merges), ledger, goldens. The on-foot capsule goes to M10d5 (DL-755), which keeps this session inside L7.
 
 ## Risks & fallbacks
 - **Bases read stylized:** remodel; MakeHuman only with its ADR.
@@ -133,7 +135,7 @@ How to see it:
 - **Runs long:** unfinished creator rows keep `replacedBy: []`; AC-2 fails and the Architect writes a follow-up.
 
 ## Notes for the Builder
-- Read first: `05-assets-pipeline.md` §3, §4, §7, §14; `02-world-living.md` §4.5; `10-ui-pages.md` §2.8 rules 3, 5, 6; the M10d1, M10d0, M03b2 and M04b2 files.
+- Read first: `05-assets-pipeline.md` §3, §4, §7, §14; `02-world-living.md` §4.5; `10-ui-pages.md` §2.8 rules 3, 5, 6; the M10d1, M10d0, M10d5, M03b2 and M04b2 files; `_PLAN-3.md` Look program.
 - Facts: licence terms only from the M10d0 snapshot; the art-source study notes the Library lists no walk or idle explicitly.
 - Never use photos, scans or the target image as input; faces come from the CC0 base plus morph recipes.
 - Secrets: none. No genAI spend. Branch `m10d4-art-integration`.
