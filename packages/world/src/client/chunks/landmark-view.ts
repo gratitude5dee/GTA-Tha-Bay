@@ -1,7 +1,8 @@
 /**
  * The three half of the LandmarkLayer (M02d1, M02d2): a decoded landmark model becomes one `Group` holding one `Mesh` (the primitives
- * are merged: see `landmark-merge.ts`), drawn with the world's shared vertex-colour material so a landmark looks like the city
- * around it (sky, night windows, rain, fade-in all apply). The mesh is frustum-culled, so `RenderBudgetMeter` counts it only when
+ * are merged: see `landmark-merge.ts`), drawn with the world's landmark material (`materials.landmark`: the city's vertex colours,
+ * sky, night windows, rain and fade-in, and on a look tier the colour fading toward the model's mean with distance) so a landmark
+ * looks like the city around it. The mesh is frustum-culled, so `RenderBudgetMeter` counts it only when
  * it is in view and visible. The group is not part of any chunk `BundleGroup`.
  */
 import { BufferAttribute, BufferGeometry, Group, Mesh, Sphere, Vector3, type Object3D } from 'three/webgpu';
@@ -28,8 +29,10 @@ export function mountLandmark(parent: Object3D, materials: WorldMaterials, spot:
   g.setIndex(new BufferAttribute(m.indices, 1));
   const b = m.bounds;
   g.boundingSphere = new Sphere(new Vector3((b[0] + b[3]) / 2, (b[1] + b[4]) / 2, (b[2] + b[5]) / 2), Math.hypot(b[3] - b[0], b[4] - b[1], b[5] - b[2]) / 2);
-  const mesh = new Mesh(g, materials.chunk);
+  const mesh = new Mesh(g, materials.landmark);
   mesh.name = `landmark:${spot.id}`;
+  // The look's landmark material fades the vertex colour toward the model's mean (M02g2).
+  mesh.userData['mean'] = m.mean;
   mesh.frustumCulled = true;
   group.add(mesh);
   const triangles = m.triangles;

@@ -24,7 +24,8 @@ const WARMUP_S = Number(process.env.DV_PERF_WARMUP_S ?? 2);
 
 for (const tier of TIERS) {
   test(`${SCENARIO} at ${tier} writes its counts report @perf`, async ({ page }, testInfo) => {
-    test.setTimeout(PAGE?.timeoutMs ?? 240_000);
+    // M02g2: the traffic scenario on the desktop tiers of chromium-webgl2 draws with the sky's environment map since HeadlessChrome is classified as Chromium (BD-M02g2-09), and its 250 ms samplers need a frame between them: 240 s was 3.4 minutes on the parent and over 4 on this branch under software GL
+    test.setTimeout(PAGE?.timeoutMs ?? (TRAFFIC.has(SCENARIO) ? 480_000 : 240_000));
     await page.goto(`/?tier=${tier}&perf=1${PAGE ? `&${PAGE.query}` : ''}`);
     await page.waitForFunction(() => (window as unknown as { __dvBridge?: { platform?: unknown } }).__dvBridge?.platform !== undefined, undefined, { timeout: 90_000 });
 

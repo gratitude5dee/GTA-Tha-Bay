@@ -9,7 +9,7 @@
  */
 import { TERRAIN_POSTS, LOD_LAND_CLASS, type LodUnit, type QualityTierId } from '@dv/shared';
 import { Surf, roadSurf } from '../look/surfaces.ts';
-import { MESHER, MeshBuilder, addBuilding, addRibbon, hexToLinear, profileOf, roadColor, type MesherProfile, type Rgb } from './mesher.ts';
+import { MESHER, MeshBuilder, addBuilding, addRibbon, hexToLinear, profileOf, roadColor, wallFoot, type MesherProfile, type Rgb } from './mesher.ts';
 import { meshBytes, type MeshBuffers, type MeshStats, type UnitMesh } from './mesh-types.ts';
 
 const LANDUSE_COLORS: readonly Rgb[] = [
@@ -178,7 +178,7 @@ export function meshLod(unit: LodUnit, tier: QualityTierId, maxBytes: number | n
   const objects: MeshBuffers[] = [tb.build('terrain') as MeshBuffers];
 
   // ---- massing and roads, reduced to the byte cap when there is one -----------------------------------------------------------
-  const massProfile: MesherProfile = { trisPerBuilding: MASS_TRIS, terrainStride: stride, roofs: false, parapets: false, equipment: false, skip: null, lodStride: stride };
+  const massProfile: MesherProfile = { trisPerBuilding: MASS_TRIS, terrainStride: stride, nearStride: stride, roofs: false, parapets: false, equipment: false, skip: null, lodStride: stride };
   const massOrder = unit.massing
     .map((m, i) => {
       let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
@@ -206,7 +206,9 @@ export function meshLod(unit: LodUnit, tier: QualityTierId, maxBytes: number | n
       const ring: number[] = [];
       for (let i = 0; i < m.ring.length; i += 2) ring.push((m.ring[i] as number) - ox, (m.ring[i + 1] as number) - oz);
       if (ring.length < 6) continue;
-      const t = addBuilding(mb, ring, m.baseDm / 10, m.heightDm / 10, { kind: m.kind, roof: 0, palette: m.palette, seed: m.seed }, massProfile, unit.level === 'l2' ? Surf.MassingL2 : Surf.MassingL1);
+      // M02g2: the foot follows the drawn terrain of this level (posts of 16 m or 64 m), so a block on a slope does not hang over it
+      const foot = wallFoot(unit.heights, postM, stride, ring, m.baseDm / 10, undefined, unit.edgeM);
+      const t = addBuilding(mb, ring, m.baseDm / 10, m.heightDm / 10, { kind: m.kind, roof: 0, palette: m.palette, seed: m.seed }, massProfile, unit.level === 'l2' ? Surf.MassingL2 : Surf.MassingL1, foot);
       buildings++;
       if (t > maxTris) maxTris = t;
     }

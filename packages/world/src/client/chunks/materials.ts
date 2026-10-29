@@ -15,10 +15,12 @@ import {
 import { DoubleSide, FrontSide, MeshStandardNodeMaterial, type Material } from 'three/webgpu';
 import { createLookNodes, type LookNodes } from '../look/common.ts';
 import { LOOK, type LookFile } from '../look/config.ts';
+import { createLandmarkMaterial } from '../look/landmark.ts';
 import { createLookMaterials, type LookMaterialSet, type MaterialProfile } from '../look/look-materials.ts';
 import { windowEmissive } from '../sky/night.ts';
 import { createSkyNodes, type SkyNodes } from '../sky/nodes.ts';
 import { asNode, loose } from '../sky/tsl.ts';
+import { COARSE_BACK, DepthRules, LANDMARK_FRONT, plus, roadBias, type DepthPolicy } from './depth.ts';
 import { MESHER } from './mesher.ts';
 import type { ObjectKind } from './mesh-types.ts';
 
@@ -30,6 +32,15 @@ export interface WorldMaterials {
   look: LookMaterialSet | null;
   /** M02e: the nodes the look materials share (clocks, the window glow). */
   lookNodes: LookNodes;
+  /**
+   * M02g2: the material of every landmark mesh (`landmark-view.ts`): the look's (vertex colour fading toward the model's mean, set
+   * per mesh in `userData.mean`) on a look tier, the legacy one otherwise; either way a landmark beats its hand-over proxy in depth.
+   */
+  landmark: Material;
+  /** M02g2: the polygon offsets of every world material. */
+  depth: DepthRules;
+  /** M02g2: the depth buffer the renderer really has (`RendererHost.depthPolicy`): which sign of a polygon offset is nearer. */
+  setDepthPolicy(policy: DepthPolicy): void;
   /** Whether the look materials are in use (QA `setLook` and the `world.look` flag switch it). */
   lookOn(): boolean;
   /** The material for an object kind of a level: the look's when it is on, else the legacy one. */
@@ -54,7 +65,10 @@ export function createWorldMaterials(o: {
   sky?: SkyNodes;
   /** M02e: the profile of the tier's look (`legacy` or absent: the legacy materials only) and the config. */
   look?: { profile: MaterialProfile | 'legacy'; config?: LookFile };
+  /** The renderer's depth buffer (M02g2); `reversed` (the one the host asks for) when absent. */
+  depthPolicy?: DepthPolicy;
 }): WorldMaterials {
+  const depth = new DepthRules(o.depthPolicy ?? 'reversed');
   const uTime = uniform(0);
   const uFade = uniform(o.fadeSeconds);
   // The sky's shared nodes (M02b2): the night windows, the wet look and the blackout read them. Without a sky they hold the day values.
@@ -93,6 +107,10 @@ export function createWorldMaterials(o: {
 
   const chunk = base();
   chunk.opacityNode = shown;
+  // The road ribbons are the same material in an instance of their own: nearer than the terrain under them (M02g2).
+  const roadOffset = roadBias(MESHER.depth.roadFactor, MESHER.depth.roadUnits);
+  const chunkRoads = depth.set(base(), roadOffset);
+  chunkRoads.opacityNode = shown;
 
   // Cover mask: the cell of the fragment inside its unit (positions are local to the unit corner).
   const cellM = aCell; // metres per cell, constant per object (256 for an L1 tile, 1024 for an L2 block)
@@ -103,26 +121,38 @@ export function createWorldMaterials(o: {
   const coarse = base();
   coarse.opacityNode = select(covered.greaterThan(0.5), float(0), shown);
   coarse.side = DoubleSide;
+  // The coarse levels sit behind a detailed surface in the same place, and their roads in front of their terrain (M02g2).
+  depth.set(coarse, COARSE_BACK);
+  const coarseRoads = depth.set(base(), plus(COARSE_BACK, roadOffset));
+  coarseRoads.opacityNode = select(covered.greaterThan(0.5), float(0), shown);
+  coarseRoads.side = DoubleSide;
 
   // M02e: the look materials of the tier's profile. Built once; `setLook` only chooses between them and the legacy pair.
   const profile = o.look?.profile ?? 'legacy';
   const look: LookMaterialSet | null =
     profile === 'legacy'
       ? null
-      : createLookMaterials({ profile, look: o.look?.config ?? LOOK, nodes: lookNodes, foundationM: MESHER.foundationM, parapetM: MESHER.parapetM });
+      : createLookMaterials({ profile, look: o.look?.config ?? LOOK, nodes: lookNodes, foundationM: MESHER.foundationM, parapetM: MESHER.parapetM, depth });
   let lookOn = look !== null;
+  // Landmarks (M02g2): the look's material on a look tier, else the plain vertex-colour one with the same depth rule.
+  const landmark: Material = profile === 'legacy' ? depth.set(base(), LANDMARK_FRONT) : createLandmarkMaterial({ nodes: lookNodes, depth });
+  if (profile === 'legacy') (landmark as MeshStandardNodeMaterial).opacityNode = shown;
 
   return {
     chunk,
     coarse,
     look,
     lookNodes,
+    landmark,
+    depth,
+    setDepthPolicy: (policy) => depth.setPolicy(policy),
     lookOn: () => lookOn,
     materialFor: (level, kind) => {
       if (lookOn && look) {
         const m = (level === 'l0' ? look.l0 : look.coarse)[kind];
         if (m) return m;
       }
+      if (kind === 'roads') return level === 'l0' ? chunkRoads : coarseRoads;
       return level === 'l0' ? chunk : coarse;
     },
     setLook: (on) => {
@@ -143,6 +173,9 @@ export function createWorldMaterials(o: {
     dispose: () => {
       chunk.dispose();
       coarse.dispose();
+      chunkRoads.dispose();
+      coarseRoads.dispose();
+      landmark.dispose();
       look?.dispose();
     },
   };
