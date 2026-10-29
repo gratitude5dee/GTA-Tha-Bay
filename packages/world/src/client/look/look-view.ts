@@ -411,6 +411,13 @@ export class LookView {
     return this.on ? this.allowed.filter((id) => this.layerSet.has(id)) : [];
   }
 
+  /** QA shots: asks for one environment bake from the sky as it is now. False when there is no environment map to bake. */
+  refreshEnvironment(): boolean {
+    if (!this.on || !this.sky?.envMapInUse) return false;
+    this.sky.refreshEnvironment();
+    return true;
+  }
+
   /** QA: switches one layer of the profile on or off. False for a layer the profile does not have (or with the look off). */
   setLayer(id: LookLayer, on: boolean): boolean {
     if (!this.on || !this.allowed.includes(id)) return false;

@@ -287,7 +287,11 @@ jobs:
     runs-on: ubuntu-24.04
     # One shard holds about a quarter of the suite (the longest single test is about 20 min, world-landmarks at desktop on software GL); 60 leaves
     # room for growth. BD-FIX-CI8-S01: with three shards, chromium-webgpu shard 2 of run 39964617132 hit the 60-minute limit with every test passing.
-    timeout-minutes: 60
+    # BD-REPAIR-M02g2-02: 90. Playwright cuts the shards by test count, not by duration, so the shards that hold the desktop-tier look cases
+    # (art-textures in shard 1, world-landmarks and world-look-fixes in shard 5 of chromium-webgl2) take 50 to 70 minutes on software GL since
+    # HeadlessChrome draws the environment map (BD-M02g2-09), and one retried 16-minute case pushed shards 1 and 5 of run 40827121543 past 60
+    # with their tests passing; the nightly e2e-full job has the same 90.
+    timeout-minutes: 90
     # chromium-webgl2 is required in M00; the others become required in the milestone that first depends on them.
     # webkit-webgl2 joined in M01a2 (the cross-browser determinism test); chromium-webgpu and xr-quest3 stay advisory.
     continue-on-error: ${{ matrix.project != 'chromium-webgl2' && matrix.project != 'webkit-webgl2' }}
