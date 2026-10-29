@@ -4,7 +4,7 @@
  * model, telemetry, save) and to the player's car (`RacingHost`), and keeps `RacingSlice`.
  *
  * `enter` args: `defId` is the `RaceId` (default the ferry sprint); `params` may carry `vehicle` (a `vehicle.<slug>` of the six
- * race cars; default the class-D loaner), `difficulty` and `timeLimitMs`. The mode ends itself with `mode.exit.request` when the
+ * race cars; default the class-D loaner), `difficulty`, `timeLimitMs` and `rivals` (a field of that many rivals, at most 7; M11a1). The mode ends itself with `mode.exit.request` when the
  * player leaves the results card. Sim code under the C02 lint.
  *
  * Standalone runs (menu) are `canonical`: they keep records, medals, the purse, Rep and the best ghost in `mode:racing`. An
@@ -17,7 +17,7 @@ import { DEFAULT_RACE, raceDef } from '../races.ts';
 import { getRacingHost, type RacingHost } from './host.ts';
 import { HUD_VM_KEY, hudToJson } from './hud-vm.ts';
 import { PursuitBinder } from './pursuit-binder.ts';
-import { rivalSpecs } from './rivals.ts';
+import { rivalField, rivalSpecs } from './rivals.ts';
 import { RaceSession } from './session.ts';
 import { applyRun, readRacingSlice, type RacingSlice, type RunRecord } from './slice.ts';
 
@@ -50,6 +50,8 @@ export const racingSim: GameModeSim = {
     const diffParam = str(p['difficulty']);
     const diff: Difficulty = diffParam === 'easy' || diffParam === 'hard' ? diffParam : slice.settings.difficulty;
     const limit = typeof p['timeLimitMs'] === 'number' ? p['timeLimitMs'] : null;
+    // `params.rivals` (QA and the perf scenarios): a field of that many rivals instead of the race's own `opponents` (M11a1).
+    const fieldSize = typeof p['rivals'] === 'number' && Number.isFinite(p['rivals']) && p['rivals'] >= 0 ? Math.floor(p['rivals']) : null;
     const binder = def.police.enabled ? new PursuitBinder(ctx.pursuit, ctx.events, def) : null;
     const ghost = !embedded && slice.settings.ghost !== 'off' ? slice.ghosts[def.id] ?? null : null;
     const session = new RaceSession({
@@ -68,7 +70,7 @@ export const racingSim: GameModeSim = {
       simProfile: host.profile,
       unit: slice.settings.units,
       timeLimitMs: limit,
-      rivals: def.police.enabled ? [] : rivalSpecs(def, diff),
+      rivals: def.police.enabled ? [] : fieldSize !== null ? rivalField(fieldSize, diff) : rivalSpecs(def, diff),
       ghost,
       pursuit: binder,
       embedded,

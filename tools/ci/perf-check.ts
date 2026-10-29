@@ -157,6 +157,36 @@ export function verifyNpc(file: string, tier: QualityTierId): string[] {
   return out;
 }
 
+/** Scenarios that report the racing figures (M11a1): `race-sprint` holds the tier's rival cap, `race-pursuit-heat4` reaches heat 4 with police on screen. */
+export const RACE_SCENARIOS: readonly string[] = ['race-sprint', 'race-pursuit-heat4'];
+
+/**
+ * The racing half of the scenarios `race-sprint` and `race-pursuit-heat4` (M11a1, AC-6). The sprint stood exactly the tier's
+ * `tierCaps.rivals` (`config/racing.json`, the rows of 06-racing.md 6.2) on the grid. The pursuit reached the highest heat the event
+ * starts at (4) with at least one police unit seen, and no more than the units the director's heat-4 force plans (9 in all, `levels[4]`
+ * of `config/pursuit.json`), so a build without the pursuit cannot pass. Returns the failure lines.
+ */
+export function verifyRace(file: string, tier: QualityTierId, scenario: string): string[] {
+  const caps = (JSON.parse(readFileSync(path.join(repoRoot, 'config', 'racing.json'), 'utf8')) as { tierCaps: Record<string, { rivals: number; policeCars: number }> }).tierCaps[tier];
+  if (!caps) return [`FAIL  no tierCaps row for tier ${tier} in config/racing.json`];
+  const c = (JSON.parse(readFileSync(file, 'utf8')) as { counts?: Record<string, unknown> }).counts ?? {};
+  const num = (k: string): number | null => (typeof c[k] === 'number' && Number.isFinite(c[k]) ? (c[k] as number) : null);
+  const rivals = num('raceRivals');
+  const police = num('racePoliceMax');
+  const heat = num('raceHeatMax');
+  if (rivals === null || police === null || heat === null) return ['FAIL  race figures missing: raceRivals, racePoliceMax and raceHeatMax are all required'];
+  const out: string[] = [];
+  if (scenario === 'race-sprint') {
+    if (rivals !== caps.rivals) out.push(`FAIL  rivals on the grid ${rivals} differ from the ${tier} cap ${caps.rivals} (config/racing.json tierCaps)`);
+  } else {
+    if (heat < 4) out.push(`FAIL  the pursuit reached heat ${heat}, not 4`);
+    if (police < 1) out.push('FAIL  no police unit was seen during the run');
+    const planned = (JSON.parse(readFileSync(path.join(repoRoot, 'config', 'pursuit.json'), 'utf8')) as { levels: { maxUnits: number }[] }).levels[4]?.maxUnits ?? 0;
+    if (police > planned) out.push(`FAIL  ${police} police units are more than the ${planned} of heat 4 (config/pursuit.json levels[4].maxUnits)`);
+  }
+  return out;
+}
+
 /** One instanced mesh draws every archetype (compact, sedan, rideshare, robotaxi, van, truck, pickup, cruiser). */
 export const TRAFFIC_DRAWS_MAX = 1;
 
@@ -200,6 +230,13 @@ export function checkReports(root: string, scenarios: readonly string[] = PERF_S
           for (const l of bad) lines.push(`        ${l}`);
           const c = (JSON.parse(readFileSync(file, 'utf8')) as { counts: Record<string, number> }).counts;
           lines.push(`        brains A<=${String(c['npcBrainsAMax'])} B<=${String(c['npcBrainsBMax'])}  brain ms/tick mean ${(c['npcBrainMsMean'] ?? 0).toFixed(3)} max ${(c['npcBrainMsMax'] ?? 0).toFixed(3)} over ${String(c['npcBrainTicks'])} ticks`);
+        }
+        if (RACE_SCENARIOS.includes(scenario)) {
+          const bad = verifyRace(file, tier, scenario);
+          if (bad.length > 0) ok = false;
+          for (const l of bad) lines.push(`        ${l}`);
+          const c = (JSON.parse(readFileSync(file, 'utf8')) as { counts: Record<string, number> }).counts;
+          lines.push(`        rivals ${String(c['raceRivals'])}  police <= ${String(c['racePoliceMax'])}  heat <= ${String(c['raceHeatMax'])}`);
         }
         if (TRAFFIC_SCENARIOS.includes(scenario)) {
           const tf = trafficPath(root, scenario, project, tier);

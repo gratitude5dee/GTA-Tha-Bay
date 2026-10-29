@@ -1,0 +1,22 @@
+{
+  "$comment": "M11a1 camera path for the scenario 'race-sprint' (06-racing.md 8, M11a row; DL-656 part 4): a slow walk along the street at x = 3100 behind and beside the grid of the QA sprint 'qa.perf.sprint' (races.ts: 1,000 m north from z = 440, the Embarcadero street of the synth city that 'downtown-rush' drives), where the player's car and as many rivals as the tier allows (tierCaps.rivals of config/racing.json: 7 desktop, 5 mobile, 3 mobile-low) stand and then race under the line bot. The real sprint 'sf.sprint.ferry-ocean-beach' needs the baked streets of the sf bake, which CI does not have, so the page always runs the stand-in and the device passes of M11a2 run the real one (BD-M11a1-05). 120 s with 10 s of warm-up on a device (check:perf runs 6 s after 2 s); the page starts the race so that the grid auto-start and the 3 s countdown end about when the window opens. ENU metres: +X east, -Z north. Needs the streamed city (DV_WORLD).",
+  "id": "race-sprint",
+  "kind": "route",
+  "waypointsEnu": [
+    [
+      3100,
+      470
+    ],
+    [
+      3100,
+      380
+    ]
+  ],
+  "speedMps": 3,
+  "eyeHeightM": 2.6,
+  "lookAheadM": 40,
+  "durationS": 120,
+  "warmupS": 10,
+  "seed": 12648430,
+  "density": "nominal"
+}

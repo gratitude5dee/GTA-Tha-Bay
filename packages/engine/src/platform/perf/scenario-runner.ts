@@ -8,6 +8,8 @@ import bootCityhall from '../../../../../config/perf/paths/boot-cityhall.json';
 import storyChase from '../../../../../config/perf/paths/story-chase.json';
 import npcMissionCrowd from '../../../../../config/perf/paths/npc-mission-crowd.json';
 import fightStage from '../../../../../config/perf/paths/fight-stage.json';
+import raceSprint from '../../../../../config/perf/paths/race-sprint.json';
+import racePursuitHeat4 from '../../../../../config/perf/paths/race-pursuit-heat4.json';
 import { buildBenchmarkScene } from '../benchmark.ts';
 import type { FrameListener, RendererHost } from '../renderer-host.ts';
 import { RenderBudgetMeter } from './meter.ts';
@@ -92,6 +94,8 @@ export const SCENARIO_PATHS: Readonly<Record<string, ScenarioPath>> & { readonly
   'story-chase': storyChase as unknown as RoutePath,
   'npc-mission-crowd': npcMissionCrowd as unknown as RoutePath,
   'fight-stage': fightStage as unknown as StagePath,
+  'race-sprint': raceSprint as unknown as RoutePath,
+  'race-pursuit-heat4': racePursuitHeat4 as unknown as RoutePath,
 };
 export const SCENARIO_PATH_REFS: Readonly<Record<string, string>> = {
   'graybox-walk': 'config/perf/paths/graybox-walk.json',
@@ -102,6 +106,8 @@ export const SCENARIO_PATH_REFS: Readonly<Record<string, string>> = {
   'story-chase': 'config/perf/paths/story-chase.json',
   'npc-mission-crowd': 'config/perf/paths/npc-mission-crowd.json',
   'fight-stage': 'config/perf/paths/fight-stage.json',
+  'race-sprint': 'config/perf/paths/race-sprint.json',
+  'race-pursuit-heat4': 'config/perf/paths/race-pursuit-heat4.json',
 };
 
 /** Position, unit heading and total length of a route at distance `s` from its start (clamped to the ends). */
@@ -168,6 +174,8 @@ export interface ScenarioRunnerDeps {
   /** Counts of errors seen this session, for the report. */
   errors: () => { gpuLost: number; uncaptured: number; js: number };
   governor?: 'on' | 'off';
+  /** The dynamic-quality trace of a run (M11a1): `begin` at its start, `end` when it is over; the figures go to `PerfReport.dynamic`. */
+  dynamicProbe?: { begin(): void; end(): PerfReport['dynamic'] };
   /** The world half of the route scenarios; null while no world is booted. */
   worldDriver?: () => WorldScenarioDriver | null;
 }
@@ -224,6 +232,7 @@ export class PerfScenarioRunner {
       }
     }
     let lastY = 0;
+    this.d.dynamicProbe?.begin();
     const meter = new RenderBudgetMeter(Math.max(1000, Math.ceil(scenario.durationS * 240)));
     meter.trace = true;
     const probe = new PerfProbe(Math.max(1000, Math.ceil(scenario.durationS * 240)));
@@ -299,6 +308,7 @@ export class PerfScenarioRunner {
       this.running = false;
     }
     const worldFigures = driver ? driver.finish() : null;
+    const dynamicTrace = this.d.dynamicProbe?.end() ?? null;
 
     const budget = tier.budget.frame.frameBudgetMs;
     const frames = probe.stats(budget);
@@ -334,7 +344,7 @@ export class PerfScenarioRunner {
         gpuResourcesMB: round2(gpuMax),
       },
       memory: { accountedHeapMBMax: round2(heapMax), mediaMBMax: 0, webContentEstMB: null },
-      dynamic: { minRenderScale: 1, downgrades: 0, upgrades: 0, tierChanges: 0 },
+      dynamic: dynamicTrace ?? { minRenderScale: 1, downgrades: 0, upgrades: 0, tierChanges: 0 },
       boot: { warmBootToPlayableS: null, coldDownloadMB: worldFigures?.coldDownloadMB ?? null, ...(worldFigures?.boot ?? {}) },
       errors: this.d.errors(),
     };

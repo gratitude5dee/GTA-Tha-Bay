@@ -19,6 +19,8 @@ export interface RacingStartOptions {
   vehicle?: string;
   difficulty?: string;
   timeLimitMs?: number;
+  /** A field of this many rivals (at most 7) instead of the race's own opponents; the perf scenarios use the tier's `tierCaps.rivals` (M11a1). */
+  rivals?: number;
 }
 
 /** The bits of `__dvBridge.engine` the racing bridge uses (structural, so the module needs no engine import). */

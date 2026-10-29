@@ -295,6 +295,31 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: 
     wasm: new Map(),
     // The governor is held off during a scenario run unless the page forces it on (`?governor=on`): counts never follow frame times.
     governor: flags.governor === 'on' ? 'on' : 'off',
+    dynamicProbe: (() => {
+      let off: (() => void)[] = [];
+      let min = 1;
+      let tiers = 0;
+      let down0 = 0;
+      let up0 = 0;
+      return {
+        begin: () => {
+          min = platform.quality.dynamic.renderScale;
+          tiers = 0;
+          down0 = platform.governor.state().downgrades;
+          up0 = platform.governor.state().upgrades;
+          off = [
+            platform.quality.onDynamicChange((q) => void (min = Math.min(min, q.renderScale))),
+            platform.quality.onTierChange(() => void (tiers += 1)),
+          ];
+        },
+        end: () => {
+          for (const f of off) f();
+          off = [];
+          const s = platform.governor.state();
+          return { minRenderScale: min, downgrades: s.downgrades - down0, upgrades: s.upgrades - up0, tierChanges: tiers };
+        },
+      };
+    })(),
     errors: () => ({ gpuLost: platform.errors.counts.gpuLost, uncaptured: platform.errors.counts.uncaptured, js: platform.errors.counts.js }),
     ...(opts.worldDriver ? { worldDriver: opts.worldDriver } : {}),
   });

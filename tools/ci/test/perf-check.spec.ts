@@ -10,7 +10,7 @@ import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { PerfReport } from '../../../packages/shared/src/index.ts';
 import { repoRoot } from '../run.ts';
-import { BOOT_SCENARIOS, EXTRA_SCENARIOS, FLAT_TIERS, NPC_SCENARIOS, PERF_PROJECTS, PERF_SCENARIOS, TRAFFIC_SCENARIOS, NEAR_PED_CAP, checkReports, reportPath, selectScenarios, trafficPath, verifyBoot, verifyNpc, verifyPeds, verifyTraffic } from '../perf-check.ts';
+import { BOOT_SCENARIOS, EXTRA_SCENARIOS, FLAT_TIERS, NPC_SCENARIOS, PERF_PROJECTS, PERF_SCENARIOS, RACE_SCENARIOS, TRAFFIC_SCENARIOS, NEAR_PED_CAP, checkReports, reportPath, selectScenarios, trafficPath, verifyBoot, verifyNpc, verifyPeds, verifyRace, verifyTraffic } from '../perf-check.ts';
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'dv-perf-check-'));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
@@ -30,6 +30,11 @@ const bootOf = (): NonNullable<PerfReport['boot']> => ({ warmBootToPlayableS: nu
 const npcCap = (tier: string): number => (JSON.parse(readFileSync(path.join(repoRoot, 'config', 'npc.json'), 'utf8')) as { caps: { lodABrains: Record<string, number> } }).caps.lodABrains[tier] ?? 0;
 const npcCounts = (tier: string): Partial<PerfReport['counts']> => ({ npcBrainsAMax: npcCap(tier), npcBrainsBMax: 5, npcBrainMsMean: 0.04, npcBrainMsMax: 0.3, npcBrainTicks: 120 });
 
+/** The racing figures that pass `verifyRace` for a scenario and a tier: the sprint at the tier's rival cap, the pursuit at heat 4 with some police. */
+const raceCap = (tier: string): number => (JSON.parse(readFileSync(path.join(repoRoot, 'config', 'racing.json'), 'utf8')) as { tierCaps: Record<string, { rivals: number }> }).tierCaps[tier]?.rivals ?? 0;
+const raceCounts = (scenario: string, tier: string): Partial<PerfReport['counts']> =>
+  scenario === 'race-sprint' ? { raceRivals: raceCap(tier), racePoliceMax: 0, raceHeatMax: 0 } : { raceRivals: 0, racePoliceMax: 6, raceHeatMax: 4 };
+
 function write(root: string, scenarios: readonly string[]): void {
   mkdirSync(path.join(root, 'test-results'), { recursive: true });
   for (const scenario of scenarios) {
@@ -39,6 +44,7 @@ function write(root: string, scenarios: readonly string[]): void {
         const r: PerfReport = { ...fixture, tier, counts: { ...fixture.counts, renderObjectsMax: Math.floor(b.maxRenderObjects * 0.5), trianglesMax: Math.floor(b.maxTriangles * 0.5) } };
         if (BOOT_SCENARIOS.includes(scenario)) r.boot = { ...r.boot, ...bootOf() };
         if (NPC_SCENARIOS.includes(scenario)) r.counts = { ...r.counts, ...npcCounts(tier) };
+        if (RACE_SCENARIOS.includes(scenario)) r.counts = { ...r.counts, ...raceCounts(scenario, tier) };
         writeFileSync(reportPath(root, scenario, project, tier), JSON.stringify(r));
         if (TRAFFIC_SCENARIOS.includes(scenario)) writeFileSync(trafficPath(root, scenario, project, tier), JSON.stringify(trafficOf(tier, 0.5)));
       }
@@ -239,5 +245,32 @@ describe('verifyNpc (M06c AC-9)', () => {
     expect(verifyNpc(put('npc-missing.json', { npcBrainsAMax: 2 }), 'desktop').join('\n')).toMatch(/figures missing/);
     expect(verifyNpc(put('npc-nan.json', { ...npcCounts('desktop'), npcBrainMsMean: null }), 'desktop').join('\n')).toMatch(/npcBrainMsMean/);
     expect(verifyNpc(put('npc-zero.json', { ...npcCounts('desktop'), npcBrainTicks: 0 }), 'desktop').join('\n')).toMatch(/0 ticks/);
+  });
+});
+
+describe('verifyRace (M11a1 AC-6)', () => {
+  const put = (name: string, counts: Record<string, unknown>): string => {
+    const f = path.join(tmp, name);
+    writeFileSync(f, JSON.stringify({ ...fixture, counts: { ...fixture.counts, ...counts } }));
+    return f;
+  };
+
+  it('registers both scenarios; the sprint passes at the tier cap of config/racing.json (7, 7, 5, 3) and the pursuit at heat 4 with police', () => {
+    expect(RACE_SCENARIOS).toEqual(['race-sprint', 'race-pursuit-heat4']);
+    for (const id of RACE_SCENARIOS) expect(PERF_SCENARIOS).toContain(id);
+    expect(FLAT_TIERS.map(raceCap)).toEqual([7, 7, 5, 3]);
+    for (const tier of FLAT_TIERS) {
+      expect(verifyRace(put(`sprint-${tier}.json`, raceCounts('race-sprint', tier)), tier, 'race-sprint')).toEqual([]);
+      expect(verifyRace(put(`pursuit-${tier}.json`, raceCounts('race-pursuit-heat4', tier)), tier, 'race-pursuit-heat4')).toEqual([]);
+    }
+  });
+
+  it('fails a sprint with fewer or more rivals than the cap, a pursuit short of heat 4 or without police, and missing figures', () => {
+    expect(verifyRace(put('sprint-short.json', { raceRivals: 2, racePoliceMax: 0, raceHeatMax: 0 }), 'mobile-low', 'race-sprint').join('\n')).toMatch(/rivals on the grid 2 differ from the mobile-low cap 3/);
+    expect(verifyRace(put('sprint-over.json', { raceRivals: 8, racePoliceMax: 0, raceHeatMax: 0 }), 'desktop', 'race-sprint').join('\n')).toMatch(/8 differ from the desktop cap 7/);
+    expect(verifyRace(put('pursuit-cool.json', { raceRivals: 0, racePoliceMax: 5, raceHeatMax: 2 }), 'desktop', 'race-pursuit-heat4').join('\n')).toMatch(/heat 2, not 4/);
+    expect(verifyRace(put('pursuit-none.json', { raceRivals: 0, racePoliceMax: 0, raceHeatMax: 4 }), 'desktop', 'race-pursuit-heat4').join('\n')).toMatch(/no police unit/);
+    expect(verifyRace(put('pursuit-many.json', { raceRivals: 0, racePoliceMax: 10, raceHeatMax: 4 }), 'desktop', 'race-pursuit-heat4').join('\n')).toMatch(/10 police units are more than the 9/);
+    expect(verifyRace(put('race-missing.json', {}), 'desktop', 'race-sprint').join('\n')).toMatch(/race figures missing/);
   });
 });

@@ -18,6 +18,7 @@ export const runRacingQa: RacingQaHandler = (cx, cmd, send) => {
       if (typeof a['raceId'] === 'string') params['defId'] = a['raceId'];
       for (const k of ['vehicle', 'difficulty'] as const) if (typeof a[k] === 'string') params[k] = a[k] as string;
       if (typeof a['timeLimitMs'] === 'number') params['timeLimitMs'] = a['timeLimitMs'];
+      if (typeof a['rivals'] === 'number') params['rivals'] = a['rivals'];
       return reply(cx.host.startQa('racing', params));
     }
     case 'racing.state':

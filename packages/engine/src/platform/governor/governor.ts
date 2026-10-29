@@ -71,6 +71,9 @@ export interface GovernorState {
   /** Governor time (the sum of the frame times it accepted), ms. */
   timeMs: number;
   changes: number;
+  /** Of `changes`, the downgrades and the upgrades. */
+  downgrades: number;
+  upgrades: number;
   lastChange: GovernorChange | null;
   /** How long every knob has been at its floor, ms (0 while one can still move). */
   atFloorMs: number;
@@ -97,6 +100,8 @@ export class QualityGovernor {
   private lastChangeAt = Number.NEGATIVE_INFINITY;
   private lastUpgradeAt = Number.NEGATIVE_INFINITY;
   private changes_ = 0;
+  private downs = 0;
+  private ups = 0;
   private last: GovernorChange | null = null;
   private demotion = false;
   private entryScale: number | null = null;
@@ -258,6 +263,8 @@ export class QualityGovernor {
   private commit(next: DynamicQuality, change: GovernorChange): void {
     // The state is final before the listeners hear of it, so an onDynamicChange handler reads the change that caused it.
     this.changes_ += 1;
+    if (change.dir === 'down') this.downs += 1;
+    else this.ups += 1;
     this.last = change;
     this.lastChangeAt = this.now;
     this.clearTimers();
@@ -291,6 +298,8 @@ export class QualityGovernor {
       fpsCap: this.cap,
       timeMs: Math.round(this.now),
       changes: this.changes_,
+      downgrades: this.downs,
+      upgrades: this.ups,
       lastChange: this.last,
       atFloorMs: this.floorSince === null ? 0 : Math.round(this.now - this.floorSince),
       demotionRequested: this.demotion,

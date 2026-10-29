@@ -5,7 +5,7 @@ import type { AdapterSummary, DeviceClass, DisplayMode, QualityTierId, RenderBac
  * tools/ci/schemas/perf-report.v1.json.
  */
 export interface PerfScenario {
-  id: string;                         // 'graybox-walk' (S01 engine graybox, pre-world, DL-065) | 'walk-civic-center' | 'route-ferry-ocean-beach' | 'downtown-rush' | 'story-chase' | 'npc-mission-crowd' | 'fight-stage' | 'xr-walk'
+  id: string;                         // 'graybox-walk' (S01 engine graybox, pre-world, DL-065) | 'walk-civic-center' | 'route-ferry-ocean-beach' | 'downtown-rush' | 'story-chase' | 'npc-mission-crowd' | 'fight-stage' | 'race-sprint' | 'race-pursuit-heat4' | 'xr-walk'
   pathRef: string;                    // camera path file owned by the scenario's milestone (S02, S06, S07)
   durationS: number; warmupS: number; seed: number;
   density: 'off' | 'nominal';         // traffic and peds at the tier budget
@@ -20,7 +20,9 @@ export interface PerfReport {
   counts: { renderObjectsMax: number; renderObjectsP95: number; gpuDrawCmdsMax: number | null;
             trianglesMax: number; texturesMB: number; gpuResourcesMB: number;   // per view-pass
             /** M06c, scenario `npc-mission-crowd` only: the most named-NPC brains at LOD A and B in the window, the brain cost per sim tick (mean and max, ms) and the ticks measured. */
-            npcBrainsAMax?: number; npcBrainsBMax?: number; npcBrainMsMean?: number; npcBrainMsMax?: number; npcBrainTicks?: number };
+            npcBrainsAMax?: number; npcBrainsBMax?: number; npcBrainMsMean?: number; npcBrainMsMax?: number; npcBrainTicks?: number;
+            /** M11a1, scenarios `race-sprint` and `race-pursuit-heat4` only: the rivals on the grid, the police units seen (most at once) and the highest heat reached. */
+            raceRivals?: number; racePoliceMax?: number; raceHeatMax?: number };
   memory: { accountedHeapMBMax: number; mediaMBMax: number; webContentEstMB: number | null };
   dynamic: { minRenderScale: number; downgrades: number; upgrades: number; tierChanges: number };
   boot: { warmBootToPlayableS: number | null; coldDownloadMB: number | null;
