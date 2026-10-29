@@ -1,10 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import type { QualityTierId } from '../../packages/shared/src/index.ts';
-import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
-import { decodePng, diffImages, encodePng, goldenFailures, identical, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
+import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, texturesSettled, world, type W } from './art-textures-helpers.ts';
 
 /**
  * M10d0 surface textures in a real browser, on a `DV_WORLD=synth` QA build (the world half of the e2e legs).
@@ -12,21 +10,18 @@ import { decodePng, diffImages, encodePng, goldenFailures, identical, meanAbsDif
  *  - @art-textures    AC-6   per flat tier: `look().textures` reports `stochastic`, `single` and `albedo` with the bound sets and its byte
  *                     figures inside the tier's budget; only those refs are requested; `setLookLayer('textures', false)` and a
  *                     `?textures=0` boot (the QA form of `world.textures: false`) report `off`, the second with no `texture/` request
- *  - @textures-golden AC-7   `chromium-webgl2`: the shots of `config/world/surface-textures.json` against the committed goldens, byte-identical
- *                     repeats, and the mean difference from textures-off
+ *  - @textures-golden AC-7   in `art-textures-golden.spec.ts` (BD-FIX-CI-TEXGOLD-01)
  *  - @textures-ledger AC-8   `chromium-webgl2`: the render-object ledger of `docs/look/M10d0-render-ledger.json` (the textures add no render
  *                     object); the XR leg `@xr @textures-ledger` has no texture request and the baseline objects
  *  - @credits-art     AC-9   `/menu/credits` shows the Art section: a courtesy line per CC0 pack and the five fields of a CC-BY entry
  *
  * `DV_UPDATE_GOLDEN=1` (outside CI, under the golden-update label) writes the goldens, `DV_LOOK_WRITE=1` the ledger.
  */
-type W = { __dvBridge: { world: WorldBridge; platform: { perf: { live(): { renderObjects: number } } } } };
 type FlatTier = 'desktop' | 'mobile' | 'mobile-low';
 const FLAT_TIERS: readonly FlatTier[] = ['desktop', 'mobile', 'mobile-low'];
 const MODE_OF: Record<FlatTier, string> = { desktop: 'stochastic', mobile: 'single', 'mobile-low': 'albedo' };
 const MIB = 1024 * 1024;
 
-const read = <T>(p: string): T => JSON.parse(readFileSync(p, 'utf8')) as T;
 interface Cfg {
   sets: Record<string, unknown>;
   bindings: Record<string, string>;
@@ -40,24 +35,6 @@ const refsFor = (mode: string): string[] => {
   const maps = mode === 'albedo' ? ['albedo'] : ['albedo', 'normal', 'orm'];
   return BOUND.flatMap((s) => maps.map((m) => `texture/pbr.${s}.${m}`)).sort();
 };
-
-/** A software-rendered frame costs seconds, so every boot here is small (the goldens use it too). */
-const VIEWPORT = { width: 256, height: 144 } as const;
-
-async function bootWorld(page: Page, tier: QualityTierId, query = '', size: { width: number; height: number } = VIEWPORT): Promise<void> {
-  await page.setViewportSize(size);
-  await page.goto(`/?tier=${tier}&debug=1${query}`);
-  await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world !== undefined, undefined, { timeout: 180_000 });
-  await page.waitForFunction(() => (window as unknown as W).__dvBridge.world.boot().revealed, undefined, { timeout: 240_000 });
-  await page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(90_000));
-}
-
-const world = <T>(page: Page, fn: (w: WorldBridge) => T | Promise<T>): Promise<T> =>
-  page.evaluate(`(${fn.toString()})(window.__dvBridge.world)`) as Promise<T>;
-
-/** Resolves once the tier's textures have arrived (or failed); a tier with none is settled at once. */
-const texturesSettled = (page: Page): Promise<unknown> =>
-  page.waitForFunction(() => (window as unknown as W).__dvBridge.world.look()?.textures?.settled === true, undefined, { timeout: 300_000, polling: 500 });
 
 async function setSky(page: Page, hour: number, weather: string): Promise<void> {
   await page.evaluate(
@@ -78,12 +55,6 @@ async function setSky(page: Page, hour: number, weather: string): Promise<void> 
   );
 }
 
-const frames = async (page: Page, n: number): Promise<void> => {
-  const f0 = await world(page, (w) => w.chunks().frame);
-  await page.waitForFunction((t) => (window as unknown as W).__dvBridge.world.chunks().frame >= t, f0 + n, { timeout: 180_000, polling: 250 });
-};
-
-const HIDE = '.dv-hud, .dv-sim-panel, .dv-sky-controls, .dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg, .dv-npcagency, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }';
 
 /** Texture asset ids (`texture/pbr.<set>.<map>`) of the requests a page makes. */
 function watchTextureRequests(page: Page): Set<string> {
@@ -154,102 +125,6 @@ test.describe('surface textures @art-textures', () => {
     const look = await world(page, (w) => w.look());
     expect(look).toMatchObject({ profile: 'full', on: true });
     expect(look?.postNodes.length).toBeGreaterThan(0);
-  });
-});
-
-// ---- goldens ------------------------------------------------------------------------------------------------------------
-
-const GOLDEN_DIR = 'tests/e2e/golden/textures';
-const GOLDEN_VIEWPORT = { width: 256, height: 144 } as const;
-const SHOT_IDS = new Set(read<{ shots: { id: string }[] }>('config/world/look-shots.json').shots.map((s) => s.id));
-/** `curb-corner` and `lot-plaza` join once M02h2 has added them to config/world/look-shots.json. */
-const GOLDEN_SHOTS = ['noon-street', 'night-street', 'curb-corner', 'lot-plaza'].filter((s) => SHOT_IDS.has(s));
-/** The shots where the textures must show: the mean difference from textures-off. */
-const SHOWS = new Set(['noon-street', 'curb-corner', 'lot-plaza']);
-const bakeIdOf = (): string => read<{ bakeId: string }>('dist/world/latest-synth.json').bakeId;
-
-async function capture(page: Page, tier: string, shot: string, textures: boolean): Promise<Rgba> {
-  await bootWorld(page, tier as QualityTierId, textures ? '' : '&textures=0', GOLDEN_VIEWPORT);
-  await texturesSettled(page);
-  await page.addStyleTag({ content: HIDE });
-  await page.evaluate(() => {
-    type G = { group: { visible: boolean } } | null;
-    const view = (window as unknown as { __dvBridge: { world: { internals(): { view: { traffic: G; peds: G; transit: G } } } } }).__dvBridge.world.internals().view;
-    for (const r of [view.traffic, view.peds, view.transit]) if (r) r.group.visible = false;
-  });
-  await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id), shot);
-  await frames(page, 2);
-  return decodePng(await page.locator('#dv-engine-canvas').screenshot());
-}
-
-test.describe('textures goldens @textures-golden', () => {
-  test.describe.configure({ timeout: 1_800_000 });
-  test.beforeEach(({}, testInfo: TestInfo) => {
-    test.skip(testInfo.project.name !== 'chromium-webgl2', 'goldens are chromium-webgl2 only');
-  });
-  const update = process.env['DV_UPDATE_GOLDEN'] === '1' && !process.env['CI'];
-
-  test('the manifest names the current synth bake, or fails naming both @textures-golden', () => {
-    if (update) return;
-    const manifest = read<{ bakeId: string }>(`${GOLDEN_DIR}/manifest.json`);
-    expect(manifest.bakeId, `textures golden from bake ${manifest.bakeId}, current bake ${bakeIdOf()}`).toBe(bakeIdOf());
-  });
-
-  for (const tier of ['desktop', 'mobile-low'] as const) {
-    for (const shot of GOLDEN_SHOTS) {
-      test(`${tier} ${shot} is within the tolerance of its golden, a repeat is byte-identical @textures-golden`, async ({ page }) => {
-        const file = `${GOLDEN_DIR}/${tier}.${shot}.png`;
-        const first = await capture(page, tier, shot, true);
-        expect(first).toMatchObject({ width: GOLDEN_VIEWPORT.width, height: GOLDEN_VIEWPORT.height });
-        await frames(page, 2);
-        const second = decodePng(await page.locator('#dv-engine-canvas').screenshot());
-        expect(identical(first, second), 'two consecutive captures differ').toBe(true);
-        if (update) {
-          mkdirSync(GOLDEN_DIR, { recursive: true });
-          writeFileSync(file, encodePng(first));
-        } else {
-          expect(existsSync(file), `${file} is missing; DV_UPDATE_GOLDEN=1 writes it (outside CI, under the golden-update label)`).toBe(true);
-          const diff = diffImages(first, decodePng(readFileSync(file)));
-          expect(goldenFailures(diff), `${tier} ${shot}: ${JSON.stringify(diff)}`).toEqual([]);
-        }
-      });
-    }
-  }
-
-  // Its own tests (two boots each): the textures must show, not only repeat.
-  for (const tier of ['desktop', 'mobile-low'] as const) {
-    for (const shot of GOLDEN_SHOTS.filter((s) => SHOWS.has(s))) {
-      test(`${tier} ${shot} differs from textures-off by at least 0.02 @textures-golden`, async ({ page }) => {
-        test.setTimeout(3_600_000);
-        const on = await capture(page, tier, shot, true);
-        const off = await page.context().newPage();
-        const without = await capture(off, tier, shot, false);
-        const delta = meanAbsDifference(on, without);
-        expect(delta, `${tier} ${shot}: the textures change the picture by ${delta.toFixed(4)}`).toBeGreaterThanOrEqual(0.02);
-        await off.close();
-      });
-    }
-  }
-
-  test('regenerating writes the manifest @textures-golden', () => {
-    test.skip(!update, 'DV_UPDATE_GOLDEN=1 only');
-    mkdirSync(GOLDEN_DIR, { recursive: true });
-    writeFileSync(
-      `${GOLDEN_DIR}/manifest.json`,
-      `${JSON.stringify(
-        {
-          $comment: 'M10d0 texture goldens: written by DV_UPDATE_GOLDEN=1 pnpm check:e2e -- --project=chromium-webgl2 --grep @textures-golden (outside CI, under the golden-update label). 256 x 144 captures of the canvas on chromium-webgl2 with the surface textures on.',
-          schema: 'textures-golden/1',
-          bakeId: bakeIdOf(),
-          source: 'synth',
-          viewport: GOLDEN_VIEWPORT,
-          tolerance: { channel: 6, minFraction: 0.99, meanAbs: 2 },
-          shots: ['desktop', 'mobile-low'].flatMap((t) => GOLDEN_SHOTS.map((s) => `${t}.${s}.png`)),
-        },
-        null,
-        2,
-      )}\n`,
-    );
   });
 });
 
