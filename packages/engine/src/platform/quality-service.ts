@@ -16,7 +16,7 @@ import { TIERS } from './tier-config.ts';
  *
  * `setTier` applies only at a safe point (boot, title; later loading boundaries, menus and the XR veil). Outside one the request
  * is queued and the returned promise resolves when it is applied, so a tier change never lands in the middle of a mission.
- * The governor that moves `dynamic` between its floor and ceiling arrives in M11a; until then `dynamic` is the tier ceiling.
+ * The governor (`governor/governor.ts`, M11a1) moves `dynamic` between its floor and ceiling through `setDynamic`.
  */
 export interface QualityServiceOptions {
   profile: DeviceProfile;
@@ -104,6 +104,9 @@ export class QualityServiceImpl implements QualityService {
   private draining: Promise<void> | null = null;
 
   private drain(): Promise<void> {
+    // An empty queue (or a closed safe point) has nothing to await, so the `finally` below would run before `draining` is assigned and
+    // leave it set for good: no later request would drain (BD-M11a1-02; the safe point now opens and closes during play).
+    if (this.draining === null && (!this.safe || this.queue.length === 0)) return Promise.resolve();
     this.draining ??= (async () => {
       try {
         while (this.safe && this.queue.length > 0) {
@@ -148,12 +151,12 @@ export class QualityServiceImpl implements QualityService {
     return () => this.memoryListeners.delete(fn);
   }
 
-  /** M11a's MemoryBudget calls this; it is here so the listener surface of C13 exists from M01c. */
+  /** The MemoryBudget calls this (M11a1). */
   emitMemoryPressure(level: 'soft' | 'hard'): void {
     for (const fn of [...this.memoryListeners]) fn(level);
   }
 
-  /** M11a's governor calls this. */
+  /** The governor and the MemoryBudget call this. */
   setDynamic(q: DynamicQuality): void {
     this.dyn = { ...q };
     for (const fn of [...this.dynamicListeners]) fn(this.dyn);
