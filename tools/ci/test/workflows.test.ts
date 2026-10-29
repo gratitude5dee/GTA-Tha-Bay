@@ -238,6 +238,8 @@ describe('nightly.yml (AC-8)', () => {
     // (the apt-cache save steps of the job carry their own continue-on-error; the job and the perf step must not)
     expect(code(perf)).not.toMatch(/^ {4}continue-on-error:/m);
     const step = stepsOf(perf).find((s) => s.includes('pnpm check:perf -- --fail')) ?? '';
+    // the racing scenarios add about 50 minutes to the run (BD-M11a1-14)
+    expect(Number(/timeout-minutes: (\d+)/.exec(perf)?.[1] ?? 0)).toBeGreaterThanOrEqual(90);
     expect(step).not.toContain('continue-on-error');
     const prPerf = jobsOf(wf('ci.yml'))['perf'] ?? '';
     const prStep = stepsOf(prPerf).find((s) => s.includes('pnpm check:perf')) ?? '';

@@ -84,7 +84,8 @@ jobs:
   # scenarios `race-sprint` and `race-pursuit-heat4` are part of the run. A flaky scenario is quarantined by tag (13-qa section 5), never loosened.
   perf:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # M11a1 (BD-M11a1-14): the two racing scenarios boot a software-GL world per tier and engine and take about 25 minutes each.
+    timeout-minutes: 120
     env:
       # BD-FIX-CI10-P01: this job launches both engines.
       DV_PW_BROWSERS: 'chromium webkit'

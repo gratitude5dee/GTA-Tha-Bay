@@ -94,7 +94,19 @@ export async function startRacePage(page: Page, raceId: string, o: { rivals: num
     o.rivals,
     { timeout: 240_000, polling: 500 },
   );
-  await page.evaluate(() => (window as unknown as W).__dvBridge.racing.cmd('ready'));
+  // `ready` is a message to the sim worker and is lost when the worker restarts under load; it is idempotent, so it is sent again on every
+  // poll until the director has left the grid (Countdown or later). The wait is on that event; 240 s is only its ceiling.
+  await page.waitForFunction(
+    async () => {
+      const b = (window as unknown as W).__dvBridge.racing;
+      const ph = (await b.state())?.state?.phase;
+      if (ph !== undefined && ph !== 'Loading' && ph !== 'Grid') return true;
+      await b.cmd('ready');
+      return false;
+    },
+    undefined,
+    { timeout: 240_000, polling: 2000 },
+  );
   if (o.waitPolice) {
     // GO starts the pursuit; the units spawn out of view and close in. The window opens once some are there (or after 240 s: the sim of a software-GL desktop page runs slower than real time).
     await page
