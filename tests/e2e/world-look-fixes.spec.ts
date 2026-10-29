@@ -124,7 +124,9 @@ test.describe('look fixes @look-fixes', () => {
     const tier = pair.tier;
     test(`${tier}: the shot pair ${pair.id} flickers at most half as much as the baseline (or the floor), and no tree is drawn beyond tree.drawM @look-fixes`, async ({ page }, testInfo: TestInfo) => {
       test.skip(testInfo.project.name === 'chromium-webgpu', 'the pair baselines are WebGL2 baselines');
-      await bootWorld(page, tier, FLICKER_VIEWPORT);
+      // textures off: the baselines were measured before the surface textures (M10d0); this case counts depth flicker, and an albedo's own
+      // detail under the 0.05 m parallax is not that (webkit-webgl2 mobile-low asphalt-low read 0.50 % with them on, DL-757)
+      await bootWorld(page, tier, FLICKER_VIEWPORT, '&textures=0');
       await page.addStyleTag({ content: HIDE_ALL });
       await setSky(page, 13, 'clear');
 

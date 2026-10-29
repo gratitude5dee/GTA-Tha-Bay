@@ -3,7 +3,7 @@
   "bakeId": "3537499f7cc5c17703cea67785128b51f3262dc2d693a344409c031cb9f33136",
   "tiers": {
     "desktop": {
-      "baseline": 281,
+      "baseline": 278,
       "after": 248
     },
     "mobile": {
@@ -15,7 +15,7 @@
       "after": 85,
       "triangles": {
         "baseline": 127127,
-        "after": 135255
+        "after": 135327
       }
     }
   },
