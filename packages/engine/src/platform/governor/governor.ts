@@ -228,7 +228,7 @@ export class QualityGovernor {
   }
 
   /** QA: feeds a series of frame times as if they were rendered one after the other. */
-  inject(frameMs: readonly number[]): void {
+  feed(frameMs: readonly number[]): void {
     for (const ms of frameMs) this.frame(ms);
   }
 

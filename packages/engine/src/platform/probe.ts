@@ -373,13 +373,13 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: 
     memory: Object.assign(() => platform.memory(), {
       pressure: () => platform.memoryBudget.state(performance.now()),
       injectMB: (mb: number) => {
-        platform.memoryBudget.injectMB(mb);
+        platform.memoryBudget.setExtraMB(mb);
         return platform.memoryBudget.sample(performance.now());
       },
     }),
     governor: {
       state: () => platform.governor.state(),
-      inject: (frameMs) => platform.governor.inject(frameMs),
+      inject: (frameMs) => platform.governor.feed(frameMs),
       pacer: () => ({ targetFps: platform.pacer.targetFps, seen: platform.pacer.seen, rendered: platform.pacer.rendered, bypassed: platform.pacer.bypassed }),
     },
     pacing: () => ({ frames: host.frames, held: host.pacedFrames }),

@@ -165,12 +165,12 @@ describe('MemoryBudget (AC-3)', () => {
     expect(calls.restore).toBe(1);
   });
 
-  it('QA injectMB adds to the accounted heap and clears with 0', () => {
+  it('QA setExtraMB adds to the accounted heap and clears with 0', () => {
     const { mem, caps, events } = rig();
-    mem.injectMB(caps.maxAccountedHeapMB * 0.9);
+    mem.setExtraMB(caps.maxAccountedHeapMB * 0.9);
     expect(mem.sample(0)).toBe('soft');
     expect(mem.state().injectedMB).toBeCloseTo(caps.maxAccountedHeapMB * 0.9);
-    mem.injectMB(0);
+    mem.setExtraMB(0);
     mem.sample(1000);
     expect(mem.state().injectedMB).toBe(0);
     expect(events).toEqual(['soft']);

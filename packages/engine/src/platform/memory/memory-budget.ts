@@ -114,7 +114,7 @@ export class MemoryBudget {
   }
 
   /** QA: adds `mb` of accounted heap on top of the reading (0 clears it). */
-  injectMB(mb: number): void {
+  setExtraMB(mb: number): void {
     this.injected = Number.isFinite(mb) && mb > 0 ? mb : 0;
   }
 

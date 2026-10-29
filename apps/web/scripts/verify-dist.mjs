@@ -6,6 +6,7 @@
  *   - no `__dvBridge` string in any file;
  *   - no memory-bomb page or code and no PerfHud (M01c AC-11);
  *   - no entity inspector, physics wireframe, line recorder or QA vehicle commands (M03a1 AC-11);
+ *   - no `governor.inject` or `injectMB` (M11a1 AC-10);
  *   - no media-local/ mirror and no `__dvBridge.assets` (M01e AC-10);
  *   - the service worker precache has the simd-compat Rapier chunk and no deterministic-compat entry, while the
  *     deterministic-compat chunk exists in dist so canonical sessions can load it on demand.
@@ -82,6 +83,12 @@ export function verifyDist(dist) {
   for (const f of textFiles) {
     const s = text(f);
     if (s.includes('world-hash') || s.includes('dvWorldHash') || s.includes('traffic-synth') || s.includes('traffic-peds-synth')) fail(`world-hash QA code found in ${rel(f)}`);
+  }
+
+  // 2g. No governor or memory-budget QA injection (M11a1 AC-10): the bridge members are QA-only.
+  for (const f of textFiles) {
+    const s = text(f);
+    if (s.includes('governor.inject') || s.includes('injectMB')) fail(`governor/memory QA injection found in ${rel(f)}`);
   }
 
   // 3. No __dvBridge anywhere.
