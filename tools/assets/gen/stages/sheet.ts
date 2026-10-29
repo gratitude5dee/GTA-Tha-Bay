@@ -3,6 +3,7 @@ import type { GenJob } from '../../../../packages/shared/src/genai/types.ts';
 import type { StageResult } from '../../../../services/pipeline/src/steps/character.ts';
 import { evaluateA1Sheet, evaluateA2, type GateReport, type VisionVerdict } from '../../../../services/pipeline/src/steps/gates.ts';
 import { cellStats, decodePng, sliceGrid } from '../../src/image.ts';
+import { sniffImage } from '../subject-card.ts';
 import type { CallFile, Loaded, StageContext } from './context.ts';
 
 export type SheetOutcome =
@@ -15,7 +16,7 @@ export async function runSheet(ctx: StageContext): Promise<SheetOutcome> {
   const { cfg, subject } = ctx.deps;
   const inputs: CallFile[] = [];
   if (subject.pipeline === 'standard' && cfg.styleBible !== null) inputs.push({ role: 'style-bible', bytes: cfg.styleBible.bytes, contentType: 'image/png', origin: 'first_party_generated' });
-  for (const [i, ref] of cfg.refs.slice(0, REF_LIMIT).entries()) inputs.push({ role: `ref-${i + 1}`, bytes: ref, contentType: 'image/png', origin: 'first_party_authored' });
+  for (const [i, ref] of cfg.refs.slice(0, REF_LIMIT).entries()) inputs.push({ role: `ref-${i + 1}`, bytes: ref, contentType: sniffImage(ref), origin: 'first_party_authored' });
   const call = await ctx.callPaid('sheet', inputs);
   if (call.kind === 'refused' || call.kind === 'failed') return { kind: call.kind, detail: call.detail };
   if (call.kind === 'vendor-refused') return { kind: 'failed', detail: `sheet: the vendor refused the input: ${call.error.type} ${call.error.message}` };

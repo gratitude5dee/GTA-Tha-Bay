@@ -110,6 +110,18 @@ function shapeOf(d: MoveDef): { shape: Shape; strength: 0 | 1 | 2 } {
   return { shape: strength === 2 ? 'haymaker' : strength === 1 ? 'cross' : 'jab', strength };
 }
 
+/** Every shape of the procedural library (M08), in the order of the `Shape` type. */
+export const LIBRARY_SHAPES: readonly Shape[] = ['jab', 'cross', 'haymaker', 'lowJab', 'lowCross', 'sweep', 'kick', 'airKick', 'throw', 'cast', 'rising', 'slide', 'super', 'taunt'];
+
+/**
+ * The library clip a move plays when no authored clip exists for it (M10a2, `content/fighter/clip-fallbacks.json`): `<shape>.<strength>`,
+ * the pair `moveClip` builds the keys from. The table is generated from the kits with this function, so it cannot drift from the presenter.
+ */
+export function libraryClipId(d: MoveDef): string {
+  const { shape, strength } = shapeOf(d);
+  return `${shape}.${strength}`;
+}
+
 /** The three poses of a strike: the wind-up, the extension and the follow-through, for a shape. */
 function strikePoses(shape: Shape, strength: 0 | 1 | 2): { wind: Pose; hit: Pose; hold: Pose } {
   const lunge = 0.04 + 0.04 * strength;
