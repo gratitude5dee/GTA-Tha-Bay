@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/telemetry/app.crash.json",
+  "title": "app.crash (C16 1.2, server-only)",
+  "type": "object",
+  "description": "A browser crash report received on route 4 (M11a1, C16 1.2, DL-224). Server-only: the reason (Chromium reports oom or unresponsive) and the build; the page path goes to the log line, never to the event.",
+  "properties": {
+    "reason": {
+      "enum": [
+        "oom",
+        "unresponsive",
+        "other"
+      ]
+    },
+    "build": {
+      "type": "string",
+      "maxLength": 64
+    }
+  },
+  "required": [
+    "reason",
+    "build"
+  ],
+  "additionalProperties": false
+}

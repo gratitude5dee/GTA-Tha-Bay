@@ -126,7 +126,9 @@ function expectDocumentSecurityHeaders(res: Response, label: string): void {
   expect(!csp.includes('%') && !csp.includes('<'), `${label} CSP has no unsubstituted placeholder`, csp.slice(0, 80));
   for (const d of REPORT_ONLY_DIRECTIVES) expect(csp.includes(d), `${label} CSP has ${d}`, csp.slice(0, 120));
   const reporting = res.headers.get('reporting-endpoints');
-  expect(reporting === 'csp="/api/v1/reports/browser"', `${label} Reporting-Endpoints names route 4`, `got ${reporting ?? 'absent'}`);
+  // M11a1: the same route takes Chromium's crash reports through the `crash-reporting` and `default` groups.
+  const route4 = '"/api/v1/reports/browser"';
+  expect(reporting === `csp=${route4}, crash-reporting=${route4}, default=${route4}`, `${label} Reporting-Endpoints names route 4 for csp, crash-reporting and default`, `got ${reporting ?? 'absent'}`);
   const nosniff = res.headers.get('x-content-type-options');
   expect(nosniff === 'nosniff', `${label} X-Content-Type-Options: nosniff`, `got ${nosniff ?? 'absent'}`);
   const referrer = res.headers.get('referrer-policy');
