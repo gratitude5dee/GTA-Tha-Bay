@@ -13,6 +13,11 @@ import {
 } from 'three/webgpu';
 import type { WorldFrame } from '@dv/engine/client/boot/world-layer';
 import { METRO_CAR_GAP_M, TRANSIT_PREFABS, type TransitPrefab } from '../../sim/transit/components.ts';
+// M10d1: the final models of the transit vehicles (the gray-box shapes below draw until they arrive)
+import type { ArtLoader, ArtProfile } from '@dv/engine/client/vehicle/art';
+import type { SkyNodes } from '../sky/nodes.ts';
+import { mergeModel } from '../traffic/archetype-mesh.ts';
+import { makeArtMaterial } from '../traffic/materials.ts';
 
 type Pose = NonNullable<WorldFrame['poses']>[number];
 
@@ -34,7 +39,22 @@ export interface TransitRendererOptions {
   trafficCap: number;
   /** Cars drawn by the traffic renderer this frame. */
   carsDrawn: () => number;
+  /** M10d1: loads the model of a ref at a variant; with `sky` and `profile` the final art replaces the gray-box shapes when it arrives. */
+  load?: ArtLoader;
+  sky?: SkyNodes;
+  profile?: ArtProfile;
+  variant?: 'desktop' | 'mobile' | 'mobile-low';
 }
+
+/** The model each transit kind draws (a Metro car is the bus model in its own livery). */
+export const TRANSIT_ART: Readonly<Record<TransitKindName, string>> = {
+  bus: 'vehicle/transit.bus',
+  metro: 'vehicle/transit.bus',
+  cablecar: 'vehicle/transit.cablecar',
+  ferry: 'prop/transit.ferry',
+  airliner: 'prop/transit.airliner',
+  entrance: 'prop/transit-entrance',
+};
 
 interface Livery {
   body: number;
@@ -107,6 +127,8 @@ interface Layer {
   n: number;
   /** Matrices written this frame. */
   count: number;
+  /** The final model is drawn. */
+  art?: boolean;
 }
 
 const ASSET_KIND = new Map<string, TransitKindName>([
@@ -123,6 +145,7 @@ export class TransitRenderer {
   readonly group = new Group();
   private readonly layers = new Map<TransitKindName, Layer>();
   private info0: TransitInfo;
+  private disposed = false;
 
   constructor(private readonly o: TransitRendererOptions) {
     this.group.name = 'transit';
@@ -143,6 +166,37 @@ export class TransitRenderer {
     }
     this.info0 = this.blank();
     o.parent.add(this.group);
+    if (o.load && o.sky) this.loadArt(o.load, o.sky, prefab);
+  }
+
+  /** Swaps each layer's gray-box geometry for its model, in the kind's livery, floor at the prefab box's floor. */
+  private loadArt(load: ArtLoader, sky: SkyNodes, prefab: Record<TransitKindName, TransitPrefab>): void {
+    const profile = this.o.profile ?? 'legacy';
+    const variant = this.o.variant ?? 'mobile-low';
+    for (const kind of Object.keys(CAPACITY) as TransitKindName[]) {
+      void load(TRANSIT_ART[kind], variant).then(
+        (model) => {
+          const l = this.layers.get(kind);
+          if (!model || !l || this.disposed) return;
+          const liv = LIVERY[kind];
+          const g = mergeModel(model, false, { paint: rgb(liv.body), livery: rgb(liv.stripe), bottomTo: -prefab[kind].halfHeight });
+          const mat = makeArtMaterial({ profile, sky, pass: 'opaque', instanced: false });
+          const oldGeo = l.mesh.geometry;
+          const oldMat = l.mesh.material as MeshStandardNodeMaterial;
+          l.mesh.geometry = g.opaque;
+          l.mesh.material = mat;
+          oldGeo.dispose();
+          oldMat.dispose();
+          l.art = true;
+        },
+        () => undefined,
+      );
+    }
+  }
+
+  /** The kinds whose final model has replaced the gray-box shape (tests and the QA bridge). */
+  get artKinds(): TransitKindName[] {
+    return [...this.layers.values()].filter((l) => l.art).map((l) => l.kind);
   }
 
   private blank(): TransitInfo {
@@ -233,6 +287,7 @@ export class TransitRenderer {
   }
 
   dispose(): void {
+    this.disposed = true;
     this.o.parent.remove(this.group);
     for (const l of this.layers.values()) {
       l.mesh.geometry.dispose();

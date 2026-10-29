@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "7e6decd590d07e87d192f1e299eae8cad5232837054d73689862b9f9db2dbb42",
+  "paths": [
+    "assets/src/prop/cone/desktop.glb"
+  ],
+  "kind": "prop",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "d871cc4fb638721fb5e26de18aa405027dd5a80453e515643bef8ede75867f84"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

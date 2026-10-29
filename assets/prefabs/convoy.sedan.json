@@ -3,7 +3,7 @@
   "kind": "prop",
   "version": 1,
   "nameKey": "vehicle.sedan",
-  "render": { "asset": "vehicle/graybox.sedan" },
+  "render": { "asset": "vehicle/traffic.sedan" },
   "physics": { "body": "kinematic", "shape": "box", "dims": [0.92, 0.42, 2.35], "groups": ["vehicle"], "liftM": 0.59 },
   "components": {
     "Transform": { "qw": 1 },

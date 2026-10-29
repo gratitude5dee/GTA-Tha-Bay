@@ -4,7 +4,7 @@
   "version": 1,
   "nameKey": "vehicle.sedan",
   "render": {
-    "asset": "vehicle/graybox.sedan"
+    "asset": "vehicle/traffic.sedan"
   },
   "physics": {
     "body": "dynamic",

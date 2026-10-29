@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "ee2e5e034f8eb996e8f1e692bbda90d2e2284e13392bd83cd746e877ef4f62c7",
+  "paths": [
+    "assets/src/prop/barrier/desktop.glb"
+  ],
+  "kind": "prop",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "54402d514db6042d74f3b0181a816020d88d6f3667d562a1ced389adf77532a2"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

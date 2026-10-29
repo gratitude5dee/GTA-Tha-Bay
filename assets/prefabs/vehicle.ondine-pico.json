@@ -4,7 +4,7 @@
   "version": 1,
   "nameKey": "vehicle.ondine-pico",
   "render": {
-    "asset": "vehicle/graybox.compact"
+    "asset": "vehicle/traffic.compact"
   },
   "physics": {
     "body": "dynamic",

@@ -49,6 +49,11 @@ function dropFixtureAssets(root: string): void {
     rmSync(path.join(textureDir, id), { recursive: true, force: true });
     delete lock.entries[`texture/${id}`];
   }
+  // M10d1: the vehicle and prop models are built by assets:vehicle and tested in recipes.vehicle.spec.
+  for (const kind of ['vehicle', 'prop']) {
+    rmSync(path.join(root, 'assets', 'src', kind), { recursive: true, force: true });
+    for (const ref of Object.keys(lock.entries)) if (ref.startsWith(`${kind}/`)) delete lock.entries[ref];
+  }
   writeFileSync(lockFile, `${JSON.stringify(lock, null, 2)}\n`);
 }
 
