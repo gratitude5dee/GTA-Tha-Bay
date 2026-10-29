@@ -123,9 +123,17 @@ test.describe('look tune @look-tune', () => {
         if (tree) {
           await page.evaluate((t) => (window as unknown as W).__dvBridge.world.focus(t.x, t.z), tree);
           await page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(90_000));
-          await frames(page, 45);
-          const casters = (await world(page, (w) => w.look()))?.dynamicCasters ?? [];
-          expect(casters, 'player, traffic and trees cast on desktop').toEqual(expect.arrayContaining(['player', 'traffic', 'trees']));
+          // The casters follow the focus on the look's own tick (every 20 frames), so the trees are in the list within 20 frames of the
+          // move: poll for them and stop at the first reading that has them, instead of waiting a fixed 45 frames. A `desktop` frame
+          // takes seconds on software GL since `HeadlessChrome/` draws with the environment map (BD-M02g2-09, BD-REPAIR-M02g2-01), so the
+          // fixed wait was a 180 s frame wait on a loaded runner; this one is at most 20 frames and has the same assertion.
+          await expect
+            .poll(async () => (await world(page, (w) => w.look()))?.dynamicCasters ?? [], {
+              message: 'player, traffic and trees cast on desktop',
+              timeout: 170_000,
+              intervals: [500],
+            })
+            .toEqual(expect.arrayContaining(['player', 'traffic', 'trees']));
           await page.evaluate(() => (window as unknown as W).__dvBridge.world.clearFocus());
         }
         // the layer off: nothing casts

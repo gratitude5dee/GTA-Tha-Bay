@@ -66,6 +66,11 @@ export interface RenderedUnit {
   radius: number;
   geometries: BufferGeometry[];
   mesh: UnitMesh;
+  /** M02g2: the unit's instanced trees, or null; `vegShown` is false while they are beyond `tree.drawM` (one object and their triangles fewer). */
+  vegetation: InstancedMesh | null;
+  vegShown: boolean;
+  /** Triangles of the instanced trees, taken off the unit's total while they are hidden. */
+  vegTriangles: number;
 }
 
 /**
@@ -94,6 +99,25 @@ export interface ChunkRendererOptions {
   uploadBytes: number | null;
   /** Dithered fade-in over this many seconds; 0 swaps hard (mobile-low and Quest). */
   fadeSeconds: number;
+  /**
+   * M02g2: the trees of an L0 unit further than this many metres from the camera are not drawn (`tree.drawM` of the tier's mesher
+   * profile). Infinity or absent: always drawn. A shown unit hides above `x (1 + hysteresis)`, a hidden one shows again within `x`.
+   */
+  treeDrawM?: number;
+  /** M02g2: the hysteresis of the above; 0.1 when absent. */
+  treeHysteresis?: number;
+}
+
+/** The trees of the resident L0 units as the camera sees them (QA, `look().vegetation`). */
+export interface VegetationReport {
+  /** L0 units whose trees are drawn / hidden now. */
+  shown: number;
+  hidden: number;
+  /** The distance of the farthest drawn unit (its nearest edge) from the camera, metres; 0 with none. */
+  farthestM: number;
+  drawM: number;
+  /** Times a unit's trees changed between drawn and hidden (each one a bundle re-record). */
+  crossings: number;
 }
 
 /** The shared tree: a four-sided trunk and a six-sided cone, vertex coloured, 20 triangles. */
@@ -158,6 +182,8 @@ export class ChunkRenderer {
   look: LookRuntime | null = null;
 
   private readonly o: ChunkRendererOptions;
+  private readonly treeDrawM: number;
+  private readonly treeHysteresis: number;
   private readonly trees = treeGeometry();
   private readonly leafColors = MESHER.tree.leaves.map((h) => new Color().setRGB(...hexToLinear(h)));
   private readonly dirty = new Set<string>();
@@ -165,6 +191,9 @@ export class ChunkRenderer {
   private readonly rebuild: string[] = [];
   private readonly rerecords = new Map<string, number>();
   private frame = 0;
+  /** M02g2: the camera the last visibility pass saw, and how often a unit's trees crossed the draw distance. */
+  private camPos: [number, number, number] | null = null;
+  private treeCrossings = 0;
   private lastCull = -1000;
   private lastCam = new Vector3(1e9, 1e9, 1e9);
   private lastDir: [number, number, number] = [0, 0, 0];
@@ -172,6 +201,8 @@ export class ChunkRenderer {
 
   constructor(o: ChunkRendererOptions) {
     this.o = o;
+    this.treeDrawM = o.treeDrawM ?? Infinity;
+    this.treeHysteresis = o.treeHysteresis ?? 0.1;
     this.root.name = 'world.chunks';
     this.gate = new ChunkUploadGate<UnitMesh | GateTask>(o.uploadBytes);
     o.parent.add(this.root);
@@ -239,6 +270,8 @@ export class ChunkRenderer {
     const geometries: BufferGeometry[] = [];
     let triangles = 0;
     let objects = 0;
+    let vegetation: InstancedMesh | null = null;
+    let vegTriangles = 0;
     let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
     const cast = this.castsShadows(level, mesh);
     for (const o of mesh.objects) {
@@ -275,7 +308,9 @@ export class ChunkRenderer {
       inst.frustumCulled = false;
       group.add(inst);
       objects++;
-      triangles += (this.trees.index?.count ?? 0) / 3 * count;
+      vegTriangles = (this.trees.index?.count ?? 0) / 3 * count;
+      triangles += vegTriangles;
+      vegetation = inst;
     }
     if (!Number.isFinite(minX)) { minX = minY = minZ = 0; maxX = maxY = maxZ = 0; }
     // The first upload records the bundle (count 0); every later commit of the unit is a swap, one more request.
@@ -287,8 +322,13 @@ export class ChunkRenderer {
       coverFrom: now + this.o.fadeSeconds, mask: 0, rerecords: rr, geometries,
       centre: [mesh.originX + (minX + maxX) / 2, (minY + maxY) / 2, mesh.originZ + (minZ + maxZ) / 2],
       radius: Math.sqrt((maxX - minX) ** 2 + (maxY - minY) ** 2 + (maxZ - minZ) ** 2) / 2,
-      mesh,
+      mesh, vegetation, vegShown: true, vegTriangles,
     };
+    // A unit that arrives beyond the draw distance never draws its trees (no re-record: the bundle is recorded after this).
+    if (vegetation && level === 'l0' && this.camPos && this.treeDistance(u, this.camPos) > this.treeDrawM) {
+      vegetation.visible = false;
+      u.vegShown = false;
+    }
     this.units.set(id, u);
     this.root.add(group);
     this.markParent(level, mesh.key);
@@ -509,6 +549,8 @@ export class ChunkRenderer {
       this.lastDir = [cam.dir[0], cam.dir[1], cam.dir[2]];
       this.cullPasses++;
       this.cull(cam);
+      this.camPos = [cam.pos[0], cam.pos[1], cam.pos[2]];
+      this.cullTrees(this.camPos);
     }
     return uploaded;
   }
@@ -533,6 +575,48 @@ export class ChunkRenderer {
       }
       u.group.visible = seen;
     }
+  }
+
+  // ---- far trees (M02g2) ---------------------------------------------------------------------------------------------------
+
+  /** Metres from the camera to the nearest point of the unit's 256 m square, in plan. */
+  private treeDistance(u: RenderedUnit, cam: readonly number[]): number {
+    const half = CHUNK_EDGE_M[9] / 2;
+    const dx = Math.max(0, Math.abs(u.mesh.originX + half - (cam[0] as number)) - half);
+    const dz = Math.max(0, Math.abs(u.mesh.originZ + half - (cam[2] as number)) - half);
+    return Math.hypot(dx, dz);
+  }
+
+  /**
+   * The trees of the L0 units beyond `treeDrawM` are not drawn: they hide above `treeDrawM x (1 + hysteresis)` and show again within
+   * `treeDrawM`. A change is one re-record of the unit's bundle, counted like every other.
+   */
+  private cullTrees(cam: readonly number[]): void {
+    if (!(this.treeDrawM < Infinity)) return;
+    for (const u of this.units.values()) {
+      if (!u.vegetation) continue;
+      const d = this.treeDistance(u, cam);
+      const want = u.vegShown ? d <= this.treeDrawM * (1 + this.treeHysteresis) : d <= this.treeDrawM;
+      if (want === u.vegShown) continue;
+      u.vegShown = want;
+      u.vegetation.visible = want;
+      this.treeCrossings++;
+      this.requestRerecord(u);
+    }
+  }
+
+  /** The state of the trees for the QA bridge. */
+  vegetationReport(): VegetationReport {
+    let shown = 0, hidden = 0, farthest = 0;
+    const cam = this.camPos;
+    for (const u of this.units.values()) {
+      if (!u.vegetation) continue;
+      if (u.vegShown) {
+        shown++;
+        if (cam) farthest = Math.max(farthest, this.treeDistance(u, cam));
+      } else hidden++;
+    }
+    return { shown, hidden, farthestM: farthest, drawM: this.treeDrawM, crossings: this.treeCrossings };
   }
 
   // ---- GPU loss ------------------------------------------------------------------------------------------------------------
@@ -562,8 +646,10 @@ export class ChunkRenderer {
     let objects = 0, triangles = 0, bytes = 0;
     for (const u of this.units.values()) {
       if (!u.group.visible) continue;
-      objects += u.objects;
-      triangles += u.triangles;
+      // trees beyond the draw distance are neither an object nor triangles (M02g2)
+      const veg = u.vegetation && !u.vegShown;
+      objects += u.objects - (veg ? 1 : 0);
+      triangles += u.triangles - (veg ? u.vegTriangles : 0);
       bytes += u.bytes;
     }
     return { objects, triangles, bytes };

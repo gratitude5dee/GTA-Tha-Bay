@@ -54,6 +54,11 @@ export async function gateCommand(argv: readonly string[], d: GateDeps): Promise
     d.log(`assets:gen gate: run ${values.run} is not the current run of ${slug} (${runIdOf(e.subject)}); the soul or the tier changed`);
     return 1;
   }
+  const signer = e.subject.signers?.[gate];
+  if (signer !== undefined && !values.reject && values.by !== signer) {
+    d.log(`assets:gen gate: ${gate} of ${slug} is signed by ${signer} only (the subject card names the signer); run it with --by ${signer}`);
+    return 1;
+  }
   if (!values.reject && values.choose === undefined) {
     d.log('assets:gen gate: --choose <n> is required (use --choose 1 to approve a gate that has one subject)');
     return 2;

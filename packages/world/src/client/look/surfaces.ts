@@ -64,3 +64,5 @@ export const FACADE_MAX_DM = 32767;
 
 /** Decimetres clamped into the snorm16 range. */
 export const facadeDm = (metres: number): number => Math.max(0, Math.min(FACADE_MAX_DM, Math.round(metres * 10)));
+/** Decimetres, signed: the part of a wall below the nominal foot (a foundation that follows a falling street, M02g2) has a negative `v`. */
+export const facadeSignedDm = (metres: number): number => Math.max(-FACADE_MAX_DM, Math.min(FACADE_MAX_DM, Math.round(metres * 10)));

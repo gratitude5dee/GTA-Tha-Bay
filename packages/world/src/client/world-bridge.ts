@@ -5,6 +5,7 @@ import type { BackdropInfo } from './backdrop/backdrop-layer.ts';
 import type { LandmarksReport, LandmarkSwapEvent } from './chunks/landmark-layer.ts';
 import type { LumaOptions, LumaSample, SkyInfo } from './sky/sky-view.ts';
 import type { LookReport } from './look/look-view.ts';
+import { lookShot } from './look/shots.ts';
 // art-hook:textures begin (M10d0)
 import type { TexturesReport } from './textures/surface-textures.ts';
 // art-hook:textures end
@@ -92,6 +93,14 @@ export interface WorldBridge {
    * presented (the spec then screenshots the canvas; no extra offscreen render). `clearShot` releases the camera and the clock.
    */
   shot(id: string): Promise<{ id: string; hour: number; weather: string }>;
+  /**
+   * M02g2 QA (BD-REPAIR-M02g2-03): moves the held shot camera to another shot of the same hour and weather, standing next to the
+   * current one (the `-b` shot of a flicker pair, 0.05 m away), and resolves two presented frames later. It does not move the
+   * stream focus, wait for `settle()` or bake the environment again: the streamer, the sky and the environment map are the ones of the
+   * `shot` before it, so the two pictures of a pair differ by the camera alone. Throws without a look, without a held shot, or when the
+   * sky is not at the new shot's hour and weather.
+   */
+  shotMove(id: string): Promise<{ id: string; hour: number; weather: string }>;
   clearShot(): void;
   /** M02e QA: stops or restarts the render loop; the canvas keeps its last frame while stopped (for captures on a slow renderer). */
   hold(on: boolean): void;
@@ -271,6 +280,28 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
       const t0 = performance.now();
       await until(() => performance.now() - t0 > 900, 30_000, 'the fade');
       await nextFrames(4);
+      // One environment bake from the settled sky (see `PhysicalSky.refreshEnvironment`): without it the map was whatever the last bake of the
+      // transition left, and a golden at `desktop` on Chromium differed from boot to boot.
+      const bakes = lv.report().envBakes;
+      if (lv.refreshEnvironment()) {
+        await until(() => lv.report().envBakes > bakes, 120_000, 'the environment bake');
+        await nextFrames(2);
+      }
+      return { id: s.id, hour: s.hour, weather: s.weather };
+    },
+    shotMove: async (id) => {
+      const lv = view.lookView;
+      if (!lv) throw new Error('look shot: this view has no look');
+      if (lv.shotCamera === null) throw new Error('look shot: no shot is held; call shot() first');
+      const s = lookShot(id);
+      const k = view.skyInfo();
+      if (!k || Math.abs(k.hour - s.hour) >= 0.05 || k.weather !== s.weather || k.next !== s.weather) {
+        throw new Error(`look shot: the sky is not at ${s.hour}:00 ${s.weather} for ${id}`);
+      }
+      lv.holdShot(id);
+      const gy = view.groundY(s.x, s.z);
+      if (gy !== null) lv.placeShot(id, gy);
+      await nextFrames(2);
       return { id: s.id, hour: s.hour, weather: s.weather };
     },
     hold: (on) => view.holdRender(on),
@@ -282,7 +313,11 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
     call: (op, args, timeoutMs = 30_000) => call(op, args, timeoutMs),
     teleport: async (to, kind = 'debug') => {
       const target = typeof to === 'string' ? (to.startsWith('lm.') ? { landmark: to } : { node: to }) : to;
-      return (await call('teleport', { ...target, kind }, 60_000)) as TeleportResult | null;
+      // The reply comes when the request resolves, and the request is tick-driven: it waits for the destination ring to upload, one chunk
+      // per presented frame (M02b1), and a `desktop` frame on software GL takes 4 to 8 s once the look draws with the sky's environment map
+      // (M02g2, BD-M02g2-09), so a landmark far away took 40 to 95 s. The wait outlasts the 8 s of ticks plus the move (BD-REPAIR-M02g2-02);
+      // a reply that never comes is still null.
+      return (await call('teleport', { ...target, kind }, 300_000)) as TeleportResult | null;
     },
     route: async (a, b, opts = {}) => (await call('route', { from: spotArg(a), to: spotArg(b), ...opts })) as RouteReply | null,
     resolve: async (lat, lng) => (await call('resolve', { lat, lng })) as { edge: number; s: number } | null,

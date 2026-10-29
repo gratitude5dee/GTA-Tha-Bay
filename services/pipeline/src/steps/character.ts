@@ -93,6 +93,8 @@ export interface CharacterSubject {
   /** Kill scopes in force (C12). */
   killed: readonly string[];
   minor?: boolean;
+  /** A human gate that only this profile may record (M10a2: the owner signs H1 and H3 of the protagonist). */
+  signers?: Readonly<Partial<Record<HumanGateId, string>>>;
 }
 
 export interface StagePlan {
