@@ -646,7 +646,7 @@ At every checkpoint the Architect runs the three critic lenses on the next block
 
 | ID | Start after (merged) | Stand-ins until merge (fixture or ≤ 2-file stub, per soft dep) | Re-prove at merge (ACs) |
 |---|---|---|---|
-| M10d0 | M00f, M01d | M02g2 (merge order only): none; its held paths (`_PLAN-3.md` Look program) wait for M02g2's merge | AC-1, AC-5, AC-6, AC-7, AC-8 |
+| M10d0 | M00f, M01d | M02g2: none, and no merge order since DL-757; the later of the two to merge re-proves its golden and ledger ACs | AC-1, AC-5, AC-6, AC-7, AC-8 |
 | M10d4 | M10d1, M10d0, M10a1, M03b2, M04b2 | M10a2: the merged Coast catalog rows without `model` (AC-7's fallback branch). M02h2: none; `peds/*` waits for its merge | AC-7, AC-8, AC-9, AC-10 |
 | M10d5 | M10d4, M02h2 | M10a2: the same Coast stand-in | AC-3, AC-4 |
 
