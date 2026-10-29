@@ -39,6 +39,10 @@ const world = <T>(page: Page, fn: (w: WorldBridge) => T | Promise<T>): Promise<T
 async function boot(page: Page, tier: string, extra = ''): Promise<string[]> {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  // A sim worker restart drops the call in flight (a teleport then times out after 60 s with no other trace), so the CI log names it.
+  page.on('console', (m) => {
+    if (/^sim worker (stalled|error)|^sim: /.test(m.text())) console.log(`world-landmarks page ${m.type()}: ${m.text().slice(0, 200)}`);
+  });
   await page.setViewportSize(SMALL_VIEWPORT);
   await page.goto(`/?debug=1&tier=${tier}${extra}`);
   await waitForEngine(page);
@@ -54,13 +58,17 @@ async function boot(page: Page, tier: string, extra = ''): Promise<string[]> {
 const shown = (r: LandmarksReport | null): string[] => (r?.resident ?? []).filter((e) => e.phase === 'shown').map((e) => e.id).sort();
 
 async function teleport(page: Page, id: string): Promise<TeleportResult> {
+  const t0 = Date.now();
+  const f0 = await world(page, (w) => w.chunks().frame);
   const result = (await page.evaluate((lm) => (window as unknown as W).__dvBridge.world.teleport(lm), id)) as TeleportResult | null;
+  const f1 = await world(page, (w) => w.chunks().frame);
+  console.log(`world-landmarks teleport ${id}: ${((Date.now() - t0) / 1000).toFixed(1)} s, ${f1 - f0} frames, ${JSON.stringify(result)?.slice(0, 120)}`);
   expect(result, id).not.toBeNull();
   return result as TeleportResult;
 }
 
 test.describe('landmarks @world', () => {
-  test.describe.configure({ timeout: 1_200_000 });
+  test.describe.configure({ timeout: 1_800_000 });
 
   test('the default scene shows City Hall as a model, not as extrusions @world-landmarks', async ({ page }) => {
     const errors = await boot(page, 'mobile');

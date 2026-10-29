@@ -28,7 +28,7 @@ import { ChunkRenderer, type RenderLevel } from './chunks/chunk-renderer.ts';
 import { createWorldMaterials, type WorldMaterials } from './chunks/materials.ts';
 import { LandmarkLayer, type LandmarkSpot, type LandmarksReport, type PreparedRemesh } from './chunks/landmark-layer.ts';
 import { mountLandmark } from './chunks/landmark-view.ts';
-import { MESHER, profileOf } from './chunks/mesher.ts';
+import { MESHER, profileOf, wantNearStride } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
 import { LOOK, LOOK_LAYERS, lookProfileFor, type LookLayer } from './look/config.ts';
@@ -271,7 +271,7 @@ export class WorldView implements WorldLayer {
       });
     }
     // art-hook:textures end
-    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK } });
+    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK }, depthPolicy: host.depthPolicy });
     // The world pass draws over the backdrop pass: no scene background of its own.
     host.scene.background = null;
     const hemi = new HemisphereLight(0xdbe9ff, 0x6a6f64, 3.4);
@@ -286,8 +286,17 @@ export class WorldView implements WorldLayer {
       materials: this.materials,
       uploadBytes: tierBudget?.maxChunkUploadBytes ?? this.plan.uploadBytes,
       fadeSeconds: fade,
+      treeDrawM: MESHER.tree.drawM[profileOf(this.o.tier).id],
+      treeHysteresis: MESHER.tree.drawHysteresis,
     });
     host.register(this.renderer);
+    // A renderer replaced after a device loss may have the other depth buffer: the polygon offsets follow it (M02g2).
+    host.register({
+      onRendererReplaced: () => {
+        this.materials.setDepthPolicy(host.depthPolicy);
+        return Promise.resolve();
+      },
+    });
 
     this.store = new ChunkStore<UnitMesh>({
       levels: ['l0', 'l1', 'l2'],
@@ -456,7 +465,10 @@ export class WorldView implements WorldLayer {
       if (!this.revealed && up.level === 'l0') this.reveal();
     }
     this.landmarks?.update(focus, tSec);
-    if (this.frames % 30 === 0) this.remeshFiltered();
+    if (this.frames % 30 === 0) {
+      this.remeshFiltered();
+      this.remeshNear();
+    }
     if (this.host) this.backdrop.sync(this.host.camera as PerspectiveCamera);
     this.sky?.update(f);
     this.traffic?.update(f, tSec);
@@ -641,6 +653,41 @@ export class WorldView implements WorldLayer {
         .then((res) => {
           const result = res as MeshJobResult;
           if ('mesh' in result && this.store.ready(key, 'l0') && !this.disposed) this.renderer.enqueue(result.mesh, this.priorityOf(key, 'l0'));
+        })
+        .catch(() => undefined);
+    }
+  }
+
+  /**
+   * M02g2: a profile with a finer terrain stride around the focus (`nearStride`): a resident L0 chunk that crossed the near ring is
+   * meshed again, once, through asset.worker and the upload gate. A chunk enters the ring under `terrain.nearRingM` and leaves it over
+   * `nearRingM x leaveFactor`, so one that hovers at the edge is not meshed back and forth; at most two requests per pass, nearest first.
+   * The mesher decides the stride from the `distM` it is given, which is why the request carries the distance now.
+   */
+  private remeshNear(): void {
+    const profile = profileOf(this.o.tier).profile;
+    if (profile.nearStride >= profile.terrainStride) return;
+    const due: { key: ChunkKey; d: number; mesh: UnitMesh; want: boolean }[] = [];
+    for (const key of this.store.residentKeys('l0')) {
+      const mesh = this.store.unit('l0', key)?.payload;
+      if (!mesh || mesh.stats.near === undefined) continue;
+      const d = this.store.distanceTo(key);
+      const want = wantNearStride(mesh.stats.near, d);
+      if (want !== mesh.stats.near) due.push({ key, d, mesh, want });
+    }
+    due.sort((a, b) => a.d - b.d);
+    for (const { key, mesh, want } of due.slice(0, 2)) {
+      // Marked first: one pass requests a chunk once; the result below records what the new mesh really is.
+      mesh.stats.near = want;
+      const mask = this.landmarks?.maskFor(mesh.proxies) ?? [];
+      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store.distanceTo(key), priority: 'soon', ...(mask.length > 0 ? { maskProxies: mask } : {}) };
+      void this.o.assets
+        .job('world.mesh', args)
+        .then((res) => {
+          const result = res as MeshJobResult;
+          if (!('mesh' in result) || !this.store.ready(key, 'l0') || this.disposed) return;
+          mesh.stats.near = result.mesh.stats.near === true;
+          this.renderer.enqueue(result.mesh, this.priorityOf(key, 'l0'));
         })
         .catch(() => undefined);
     }
@@ -940,6 +987,7 @@ export class WorldView implements WorldLayer {
       windowEmissive: 0, backend: this.o.look.backend, tier: this.o.tier, fallbacks: [], envBakes: 0, envBakeMs: 0,
       pipeline: this.host.tier?.features.pipeline ?? 'direct', sun: null,
       layers: [], blobs: 0, dynamicCasters: [], skyReflect: false, gradeOn: null, windowLit: [0.55, 0.85],
+      vegetation: this.renderer.vegetationReport(),
     };
   }
 
