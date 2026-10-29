@@ -88,6 +88,7 @@ export class QualityGovernor {
   private pinned = false;
   private cap: number | null = null;
   private readonly postCap: number | null;
+  private live: ReadonlySet<KnobId> | null = null;
 
   private now = 0;
   private overSince: number | null = null;
@@ -133,6 +134,12 @@ export class QualityGovernor {
     this.clearTimers();
   }
 
+  /** The knobs something consumes; the governor leaves the others alone. Null (the default) means all ten. */
+  setLiveKnobs(knobs: readonly KnobId[] | null): void {
+    this.live = knobs === null ? null : new Set(knobs);
+    this.clearTimers();
+  }
+
   /** The player's frame cap, 30 or 60, or null for automatic. It lowers the target and is never raised by the governor. */
   setFpsCap(cap: number | null): void {
     if (this.cap === cap) return;
@@ -152,7 +159,7 @@ export class QualityGovernor {
   }
 
   private ctx(): KnobContext {
-    return { range: this.q.tier.dynamic, xr: this.xr_, renderScalePinned: this.pinned, fpsCap: this.cap, postLevelCap: this.postCap };
+    return { range: this.q.tier.dynamic, xr: this.xr_, renderScalePinned: this.pinned, fpsCap: this.cap, postLevelCap: this.postCap, live: this.live };
   }
 
   private clearTimers(): void {

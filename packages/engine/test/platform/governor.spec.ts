@@ -104,7 +104,7 @@ describe('QualityGovernor (AC-1)', () => {
   });
 
   it('keeps 5 s between any two changes and 30 s between upgrades while the series oscillates every second', () => {
-    const { gov, feed, changes } = rig();
+    const { feed, changes } = rig();
     feed(20, 8);
     for (let s = 0; s < 120; s++) feed(s % 2 === 0 ? 11 : 25, 1);
     feed(11, 60);
@@ -265,5 +265,19 @@ describe('QualityGovernor with player settings (AC-11)', () => {
     expect(nextDown(q, ctx)).toMatchObject({ knob: 'postLevel', from: 1, to: 0 });
     expect(nextUp({ ...q, postLevel: 0 }, ctx)).toMatchObject({ knob: 'postLevel', to: 1 });
     expect(allAtFloor({ ...TIERS.desktop.dynamic.floor }, ctx)).toBe(true);
+  });
+});
+
+describe('QualityGovernor live knobs (BD-M11a1-03)', () => {
+  it('leaves a knob nothing consumes alone, keeps the order of the others, and floors without it', () => {
+    const { gov, feed, changes } = rig('desktop');
+    gov.setLiveKnobs(['renderScale', 'buildingDistanceScale', 'lodBias', 'crowdDensity', 'postLevel', 'atmosphereLevel', 'targetFps']);
+    feed(40, 100);
+    const knobs = [...new Set(changes.map((c) => c.knob))];
+    expect(knobs).not.toContain('shadowDistanceScale');
+    expect(knobs).not.toContain('textureMipBias');
+    expect(knobs.slice(0, 3)).toEqual(['renderScale', 'buildingDistanceScale', 'lodBias']);
+    expect(gov.state().dynamic.shadowDistanceScale).toBe(1);
+    expect(gov.state().dynamic.textureMipBias).toBe(0);
   });
 });

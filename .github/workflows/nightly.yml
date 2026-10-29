@@ -80,6 +80,8 @@ jobs:
           DV_BALANCE_RUNS: 10000
 
   # M01c: render-object and triangle budgets as failures (PRs only warn). Frame times are never asserted on SwiftShader.
+  # M11a1: a required check. The `check:perf -- --fail` step has no `continue-on-error` (tools/ci/test/workflows.test.ts), and the racing
+  # scenarios `race-sprint` and `race-pursuit-heat4` are part of the run. A flaky scenario is quarantined by tag (13-qa section 5), never loosened.
   perf:
     runs-on: ubuntu-24.04
     timeout-minutes: 30

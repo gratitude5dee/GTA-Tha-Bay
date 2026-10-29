@@ -43,6 +43,11 @@ export interface KnobContext {
   fpsCap: number | null;
   /** `look.json` `postLevelCap`: levels above it draw the same as the cap, so a step through them would only cost time. */
   postLevelCap: number | null;
+  /**
+   * The knobs something in the app consumes (BD-M11a1-03). A knob nothing reads is skipped, so no 5 s step is spent on it; null means
+   * all ten (the unit tests). The order among the live knobs is unchanged.
+   */
+  live?: ReadonlySet<KnobId> | null;
 }
 
 export interface Limits {
@@ -58,6 +63,7 @@ const round = (n: number): number => Math.round(n * 1000) / 1000;
 /** The numbers a knob moves between under a context, or null when the knob is not in play (XR, pin, no foveation). */
 export function limitsOf(id: KnobId, ctx: KnobContext): Limits | null {
   const { floor: f, ceil: c } = ctx.range;
+  if (ctx.live && !ctx.live.has(id)) return null;
   if (id === 'renderScale') return ctx.xr || ctx.renderScalePinned ? null : { ceil: c.renderScale, floor: f.renderScale, step: KNOB_STEP.renderScale };
   if (id === 'foveation') {
     if (!ctx.xr || c.foveation === null || f.foveation === null) return null;

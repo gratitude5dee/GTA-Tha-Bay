@@ -232,6 +232,21 @@ describe('nightly.yml (AC-8)', () => {
     expect(jobs['sweep-previews']).toContain('pnpm deploy:preview -- --sweep-closed');
   });
 
+  it('the check:perf -- --fail step and its job have no continue-on-error, and the PR perf job still only warns (M11a1 AC-8)', () => {
+    const perf = jobs['perf'] ?? '';
+    const code = (t: string): string => t.split('\n').filter((l) => !l.trim().startsWith('#')).join('\n');
+    // (the apt-cache save steps of the job carry their own continue-on-error; the job and the perf step must not)
+    expect(code(perf)).not.toMatch(/^ {4}continue-on-error:/m);
+    const step = stepsOf(perf).find((s) => s.includes('pnpm check:perf -- --fail')) ?? '';
+    expect(step).not.toContain('continue-on-error');
+    const prPerf = jobsOf(wf('ci.yml'))['perf'] ?? '';
+    const prStep = stepsOf(prPerf).find((s) => s.includes('pnpm check:perf')) ?? '';
+    expect(prStep).not.toContain('--fail');
+    expect(prStep).toContain('run: pnpm check:perf\n');
+    expect(code(prPerf)).not.toContain('--fail');
+    expect(code(prPerf)).not.toMatch(/^ {4}continue-on-error:/m);
+  });
+
   it('has the informational macos-probe job on macos-15 with continue-on-error', () => {
     expect(jobs['macos-probe']).toContain('runs-on: macos-15');
     expect(jobs['macos-probe']).toContain('continue-on-error: true');
