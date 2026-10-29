@@ -11,7 +11,7 @@ export const raceSprint = {
   /** Appended to the page URL. */
   query: 'racing=1&unlockAll=1',
   /** Longest a test with this setup may take, ms (the world boots, the player moves, the race loads, then the run). */
-  timeoutMs: 600_000,
+  timeoutMs: 1_200_000,
   async setup(page: Page, ctx: { tier: QualityTierId }): Promise<void> {
     await startRacePage(page, 'qa.perf.sprint', { rivals: tierCaps(ctx.tier).rivals, waitPolice: false });
   },

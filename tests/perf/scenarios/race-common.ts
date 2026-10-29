@@ -54,7 +54,7 @@ export async function startRacePage(page: Page, raceId: string, o: { rivals: num
       (g) =>
         Promise.race([
           (window as unknown as W).__dvBridge.world.teleport({ x: g.x, z: g.z + 30, yaw: 0 }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 45_000)),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 120_000)),
         ]),
       GRID,
     );
@@ -67,16 +67,16 @@ export async function startRacePage(page: Page, raceId: string, o: { rivals: num
   for (let attempt = 0; attempt < 12; attempt++) {
     started = await page.evaluate(
       ([id, rivals]) =>
-        // a call into a worker that is far behind may never answer: give up after 45 s and ask again (the state check below sees a race that started late)
+        // a call into a worker that is far behind may never answer: give up after 120 s and ask again (the state check below sees a race that started late)
         Promise.race([
           (window as unknown as W).__dvBridge.racing.start(id as string, { vehicle: 'vehicle.aurelian-sorrel', rivals }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 45_000)),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 120_000)),
         ]),
       [raceId, o.rivals] as const,
     );
     if (started?.ok) break;
     const there = await page.evaluate(() =>
-      Promise.race([(window as unknown as W).__dvBridge.racing.state(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 45_000))]),
+      Promise.race([(window as unknown as W).__dvBridge.racing.state(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 120_000))]),
     );
     if (there?.ok) {
       started = { ok: true };
@@ -92,13 +92,13 @@ export async function startRacePage(page: Page, raceId: string, o: { rivals: num
       return s?.ok === true && s.state?.car != null && s.state.rivals.length === want;
     },
     o.rivals,
-    { timeout: 240_000, polling: 500 },
+    { timeout: 480_000, polling: 500 },
   );
   await page.evaluate(() => (window as unknown as W).__dvBridge.racing.cmd('ready'));
   if (o.waitPolice) {
-    // GO starts the pursuit; the units spawn out of view and close in. The window opens once some are there (or after 240 s: a loaded software-GL page runs the sim far slower than real time).
+    // GO starts the pursuit; the units spawn out of view and close in. The window opens once some are there (or after 480 s: a loaded software-GL page runs the sim far slower than real time).
     await page
-      .waitForFunction(async () => ((await (window as unknown as W).__dvBridge.engine.pursuit.state())?.units ?? 0) >= 1, undefined, { timeout: 240_000, polling: 500 })
+      .waitForFunction(async () => ((await (window as unknown as W).__dvBridge.engine.pursuit.state())?.units ?? 0) >= 1, undefined, { timeout: 480_000, polling: 500 })
       .catch(() => undefined);
   }
   await page.evaluate(() => {

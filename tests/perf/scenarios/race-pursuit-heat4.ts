@@ -12,7 +12,7 @@ export const racePursuitHeat4 = {
   /** Appended to the page URL. */
   query: 'racing=1&unlockAll=1',
   /** Longest a test with this setup may take, ms. */
-  timeoutMs: 600_000,
+  timeoutMs: 1_200_000,
   async setup(page: Page, _ctx: { tier: QualityTierId }): Promise<void> {
     await startRacePage(page, 'qa.perf.pursuit', { rivals: 0, waitPolice: true });
   },
