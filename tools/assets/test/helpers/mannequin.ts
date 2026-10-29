@@ -13,6 +13,8 @@ export type Bone = (typeof HUMANOID_BONES)[number];
 export interface ClipSpec {
   name: string;
   seconds?: number;
+  /** Sample rate of the authored clip (default 30; fighter moves are keyed at 60, M10a2). */
+  fps?: number;
   /** Horizontal travel of the hips over the clip, in metres (0 for a loop). */
   driftM?: number;
   /** Leave the arm raised at the end, so the last pose differs from the first. */
@@ -180,8 +182,8 @@ export async function buildMannequin(o: MannequinOptions = {}): Promise<Uint8Arr
   }
 
   const clips = o.clips ?? (o.clipsOnly === true ? [{ name: 'Idle' }] : []);
-  const fps = 30;
   for (const c of clips) {
+    const fps = c.fps ?? 30;
     const seconds = c.seconds ?? 1;
     const frames = Math.round(seconds * fps) + 1;
     const times = new Float32Array(frames);

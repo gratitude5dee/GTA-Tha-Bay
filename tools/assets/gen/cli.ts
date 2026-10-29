@@ -10,6 +10,7 @@
  *   pnpm assets:gen run -- --slug <slug> --until sheet|mesh|rig|publish [--live]                           (M10a1: dry run without --live)
  *   pnpm assets:gen gate -- --run <runId> --gate H0..H5 --choose <n> --by <profile>                        (M10a1: records a human decision)
  *   pnpm assets:gen ledger -- [--line characters] [--seed] [--import <file>]                               (M10a1: the spend ledger)
+ *   pnpm assets:gen batch-report -- [--out <file>] [--check]                                               (M10a2: docs/runbooks/reports/M10a2-batch.md)
  *
  * The CLI has no code path that calls fal: it reads files, HEADs our media host, reads route 27 of our Worker and the spend ledger,
  * and with `--live` posts the planned keys to route 28 (`OPS_TOKEN`). `--finish` transcodes and re-signs the handed-off keys on this
@@ -32,6 +33,7 @@ import { FfmpegTranscodePort } from './ffmpeg-port.ts';
 import { PRIVATE_VARS, privateRcloneEnv, runFinish, type FinishPorts } from './finish.ts';
 import type { ResignProbe } from './gates.ts';
 import { runPrewarm, type LedgerPort, type PrewarmOptions, type PrewarmPorts } from './prewarm.ts';
+import { batchReportCommand } from './batch-report.ts';
 import { gateCommand } from './gate.ts';
 import { ledgerCommand } from './ledger.ts';
 import { planCommand } from './plan.ts';
@@ -309,7 +311,7 @@ export function finishPorts(o: PrewarmOptions & FinishCliOptions, env: NodeJS.Pr
 export async function main(argv: readonly string[], env: NodeJS.ProcessEnv = process.env, fetchFn: FetchFn = fetch, log: (l: string) => void = (l) => console.log(l), deps: CliDeps = {}): Promise<number> {
   const [sub, ...rest] = argv;
   if (sub === undefined) {
-    log('usage: pnpm assets:gen <prewarm|plan|run|gate|ledger> -- ... (see tools/assets/gen/cli.ts)');
+    log('usage: pnpm assets:gen <prewarm|plan|run|gate|ledger|batch-report> -- ... (see tools/assets/gen/cli.ts)');
     return 2;
   }
   const root = deps.root ?? repoRoot;
@@ -319,6 +321,7 @@ export async function main(argv: readonly string[], env: NodeJS.ProcessEnv = pro
     if (sub === 'run') return await runCommand(rest, { root, env, fetch: fetchFn, log, now, ...(deps.buildLive !== undefined ? { buildLive: deps.buildLive } : {}) });
     if (sub === 'gate') return await gateCommand(rest, { root, log, now });
     if (sub === 'ledger') return ledgerCommand(rest, root, log, now());
+    if (sub === 'batch-report') return await batchReportCommand(rest, root, env, log);
   } catch (e) {
     log(`assets:gen ${sub}: ${(e as Error).message}`);
     return 1;

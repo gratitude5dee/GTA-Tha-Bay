@@ -161,35 +161,47 @@ export class QueueFalPort implements CharacterFalPort {
 
 /** BudgetPort over the ledger file for one line. `reserve` holds an estimate until `settle` replaces it with a row. */
 export class LedgerBudget implements BudgetPort {
-  private readonly held = new Map<string, number>();
-  private readonly tags = new Map<string, { slug: string; stage: string }>();
+  private readonly held = new Map<string, { micros: number; line: LedgerLine }>();
+  private readonly tags = new Map<string, { slug: string; stage: string; retake: boolean }>();
 
-  constructor(private readonly o: { file: string; line: LedgerLine; clock: ClockPort; caps?: LineCaps }) {}
+  /** `retakeNote`: the owner's sign-off text (Q-26); a retake job books to the buffer line and carries it in its row. */
+  constructor(private readonly o: { file: string; line: LedgerLine; clock: ClockPort; caps?: LineCaps; retakeNote?: string }) {}
 
-  tag(jobId: string, slug: string, stage: string): void {
-    this.tags.set(jobId, { slug, stage });
+  /** A retake (a new seed, attempt above 0) is paid from the buffer line, never from the characters line (DL-OWN-07, Q-26). */
+  tag(jobId: string, slug: string, stage: string, retake = false): void {
+    this.tags.set(jobId, { slug, stage, retake });
+  }
+
+  private lineOf(jobId: string): LedgerLine {
+    return this.tags.get(jobId)?.retake === true ? 'buffer' : this.o.line;
   }
 
   private totalsNow(): ReturnType<typeof totals> {
     const t = totals(readLedger(this.o.file));
-    const inflight = [...this.held.values()].reduce((a, b) => a + b, 0);
-    return { ...t, [this.o.line]: t[this.o.line] + inflight, total: t.total + inflight };
+    for (const h of this.held.values()) {
+      t[h.line] += h.micros;
+      t.total += h.micros;
+    }
+    return t;
   }
 
   reserve(_vendor: Vendor, estMicros: number, jobId: string): Promise<{ ok: boolean; level: GovLevel }> {
-    const refusal = capRefusal(this.totalsNow(), this.o.line, estMicros, this.o.caps ?? DEFAULT_CAPS);
+    const line = this.lineOf(jobId);
+    const refusal = capRefusal(this.totalsNow(), line, estMicros, this.o.caps ?? DEFAULT_CAPS);
     if (refusal !== null) return Promise.resolve({ ok: false, level: 3 });
-    this.held.set(jobId, estMicros);
+    this.held.set(jobId, { micros: estMicros, line });
     return Promise.resolve({ ok: true, level: 0 });
   }
 
   settle(jobId: string, actualMicros: number, requestId?: string): Promise<void> {
+    const line = this.held.get(jobId)?.line ?? this.lineOf(jobId);
     this.held.delete(jobId);
     const tag = this.tags.get(jobId);
     if (actualMicros > 0) {
       appendRow(this.o.file, {
-        schema: 'fal-spend/1', kind: 'settle', at: isoNow(this.o.clock.now()), line: this.o.line, usdMicros: actualMicros, ref: jobId,
+        schema: 'fal-spend/1', kind: 'settle', at: isoNow(this.o.clock.now()), line, usdMicros: actualMicros, ref: jobId,
         ...(tag !== undefined ? { slug: tag.slug, stage: tag.stage } : {}), ...(requestId !== undefined ? { requestId } : {}),
+        ...(tag?.retake === true && this.o.retakeNote !== undefined ? { note: `retake, owner sign-off (Q-26): ${this.o.retakeNote}` } : {}),
       });
     }
     return Promise.resolve();

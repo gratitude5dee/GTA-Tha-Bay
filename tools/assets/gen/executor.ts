@@ -36,7 +36,7 @@ export interface ExecutorPorts {
   blob: BlobPort;
   roster: RosterPort;
   flags: FlagsPort;
-  budget: BudgetPort & { tag?(jobId: string, slug: string, stage: string): void };
+  budget: BudgetPort & { tag?(jobId: string, slug: string, stage: string, retake?: boolean): void };
   clock: ClockPort;
   names?: NamePort;
   vision: VisionPort;

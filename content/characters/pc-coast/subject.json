@@ -1,0 +1,23 @@
+{
+  "schema": "character-subject/1",
+  "id": "pc-coast",
+  "kind": "player",
+  "pipeline": "standard",
+  "tier": "fictionalized",
+  "basis": "original",
+  "soulVersion": 1,
+  "visualBrief": "Young adult man, 1.75 m, warm brown skin, a textured afro with a tapered back and sides, small red-tipped ears, a short trimmed beard, a black cotton hoodie with drawstrings, dark jeans and grey sneakers with light soles. Stylized cel look with slightly enlarged eyes and ears.",
+  "heightM": 1.75,
+  "hero": true,
+  "refs": ["content/characters/pc-coast/sheet.webp"],
+  "signers": { "H1": "owner", "H3": "owner" },
+  "parts": [
+    { "row": "body-coast", "slot": "body" },
+    { "row": "face-coast", "slot": "face" },
+    { "row": "hair-coast", "slot": "hair" },
+    { "row": "top-coast-hoodie", "slot": "top" },
+    { "row": "bottom-coast-jeans", "slot": "bottom" },
+    { "row": "shoes-coast-sneakers", "slot": "shoes" }
+  ],
+  "note": "The protagonist (DL-OWN-05, DL-737). A subject card, not an NPC: no soul, no dialogue, no roster row. The sheet is the first-party reference of the sheet stage and never a video reference."
+}

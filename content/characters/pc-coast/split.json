@@ -1,0 +1,10 @@
+{
+  "schema": "coast-split/1",
+  "groups": {
+    "shoes": ["l_foot", "r_foot", "l_toes", "r_toes"],
+    "bottom": ["hips", "l_upperLeg", "l_lowerLeg", "r_upperLeg", "r_lowerLeg"],
+    "top": ["spine", "chest", "upperChest", "l_shoulder", "r_shoulder", "l_upperArm", "r_upperArm", "l_lowerArm", "r_lowerArm"],
+    "body": ["neck", "l_hand", "r_hand"]
+  },
+  "head": { "bones": ["head"], "hairlineYFrac": 0.94, "faceMinZM": 0.01 }
+}
