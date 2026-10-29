@@ -96,9 +96,9 @@ export async function startRacePage(page: Page, raceId: string, o: { rivals: num
   );
   await page.evaluate(() => (window as unknown as W).__dvBridge.racing.cmd('ready'));
   if (o.waitPolice) {
-    // GO starts the pursuit; the units spawn out of view and close in. The window opens once some are there (or after 60 s).
+    // GO starts the pursuit; the units spawn out of view and close in. The window opens once some are there (or after 240 s: the sim of a software-GL desktop page runs slower than real time).
     await page
-      .waitForFunction(async () => ((await (window as unknown as W).__dvBridge.engine.pursuit.state())?.units ?? 0) >= 1, undefined, { timeout: 60_000, polling: 500 })
+      .waitForFunction(async () => ((await (window as unknown as W).__dvBridge.engine.pursuit.state())?.units ?? 0) >= 1, undefined, { timeout: 240_000, polling: 500 })
       .catch(() => undefined);
   }
   await page.evaluate(() => {

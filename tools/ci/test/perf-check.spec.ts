@@ -255,10 +255,10 @@ describe('verifyRace (M11a1 AC-6)', () => {
     return f;
   };
 
-  it('registers both scenarios; the sprint passes at the tier cap of config/racing.json (7, 7, 5, 3) and the pursuit at heat 4 with police', () => {
+  it('registers both scenarios; the sprint passes at the tier cap of config/racing.json (7, 7, 2, 1) and the pursuit at heat 4 with police', () => {
     expect(RACE_SCENARIOS).toEqual(['race-sprint', 'race-pursuit-heat4']);
     for (const id of RACE_SCENARIOS) expect(PERF_SCENARIOS).toContain(id);
-    expect(FLAT_TIERS.map(raceCap)).toEqual([7, 7, 5, 3]);
+    expect(FLAT_TIERS.map(raceCap)).toEqual([7, 7, 2, 1]);
     for (const tier of FLAT_TIERS) {
       expect(verifyRace(put(`sprint-${tier}.json`, raceCounts('race-sprint', tier)), tier, 'race-sprint')).toEqual([]);
       expect(verifyRace(put(`pursuit-${tier}.json`, raceCounts('race-pursuit-heat4', tier)), tier, 'race-pursuit-heat4')).toEqual([]);
@@ -266,7 +266,7 @@ describe('verifyRace (M11a1 AC-6)', () => {
   });
 
   it('fails a sprint with fewer or more rivals than the cap, a pursuit short of heat 4 or without police, and missing figures', () => {
-    expect(verifyRace(put('sprint-short.json', { raceRivals: 2, racePoliceMax: 0, raceHeatMax: 0 }), 'mobile-low', 'race-sprint').join('\n')).toMatch(/rivals on the grid 2 differ from the mobile-low cap 3/);
+    expect(verifyRace(put('sprint-short.json', { raceRivals: 1, racePoliceMax: 0, raceHeatMax: 0 }), 'mobile', 'race-sprint').join('\n')).toMatch(/rivals on the grid 1 differ from the mobile cap 2/);
     expect(verifyRace(put('sprint-over.json', { raceRivals: 8, racePoliceMax: 0, raceHeatMax: 0 }), 'desktop', 'race-sprint').join('\n')).toMatch(/8 differ from the desktop cap 7/);
     expect(verifyRace(put('pursuit-cool.json', { raceRivals: 0, racePoliceMax: 5, raceHeatMax: 2 }), 'desktop', 'race-pursuit-heat4').join('\n')).toMatch(/heat 2, not 4/);
     expect(verifyRace(put('pursuit-none.json', { raceRivals: 0, racePoliceMax: 0, raceHeatMax: 4 }), 'desktop', 'race-pursuit-heat4').join('\n')).toMatch(/no police unit/);
