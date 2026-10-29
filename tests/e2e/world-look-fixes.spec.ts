@@ -184,7 +184,7 @@ test.describe('look fixes @look-fixes', () => {
 // ---- @fixes-ledger ------------------------------------------------------------------------------------------------------
 
 const LEDGER = 'docs/look/M02g2-render-ledger.json';
-const PRIOR = 'docs/look/M02g1-render-ledger.json';
+const PRIOR = 'docs/look/M10d0-render-ledger.json';
 interface TierLedger { baseline: number; after: number; triangles?: { baseline: number; after: number } }
 interface Ledger { commit: string; bakeId: string; tiers: Record<string, TierLedger>; xr?: { baseline: number; after: number } }
 const bakeIdOf = (): string => read<{ bakeId: string }>('dist/world/latest-synth.json').bakeId;
@@ -203,7 +203,7 @@ test.describe('fixes ledger @fixes-ledger', () => {
   const measured: Record<string, { objects: number; triangles: number }> = {};
 
   for (const tier of LEDGER_TIERS) {
-    test(`${tier}: render objects and triangles on a held frame, against M02g1's ledger @fixes-ledger`, async ({ page }) => {
+    test(`${tier}: render objects and triangles on a held frame, against M10d0's ledger @fixes-ledger`, async ({ page }) => {
       // the protocol of M02g1's ledger: no `perf=1` (a held frame must not change), traffic resident, `mobile-low` at the `fog-west` shot
       await bootWorld(page, tier);
       await setSky(page, 13, 'clear');
@@ -218,7 +218,7 @@ test.describe('fixes ledger @fixes-ledger', () => {
       if (BASELINE_MODE) return;
       const prior = read<Ledger>(PRIOR).tiers[tier];
       expect(prior, `${PRIOR} holds ${tier}`).toBeDefined();
-      expect(m.renderObjects, `${tier}: objects against M02g1's after (${prior?.after})`).toBeLessThanOrEqual(prior?.after ?? 0);
+      expect(m.renderObjects, `${tier}: objects against M10d0's after (${prior?.after})`).toBeLessThanOrEqual(prior?.after ?? 0);
       if (tier === 'mobile-low') expect(m.renderObjects, 'mobile-low render objects').toBeLessThanOrEqual(100);
     });
   }
@@ -255,7 +255,7 @@ test.describe('fixes ledger @fixes-ledger', () => {
       const t = ledger.tiers[tier];
       expect(t, `${tier} is in the ledger`).toBeDefined();
       if (!t) continue;
-      expect(t.baseline, `${tier} baseline is M02g1's after`).toBe(prior.tiers[tier]?.after);
+      expect(t.baseline, `${tier} baseline is M10d0's after`).toBe(prior.tiers[tier]?.after);
       expect(t.after - t.baseline, `${tier} object delta`).toBeLessThanOrEqual(0);
     }
     const low = ledger.tiers['mobile-low'];
@@ -268,7 +268,7 @@ test.describe('fixes ledger @fixes-ledger', () => {
 });
 
 test.describe('xr fixes ledger @fixes-ledger', () => {
-  test('the Quest tier holds its render objects on a held frame, against M02g1 @xr @fixes-ledger', async ({ page }, testInfo: TestInfo) => {
+  test('the Quest tier holds its render objects on a held frame, against M10d0 @xr @fixes-ledger', async ({ page }, testInfo: TestInfo) => {
     test.setTimeout(240_000);
     await page.setViewportSize(SMALL_VIEWPORT);
     await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1');
@@ -281,7 +281,7 @@ test.describe('xr fixes ledger @fixes-ledger', () => {
     const prior = read<Ledger>(PRIOR).xr;
     expect(prior, `${PRIOR} holds xr`).toBeDefined();
     if (BASELINE_MODE) return;
-    expect(m.renderObjects, `xr objects against M02g1's after (${prior?.after})`).toBeLessThanOrEqual(prior?.after ?? 0);
+    expect(m.renderObjects, `xr objects against M10d0's after (${prior?.after})`).toBeLessThanOrEqual(prior?.after ?? 0);
     if (WRITE) {
       const prev = existsSync(LEDGER) ? read<Ledger>(LEDGER) : { commit: commitOf(), bakeId: bakeIdOf(), tiers: {} };
       mkdirSync(dirname(LEDGER), { recursive: true });
