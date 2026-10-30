@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
+import { crowdMax, streamAtPlan } from './ledger-helpers.ts';
 
 /**
  * M10d1 vehicles and props in a real browser, on a `DV_WORLD=synth` QA build (the world half of the e2e legs).
@@ -230,7 +231,8 @@ async function measure(page: Page, tier: QualityTierId): Promise<{
   if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));
   await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
   await artSettled(page);
-  await frames(page, 3);
+  // the frame of the whole plan, six frames after it (DL-758)
+  await streamAtPlan(page);
   await world(page, (w) => w.hold(true));
   const l = await live(page);
   const t = await world(page, (w) => w.traffic());
@@ -266,12 +268,13 @@ test.describe('art ledger @art-ledger', () => {
         triangles: { baseline: m.trianglesBaseline, after: m.trianglesAfter, traffic: m.traffic.triangles, instances: m.traffic.instances },
       };
       measured[tier] = row;
-      console.log(`art ledger ${tier}: ${JSON.stringify(row)}`);
+      console.log(`art ledger ${tier}: ${JSON.stringify(row)} (crowd max ${crowdMax(tier)})`);
       const bound = TABLE[tier] as NonNullable<(typeof TABLE)[string]>;
       expect(row.perLayer.art, `${tier}: render objects added by the art`).toBeLessThanOrEqual(bound.objects);
       expect(row.perLayer.art, `${tier}: the art cannot take objects away`).toBeGreaterThanOrEqual(0);
       expect(after.traffic.triangles, `${tier}: traffic triangles`).toBeLessThanOrEqual(after.traffic.cap * bound.trisPerInstance);
-      if (tier === 'mobile-low') expect(row.after).toBeLessThanOrEqual(100);
+      // the crowd is hidden in the count and added back at its most in the ceiling (BD-FIX-LEDGER-SETTLED-01)
+      if (tier === 'mobile-low') expect(row.after + crowdMax(tier), `mobile-low after ${row.after} + crowd max ${crowdMax(tier)}`).toBeLessThanOrEqual(100);
     });
   }
 
@@ -312,7 +315,7 @@ test.describe('art ledger @art-ledger', () => {
       const base = prev?.after[tier];
       if (base !== undefined && t.baseline !== base) expect(ledger.drift?.previousAfter[tier], `${tier} baseline ${t.baseline} is not the after ${base} of ${prev?.file}: the ledger says why`).toBe(base);
     }
-    expect(ledger.tiers['mobile-low']?.after ?? 0).toBeLessThanOrEqual(100);
+    expect((ledger.tiers['mobile-low']?.after ?? 0) + crowdMax('mobile-low'), 'mobile-low after + crowd max').toBeLessThanOrEqual(100);
     if (ledger.xr) expect(ledger.xr.after).toBe(ledger.xr.baseline);
   });
 });
@@ -325,7 +328,8 @@ test.describe('xr art ledger @xr @art-ledger', () => {
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
     await artSettled(page);
     await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
-    await frames(page, 3);
+    // the frame of the whole plan, six frames after it (DL-758)
+    await streamAtPlan(page);
     await world(page, (w) => w.hold(true));
     const after = (await live(page)).renderObjects;
     const t = await world(page, (w) => w.traffic());
