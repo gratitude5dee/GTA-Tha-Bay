@@ -10,7 +10,7 @@ import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, texturesSettled, wo
  *  - @art-textures    AC-6   per flat tier: `look().textures` reports `stochastic`, `single` and `albedo` with the bound sets and its byte
  *                     figures inside the tier's budget; only those refs are requested; `setLookLayer('textures', false)` and a
  *                     `?textures=0` boot (the QA form of `world.textures: false`) report `off`, the second with no `texture/` request
- *  - @textures-golden AC-7   in `art-textures-golden.spec.ts` (BD-FIX-CI-TEXGOLD-01)
+ *  - @textures-golden AC-7   in `pavement-textures-golden.spec.ts` (BD-FIX-CI-TEXGOLD-01, renamed by BD-FIX-CI-REBAL-01)
  *  - @textures-ledger AC-8   `chromium-webgl2`: the render-object ledger of `docs/look/M10d0-render-ledger.json` (the textures add no render
  *                     object); the XR leg `@xr @textures-ledger` has no texture request and the baseline objects
  *  - @credits-art     AC-9   `/menu/credits` shows the Art section: a courtesy line per CC0 pack and the five fields of a CC-BY entry
