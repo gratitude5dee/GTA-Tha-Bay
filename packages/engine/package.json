@@ -23,6 +23,7 @@
     "./client/boot/spawn-worker": "./src/client/boot/spawn-worker.ts",
     "./client/boot/world-layer": "./src/client/boot/world-layer.ts",
     "./client/anim": "./src/client/anim/placeholder-rig.ts",
+    "./client/anim/clip-source": "./src/client/anim/clip-source.ts",
     "./assets/service": "./src/assets/service.ts",
     "./assets/client": "./src/assets/client.ts",
     "./assets/spawn": "./src/assets/spawn.ts",

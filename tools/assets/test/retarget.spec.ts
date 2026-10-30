@@ -42,4 +42,16 @@ describe('assets:retarget', () => {
     const r = await retargetClips({ clipsGlb, targetGlb, slug: 'drift', heightM: 1.75, rig });
     expect(r.findings.some((f) => f.gate === 'A5' && f.rule === 'hip-drift')).toBe(true);
   });
+  it('bakes only the clips a --map names, under their new names, and flags a name the clips file lacks (M10d4)', async () => {
+    const clipsGlb = await buildMannequin({ clipsOnly: true, heightM: 1.75, clips: [{ name: 'Idle_Loop', seconds: 1 }, { name: 'Walk_Loop', seconds: 1 }, { name: 'Unused', seconds: 0.5 }] });
+    const targetGlb = await buildMannequin({ heightM: 1.7 });
+    const r = await retargetClips({ clipsGlb, targetGlb, slug: 'mapped', heightM: 1.7, rig, rename: { Idle_Loop: 'idle', Walk_Loop: 'walk' } });
+    expect(r.clips.map((c) => c.name)).toEqual(['idle', 'walk']);
+    expect(r.findings).toEqual([]);
+    const doc = await readGlb(r.glb);
+    expect(doc.getRoot().listAnimations().map((a) => a.getName())).toEqual(['idle', 'walk']);
+    const bad = await retargetClips({ clipsGlb, targetGlb, slug: 'mapped', heightM: 1.7, rig, rename: { Idle_Loop: 'idle', Nope: 'run' } });
+    expect(bad.clips.map((c) => c.name)).toEqual(['idle']);
+    expect(bad.findings.some((f) => f.rule === 'map-clip' && f.detail.includes('Nope'))).toBe(true);
+  });
 });
