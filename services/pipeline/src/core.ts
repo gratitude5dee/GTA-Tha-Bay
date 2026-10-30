@@ -13,3 +13,5 @@ export * from './mock/MockTranscodePort.ts';
 export * from './mock/MockSignPort.ts';
 export * from './mock/test-key.ts';
 export * from './mock/fixtures.ts';
+export * from './steps/character.ts';
+export * from './steps/gates.ts';

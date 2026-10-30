@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ARCHIVES } from '../pw-install.ts';
@@ -143,9 +143,9 @@ describe('ci.yml (AC-8)', () => {
     expect(step).toContain('BUILD_RESULT: ${{ needs.build.result }}');
     expect(step).toContain('SHARDS_RESULT: ${{ needs.e2e-shard.result }}');
     const shards = Number(/E2E_SHARDS: '(\d+)'/.exec(step)?.[1] ?? 0);
-    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four, BD-INTEG-M02g1-01 to six).
+    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four, BD-INTEG-M02g1-01 to six, BD-FIX-CI-SHARD8-01 to eight, BD-REPAIR-M02g2-03 to nine).
     const matrix = /^ {8}shard: \[([\d, ]+)\]$/m.exec(jobs['e2e-shard'] ?? '')?.[1]?.split(',').length ?? 0;
-    expect(shards).toBe(6);
+    expect(shards).toBe(9);
     expect(shards).toBe(matrix);
     const all = (r: string | null): (string | null)[] => Array.from({ length: shards }, () => r);
     const withAt = (i: number, r: string | null): (string | null)[] => all('success').map((v, j) => (j === i ? r : v));
@@ -464,5 +464,39 @@ describe('preview.yml bakes the synth world into the Preview build (BD-PW-01)', 
     const deploy = wf('deploy.yml');
     expect(deploy).not.toContain('DV_WORLD');
     expect(deploy).not.toContain('VITE_DV_QA');
+  });
+});
+
+describe('generation stays on the mock in every workflow (M10a1 AC-11, DL-OWN-01)', () => {
+  const files = ['ci.yml', 'deploy.yml', 'nightly.yml', 'preview.yml', 'weekly.yml'];
+
+  /** The `env:` mapping at the top level of a workflow (before `jobs:`), or '' when it has none. */
+  const topEnv = (text: string): string => {
+    const head = text.slice(0, text.indexOf('\njobs:'));
+    const m = /^env:\n((?: {2}.*\n|\s*\n)*)/m.exec(head);
+    return m?.[1] ?? '';
+  };
+
+  it('every workflow sets FAL_MODE: mock for all its jobs, at the top level or in each job', () => {
+    for (const f of files) {
+      const text = wf(f);
+      if (/^ {2}FAL_MODE: mock\s*$/m.test(topEnv(text))) continue;
+      const jobs = jobsOf(text);
+      for (const [name, body] of Object.entries(jobs)) expect(body, `${f} job ${name}`).toMatch(/\n {6}FAL_MODE: mock\s*(\n|$)/);
+    }
+  });
+
+  it('no workflow mentions FAL_KEY or sets FAL_MODE to anything else', () => {
+    for (const f of files) {
+      const text = wf(f);
+      expect(text, f).not.toContain('FAL_KEY');
+      for (const m of text.matchAll(/FAL_MODE:\s*(\S+)/g)) expect(m[1], f).toBe('mock');
+    }
+  });
+
+  it('lists every workflow file of the repository, so a new one cannot skip the rule', () => {
+    const dir = path.join(repoRoot, '.github', 'workflows');
+    const names = readdirSync(dir).filter((n) => n.endsWith('.yml')).sort();
+    expect(names).toEqual([...files].sort());
   });
 });

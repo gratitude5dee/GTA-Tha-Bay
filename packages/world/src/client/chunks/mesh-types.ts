@@ -35,6 +35,10 @@ export interface MeshStats {
   filtered: boolean;
   /** Bytes of the typed arrays. */
   bytes: number;
+  /** L0: the terrain was meshed at the profile's `nearStride` (the chunk lay within `terrain.nearRingM` of the focus); M02g2. */
+  near?: boolean;
+  /** L0: the stride of the terrain mesh (1, 2 or 4 posts); M02g2. */
+  terrainStride?: number;
 }
 
 /** The result of meshing one unit (an L0 chunk, an L1 tile or an L2 block). */

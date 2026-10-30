@@ -13,10 +13,17 @@ import { PROMPT_LINT_CONFIG, type PromptLintConfig } from './registry.ts';
 
 export type GateStage =
   | 'gate' | 'cache-check' | 'budget-reserve' | 'acquire' | 'keyframes' | 'plan' | 'submit' | 'copy-orig'
-  | 'transcode' | 'resign' | 'publish' | 'record';
+  | 'transcode' | 'resign' | 'publish' | 'record'
+  // M10a1: the character pipeline (spec/domains/05-assets-pipeline.md section 1). `tier-check`, `crops`, `retarget` and `optimize` are local.
+  | 'tier-check' | 'sheet' | 'crops' | 'portrait' | 'mouth_atlas' | 'mesh' | 'rig' | 'retarget' | 'optimize';
 
 /** Stages where money is reserved or spent: kill switches and the governor level apply from here on. */
-const SUBMIT_TIME_STAGES: ReadonlySet<GateStage> = new Set<GateStage>(['budget-reserve', 'acquire', 'keyframes', 'submit']);
+const SUBMIT_TIME_STAGES: ReadonlySet<GateStage> = new Set<GateStage>(['budget-reserve', 'acquire', 'keyframes', 'submit', 'sheet', 'portrait', 'mouth_atlas', 'mesh', 'rig']);
+
+/** Job kinds of the character pipeline: killed scopes and the toon preset rule differ from the cutscene jobs. */
+const CHARACTER_KINDS: ReadonlySet<GenJob['kind']> = new Set<GenJob['kind']>(['style_bible', 'sheet', 'portrait', 'mouth_atlas', 'mesh', 'rig']);
+/** A character model is used by spawns, fighter rosters and cutscenes, so a kill in any of these scopes stops generating it. */
+const CHARACTER_KILL_SCOPES: readonly string[] = ['all', 'spawn', 'fighter', 'cutscene'];
 
 export interface PromptLintResult {
   ok: boolean;
@@ -113,12 +120,14 @@ export function evaluateGate(job: GenJob, stage: GateStage, g: GateInputs): Gate
     const row = g.roster.get(id) ?? null;
     if (row === null) return refuse('TIER_UNKNOWN', `no roster entry for ${id}`);
     if (row.minor === true) return refuse('TIER_UNKNOWN', `${id} is flagged minor`);
-    if (row.killed.includes('all') || row.killed.includes('cutscene')) return refuse('KILLED', `${id} is killed for cutscenes`);
+    if (CHARACTER_KINDS.has(job.kind)) {
+      if (row.killed.some((k) => CHARACTER_KILL_SCOPES.includes(k))) return refuse('KILLED', `${id} is killed (${row.killed.join(', ')})`);
+    } else if (row.killed.includes('all') || row.killed.includes('cutscene')) return refuse('KILLED', `${id} is killed for cutscenes`);
     if (row.tier !== 'consented') {
       if (job.inputs.some((f) => f.origin === 'consented_photo' || f.origin === 'user_upload' || f.realHumanVisible)) {
         return refuse('FACE_REF_FORBIDDEN', `${id}: only first-party files may feed a non-consented cast`);
       }
-      if (job.params['preset'] !== 'toon-pbr') return refuse('PHOTOREAL_FORBIDDEN', `${id}: non-consented casts use the toon-pbr preset`);
+      if (!CHARACTER_KINDS.has(job.kind) && job.params['preset'] !== 'toon-pbr') return refuse('PHOTOREAL_FORBIDDEN', `${id}: non-consented casts use the toon-pbr preset`);
     }
   }
 

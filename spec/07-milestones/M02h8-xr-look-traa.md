@@ -104,7 +104,7 @@ $0 fal, no asset, no contract change. A Quest 3 operator pass decides the Quest 
   - `xr-visionpro`: ≤ baseline + 1 and ≤ 200 per pass;
   - the deltas are 0 on `desktop`, `mobile-low` (≤ 100) and `legacy`.
   - — proof: `DV_WORLD=synth pnpm check:perf -- --fail && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @look-xr-ledger && DV_WORLD=synth pnpm check:e2e:xr`
-- AC-6 Given the manifest with three `xr-quest` shots and the TRAA `desktop` shots When `@look-golden` runs Then every shot is within the M02e tolerance and two consecutive captures are byte-identical — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @look-golden`
+- AC-6 Given the manifest with three `xr-quest` shots and the TRAA `desktop` shots When `@look-golden` and every other committed look golden set (`_PLAN-3.md` Look program rule 6: every committed look golden set) run Then every shot is within the M02e tolerance and two consecutive captures are byte-identical — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@look-golden|@markings-golden|@textures-golden|@facade-golden"`
 - AC-7 Given `?tier=desktop` When `@look-traa` runs on `chromium-webgl2` and `webkit-webgl2` Then:
   - `postNodes` is the AC-2 level-3 list after `webgl2AaFallback`, and `governor.state().dynamic.postLevel` is 3 at reveal;
   - with `traa` on, `traa-graze` flickers on ≤ 0.2 % † of façade pixels over 8 frames (M02h1 `flicker.ts`), no more than at level 2;

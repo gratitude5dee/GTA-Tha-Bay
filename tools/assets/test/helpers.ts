@@ -42,6 +42,13 @@ function dropFixtureAssets(root: string): void {
     rmSync(path.join(root, 'assets', 'src', kind), { recursive: true, force: true });
     for (const ref of Object.keys(lock.entries)) if (ref.startsWith(`${kind}/`)) delete lock.entries[ref];
   }
+  // M10d0: the PBR texture sets (texture/pbr.<set>.<map>) are built by assets:import and tested in import.textures.spec.
+  const textureDir = path.join(root, 'assets', 'src', 'texture');
+  for (const id of readdirSync(textureDir)) {
+    if (!id.startsWith('pbr.')) continue;
+    rmSync(path.join(textureDir, id), { recursive: true, force: true });
+    delete lock.entries[`texture/${id}`];
+  }
   writeFileSync(lockFile, `${JSON.stringify(lock, null, 2)}\n`);
 }
 

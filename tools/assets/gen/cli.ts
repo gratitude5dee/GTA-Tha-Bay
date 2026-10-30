@@ -6,7 +6,12 @@
  *   pnpm assets:gen prewarm -- --release <tag> --finish [--env staging|prod] [--ffmpeg native|docker]
  *   pnpm assets:gen prewarm -- --finish --local <orig.mp4> --out <dir> [--ffmpeg native|docker]
  *
- * `prewarm` is the only subcommand; `plan`, `run` and `gate` print `pending: lands in M10a1` and exit 0.
+ *   pnpm assets:gen plan -- --roster <file> --tier standard|lean|all [--slugs a,b] [--with-moves]            (M10a1: zero vendor calls)
+ *   pnpm assets:gen run -- --slug <slug> --until sheet|mesh|rig|publish [--live]                           (M10a1: dry run without --live)
+ *   pnpm assets:gen gate -- --run <runId> --gate H0..H5 --choose <n> --by <profile>                        (M10a1: records a human decision)
+ *   pnpm assets:gen ledger -- [--line characters] [--seed] [--import <file>]                               (M10a1: the spend ledger)
+ *   pnpm assets:gen batch-report -- [--out <file>] [--check]                                               (M10a2: docs/runbooks/reports/M10a2-batch.md)
+ *
  * The CLI has no code path that calls fal: it reads files, HEADs our media host, reads route 27 of our Worker and the spend ledger,
  * and with `--live` posts the planned keys to route 28 (`OPS_TOKEN`). `--finish` transcodes and re-signs the handed-off keys on this
  * workstation (finish.ts). Secrets (names only): SUPABASE_URL and SUPABASE_SECRET_KEY for the ledger reads; OPS_TOKEN for route 28;
@@ -28,8 +33,12 @@ import { FfmpegTranscodePort } from './ffmpeg-port.ts';
 import { PRIVATE_VARS, privateRcloneEnv, runFinish, type FinishPorts } from './finish.ts';
 import type { ResignProbe } from './gates.ts';
 import { runPrewarm, type LedgerPort, type PrewarmOptions, type PrewarmPorts } from './prewarm.ts';
+import { batchReportCommand } from './batch-report.ts';
+import { gateCommand } from './gate.ts';
+import { ledgerCommand } from './ledger.ts';
+import { planCommand } from './plan.ts';
+import { runCommand, type RunDeps } from './run.ts';
 
-export const PENDING_SUBCOMMANDS: readonly string[] = ['plan', 'run', 'gate'];
 const WRANGLER = 'services/edge/wrangler.jsonc';
 
 type FetchFn = typeof fetch;
@@ -253,6 +262,10 @@ const pem = (v: string): string => (v.includes('\n') ? v : v.replace(/\\n/g, '\n
 
 /** Everything `--finish` touches, bound to the real tools. Tests pass their own `run`, `transcode` and `sign`. */
 export interface CliDeps {
+  /** M10a1: repository root for plan, run, gate and ledger (tests point it at a fixture tree). */
+  root?: string;
+  now?: () => number;
+  buildLive?: RunDeps['buildLive'];
   run?: Runner;
   clock?: FinishPorts['clock'];
   makeTranscode?: FinishPorts['makeTranscode'];
@@ -298,12 +311,20 @@ export function finishPorts(o: PrewarmOptions & FinishCliOptions, env: NodeJS.Pr
 export async function main(argv: readonly string[], env: NodeJS.ProcessEnv = process.env, fetchFn: FetchFn = fetch, log: (l: string) => void = (l) => console.log(l), deps: CliDeps = {}): Promise<number> {
   const [sub, ...rest] = argv;
   if (sub === undefined) {
-    log('usage: pnpm assets:gen prewarm -- --release <tag> [--live | --finish] [--env staging|prod] [--report] [--offline]');
+    log('usage: pnpm assets:gen <prewarm|plan|run|gate|ledger|batch-report> -- ... (see tools/assets/gen/cli.ts)');
     return 2;
   }
-  if (PENDING_SUBCOMMANDS.includes(sub)) {
-    log('pending: lands in M10a1');
-    return 0;
+  const root = deps.root ?? repoRoot;
+  const now = deps.now ?? ((): number => Date.now());
+  try {
+    if (sub === 'plan') return await planCommand(rest, env, log, root);
+    if (sub === 'run') return await runCommand(rest, { root, env, fetch: fetchFn, log, now, ...(deps.buildLive !== undefined ? { buildLive: deps.buildLive } : {}) });
+    if (sub === 'gate') return await gateCommand(rest, { root, log, now });
+    if (sub === 'ledger') return ledgerCommand(rest, root, log, now());
+    if (sub === 'batch-report') return await batchReportCommand(rest, root, env, log);
+  } catch (e) {
+    log(`assets:gen ${sub}: ${(e as Error).message}`);
+    return 1;
   }
   if (sub !== 'prewarm') {
     log(`assets:gen: unknown subcommand ${sub}`);

@@ -1,0 +1,30 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "93f91396e9307789227a303e3916f3d41553ab8dac28bd5b2c643f0f88c281b4",
+  "paths": [
+    "assets/src/texture/pbr.stucco.albedo/desktop.ktx2"
+  ],
+  "kind": "texture",
+  "origin": "derived",
+  "license": "CC0-1.0",
+  "authors": [
+    "profile:amal-kumar"
+  ],
+  "derived_from": [
+    "24ed9486ac78892b34a47cba0cde44a27f356b7c34d3c93c0da7b464be0de131"
+  ],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "pass",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-28T00:00:00Z",
+  "tool": {
+    "name": "dv-texture-set",
+    "version": "ktx2-encoder@0.6.0 (basis_universal)",
+    "args_sha256": "320dbbcd5c8eedefb3735d4d18bbbd89abfb991d030e3cbf0f57fd3d301b3506"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "commit": "local",
+  "bakeId": "3537499f7cc5c17703cea67785128b51f3262dc2d693a344409c031cb9f33136",
+  "baselineFrom": "docs/look/M02g2-render-ledger.json",
+  "drift": {
+    "reason": "docs/look/M02g2-render-ledger.json was measured before later milestones changed the scene; `pnpm check:e2e -- --project=chromium-webgl2 --grep @look-ledger` on this checkout reads the same textures-off counts, so the textures are measured against what the scene draws now",
+    "previousAfter": {
+      "desktop": 248,
+      "mobile": 157,
+      "mobile-low": 85
+    }
+  },
+  "tiers": {
+    "desktop-ultra": {
+      "baseline": 278,
+      "after": 278,
+      "perLayer": {
+        "textures": 0
+      },
+      "textureMB": 13.33
+    },
+    "desktop": {
+      "baseline": 278,
+      "after": 278,
+      "perLayer": {
+        "textures": 0
+      },
+      "textureMB": 13.33
+    },
+    "mobile": {
+      "baseline": 157,
+      "after": 157,
+      "perLayer": {
+        "textures": 0
+      },
+      "textureMB": 3.33
+    },
+    "mobile-low": {
+      "baseline": 85,
+      "after": 85,
+      "perLayer": {
+        "textures": 0
+      },
+      "textureMB": 0.17
+    }
+  },
+  "xr": {
+    "baseline": 88,
+    "after": 88
+  }
+}

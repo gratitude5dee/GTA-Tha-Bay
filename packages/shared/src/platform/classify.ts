@@ -25,8 +25,12 @@ const IPAD_MIN_SHORT_SIDE = 600;
 
 const HASH_CHARS = 16;
 
+/**
+ * Chromium engine tokens. `HeadlessChrome/` (headless Chromium and the CI browsers) has no word boundary before `Chrome`, so the
+ * pattern names the `Headless` prefix; before M02g2 it classified as WebKit and so as Safari (look study, DL-OWN-07).
+ */
 function isChromiumEngine(ua: string): boolean {
-  return /\b(?:Chrome|Chromium|Edg|EdgA|OPR)\//.test(ua);
+  return /(?:\b|Headless)(?:Chrome|Chromium|Edg|EdgA|OPR)\//.test(ua);
 }
 
 /** WebKit engine: AppleWebKit in the UA and not Chromium. Chrome and Firefox on iOS (CriOS, FxiOS) are WebKit. */

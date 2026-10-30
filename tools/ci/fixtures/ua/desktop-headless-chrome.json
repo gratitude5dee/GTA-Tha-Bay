@@ -1,0 +1,41 @@
+{
+  "synthetic": true,
+  "note": "Synthetic fixture (M02g2): the user agent of headless Chromium on Linux, which the CI browsers send; it classifies as chrome, not safari. SwiftShader stands in for the GPU.",
+  "expect": {
+    "class": "desktop",
+    "headset": null,
+    "provisionalTier": "desktop"
+  },
+  "signals": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/146.0.0.0 Safari/537.36",
+    "platform": "Linux x86_64",
+    "maxTouchPoints": 0,
+    "hardwareConcurrency": 4,
+    "deviceMemoryGB": 8,
+    "screen": {
+      "w": 1920,
+      "h": 1080,
+      "dpr": 1
+    },
+    "displayModeStandalone": false,
+    "crossOriginIsolated": true,
+    "hasNavigatorGpu": false,
+    "hasNavigatorXr": true,
+    "hasXrGpuBinding": false,
+    "immersiveVrSupported": false,
+    "adapter": null,
+    "gpuFeatures": [],
+    "opfs": true,
+    "storageQuotaMB": 250000,
+    "storageUsageMB": 12,
+    "uaData": {
+      "brands": [
+        "HeadlessChrome",
+        "Chromium",
+        "Not.A/Brand"
+      ],
+      "mobile": false,
+      "platform": "Linux"
+    }
+  }
+}

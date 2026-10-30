@@ -1,0 +1,17 @@
+{
+  "schema": "art-intake/1",
+  "pack": "polyhaven",
+  "item": "asphalt-patched",
+  "title": "Patched Asphalt",
+  "author": "Example Artist",
+  "sourceUrl": "https://polyhaven.com/a/asphalt_02",
+  "licence": "CC0-1.0",
+  "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "kind": "texture",
+  "uploader": { "name": "Example Artist", "franchiseShare": 0 },
+  "files": ["asphalt_02_diff_1k.jpg", "asphalt_02_nor_gl_1k.jpg", "asphalt_02_arm_1k.jpg"],
+  "tags": ["asphalt", "road", "patched"],
+  "evidence": ["portfolio", "source-files"],
+  "answers": { "origin": "clear", "logos": "none", "people": "none", "mural": "none" },
+  "review": { "by": "profile:builder-m10d0", "at": "2026-10-28T00:00:00Z", "note": "fixture" }
+}

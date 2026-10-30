@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/art-intake.schema.json",
+  "title": "assets/intake/<pack>/<item>.json (third-party art intake record, M10d0, DL-OWN-06)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "pack", "item", "title", "author", "sourceUrl", "licence", "kind", "uploader", "files", "tags", "evidence", "answers"],
+  "$defs": {
+    "origin": { "enum": ["clear", "unclear", null] },
+    "presence": { "enum": ["none", "present", null] },
+    "silhouette": { "enum": ["pass", "fail", null] }
+  },
+  "properties": {
+    "schema": { "const": "art-intake/1" },
+    "pack": { "type": "string", "minLength": 2, "maxLength": 40 },
+    "item": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{1,62}$" },
+    "title": { "type": "string", "minLength": 1 },
+    "author": { "type": "string", "minLength": 1 },
+    "sourceUrl": { "type": "string", "pattern": "^https://" },
+    "licence": { "type": "string", "minLength": 1 },
+    "licenceUrl": { "type": "string", "pattern": "^https://" },
+    "kind": { "enum": ["texture", "vehicle", "prop", "ped", "building", "terrain", "hdri", "audio"] },
+    "uploader": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "franchiseShare"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "franchiseShare": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "files": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "evidence": {
+      "type": "array",
+      "items": { "enum": ["portfolio", "wip", "wireframe", "vendor-page", "source-files"] }
+    },
+    "answers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["origin", "logos", "people", "mural"],
+      "properties": {
+        "origin": { "$ref": "#/$defs/origin" },
+        "logos": { "$ref": "#/$defs/presence" },
+        "people": { "$ref": "#/$defs/presence" },
+        "mural": { "$ref": "#/$defs/presence" },
+        "V-SIL": { "$ref": "#/$defs/silhouette" }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["by", "at"],
+      "properties": { "by": { "type": "string" }, "at": { "type": "string" }, "note": { "type": "string" } }
+    }
+  }
+}

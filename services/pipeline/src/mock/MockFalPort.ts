@@ -5,6 +5,7 @@
  */
 import { FAL_WEBHOOK_HEADERS, webhookMessage } from '../fal.ts';
 import type { FalPort, FalResult, FalStatus, FalSubmission, FalSubmitOptions } from '../ports.ts';
+import { findOutputs, type RawOutput } from '../steps/character.ts';
 import { fixtureBytes } from './fixtures.ts';
 import { mockKeyPair } from './test-key.ts';
 
@@ -26,7 +27,23 @@ export class MemoryRecorder implements MockRecorder {
   }
 }
 
+/** M10a1: the recorded answer of a character stage (`services/pipeline/test/fixtures/fal/character/*.json`). */
+export interface MockCharacterAnswer {
+  /** The vendor result JSON; URLs in it are rewritten to `mock://fal/<request>/...`. */
+  result: unknown;
+  /** A refusal: the call completes with this error type (HTTP 422 for a rig the vendor cannot process). */
+  error?: { type: string; message: string };
+}
+
+export interface MockCharacterOptions {
+  respond(endpointId: string, input: Record<string, unknown>, jobKey: string): MockCharacterAnswer;
+  /** Bytes behind a `mock://fal/...` URL, or null for the cutscene fixture. */
+  bytes(url: string): Uint8Array | null;
+}
+
 export interface MockFalOptions {
+  /** Character stages: no webhook is posted and `outputs` answers from `respond`. */
+  character?: MockCharacterOptions;
   recorder: MockRecorder;
   /** Hands the signed webhook request to route 29's handler (no network in tests). */
   deliver: (request: Request) => Promise<void>;
@@ -42,11 +59,17 @@ export interface MockFalOptions {
 const hex = (buf: ArrayBuffer): string => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 
 export class MockFalPort implements FalPort {
+  private readonly answers = new Map<string, MockCharacterAnswer>();
+
   constructor(private readonly o: MockFalOptions) {}
 
-  async submit(endpointId: string, _input: Record<string, unknown>, opts: FalSubmitOptions): Promise<FalSubmission> {
+  async submit(endpointId: string, input: Record<string, unknown>, opts: FalSubmitOptions): Promise<FalSubmission> {
     const requestId = `mock-${opts.jobKey.slice(0, 16)}`;
     await this.o.recorder.record('submit', opts.jobKey, `${endpointId} ${requestId}`);
+    if (this.o.character !== undefined) {
+      this.answers.set(requestId, this.o.character.respond(endpointId, input, opts.jobKey));
+      return { requestId, statusUrl: `mock://fal/${requestId}/status`, responseUrl: `mock://fal/${requestId}/response`, cancelUrl: `mock://fal/${requestId}/cancel` };
+    }
     const sub: FalSubmission = {
       requestId,
       statusUrl: `mock://fal/${requestId}/status`,
@@ -85,8 +108,16 @@ export class MockFalPort implements FalPort {
     await this.o.deliver(request);
   }
 
-  status(): Promise<FalStatus> {
-    return Promise.resolve({ status: 'COMPLETED' });
+  status(sub?: FalSubmission): Promise<FalStatus> {
+    const err = sub === undefined ? undefined : this.answers.get(sub.requestId)?.error;
+    return Promise.resolve(err === undefined ? { status: 'COMPLETED' } : { status: 'COMPLETED', errorType: err.type, error: err.message });
+  }
+
+  /** Character stages: the files of the recorded result, URLs rewritten under this request. */
+  outputs(sub: FalSubmission): Promise<RawOutput[]> {
+    const a = this.answers.get(sub.requestId);
+    if (a === undefined) return Promise.reject(new Error(`MockFalPort has no answer for ${sub.requestId}`));
+    return Promise.resolve(findOutputs(a.result).map((o) => ({ ...o, url: o.url.replace(/^mock:\/\/fal\/[^/]+\//, `mock://fal/${sub.requestId}/`) })));
   }
 
   result(sub: FalSubmission): Promise<FalResult> {
@@ -99,6 +130,8 @@ export class MockFalPort implements FalPort {
 
   fetchFile(url: string): Promise<Uint8Array> {
     if (!url.startsWith('mock://fal/')) return Promise.reject(new Error(`MockFalPort cannot fetch ${url}`));
+    const custom = this.o.character?.bytes(url);
+    if (custom !== undefined && custom !== null) return Promise.resolve(custom);
     return Promise.resolve(fixtureBytes('orig.mp4'));
   }
 

@@ -53,10 +53,15 @@ export function parseGuardrailsYaml(text: string): { [k: string]: YamlValue } {
   return root;
 }
 
+export const GENAI_LINE_NAMES = ['spike', 'characters', 'cutscenes', 'vehiclesProps', 'buffer'] as const;
+export type GenaiLineName = (typeof GENAI_LINE_NAMES)[number];
+
 export interface GenaiGuardrails {
   programCapUsdMicros: number;
   falConcurrency: number;
   alarms: number[];
+  /** M10d0: the program cap split into lines (USD micros); they sum to `programCapUsdMicros`. */
+  lines: Record<GenaiLineName, number>;
 }
 
 export function genaiSection(text: string): GenaiGuardrails {
@@ -70,7 +75,10 @@ export function genaiSection(text: string): GenaiGuardrails {
   if (!Array.isArray(alarms) || alarms.length === 0 || alarms.some((a) => typeof a !== 'number' || a <= 0 || a > 1)) {
     throw new Error('guardrails.yaml: genai.alarms must be fractions in (0, 1]');
   }
-  return { programCapUsdMicros, falConcurrency, alarms: alarms as number[] };
+  const lines = intMap(genai['lines'], GENAI_LINE_NAMES, 'genai.lines');
+  const sum = GENAI_LINE_NAMES.reduce((a, k) => a + lines[k], 0);
+  if (sum !== programCapUsdMicros) throw new Error(`guardrails.yaml: genai.lines sum to ${sum} micros, not the program cap ${programCapUsdMicros}`);
+  return { programCapUsdMicros, falConcurrency, alarms: alarms as number[], lines };
 }
 
 export interface NpcGuardrails {
@@ -140,6 +148,9 @@ export function renderGenerated(g: GenaiGuardrails): string {
     `  programCapUsdMicros: ${g.programCapUsdMicros},`,
     `  falConcurrency: ${g.falConcurrency},`,
     `  alarms: [${g.alarms.join(', ')}],`,
+    '  lines: {',
+    ...GENAI_LINE_NAMES.map((k) => `    ${k}: ${g.lines[k]},`),
+    '  },',
     '} as const;',
     '',
   ].join('\n');

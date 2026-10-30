@@ -42,3 +42,6 @@ tests/tycoon/report.json
 .genai/
 packages/modes/fighter/balance/tune.json
 packages/modes/fighter/balance/dev.json
+
+# M10d0: owner hand-downloads of third-party art awaiting intake (DL-OWN-06); never committed
+content-incoming/

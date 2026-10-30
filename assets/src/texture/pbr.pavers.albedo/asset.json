@@ -1,0 +1,34 @@
+{
+  "kind": "texture",
+  "id": "pbr.pavers.albedo",
+  "variants": {
+    "desktop": "assets/src/texture/pbr.pavers.albedo/desktop.ktx2",
+    "mobile": "assets/src/texture/pbr.pavers.albedo/mobile.ktx2",
+    "mobile-low": "assets/src/texture/pbr.pavers.albedo/mobile-low.ktx2"
+  },
+  "deps": [],
+  "tags": [
+    "pbr",
+    "set:pavers",
+    "map:albedo"
+  ],
+  "codec": {
+    "tex": "ktx2-etc1s"
+  },
+  "stats": {
+    "desktop": {
+      "texMaxPx": 1024,
+      "texGpuBytes": 1398128
+    },
+    "mobile": {
+      "texMaxPx": 512,
+      "texGpuBytes": 349552
+    },
+    "mobile-low": {
+      "texMaxPx": 256,
+      "texGpuBytes": 87408
+    }
+  },
+  "status": "active",
+  "visibility": "public"
+}

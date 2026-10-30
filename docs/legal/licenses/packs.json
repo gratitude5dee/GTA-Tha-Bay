@@ -1,0 +1,78 @@
+{
+  "schema": "art-packs/1",
+  "packs": [
+    {
+      "id": "polyhaven",
+      "hosts": [
+        "polyhaven.com",
+        "api.polyhaven.com",
+        "dl.polyhaven.org",
+        "cdn.polyhaven.com"
+      ],
+      "spdx": "CC0-1.0",
+      "snapshot": {
+        "path": "docs/legal/licenses/polyhaven.md",
+        "sha256": "10984155aeb4b44ea37452c0d36ebbc391b9539b7ae54a19be2cea7ad1857a5d",
+        "retrieved": "2026-10-28"
+      },
+      "courtesy": "Textures from Poly Haven (polyhaven.com), licensed under CC0 1.0 Universal.",
+      "use": "import"
+    },
+    {
+      "id": "ambientcg",
+      "hosts": [
+        "ambientcg.com",
+        "docs.ambientcg.com"
+      ],
+      "spdx": "CC0-1.0",
+      "snapshot": {
+        "path": "docs/legal/licenses/ambientcg.md",
+        "sha256": "be83d92f8e54bab08f728321fb9c62fced3b2342b754919c953e5bda68b5bc2f",
+        "retrieved": "2026-10-28"
+      },
+      "courtesy": "Created using materials from ambientCG.com, licensed under the Creative Commons CC0 1.0 Universal License.",
+      "use": "import"
+    },
+    {
+      "id": "quaternius",
+      "hosts": [
+        "quaternius.com",
+        "quaternius.itch.io"
+      ],
+      "spdx": "CC0-1.0",
+      "snapshot": {
+        "path": "docs/legal/licenses/quaternius.md",
+        "sha256": "ca74ca84495ff64689bf07968a87c527b9531a6203f5cf2d77eccdd638bb6aaf",
+        "retrieved": "2026-10-28"
+      },
+      "courtesy": "Models by Quaternius (quaternius.com), licensed under CC0 1.0 Universal.",
+      "use": "snapshot-only"
+    },
+    {
+      "id": "kenney",
+      "hosts": [
+        "kenney.nl",
+        "kenney.itch.io"
+      ],
+      "spdx": "CC0-1.0",
+      "snapshot": {
+        "path": "docs/legal/licenses/kenney.md",
+        "sha256": "b19094f77f8f8c98a1943c8e8c34347aab554ec4867bee08445a4462e15ec62a",
+        "retrieved": "2026-10-28"
+      },
+      "courtesy": "Assets by Kenney (kenney.nl), licensed under CC0 1.0 Universal.",
+      "use": "snapshot-only"
+    },
+    {
+      "id": "cc-by-4.0",
+      "hosts": [],
+      "spdx": "CC-BY-4.0",
+      "snapshot": {
+        "path": "docs/legal/licenses/cc-by-4.0.md",
+        "sha256": "a7f09b2087925e1e70e780ef219a8fe55cd3cf8301f028b9cf069e49614d0f2d",
+        "retrieved": "2026-10-28"
+      },
+      "use": "snapshot-only"
+    }
+  ]
+}

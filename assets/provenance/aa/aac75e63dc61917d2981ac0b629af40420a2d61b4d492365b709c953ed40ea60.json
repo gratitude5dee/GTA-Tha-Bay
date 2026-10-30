@@ -1,0 +1,30 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "aac75e63dc61917d2981ac0b629af40420a2d61b4d492365b709c953ed40ea60",
+  "paths": [
+    "assets/src/texture/pbr.asphalt.albedo/mobile-low.ktx2"
+  ],
+  "kind": "texture",
+  "origin": "derived",
+  "license": "CC0-1.0",
+  "authors": [
+    "profile:rob-tuytel"
+  ],
+  "derived_from": [
+    "68f85c76965ea664d500839c7ffe28fc7f2ddd297db32323dd63976589316bd3"
+  ],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "pass",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-28T00:00:00Z",
+  "tool": {
+    "name": "dv-texture-set",
+    "version": "ktx2-encoder@0.6.0 (basis_universal)",
+    "args_sha256": "4c257f7233fae835fcc31cd89c6b8db777b6797e0edb92d08265f7cf444e86cd"
+  }
+}

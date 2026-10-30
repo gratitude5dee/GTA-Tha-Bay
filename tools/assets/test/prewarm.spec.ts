@@ -228,12 +228,13 @@ describe('offline plan (AC-4)', () => {
     expect(h.calls).toEqual([]);
   });
 
-  it('the other subcommands are pending', async () => {
-    for (const sub of ['plan', 'run', 'gate']) {
-      const logs: string[] = [];
-      expect(await main([sub], {}, fetch, (l) => logs.push(l))).toBe(0);
-      expect(logs).toEqual(['pending: lands in M10a1']);
-    }
+  it('an unknown subcommand is refused and a bare call prints the usage (plan, run, gate and ledger landed in M10a1)', async () => {
+    const logs: string[] = [];
+    expect(await main(['frobnicate'], {}, fetch, (l) => logs.push(l))).toBe(2);
+    expect(logs[0]).toMatch(/unknown subcommand frobnicate/);
+    const usage: string[] = [];
+    expect(await main([], {}, fetch, (l) => usage.push(l))).toBe(2);
+    expect(usage[0]).toMatch(/prewarm\|plan\|run\|gate\|ledger/);
   });
 
   it('priorities other than 1 are pending until M10b', async () => {

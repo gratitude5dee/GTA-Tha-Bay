@@ -139,7 +139,7 @@ tools/
   soul/              npc:* CLIs (M06a2, M06a4, M10c)
   fighter/           QA-only move-timeline editor; reserved by A-01, built by no v1 milestone (kits are JSON checked by fighter:lint)
 config/              brand.ts, terms.ts (TERMS_VERSION, M00e), tier-budgets.json, platform-flags.json, perf/paths/, world/, ui/, input/, schemas/, genai-endpoints.json,
-                     guardrails.yaml, cloudflare.resources.json, art-placeholders.json (M10d1–M10d4, M10e), per-domain tuning (physics, pursuit, racing, fighter, tycoon, npc, voice, legal, mod limits)
+                     guardrails.yaml, cloudflare.resources.json, art-placeholders.json (M10d1–M10d5, M10e), per-domain tuning (physics, pursuit, racing, fighter, tycoon, npc, voice, legal, mod limits)
 content/             authored originals: missions/<id>/, story/ (acts, cast), npcs/ (souls, ink), cutscenes/, prompts/, races/, racing/,
                      vehicles/, fighter/, tycoon/, world/, audio/, legal/, ui/ (i18n/en.json from M04b1, creator, help)
 content-private/     private mount (Q-25): real-derived souls, research layer; never published
@@ -463,7 +463,7 @@ Run order and dependencies: `spec/07-milestones/_PLAN.md` §1–§3; file status
 | Racing, fighter, pose, tycoon | M07a1–M07b2, M08a1–M08c2, M09a1–M09b2 |
 | Roster pipeline, QA gates and kill drill, roster souls | M10a1–M10c |
 | Street realism (look tune and fixes, markings, curbs, ground cover, vegetation, furniture and parked cars, façade detail, XR look and TRAA) | M02g1, M02g2, M02h1–M02h7, M02h8 (DL-OWN-07, DL-739) |
-| Final v1 art (licence admission and PBR sets; ambient vehicles and props; peds and creator parts; player cars and fight stages; city surfaces, `assets:final`) and final audio | M10d0, M10d1, M10d4, M10d3, M10d2 (run order, DL-390, DL-460, DL-739); M10e (DL-500) |
+| Final v1 art (licence admission and PBR sets; ambient vehicles and props; peds and creator parts; the on-foot body; player cars and fight stages; city surfaces, `assets:final`) and final audio | M10d0, M10d1, M10d4, M10d5, M10d2 (Track B, beside the street rows, DL-OWN-09, DL-755), then M10d3 (DL-390, DL-460, DL-739); M10e (DL-500) |
 | iPhone hardening, WebXR | M11a1–M11a2, M11b1–M11b4 |
 | P1 identity, rooms, online, leaderboards | M12a1–M12e |
 | Mods, forum, publish, legal | M13a1–M13d2 |
