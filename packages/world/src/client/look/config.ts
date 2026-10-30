@@ -71,6 +71,12 @@ export interface MarkingsFile extends LayoutConfig {
   /** Crosswalk and stop-bar quads lie this far (metres) over the highest ribbon under them, and fade to the road beyond `decalFarM`. */
   decalLiftM: number;
   decalFarM: number;
+  /**
+   * The distance fade of the paint (QA: `markings.aa` turns it off). Every line is filtered over the pixel footprint of its own coordinate;
+   * once the footprint passes `fromM` (metres) the window grows, to `1 + widen` times the footprint at `toM`, so a line that is a fraction of a
+   * pixel wide spreads its paint over more pixels and moves less between two frames. The mean coverage stays: far paint is a soft tint, never gone.
+   */
+  fade: { fromM: number; toM: number; widen: number };
   /** Ribbons end at the largest incident half-width plus this at a junction of three or more roads. */
   junctionExtraM: number;
   stopBar: { depthM: number; behindCrosswalkM: number };

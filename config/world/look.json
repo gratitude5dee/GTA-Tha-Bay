@@ -136,6 +136,7 @@
     "worn": { "wear": 0.35, "roughness": 0.6 },
     "decalLiftM": 0.02,
     "decalFarM": 250,
+    "fade": { "fromM": 0.04, "toM": 0.2, "widen": 2.5 },
     "junctionExtraM": 1.0,
     "stopBar": { "depthM": 0.4, "behindCrosswalkM": 1.2 },
     "crosswalk": { "barM": 0.3, "rungM": 0.5, "rungPeriodM": 1.2 }

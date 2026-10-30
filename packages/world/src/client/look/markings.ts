@@ -88,7 +88,9 @@ export function paintNodes(i: PaintInput): PaintOutput {
   const hw = m.lineM / 2;
 
   // the footprints of the coordinates the patterns are drawn in (derivatives at the top level of the shader, never inside a branch)
-  const fpT = fwidth(t);
+  // the filter window grows with the footprint (the distance fade, `fade` in look.json): a line under a pixel wide moves less between frames
+  const widen = (fp: L): L => fp.mul(float(1).add(smoothstep(m.fade.fromM, m.fade.toM, fp).mul(m.fade.widen)));
+  const fpT = widen(fwidth(t));
   const fpS = fwidth(s);
   const fpW = pixelFootprint(positionWorld).max(0.002);
   const line = (d: L, half: number | L): L => select(aa, paintAA(d, half, fpT), paintHard(d, half));
