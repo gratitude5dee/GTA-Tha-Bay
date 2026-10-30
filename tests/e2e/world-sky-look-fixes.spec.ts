@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
+import { crowdMax, streamAtPlan } from './ledger-helpers.ts';
 import { BASELINE_MODE, bootWorld, frames, MESHER, read, readBaseline, registerFlickerPair, setSky, world, WRITE, writeBaseline, type W } from './look-fixes-helpers.ts';
 
 /**
@@ -74,17 +75,19 @@ test.describe('fixes ledger @fixes-ledger', () => {
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);
       if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));
-      await frames(page, 6);
+      // the frame of the whole plan, six frames after it (DL-758)
+      await streamAtPlan(page);
       await world(page, (w) => w.hold(true));
       const m = await live(page);
       await world(page, (w) => w.hold(false));
       measured[tier] = { objects: m.renderObjects, triangles: m.triangles };
-      console.log(`fixes ledger ${tier}: ${m.renderObjects} render objects, ${m.triangles} triangles`);
+      console.log(`fixes ledger ${tier}: ${m.renderObjects} render objects (crowd max ${crowdMax(tier)}), ${m.triangles} triangles`);
       if (BASELINE_MODE) return;
       const prior = read<Ledger>(PRIOR).tiers[tier];
       expect(prior, `${PRIOR} holds ${tier}`).toBeDefined();
       expect(m.renderObjects, `${tier}: objects against M10d0's after (${prior?.after})`).toBeLessThanOrEqual(prior?.after ?? 0);
-      if (tier === 'mobile-low') expect(m.renderObjects, 'mobile-low render objects').toBeLessThanOrEqual(100);
+      // the crowd is hidden in the count and added back at its most in the ceiling (BD-FIX-LEDGER-SETTLED-01)
+      if (tier === 'mobile-low') expect(m.renderObjects + crowdMax(tier), `mobile-low render objects ${m.renderObjects} + crowd max ${crowdMax(tier)}`).toBeLessThanOrEqual(100);
     });
   }
 
@@ -124,7 +127,7 @@ test.describe('fixes ledger @fixes-ledger', () => {
       expect(t.after - t.baseline, `${tier} object delta`).toBeLessThanOrEqual(0);
     }
     const low = ledger.tiers['mobile-low'];
-    expect(low?.after ?? 0).toBeLessThanOrEqual(100);
+    expect((low?.after ?? 0) + crowdMax('mobile-low'), 'mobile-low after + crowd max').toBeLessThanOrEqual(100);
     expect(low?.triangles, 'mobile-low triangles are in the ledger').toBeDefined();
     if (low?.triangles) expect(low.triangles.after - low.triangles.baseline, 'mobile-low triangle delta').toBeLessThanOrEqual(TRIANGLE_BUDGET_LOW);
     expect(Object.keys(ledger.tiers).sort()).toEqual([...LEDGER_TIERS].sort());
@@ -139,10 +142,12 @@ test.describe('xr fixes ledger @fixes-ledger', () => {
     await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1&art=0');
     await waitForEngine(page);
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
+    // the frame of the whole plan, six frames after it (DL-758)
+    await streamAtPlan(page);
     await world(page, (w) => w.hold(true));
     const m = await live(page);
     await world(page, (w) => w.hold(false));
-    console.log(`fixes ledger ${testInfo.project.name} xr: ${m.renderObjects} render objects`);
+    console.log(`fixes ledger ${testInfo.project.name} xr: ${m.renderObjects} render objects (crowd max ${crowdMax('xr-quest')})`);
     const prior = read<Ledger>(PRIOR).xr;
     expect(prior, `${PRIOR} holds xr`).toBeDefined();
     if (BASELINE_MODE) return;

@@ -4,6 +4,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { adaptForBackend, postNodes } from '../../packages/engine/src/platform/post/levels.ts';
 import { composeGrid, decodePng, encodePng, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
 import { waitForEngine } from './engine-helpers.ts';
+import { streamAtPlan } from './ledger-helpers.ts';
 import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, world, type W } from './world-look-helpers.ts';
 
 /**
@@ -146,7 +147,8 @@ test.describe('xr look @world-look', () => {
   test('the Quest tier keeps the direct pipeline and the legacy look, with no post nodes @xr @world-look', async ({ page }) => {
     test.setTimeout(240_000);
     await page.setViewportSize(GOLDEN_VIEWPORT);
-    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1');
+    // `&textures=0&art=0` (DL-758): the XR row of M02g1's ledger is M02g1's own scene, so the later rows' layers stay out of the frame
+    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1&textures=0&art=0');
     await waitForEngine(page);
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
     const look = await world(page, (w) => w.look());
@@ -155,6 +157,8 @@ test.describe('xr look @world-look', () => {
     expect(look).toMatchObject({ layers: [], blobs: 0, dynamicCasters: [], skyReflect: false, gradeOn: null });
     const LAYERS = ['grade', 'haze', 'blob', 'casters', 'skyReflect', 'windows'];
     const liveObjects = (): Promise<number> => page.evaluate(() => (window as unknown as { __dvBridge: { platform: { perf: { live(): { renderObjects: number } } } } }).__dvBridge.platform.perf.live().renderObjects);
+    // the frame of the whole plan, six frames after it (DL-758)
+    await streamAtPlan(page);
     await world(page, (w) => w.hold(true));
     const baseline = await liveObjects();
     for (const id of LAYERS) expect(await page.evaluate((i) => (window as unknown as W).__dvBridge.world.setLookLayer(i, true), id), `${id} on a legacy tier`).toBe(false);
