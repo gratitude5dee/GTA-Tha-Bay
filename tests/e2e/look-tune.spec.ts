@@ -315,8 +315,14 @@ async function bootStory(page: Page, tier: string): Promise<void> {
   await page.addStyleTag({ content: HIDE_ALL });
 }
 
-/** The canvas after `shot(id)` has presented its frame. */
-async function captureOwnerShot(page: Page, shot: string): Promise<Rgba> {
+/**
+ * The canvas after `shot(id)` has presented its frame. The sim is paused for the capture; `resume: false` leaves it paused afterwards, so
+ * that the next capture of the same shot draws the same sim state (BD-FIX-FLAKE-BURNOFF-01): a vehicle standing still in the sim is not
+ * still at float precision (the tow truck's height and attitude move by about 1e-7 from tick to tick), and one pixel on its edge read
+ * 114 or 115 in green on `mobile-low` `a1-burnoff` depending on the tick the capture drew. A shot whose sky differs from the one in force
+ * needs the sim running (`shot()` applies the hour and weather through it), so only a repeat of the same shot may start paused.
+ */
+async function captureOwnerShot(page: Page, shot: string, resume = true): Promise<Rgba> {
   await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id), shot);
   // Still pictures: the sim stops (the shot's clock and weather were applied before), the ambient crowds are hidden and so are the
   // animated characters (the goldens of M02e do the same with the crowds); the tow truck, the street and the sky are what is compared.
@@ -339,12 +345,12 @@ async function captureOwnerShot(page: Page, shot: string): Promise<Rgba> {
     img = next;
     if (same) break;
   }
-  await page.evaluate(() => {
+  await page.evaluate((r) => {
     const b = (window as unknown as { __dvBridge: { engine: { setPaused(p: boolean): void }; world: WorldBridge } }).__dvBridge;
     const view = b.world.internals().view as unknown as { host: { scene: { children: { userData: Record<string, unknown>; traverse(f: (o: { layers: { set(n: number): void } }) => void): void }[] } } };
     for (const c of view.host.scene.children) if (c.userData['dvActor'] === 'avatar') c.traverse((o) => o.layers.set(0));
-    b.engine.setPaused(false);
-  });
+    if (r) b.engine.setPaused(false);
+  }, resume);
   return img;
 }
 
@@ -360,7 +366,8 @@ test.describe('look owner frames @look-owner', () => {
     test(`${tier}: a1-truck and a1-burnoff are within the golden tolerance, byte-identical twice, and differ from the frames before this milestone @look-owner`, async ({ page }) => {
       await bootStory(page, tier);
       for (const shot of OWNER_SHOTS) {
-        const first = await captureOwnerShot(page, shot);
+        // the sim stays paused from the first capture to the second: both run the whole shot, and both draw the same sim state
+        const first = await captureOwnerShot(page, shot, beforeDir !== undefined);
         expect(first).toMatchObject({ width: OWNER_VIEWPORT.width, height: OWNER_VIEWPORT.height });
         if (beforeDir !== undefined) {
           // Step 0: the frames of the code before the milestone

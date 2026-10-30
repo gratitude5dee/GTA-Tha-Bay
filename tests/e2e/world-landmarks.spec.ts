@@ -1,8 +1,7 @@
-import { expect, test, type Page } from '@playwright/test';
-import type { PerfReport, TeleportResult } from '../../packages/shared/src/index.ts';
-import type { LandmarksReport } from '../../packages/world/src/client/chunks/landmark-layer.ts';
-import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
-import { observe, SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
+import { expect, test } from '@playwright/test';
+import type { PerfReport } from '../../packages/shared/src/index.ts';
+import { observe, SMALL_VIEWPORT } from './engine-helpers.ts';
+import { boot, REST, shown, teleport, twelveResident, world, type W } from './world-landmarks-helpers.ts';
 
 /**
  * M02d1 and M02d2 landmarks in a real browser, on a `DV_WORLD=synth` QA build. Everything goes through `__dvBridge.world`.
@@ -16,57 +15,10 @@ import { observe, SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
  *  - the default scene: City Hall, where the player spawns, is resident without any call
  *  - every one of the 12 landmarks becomes resident at `?tier=desktop` and at `?tier=mobile-low`, within its object budget (AC-9 is the
  *    manual look at them: `docs/device-runs/M02d1/desktop/notes.json`)
+ *
+ * BD-FIX-CI-SHARD8-02: the three desktop cases (the twelve at desktop, the skyline in the default scene, five of the new landmarks) are in
+ * `tour-landmarks-desktop.spec.ts`, with the same titles and tags, and the code the two files share is `world-landmarks-helpers.ts`.
  */
-type W = { __dvBridge: { world: WorldBridge } };
-
-const TWELVE = [
-  'lm.city-hall', 'lm.golden-gate-bridge', 'lm.bay-bridge-ybi', 'lm.coit-tower', 'lm.ferry-building', 'lm.pyramid-tower',
-  'lm.crown-tower', 'lm.sutro-tower', 'lm.palace-fine-arts', 'lm.alcatraz', 'lm.twin-peaks', 'lm.lombard-crooked',
-] as const;
-
-const SKYLINE = ['lm.golden-gate-bridge', 'lm.bay-bridge-ybi', 'lm.sutro-tower', 'lm.crown-tower', 'lm.pyramid-tower', 'lm.coit-tower', 'lm.ferry-building'] as const;
-/** Rows 13 to 37 of 02-world-bake.md section 7 (M02d2). */
-const REST = [
-  'lm.painted-ladies', 'lm.china-basin-ballpark', 'lm.mission-bay-arena', 'lm.pier-39', 'lm.fort-point', 'lm.grace-cathedral', 'lm.dragon-gate',
-  'lm.transit-center-park', 'lm.hunters-point-yard', 'lm.mount-davidson-cross', 'lm.dolores-park', 'lm.haight-ashbury', 'lm.flower-conservatory',
-  'lm.park-bandshell', 'lm.cliff-house', 'lm.crissy-field', 'lm.powell-turntable', 'lm.lands-end-lookout', 'lm.candlestick-point',
-  'lm.treasure-island', 'lm.un-plaza', 'lm.rail-terminus', 'lm.peace-pagoda', 'lm.opera-house', 'lm.saint-mary-cathedral',
-] as const;
-
-const world = <T>(page: Page, fn: (w: WorldBridge) => T | Promise<T>): Promise<T> =>
-  page.evaluate(`(${fn.toString()})(window.__dvBridge.world)`) as Promise<T>;
-
-async function boot(page: Page, tier: string, extra = ''): Promise<string[]> {
-  const errors: string[] = [];
-  page.on('pageerror', (e) => errors.push(e.message));
-  // A sim worker restart drops the call in flight (a teleport then times out after 60 s with no other trace), so the CI log names it.
-  page.on('console', (m) => {
-    if (/^sim worker (stalled|error)|^sim: /.test(m.text())) console.log(`world-landmarks page ${m.type()}: ${m.text().slice(0, 200)}`);
-  });
-  await page.setViewportSize(SMALL_VIEWPORT);
-  await page.goto(`/?debug=1&tier=${tier}${extra}`);
-  await waitForEngine(page);
-  await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world !== undefined, undefined, { timeout: 120_000 });
-  await page.waitForFunction(() => (window as unknown as W).__dvBridge.world.boot().revealed, undefined, { timeout: 180_000 });
-  // the world services exist once the sim module has the index
-  await expect
-    .poll(async () => ((await world(page, (w) => w.call('state'))) as { topology?: boolean } | null)?.topology === true, { timeout: 120_000, intervals: [500, 1000, 2000] })
-    .toBe(true);
-  return errors;
-}
-
-const shown = (r: LandmarksReport | null): string[] => (r?.resident ?? []).filter((e) => e.phase === 'shown').map((e) => e.id).sort();
-
-async function teleport(page: Page, id: string): Promise<TeleportResult> {
-  const t0 = Date.now();
-  const f0 = await world(page, (w) => w.chunks().frame);
-  const result = (await page.evaluate((lm) => (window as unknown as W).__dvBridge.world.teleport(lm), id)) as TeleportResult | null;
-  const f1 = await world(page, (w) => w.chunks().frame);
-  console.log(`world-landmarks teleport ${id}: ${((Date.now() - t0) / 1000).toFixed(1)} s, ${f1 - f0} frames, ${JSON.stringify(result)?.slice(0, 120)}`);
-  expect(result, id).not.toBeNull();
-  return result as TeleportResult;
-}
-
 test.describe('landmarks @world', () => {
   test.describe.configure({ timeout: 1_800_000 });
 
@@ -193,92 +145,12 @@ test.describe('landmarks @world', () => {
     expect(errors).toEqual([]);
   });
 
-  for (const tier of ['desktop', 'mobile-low'] as const) {
-    test(`each of the twelve landmarks becomes resident at ${tier}, within its triangle budget @world-landmarks`, async ({ page }) => {
-      const errors = await boot(page, tier);
-      const cap = tier === 'desktop' ? 8 : 3;
-      // BD-FIX-CI8-H01: no settle() between landmarks. Every assertion below reads the landmark layer, which is up once the model
-      // is shown; settle() waited for the whole chunk ring of the tier to upload (one chunk per frame, M02b1), and at desktop on
-      // SwiftShader that ring alone took 17 to 53 s per landmark (often the full 45 s, 45 chunks still queued), about half of the
-      // test. The cap holds over the whole run (`maxResident`, below), not only at the twelve sampled moments.
-      for (const id of TWELVE) {
-        const result = await teleport(page, id);
-        expect(result.ok, `${id}: ${JSON.stringify(result)}`).toBe(true);
-        await expect
-          .poll(async () => shown(await world(page, (w) => w.landmarks())), { timeout: 180_000, intervals: [500, 1000, 2000], message: id })
-          .toContain(id);
-        const r = (await world(page, (w) => w.landmarks()))!;
-        const e = r.resident.find((x) => x.id === id)!;
-        console.log(`world-landmarks ${tier} ${id}: ${e.fidelity} ${e.objects} objects ${e.triangles} tris, ${e.chunks.length} proxy chunks, ${e.chunks.filter((c) => c.masked).length} masked, ${Math.round(e.distM)} m`);
-        expect(e.fidelity).toBe(tier === 'desktop' ? 'hi' : 'lo');
-        expect(e.objects).toBeLessThanOrEqual(tier === 'desktop' ? 3 : 2);
-        expect(r.resident.length).toBeLessThanOrEqual(cap);
-        expect(r.failed).toEqual([]);
-      }
-      const end = (await world(page, (w) => w.landmarks()))!;
-      expect(end.maxResident).toBeLessThanOrEqual(cap);
-      expect(end.failed).toEqual([]);
-      const chunks = await world(page, (w) => w.chunks());
-      expect(chunks.uploads.perFrameMax).toBeLessThanOrEqual(1);
-      expect(errors).toEqual([]);
-    });
-  }
+  // the desktop case is in tour-landmarks-desktop.spec.ts (BD-FIX-CI-SHARD8-02)
+  test('each of the twelve landmarks becomes resident at mobile-low, within its triangle budget @world-landmarks', async ({ page }) => {
+    await twelveResident(page, 'mobile-low');
+  });
 
   // ---- M02d2: the 25 remaining landmarks, the skyline and the swap along the route ---------------------------------------------------------
-
-  test('the skyline is up in the default scene at desktop: all seven far silhouettes are drawn as lo models, outside the cap @m02d2 @world-landmarks', async ({ page }) => {
-    const errors = await boot(page, 'desktop');
-    await expect
-      .poll(async () => ((await world(page, (w) => w.landmarks()))?.skyline.entries ?? []).filter((e) => e.visible).length, { timeout: 180_000, intervals: [500, 1000, 2000] })
-      .toBe(7);
-    await world(page, (w) => w.settle(60_000));
-    const r = (await world(page, (w) => w.landmarks()))!;
-    console.log(`world-landmarks skyline desktop: ${JSON.stringify(r.skyline.entries.map((e) => ({ id: e.id, d: Math.round(e.distM), fid: e.fidelity, tris: e.triangles, visible: e.visible })))}`);
-    expect(r.skyline.entries.map((e) => e.id)).toEqual([...SKYLINE].sort());
-    for (const e of r.skyline.entries) {
-      expect(e.fidelity, e.id).toBe('lo');
-      expect(e.phase, e.id).toBe('shown');
-      expect(e.hiddenBy, e.id).toBeNull();
-      expect(e.distM, e.id).toBeLessThanOrEqual(r.skyline.rangeM);
-    }
-    // City Hall, the spawn, is a full-fidelity landmark; the skyline is not counted against the cap
-    expect(shown(r)).toContain('lm.city-hall');
-    expect(r.resident.length).toBeLessThanOrEqual(r.cap);
-    expect(r.failed).toEqual([]);
-    await page.setViewportSize({ width: 960, height: 540 });
-    await page.waitForTimeout(1500);
-    await page.screenshot({ path: 'test-results/world-landmarks/skyline-default-desktop.png' });
-    await page.keyboard.press('F4');
-    await page.keyboard.down('Shift');
-    await page.keyboard.down('Space');
-    await page.waitForTimeout(1500);
-    await page.keyboard.up('Space');
-    await page.keyboard.up('Shift');
-    await page.waitForTimeout(2500);
-    await page.screenshot({ path: 'test-results/world-landmarks/skyline-city-hall-free-cam-desktop.png' });
-    await page.keyboard.press('F4');
-    // and from Twin Peaks, the overlook: the whole skyline is in front of the camera
-    const tp = await teleport(page, 'lm.twin-peaks');
-    expect(tp.ok).toBe(true);
-    await expect.poll(async () => shown(await world(page, (w) => w.landmarks())), { timeout: 180_000, intervals: [500, 1000, 2000] }).toContain('lm.twin-peaks');
-    await world(page, (w) => w.settle(60_000));
-    await page.waitForTimeout(1500);
-    await page.screenshot({ path: 'test-results/world-landmarks/skyline-twin-peaks-desktop.png' });
-    // the free camera (F4) lifts the view above the roofs: the picture the owner looks at (see packages/world/README.md)
-    await page.keyboard.press('F4');
-    await page.keyboard.down('Shift');
-    await page.keyboard.down('Space');
-    await page.waitForTimeout(1500);
-    await page.keyboard.up('Space');
-    await page.keyboard.up('Shift');
-    await page.waitForTimeout(2500);
-    await page.screenshot({ path: 'test-results/world-landmarks/skyline-twin-peaks-free-cam-desktop.png' });
-    await page.keyboard.press('F4');
-    const tr = (await world(page, (w) => w.landmarks()))!;
-    expect(tr.skyline.entries.filter((e) => e.distM <= tr.skyline.rangeM).every((e) => e.visible || e.hiddenBy === 'full')).toBe(true);
-    expect(tr.frames.holes).toBe(0);
-    expect(errors).toEqual([]);
-  });
 
   test('a skyline landmark that becomes resident at full fidelity hides its skyline instance: one visible model per landmark @m02d2 @world-landmarks', async ({ page }) => {
     const errors = await boot(page, 'mobile-low');
@@ -338,25 +210,6 @@ test.describe('landmarks @world', () => {
       expect(errors).toEqual([]);
     });
   }
-
-  test('five of the new landmarks at desktop: hi models within their class budget, the cap of eight holds @m02d2 @world-landmarks', async ({ page }) => {
-    const errors = await boot(page, 'desktop');
-    for (const id of ['lm.painted-ladies', 'lm.fort-point', 'lm.hunters-point-yard', 'lm.flower-conservatory', 'lm.saint-mary-cathedral']) {
-      const result = await teleport(page, id);
-      expect(result.ok, `${id}: ${JSON.stringify(result)}`).toBe(true);
-      await expect
-        .poll(async () => shown(await world(page, (w) => w.landmarks())), { timeout: 180_000, intervals: [500, 1000, 2000], message: id })
-        .toContain(id);
-      const r = (await world(page, (w) => w.landmarks()))!;
-      const e = r.resident.find((x) => x.id === id)!;
-      console.log(`world-landmarks desktop ${id}: ${e.fidelity} ${e.objects} objects ${e.triangles} tris`);
-      expect(e.fidelity).toBe('hi');
-      expect(e.objects).toBeLessThanOrEqual(3);
-      expect(r.resident.length).toBeLessThanOrEqual(8);
-      expect(r.failed).toEqual([]);
-    }
-    expect(errors).toEqual([]);
-  });
 
   /**
    * @world-landmarks-swap  AC-6  at ?tier=mobile-low the camera follows `route-ferry-ocean-beach` (the Ferry Building toward City Hall, the
