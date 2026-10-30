@@ -234,7 +234,8 @@ test.describe('xr textures @xr @textures-ledger', () => {
     test.setTimeout(240_000);
     const requested = watchTextureRequests(page);
     await page.setViewportSize(GOLDEN_VIEWPORT);
-    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1');
+    // `&art=0` (DL-758): the XR row of M10d0's ledger is M10d0's own scene, so the art of the later M10d1 row stays out of the frame
+    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1&art=0');
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
     await texturesSettled(page);
     expect((await world(page, (w) => w.look()))?.textures).toMatchObject({ mode: 'off', refs: [], sets: [], gpuBytes: 0, downloadBytes: 0 });

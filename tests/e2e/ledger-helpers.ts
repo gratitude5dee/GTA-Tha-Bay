@@ -13,10 +13,12 @@ import type { WorldBridge } from '../../packages/world/src/client/world-bridge.t
  * sim and the gate run as before and only the render call is skipped, so the plan is resident in about a minute instead of about
  * seventeen. Then the draw is released and six frames are presented before the case holds its frame and measures.
  *
- * The transit layer is left out of that frame, as the golden captures leave it out. Buses, trains, cable cars, ferries and airliners run on
- * their own timetables, and each kind with a vehicle in range is one render object: at `desktop` a bus was in range in two of three boots
- * of the same tree (552 render objects) and not in the third (551), and every other node of the frame was the same. The traffic and the
- * pedestrians stay in (the protocol keeps the traffic resident); their families were drawn in every boot.
+ * The transit and the pedestrians are left out of that frame, as the golden captures leave them out. Each is drawn as one instanced mesh
+ * per kind or body, and a mesh is one render object while any of its vehicles or people is in range, which changes with their movement
+ * from boot to boot: at `desktop` a bus was in range in two of three boots of the same tree (552 render objects) and not in the third
+ * (551), every other node of the frame being the same, and at `mobile-low` (`fog-west`) one pedestrian body was drawn in one boot and not
+ * in another (81 and 80). The traffic stays in: the protocol keeps it resident, and its one family (its art families on the desktop
+ * tiers) was drawn in every boot.
  *
  * Call it after the case has set its sky, has its traffic resident and has taken its shot (`mobile-low` at `fog-west`): the plan is the
  * one around the focus at the call.
@@ -34,15 +36,16 @@ export async function streamAtPlan(page: Page, timeoutMs = 600_000): Promise<voi
   }, timeoutMs);
   expect(r.settled, `the stream holds its plan (pending ${r.pending}, queued ${r.queued})`).toBe(true);
   await page.evaluate(() => {
-    const view = (window as unknown as { __dvBridge: { world: WorldBridge } }).__dvBridge.world.internals().view as unknown as { transit: { group: { visible: boolean } } | null };
-    if (view.transit) view.transit.group.visible = false;
+    type G = { group: { visible: boolean } } | null;
+    const view = (window as unknown as { __dvBridge: { world: WorldBridge } }).__dvBridge.world.internals().view as unknown as { transit: G; peds: G };
+    for (const r of [view.transit, view.peds]) if (r) r.group.visible = false;
   });
   const f0 = (await page.evaluate(() => (window as unknown as { __dvBridge: { world: WorldBridge } }).__dvBridge.world.chunks().frame)) as number;
   await page.waitForFunction((n) => (window as unknown as { __dvBridge: { world: WorldBridge } }).__dvBridge.world.chunks().frame >= n, f0 + 6, { timeout: 180_000, polling: 250 });
   const c = await page.evaluate(() => {
     const w = (window as unknown as { __dvBridge: { world: WorldBridge } }).__dvBridge.world;
     const k = w.chunks();
-    return { l0: k.resident.l0.length, l1: k.resident.l1.length, l2: k.resident.l2.length, traffic: w.traffic()?.objects ?? null, peds: w.peds()?.objects ?? null };
+    return { l0: k.resident.l0.length, l1: k.resident.l1.length, l2: k.resident.l2.length, traffic: w.traffic()?.objects ?? null };
   });
-  console.log(`ledger frame at plan: resident l0 ${c.l0}, l1 ${c.l1}, l2 ${c.l2}; traffic objects ${String(c.traffic)}, pedestrian objects ${String(c.peds)}; transit hidden`);
+  console.log(`ledger frame at plan: resident l0 ${c.l0}, l1 ${c.l1}, l2 ${c.l2}; traffic objects ${String(c.traffic)}; transit and pedestrians hidden`);
 }

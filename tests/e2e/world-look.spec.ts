@@ -147,7 +147,8 @@ test.describe('xr look @world-look', () => {
   test('the Quest tier keeps the direct pipeline and the legacy look, with no post nodes @xr @world-look', async ({ page }) => {
     test.setTimeout(240_000);
     await page.setViewportSize(GOLDEN_VIEWPORT);
-    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1');
+    // `&textures=0&art=0` (DL-758): the XR row of M02g1's ledger is M02g1's own scene, so the later rows' layers stay out of the frame
+    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1&textures=0&art=0');
     await waitForEngine(page);
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
     const look = await world(page, (w) => w.look());
