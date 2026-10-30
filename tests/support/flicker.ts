@@ -86,13 +86,21 @@ export type RegionMask = (x: number, y: number) => boolean;
  * The pixels of a view along a straight road that are road: below the horizon and inside the cone of the road's edges seen from `eyeM`
  * above its middle (a road of half width `halfWidthM` fills `|x - cx| <= (halfWidthM / eyeM) (y - horizon)`). `pitchDeg` is the camera's
  * pitch (negative looks down); `fovDeg` the vertical field of view. A margin of a few rows keeps the vanishing point out.
+ *
+ * `nearM` and `farM` cut the road to the band of ground distances between them (a row `r` pixels under the horizon sees the ground
+ * `eyeM x focal / r` metres ahead): a pair of shots 0.05 m apart moves the paint near the camera by whole pixels, which is parallax and not
+ * sparkle, so the pair counts the band where a 5 cm step is under a pixel and the paint is thinner than one.
  */
-export function roadRegion(o: { width: number; height: number; pitchDeg: number; fovDeg: number; eyeM: number; halfWidthM: number; marginPx?: number }): RegionMask {
+export function roadRegion(o: {
+  width: number; height: number; pitchDeg: number; fovDeg: number; eyeM: number; halfWidthM: number; marginPx?: number; nearM?: number; farM?: number;
+}): RegionMask {
   const f = o.height / 2 / Math.tan((o.fovDeg * Math.PI) / 360);
   const horizon = o.height / 2 + f * Math.tan((o.pitchDeg * Math.PI) / 180);
   const slope = o.halfWidthM / o.eyeM;
-  const margin = o.marginPx ?? 3;
-  return (x, y) => y > horizon + margin && Math.abs(x + 0.5 - o.width / 2) <= slope * (y - horizon);
+  let top = horizon + (o.marginPx ?? 3);
+  if (o.farM !== undefined) top = Math.max(top, horizon + (o.eyeM * f) / o.farM);
+  const bottom = o.nearM !== undefined ? horizon + (o.eyeM * f) / o.nearM : Infinity;
+  return (x, y) => y > top && y <= bottom && Math.abs(x + 0.5 - o.width / 2) <= slope * (y - horizon);
 }
 
 /** The share of pixels whose largest colour-channel difference between `a` and `b` is above `threshold`, with no search: the parallax is in it. */

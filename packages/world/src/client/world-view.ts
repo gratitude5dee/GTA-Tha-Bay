@@ -132,6 +132,8 @@ export interface ChunksReport {
 export interface ShotRig {
   holdShot(id: string): LookShot;
   placeShot(id: string, groundY: number): void;
+  /** Moves the held camera to another shot's x and z, keeping its height (M02h1). */
+  shiftShot(id: string): void;
   releaseShot(): void;
   freezeClock(on: boolean): void;
   refreshEnvironment(): boolean;
@@ -990,6 +992,7 @@ export class WorldView implements WorldLayer {
       return {
         holdShot: (id) => lv.holdShot(id),
         placeShot: (id, gy) => lv.placeShot(id, gy),
+        shiftShot: (id) => lv.shiftShot(id),
         releaseShot: () => lv.releaseShot(),
         freezeClock: (on) => lv.freezeClock(on),
         refreshEnvironment: () => lv.refreshEnvironment(),
@@ -1006,6 +1009,13 @@ export class WorldView implements WorldLayer {
       },
       placeShot: (id, gy) => {
         if (this.legacyHeld) this.legacyHeld.y = gy + lookShot(id).y;
+      },
+      shiftShot: (id) => {
+        const s = lookShot(id);
+        if (this.legacyHeld) {
+          this.legacyHeld.x = s.x;
+          this.legacyHeld.z = s.z;
+        }
       },
       releaseShot: () => void (this.legacyHeld = null),
       freezeClock: (on) => this.sky?.freezeTime(on),

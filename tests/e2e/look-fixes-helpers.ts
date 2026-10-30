@@ -66,8 +66,15 @@ export async function setSky(page: Page, hour: number, weather: string): Promise
  * for the first picture of a pair (the full QA shot: the sky, the streamer's settle, the fade, one environment bake) and `move` for the
  * second (`shotMove`: the same sky and the same environment map, the camera 0.05 m along).
  */
-export async function captureShot(page: Page, shot: string, how: 'shot' | 'move' = 'shot'): Promise<Rgba> {
-  await page.evaluate(([id, h]) => (window as unknown as W).__dvBridge.world[h === 'move' ? 'shotMove' : 'shot'](id as string), [shot, how] as const);
+export async function captureShot(page: Page, shot: string, how: 'shot' | 'move' | 'slide' = 'shot'): Promise<Rgba> {
+  // `slide` (M02h1) is `move` with the first shot's height kept: a pair that differs by the sideways step alone
+  await page.evaluate(
+    ([id, h]) => {
+      const w = (window as unknown as W).__dvBridge.world;
+      return h === 'shot' ? w.shot(id as string) : w.shotMove(id as string, h === 'slide' ? { keepHeight: true } : undefined);
+    },
+    [shot, how] as const,
+  );
   await page.evaluate(() => {
     const b = (window as unknown as { __dvBridge: { engine: { setPaused(p: boolean): void }; world: WorldBridge } }).__dvBridge;
     b.engine.setPaused(true);

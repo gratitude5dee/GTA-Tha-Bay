@@ -85,4 +85,18 @@ describe('flicker region mask (M02h1)', () => {
     const down = roadRegion({ width: 640, height: 360, pitchDeg: -10, fovDeg: 60, eyeM: 1.6, halfWidthM: 9.1 });
     expect(down(320, 150)).toBe(true);
   });
+
+  it('cuts the road to a band of ground distances', () => {
+    // level, 1.6 m up, focal length 311.8 px: 40 m away is 12.5 rows under the horizon (row 192.5), 300 m away is 1.7 rows
+    const band = roadRegion({ width: 640, height: 360, pitchDeg: 0, fovDeg: 60, eyeM: 1.6, halfWidthM: 9.1, marginPx: 0, nearM: 40, farM: 300 });
+    expect(band(320, 359)).toBe(false);
+    expect(band(320, 193)).toBe(false);
+    expect(band(320, 192)).toBe(true);
+    expect(band(320, 185)).toBe(true);
+    expect(band(320, 182)).toBe(true);
+    expect(band(320, 181)).toBe(false);
+    const nearOnly = roadRegion({ width: 640, height: 360, pitchDeg: 0, fovDeg: 60, eyeM: 1.6, halfWidthM: 9.1, marginPx: 0, nearM: 40 });
+    expect(nearOnly(320, 200)).toBe(false);
+    expect(nearOnly(320, 190)).toBe(true);
+  });
 });

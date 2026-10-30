@@ -98,9 +98,11 @@ export interface WorldBridge {
    * current one (the `-b` shot of a flicker pair, 0.05 m away), and resolves two presented frames later. It does not move the
    * stream focus, wait for `settle()` or bake the environment again: the streamer, the sky and the environment map are the ones of the
    * `shot` before it, so the two pictures of a pair differ by the camera alone. Throws without a look, without a held shot, or when the
-   * sky is not at the new shot's hour and weather.
+   * sky is not at the new shot's hour and weather. `keepHeight` (M02h1) moves the camera over the ground without standing it on the ground
+   * again: its height is the one of the first shot, so the pair is a sideways or forward step and nothing else (the ground under a
+   * terrain cell edge can differ by centimetres between two points 5 cm apart, which is 2 % of a 1.6 m eye height).
    */
-  shotMove(id: string): Promise<{ id: string; hour: number; weather: string }>;
+  shotMove(id: string, opts?: { keepHeight?: boolean }): Promise<{ id: string; hour: number; weather: string }>;
   clearShot(): void;
   /** M02e QA: stops or restarts the render loop; the canvas keeps its last frame while stopped (for captures on a slow renderer). */
   hold(on: boolean): void;
@@ -285,7 +287,7 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
       }
       return { id: s.id, hour: s.hour, weather: s.weather };
     },
-    shotMove: async (id) => {
+    shotMove: async (id, opts) => {
       const lv = view.shotRig();
       if (!lv) throw new Error('look shot: this view has no look');
       if (!lv.held()) throw new Error('look shot: no shot is held; call shot() first');
@@ -294,9 +296,13 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
       if (!k || Math.abs(k.hour - s.hour) >= 0.05 || k.weather !== s.weather || k.next !== s.weather) {
         throw new Error(`look shot: the sky is not at ${s.hour}:00 ${s.weather} for ${id}`);
       }
-      lv.holdShot(id);
-      const gy = view.groundY(s.x, s.z);
-      if (gy !== null) lv.placeShot(id, gy);
+      if (opts?.keepHeight === true) {
+        lv.shiftShot(id);
+      } else {
+        lv.holdShot(id);
+        const gy = view.groundY(s.x, s.z);
+        if (gy !== null) lv.placeShot(id, gy);
+      }
       await nextFrames(2);
       return { id: s.id, hour: s.hour, weather: s.weather };
     },

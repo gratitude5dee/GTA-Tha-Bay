@@ -503,6 +503,15 @@ export class LookView {
     if (this.shotCamera) this.shotCamera.y = groundY + s.y;
   }
 
+  /** Moves the held camera to another shot's x and z and keeps its height and direction (M02h1: a pair that differs by the sideways step alone). */
+  shiftShot(id: string): void {
+    const s = lookShot(id);
+    if (this.shotCamera) {
+      this.shotCamera.x = s.x;
+      this.shotCamera.z = s.z;
+    }
+  }
+
   releaseShot(): void {
     this.shotCamera = null;
   }

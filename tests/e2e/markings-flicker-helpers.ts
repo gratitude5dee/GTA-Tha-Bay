@@ -1,37 +1,47 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type TestInfo } from '@playwright/test';
 import { encodePng } from '../support/image-diff.ts';
-import { FLICKER_THRESHOLD, FLICKER_VIEWPORT, flickerShare, roadRegion } from '../support/flicker.ts';
+import { FLICKER_VIEWPORT, flickerShare, roadRegion } from '../support/flicker.ts';
 import { bootWorld, world, type W } from './markings-helpers.ts';
 import { HIDE_ALL, captureShot, setSky } from './look-fixes-helpers.ts';
 
 /**
- * The `markings-graze` pair of M02h1 AC-5 (@markings-golden): two shots 0.05 m apart looking along 400 m of straight road from 1.6 m, at 640 x 360.
- * The share of road pixels (below the horizon, inside the cone of the road's edges) that change past 32/255 with no look-alike a pixel away must
+ * The `markings-graze` pair of M02h1 AC-5 (@markings-golden): two shots 0.05 m apart (sideways, at the same height) looking along 400 m of straight
+ * road from 1.6 m, at 640 x 360. The share of road pixels, 80 to 330 m ahead, that change by more than 96/255 with no look-alike a pixel away must
  * be at most `MARKINGS_FLICKER_LIMIT`; with the antialiasing and the distance fade off (`markings.aa`) the same pair must exceed it, which proves
  * the measure sees the sparkle the fade removes. Textures are off (as in the M02g2 pairs, DL-757): the asphalt's own texture detail under a 0.05 m
  * parallax is not what this case counts.
+ *
+ * Why this pair, this band and this threshold. Along the road, the same pixel of two pictures 0.05 m apart sees the same lateral coordinate, so a
+ * line along the road could not sparkle in such a pair (the first version of this case measured 0.002 % with the filter off). Sideways, the paint
+ * within about 80 m moves by more than the pixel footprint (parallax, which both versions of the paint show equally); farther out a 5 cm step is
+ * under a quarter of a pixel, so a hard-edged line flips pixels from asphalt to paint (a change of about 180/255) while a filtered one only
+ * changes by `2 x 0.05 m / footprint` of its contrast (under 50/255 from 80 m on; the usual 32/255 would need 190 m, which is two rows of the
+ * picture). The height is the one of the first shot (`slide`): the ground under two points 5 cm apart can differ by centimetres at a terrain cell
+ * edge, which scales every line of the picture by 2 %.
  *
  * One case per tier in a file of its own (`markings-flicker-desktop.spec.ts`, `markings-flicker-low.spec.ts`): a `desktop` pair is the longest
  * single case of the suite on software GL, and a shard is cut out of the sorted file names by test count (BD-REPAIR-M02g2-03).
  */
 export const MARKINGS_FLICKER_LIMIT = 0.002;
-const SHOT = { id: 'markings-graze', pitchDeg: -0.5, fovDeg: 60, eyeM: 1.6, halfWidthM: 9.1 } as const;
+const SHOT = { id: 'markings-graze', pitchDeg: -0.5, fovDeg: 60, eyeM: 1.6, halfWidthM: 9.1, nearM: 80, farM: 330, marginPx: 0 } as const;
+/** A pixel counts when a channel changes by more than this (of 255): a flip between paint and asphalt (about 180), not a filtered edge moving (under 50). */
+export const MARKINGS_FLICKER_THRESHOLD = 96;
 
 export function registerMarkingsPair(tier: 'desktop' | 'mobile-low' | 'xr-quest'): void {
   test.describe('markings flicker @markings-golden', () => {
     test.describe.configure({ timeout: 3_600_000 });
-    test(`${tier}: the pair ${SHOT.id} flickers at most 0.2 % of the road pixels, and more than that with markings.aa off @markings-golden`, async ({ page }, testInfo: TestInfo) => {
+    test(`${tier}: the pair ${SHOT.id} flickers at most 0.2 % of the road pixels 80 to 330 m ahead, and more than that with markings.aa off @markings-golden`, async ({ page }, testInfo: TestInfo) => {
       test.skip(testInfo.project.name === 'chromium-webgpu', 'the pair bounds are WebGL2 bounds');
       const t0 = Date.now();
       await bootWorld(page, tier, '&textures=0', FLICKER_VIEWPORT);
       await page.addStyleTag({ content: HIDE_ALL });
       await setSky(page, 13, 'clear');
       const mask = roadRegion({ width: FLICKER_VIEWPORT.width, height: FLICKER_VIEWPORT.height, ...SHOT });
-      const measure = async (first: 'shot' | 'move'): Promise<{ share: number; raw: number; a: Awaited<ReturnType<typeof captureShot>>; b: Awaited<ReturnType<typeof captureShot>> }> => {
+      const measure = async (first: 'shot' | 'slide'): Promise<{ share: number; raw: number; a: Awaited<ReturnType<typeof captureShot>>; b: Awaited<ReturnType<typeof captureShot>> }> => {
         const a = await captureShot(page, SHOT.id, first);
-        const b = await captureShot(page, `${SHOT.id}-b`, 'move');
-        return { share: flickerShare(a, b, FLICKER_THRESHOLD, 1, mask), raw: flickerShare(a, b, FLICKER_THRESHOLD, 0, mask), a, b };
+        const b = await captureShot(page, `${SHOT.id}-b`, 'slide');
+        return { share: flickerShare(a, b, MARKINGS_FLICKER_THRESHOLD, 1, mask), raw: flickerShare(a, b, MARKINGS_FLICKER_THRESHOLD, 0, mask), a, b };
       };
       const on = await measure('shot');
       console.log(`markings flicker ${testInfo.project.name} ${tier}: ${(on.share * 100).toFixed(3)} % (${(on.raw * 100).toFixed(3)} % without the window), boot and shots ${Math.round((Date.now() - t0) / 1000)} s`);
@@ -47,7 +57,7 @@ export function registerMarkingsPair(tier: 'desktop' | 'mobile-low' | 'xr-quest'
 
       // the same pair with the antialiasing and the fade off: the hard edges sparkle
       expect(await page.evaluate(() => (window as unknown as W).__dvBridge.world.setLookLayer('markings.aa', false))).toBe(true);
-      const off = await measure('move');
+      const off = await measure('slide');
       console.log(`markings flicker ${testInfo.project.name} ${tier} with markings.aa off: ${(off.share * 100).toFixed(3)} %`);
       expect(off.share, 'with markings.aa off the pair flickers past the bound').toBeGreaterThan(MARKINGS_FLICKER_LIMIT);
     });
