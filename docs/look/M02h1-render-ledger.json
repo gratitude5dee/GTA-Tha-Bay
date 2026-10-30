@@ -2,41 +2,32 @@
   "commit": "local",
   "bakeId": "3537499f7cc5c17703cea67785128b51f3262dc2d693a344409c031cb9f33136",
   "baselineFrom": "docs/look/M10d1-render-ledger.json",
-  "drift": {
-    "reason": "docs/look/M10d1-render-ledger.json was measured before later milestones changed the scene; this checkout reads the render objects in measuredOff with the markings layer off, and the layer adds none",
-    "measuredOff": {
-      "desktop-ultra": 265,
-      "desktop": 269,
-      "mobile": 158,
-      "xr": 94
-    }
-  },
   "tiers": {
     "desktop-ultra": {
-      "baseline": 251,
-      "after": 265,
+      "baseline": 722,
+      "after": 722,
       "perLayer": {
         "markings": 0
       },
       "roadTriangles": {
-        "baseline": 1192,
-        "after": 1268
+        "baseline": 26676,
+        "after": 27320
       }
     },
     "desktop": {
-      "baseline": 257,
-      "after": 269,
+      "baseline": 554,
+      "after": 554,
       "perLayer": {
         "markings": 0
       },
       "roadTriangles": {
-        "baseline": 1192,
-        "after": 1268
+        "baseline": 16186,
+        "after": 17136
       }
     },
     "mobile": {
-      "baseline": 159,
-      "after": 158,
+      "baseline": 146,
+      "after": 146,
       "perLayer": {
         "markings": 0
       },
@@ -46,8 +37,8 @@
       }
     },
     "mobile-low": {
-      "baseline": 86,
-      "after": 86,
+      "baseline": 74,
+      "after": 74,
       "perLayer": {
         "markings": 0
       },
@@ -56,13 +47,13 @@
         "after": 1496
       },
       "triangles": {
-        "baseline": 199327,
-        "after": 200551
+        "baseline": 188803,
+        "after": 188811
       }
     }
   },
   "xr": {
-    "baseline": 94,
-    "after": 94
+    "baseline": 100,
+    "after": 100
   }
 }
