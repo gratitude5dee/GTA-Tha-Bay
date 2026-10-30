@@ -55,7 +55,7 @@ Code: `sources.json:168` fetches only `natural=coastline,water,tree`; `s3-water.
 ## Scope out
 - Vegetation collision (unowned).
 - Canopy tint on L1/L2, shrub wind, invented street-tree infill; EZ-Tree and licensed vegetation (M10d0 on); `xr` profile (M02h8).
-- No fal or scan; the target image is never committed, sampled or fed to fal.
+- No fal or scan; the target image is never committed; since DL-OWN-10 the owner's look references may be used as look inputs (a fal reference input, a side-by-side comparison, a palette), read from outside the repository.
 
 ## Deliverables
 - **New:** `tools/map/src/stages/s13-scatter.ts`, `tools/map/src/geom/poisson.ts`, `packages/world/src/client/chunks/impostors.ts`.
