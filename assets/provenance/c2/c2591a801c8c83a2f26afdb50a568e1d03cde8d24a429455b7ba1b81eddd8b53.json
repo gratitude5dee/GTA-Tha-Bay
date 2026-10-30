@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "c2591a801c8c83a2f26afdb50a568e1d03cde8d24a429455b7ba1b81eddd8b53",
+  "paths": [
+    "assets/src/portrait/pc-acc-cap/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "14c1d8e952ace7e953c21ea26d69494a97dcfb33601d5c10b9faddf824781cbf"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "b08ce00aa2f5353b52bf4ea3f33d8e26dbbf9808cab309714de2aa1a83a6ecba"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

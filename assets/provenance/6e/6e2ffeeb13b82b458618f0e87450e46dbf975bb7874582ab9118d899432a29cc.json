@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "6e2ffeeb13b82b458618f0e87450e46dbf975bb7874582ab9118d899432a29cc",
+  "paths": [
+    "assets/src/portrait/pc-face-sunset/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "bce965f837d0434fd036e10b71b066be05c93743b66e8759857e1b417731f143"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "ab2d97884ff2e9ec406bba3051c92d5bc6c022eb89e21f2ac9717e303accc3c2"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

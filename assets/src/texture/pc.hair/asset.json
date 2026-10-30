@@ -1,0 +1,16 @@
+{
+  "kind": "texture",
+  "id": "pc.hair",
+  "variants": {
+    "desktop": "assets/src/texture/pc.hair/desktop.png",
+    "mobile": "assets/src/texture/pc.hair/mobile.png",
+    "mobile-low": "assets/src/texture/pc.hair/mobile-low.png"
+  },
+  "deps": [],
+  "tags": [
+    "art:m10d4",
+    "art:m10d4"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

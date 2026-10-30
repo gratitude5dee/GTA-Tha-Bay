@@ -570,6 +570,1260 @@
       "approved_by": "m08b1-builder",
       "approved_at": "2026-10-27T14:38:06Z"
     },
+    "character/pc-acc-backpack": {
+      "rev": 2,
+      "variants": {
+        "desktop": "bffb21c3c1e1e470f860c2908e66bae4e104de3fb366156ed7dc6304b270c225",
+        "mobile": "e3306cff8e6ab1680c4d49ee4d92edb2d550e17585beae2ae1cae41cf33a637b",
+        "mobile-low": "55da0883136c5930bcd50af5d119c22598a920d9d2627dfa0887189382a063cb"
+      },
+      "root": "bffb21c3c1e1e470f860c2908e66bae4e104de3fb366156ed7dc6304b270c225",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-acc-beanie": {
+      "rev": 2,
+      "variants": {
+        "desktop": "8f99f1dca445e5e4fd8c38e852afaf90aaa40239f9dd9dabe0fa18495fc4a747",
+        "mobile": "02f4240856565f60fa0fa5c696fd2165cf2a28a71cb10b5ebf9fe497eba94067",
+        "mobile-low": "fb6f247bb9f5aa29ec51f7a5adfae881ab8e312d769ec9abd09ec9fbaa87195a"
+      },
+      "root": "8f99f1dca445e5e4fd8c38e852afaf90aaa40239f9dd9dabe0fa18495fc4a747",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-acc-cap": {
+      "rev": 2,
+      "variants": {
+        "desktop": "14c1d8e952ace7e953c21ea26d69494a97dcfb33601d5c10b9faddf824781cbf",
+        "mobile": "373c53a236a4d81816d7d1ca97e437bb9a9399a363e78d4ef0c9a2806b999b07",
+        "mobile-low": "f21fe6aada96ad5c848bdaed4b6ee71f57ea7bf4712956ecc67f3371cc8211af"
+      },
+      "root": "14c1d8e952ace7e953c21ea26d69494a97dcfb33601d5c10b9faddf824781cbf",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-acc-chain": {
+      "rev": 2,
+      "variants": {
+        "desktop": "6571a3e1853b38a3c0de6dadeecbf20ba32a036c6de1aa1d7cc42be63ce15ff5",
+        "mobile": "c8e83ac218a2ecdb25941c81aab04073ce90172537c54fea2371d05ddedfee99",
+        "mobile-low": "0ee19e41f3d2d5f4046da940be235d39a45045e69338669b16035c2e6c2ee29d"
+      },
+      "root": "6571a3e1853b38a3c0de6dadeecbf20ba32a036c6de1aa1d7cc42be63ce15ff5",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-acc-headphones": {
+      "rev": 2,
+      "variants": {
+        "desktop": "507f29e300e388ebf35d30940201ffd3266d1f35d05ea3ea757887b29a8248bb",
+        "mobile": "6eec70f18b8316046acf5aad1deb1991ff214400efad8b1606a3eddf927f6f9c",
+        "mobile-low": "061ef5a9d0ca3d0465c08847f3fd3b39547c0e96eb3a9df5609c086ca0a81244"
+      },
+      "root": "507f29e300e388ebf35d30940201ffd3266d1f35d05ea3ea757887b29a8248bb",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-acc-scarf": {
+      "rev": 2,
+      "variants": {
+        "desktop": "169a0df67dd75ed7be68d77b0884a2b01fd4373dcc928669376ee52153e11c48",
+        "mobile": "1c8921be0c5410d0a45ff5702a017525698f6c3c500a951b224b2182ca564316",
+        "mobile-low": "3b4783c258d0d02cf661b44aeea20c8b6304b3af569dd7138696dd3db2b4aa13"
+      },
+      "root": "169a0df67dd75ed7be68d77b0884a2b01fd4373dcc928669376ee52153e11c48",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-acc-shades": {
+      "rev": 2,
+      "variants": {
+        "desktop": "af6c7a9d5095c2a15e4e08989f304347e7fce32df9fc2f65600a81448ed5db40",
+        "mobile": "231be4de3c2b022a889d296b72674a68bfc18c33ddcb90c6dcef44c64f5232b5",
+        "mobile-low": "2396b751ee31e29059d29f7762bac681d296c6c7c1cbf8733e907647f337a277"
+      },
+      "root": "af6c7a9d5095c2a15e4e08989f304347e7fce32df9fc2f65600a81448ed5db40",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-acc-watch": {
+      "rev": 2,
+      "variants": {
+        "desktop": "fdfc77b8ede457c105903be67d1e077ca3f731dc60f46dc1a22a7fb8deb8d8e2",
+        "mobile": "246ddc8233ff136425b6a84dc4be7e506125f78bf30511272a9861d7d362bbbb",
+        "mobile-low": "d1ac94f1480c968edeff1ef5b1b9536828be3c0a00857c63d58f0bd7b87f90a6"
+      },
+      "root": "fdfc77b8ede457c105903be67d1e077ca3f731dc60f46dc1a22a7fb8deb8d8e2",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-body-athletic": {
+      "rev": 2,
+      "variants": {
+        "desktop": "0318b10ce77b9031c99dd766193c1cb43b95343ef87d49d4fa73f22c40a9b4f7",
+        "mobile": "3a80ebc0f09046a86f095241f0ba37cc18570730a5e45d5f2e61227218360f36",
+        "mobile-low": "af7f4b30f2184f9910324ee7cbaa324ecff4b55ff4b396ccdf1f6889b6f136ee"
+      },
+      "root": "0318b10ce77b9031c99dd766193c1cb43b95343ef87d49d4fa73f22c40a9b4f7",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-body-broad": {
+      "rev": 2,
+      "variants": {
+        "desktop": "37c7addfd50210231790a4c030d2898e225f5f584d18a80e1271220dbe2d6696",
+        "mobile": "db1b0c7faf50cd2956ad50ef7ad61f970f3541cfd6d1d444fbfc870fcae326b2",
+        "mobile-low": "41a79e9ec79851e04f0542a0c4821eb5deda369b674739c6549100d08842e90f"
+      },
+      "root": "37c7addfd50210231790a4c030d2898e225f5f584d18a80e1271220dbe2d6696",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-body-compact": {
+      "rev": 2,
+      "variants": {
+        "desktop": "7e5816eea929a31d2f0cd7181cdeb66b9d8ec9b25b13d88957cb01e8d5d9dfd7",
+        "mobile": "e3dce63c28f4afe701a4be3785f6e7f41899b42990116a9fd14694b6a601b896",
+        "mobile-low": "e4db312d368cc7ae8689cccd115886182806388dcd800d7833a9995b83d10888"
+      },
+      "root": "7e5816eea929a31d2f0cd7181cdeb66b9d8ec9b25b13d88957cb01e8d5d9dfd7",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-body-lean": {
+      "rev": 2,
+      "variants": {
+        "desktop": "22c3f902fd8dba1fc4ac62807e275fe27180a0c76d6cdfa351d1df7e9b22a5ae",
+        "mobile": "9ecb91a5b0ce6dad5a917e91427343923918b8bf6e1e66d21fbc94e55ec7e51e",
+        "mobile-low": "53e14894a86d2c6d0e81293ff1ebd88a1af027157095d35286ecac90195d82b9"
+      },
+      "root": "22c3f902fd8dba1fc4ac62807e275fe27180a0c76d6cdfa351d1df7e9b22a5ae",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-body-long": {
+      "rev": 2,
+      "variants": {
+        "desktop": "21773b8df2d31e4a5cc7f658c70f4a293ca95a9fdf46dde3e0ae26a1b00e2033",
+        "mobile": "1cef772ca26cefe89291fc54eb6aa96e537cacfb7f661bba2f30e246fa6605eb",
+        "mobile-low": "44abe53ef9815849d5ea197a6b4b81ea7b4a159ce4c4f9daba6bc0f119d1e97a"
+      },
+      "root": "21773b8df2d31e4a5cc7f658c70f4a293ca95a9fdf46dde3e0ae26a1b00e2033",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-body-rounded": {
+      "rev": 2,
+      "variants": {
+        "desktop": "8968d707dd9ea1da95a12b3287cc74201dfc9f92f38aad646d4f7fd74a5329ce",
+        "mobile": "fb78c5a54073c54258c2dda85ae23f557825ca5df337ee3e9ca220f896ae5fda",
+        "mobile-low": "22b1c196d150bde79f7d0fdddd8d577547e4e42f56a52b75e2d7f230ac4e6a9f"
+      },
+      "root": "8968d707dd9ea1da95a12b3287cc74201dfc9f92f38aad646d4f7fd74a5329ce",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-body-slight": {
+      "rev": 2,
+      "variants": {
+        "desktop": "dadf117b5589966e12fa33b096f1fd1666fbc7faeadcfab8d8fbd3cb3f97ed04",
+        "mobile": "0e8b085f8e7209825c34fe8fbb87b94afb554c73d13daddf5343dfec7f2412f4",
+        "mobile-low": "877e1d172988d88ef04d1c5f342d13c288b0c0527dce2dac6dfa931bdf83161c"
+      },
+      "root": "dadf117b5589966e12fa33b096f1fd1666fbc7faeadcfab8d8fbd3cb3f97ed04",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-body-solid": {
+      "rev": 2,
+      "variants": {
+        "desktop": "b9a7185397249f923044bdbe4a6875dd50a70b1234742bd2f91a9b3457d01f07",
+        "mobile": "9abec34fd48ecc61ffec632d6b1bf86681b5fa8928e3d08a52e2c6f57b646b89",
+        "mobile-low": "7c2d47912840616c538b1ae5e6e422a585983a5886fd033d02f075123b68e7d0"
+      },
+      "root": "b9a7185397249f923044bdbe4a6875dd50a70b1234742bd2f91a9b3457d01f07",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-body-stocky": {
+      "rev": 2,
+      "variants": {
+        "desktop": "0a88c80586dde4caca8e6e32a53ab731d4fc10e3916add3596a5630f13664487",
+        "mobile": "8a740d1d0a914b3499be63d8cc1af545936812567f9bdee1e0c5141a7d8bef8a",
+        "mobile-low": "dcf0d4d538e74380a22bfd19b96fe21a5ea34c243d534586662a7869761a1290"
+      },
+      "root": "0a88c80586dde4caca8e6e32a53ab731d4fc10e3916add3596a5630f13664487",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-body-sturdy": {
+      "rev": 2,
+      "variants": {
+        "desktop": "8ac7112b62f8290a7f5267333fc8bddebf670f004f802475490b17864e6022b5",
+        "mobile": "18f157e42168533fed9a3559f0c12332357b32db262eec551e70e46503a2cddc",
+        "mobile-low": "f1dca53707170c11fbf20af4c32b3c390d31eaee98cffe321bd637fe2deeea41"
+      },
+      "root": "8ac7112b62f8290a7f5267333fc8bddebf670f004f802475490b17864e6022b5",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-body-tall": {
+      "rev": 2,
+      "variants": {
+        "desktop": "d2b105b67eb85555df9244eca5f846259981d04b34fb9cf9873f545ae83cc58e",
+        "mobile": "7ca15c25ca9e64a58a08beff334350471db5467e251008ad73ea34b05f89f8cc",
+        "mobile-low": "925a359a9f836bd5dedf2e2213093d7c9dcf054b2c7e6db2b535d17b4ce95afd"
+      },
+      "root": "d2b105b67eb85555df9244eca5f846259981d04b34fb9cf9873f545ae83cc58e",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-body-wiry": {
+      "rev": 2,
+      "variants": {
+        "desktop": "4ef2afb5ba9d8b970f8b4ca47c68f15d43a81e9ccc1c80d2bf7b0f7cfb64ee0f",
+        "mobile": "bb02cc7d74ee5aa1e1fde9b9d17efb63feeb9e91698d246d83e5a13b6d8942f0",
+        "mobile-low": "6862e60094df7a16c6135b24b6589a8a378b32c4863264faaafad370a3dae934"
+      },
+      "root": "4ef2afb5ba9d8b970f8b4ca47c68f15d43a81e9ccc1c80d2bf7b0f7cfb64ee0f",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-bottom-cargo": {
+      "rev": 2,
+      "variants": {
+        "desktop": "aa640d2feedd2ae563175899ba1320595bd14e517d24edfdbaebe32fa9aab0c3",
+        "mobile": "68c7fc06a5934b8250265e71b307353943d743cb939a89d488d5915db1b871a8",
+        "mobile-low": "ea35bd164e33ca887d6e316b94a61b70e0fb173eabb96687d3762be1ef44d4ca"
+      },
+      "root": "aa640d2feedd2ae563175899ba1320595bd14e517d24edfdbaebe32fa9aab0c3",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-bottom-chinos": {
+      "rev": 2,
+      "variants": {
+        "desktop": "332f1874181f1b4aa6a0a2b8a2518667504b6ed7b100dda7d7086d12528ac224",
+        "mobile": "ced3d6de19cc53ebcd3891fe4eaa9d4a660310aeaba38932735fd460630299b0",
+        "mobile-low": "b1defc2bfaf2c54741fd63a84121769d4f67de9cccb455d5e8315edd0101b743"
+      },
+      "root": "332f1874181f1b4aa6a0a2b8a2518667504b6ed7b100dda7d7086d12528ac224",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-bottom-jeans": {
+      "rev": 2,
+      "variants": {
+        "desktop": "2312e4ed29efd244a971be59964e4e3605f325b0d8b00384e22277d7e4ca0a16",
+        "mobile": "ba788079de46dc9baed1b8536fc106835f955fdb94734d48fc3867f2ad4732a6",
+        "mobile-low": "0641a5040aafa1e986642e5e15d0ad5d7279c1fbb9df327fd259bd0736b98ba1"
+      },
+      "root": "2312e4ed29efd244a971be59964e4e3605f325b0d8b00384e22277d7e4ca0a16",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-bottom-joggers": {
+      "rev": 2,
+      "variants": {
+        "desktop": "bb3635f0d21c8c6e944c0a4c660710bcf432ee9fd702abebdf5d3a8e9c6d59a9",
+        "mobile": "a41984ee07d606de76717b6c746e6614d491447f0d18c643637481487fb6b462",
+        "mobile-low": "f137af982a110fe67fdb148efc3461e23e7b8e324c352efc1ff024160d1e9e9a"
+      },
+      "root": "bb3635f0d21c8c6e944c0a4c660710bcf432ee9fd702abebdf5d3a8e9c6d59a9",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-bottom-overalls": {
+      "rev": 2,
+      "variants": {
+        "desktop": "48036c6da338801432b693044736cdd4049d9ec034f6fc2786fe752abadee8ce",
+        "mobile": "5197fae8d2f87ac278d59bea4022aa99bddb3ddcc901cecf5c4d5895ac76719d",
+        "mobile-low": "d9370148291f3dd424d31cae923f79a7f9c2a5056aff07e321457f4f17c7bcdf"
+      },
+      "root": "48036c6da338801432b693044736cdd4049d9ec034f6fc2786fe752abadee8ce",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-bottom-shorts": {
+      "rev": 2,
+      "variants": {
+        "desktop": "78e8680ce9aa2a31968b7ac05fc7b62d12c68fcd4aff356f6c25c42e0967f476",
+        "mobile": "8b2d8c65816cf947857bee5aa244557c8f3d73a7923d47b24e0d5993c74181f4",
+        "mobile-low": "5c9927f69e4727543566853a600a03e86b481b907997ba4f36162758e957ce11"
+      },
+      "root": "78e8680ce9aa2a31968b7ac05fc7b62d12c68fcd4aff356f6c25c42e0967f476",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-bottom-skirt": {
+      "rev": 2,
+      "variants": {
+        "desktop": "e1fc7de3c61138cabb9b9b49af2473996c7e430b1226b6f3e5ec4210ff53c85e",
+        "mobile": "4c87010943d78ede223f969633f95279f98be188d715a334c2d131169bb57d01",
+        "mobile-low": "ecc20a7479ddeb550d6aef6f0aec59f51c8bd6b16bf28c9f36e3448eb1974103"
+      },
+      "root": "e1fc7de3c61138cabb9b9b49af2473996c7e430b1226b6f3e5ec4210ff53c85e",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-bottom-track-pants": {
+      "rev": 2,
+      "variants": {
+        "desktop": "08c328c602c0e45354d359ba17d8f1ef522631ec3e7c39238888abb8a8d9a53e",
+        "mobile": "a0226d216610e593000e0442062bf082b3e2a921ebb6c21418486ade248f6fad",
+        "mobile-low": "ae35518432b1015f94169e23d54ad5fbe2ba2c802ea81a1773eda8693b227b70"
+      },
+      "root": "08c328c602c0e45354d359ba17d8f1ef522631ec3e7c39238888abb8a8d9a53e",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-bayview": {
+      "rev": 2,
+      "variants": {
+        "desktop": "746d8c88dbfa128449c5b3edb8c6216cb56e807b75fbffaa1e4df14cc2a37bb2",
+        "mobile": "26dc4f1adc8416ed1bc0d2642e6c8248fa24e066d64ad498447e85138d9db318",
+        "mobile-low": "b8b304b3f00a06c9a2c7124e78e439ce1124e386784702eeec546269ee579feb"
+      },
+      "root": "746d8c88dbfa128449c5b3edb8c6216cb56e807b75fbffaa1e4df14cc2a37bb2",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-castro": {
+      "rev": 2,
+      "variants": {
+        "desktop": "66bcd78c45003066c9e1ae47fbd78c2212ba4bcf4db86b4bcfbbe4b583112042",
+        "mobile": "31392a743e0029143ab1f51a6bed6dcc648434401a9785f9625168d6627e6879",
+        "mobile-low": "713a56cd384355037aa03e137a6ede7019f5627d52bbb375c741312fc7c86614"
+      },
+      "root": "66bcd78c45003066c9e1ae47fbd78c2212ba4bcf4db86b4bcfbbe4b583112042",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-chinatown": {
+      "rev": 2,
+      "variants": {
+        "desktop": "519c0085e7235478bd638aaad10be0e1492c1bbf568a9c546add1f2a5296e094",
+        "mobile": "45d3d46873bce14b4874fa79d5b4281d34514e88ac44d1baa2a2efaea3d1d497",
+        "mobile-low": "5436a4250bfa4709737c3a8ef0125cdb765eb905e126dcc01a10e1581f3abcc4"
+      },
+      "root": "519c0085e7235478bd638aaad10be0e1492c1bbf568a9c546add1f2a5296e094",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-dogpatch": {
+      "rev": 2,
+      "variants": {
+        "desktop": "976b70d0be2bdd7d4f630dc2d69df51723ad0cf12a67d7135a4451701c975c1c",
+        "mobile": "0e9774490aea0bae96aef04e811c2e0fa54af5c53d4dbe91e8830a908d2c5512",
+        "mobile-low": "f92e5306759177dd44f5ef5d09f389bc356214be4f68f6485fe6c46b206a1dbf"
+      },
+      "root": "976b70d0be2bdd7d4f630dc2d69df51723ad0cf12a67d7135a4451701c975c1c",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-embarcadero": {
+      "rev": 2,
+      "variants": {
+        "desktop": "d796c61c6b011e6d7bd0fe2c104d58fe39fe5ca577515f441e472cac6581ec71",
+        "mobile": "a0b4e630f30b3382da80a80e2daea58a4ede97e4e3a4ce06ca3dec2af6b0d03e",
+        "mobile-low": "ec5dacf2dc3807b48a0e18e72b7ea00f575cdddc7da34880d2fec436507f242f"
+      },
+      "root": "d796c61c6b011e6d7bd0fe2c104d58fe39fe5ca577515f441e472cac6581ec71",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-excelsior": {
+      "rev": 2,
+      "variants": {
+        "desktop": "d42335e7c7a00039defb9c3382c4f68be8529bb8567573d15744be8bb8f79577",
+        "mobile": "387a8ab1222316391f81ec8fae72c433105bbb926971c892d0ec3d312780e76c",
+        "mobile-low": "af0a8d96942bf6ae2604f7b1269f102bac284aff49095e45a5fcfc7fac8922a7"
+      },
+      "root": "d42335e7c7a00039defb9c3382c4f68be8529bb8567573d15744be8bb8f79577",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-fillmore": {
+      "rev": 2,
+      "variants": {
+        "desktop": "8921fff7cdac51fa7754aeab7754c04e908667c79405ed36c31bf24592d2bcd8",
+        "mobile": "db4b65763abf01b3ca7c737d0282c6f06562d3d195f7449ce8b6123526c49c5f",
+        "mobile-low": "15a2d266732b5c3cca0697c364e29e1ab6d9729b894150f1495e8cdf74fef97c"
+      },
+      "root": "8921fff7cdac51fa7754aeab7754c04e908667c79405ed36c31bf24592d2bcd8",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-glen-park": {
+      "rev": 2,
+      "variants": {
+        "desktop": "ff95e7b938345f3852873b43ac2cc0a389aef28d3b64343e06af6a0703ad3b6d",
+        "mobile": "16e47adab58ba7789f8c598ac6c73ac16c86654eea4ccafe00e0d8ed8e3d2924",
+        "mobile-low": "c4dea96bbcd493b2634ab24e0d4e7d857a053fdad1d72ccea62023887d379096"
+      },
+      "root": "ff95e7b938345f3852873b43ac2cc0a389aef28d3b64343e06af6a0703ad3b6d",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-haight": {
+      "rev": 2,
+      "variants": {
+        "desktop": "a7fc06de3381829607ef310d007587fac90e08eab0633fcb11f9198f98efa628",
+        "mobile": "145bedb016401225a2168b0d8ee04fc44a1bba91cd03be760e53b44cb4578194",
+        "mobile-low": "d82b079f4079e87f6de7641358d5f9c813c43a1a7189bc1bc73872384c702b33"
+      },
+      "root": "a7fc06de3381829607ef310d007587fac90e08eab0633fcb11f9198f98efa628",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-karl": {
+      "rev": 2,
+      "variants": {
+        "desktop": "6eefcb706ae46dcbedcb055ab599538d57608fd11a6f490b7066dd7a10f9d9a6",
+        "mobile": "f8203b7b0ec13c8c937a96c0bc34ea296ef6b3e9216d67dd73b75d5e4e22fe77",
+        "mobile-low": "a996be8a3c1483ca27371dc2a97eb5efa187bd1b1de8754b5567bb0cf7f45591"
+      },
+      "root": "6eefcb706ae46dcbedcb055ab599538d57608fd11a6f490b7066dd7a10f9d9a6",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-marina": {
+      "rev": 2,
+      "variants": {
+        "desktop": "f6d7b5a204fcfb33bf2ac556df20680ca6b75c467859b4535fefb7d8c683f6de",
+        "mobile": "19487a82fbe24096242ea49b881af4a2c561662193eaea0ec42d8c039c9a1182",
+        "mobile-low": "d55357e74a8bfad64b9961b28cff727edb7a1b8b68dfc2009b60b95390322361"
+      },
+      "root": "f6d7b5a204fcfb33bf2ac556df20680ca6b75c467859b4535fefb7d8c683f6de",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-mission": {
+      "rev": 2,
+      "variants": {
+        "desktop": "062869abfe9ae5306862d682d47837564e03365ef7421484bc32306fb822f586",
+        "mobile": "594f6deda7d4f2e7f7aa2fec36632e009f3a6dfac1af658ec4b71445a1444e8d",
+        "mobile-low": "7207eeb1e9d3287adc9a289643ebc868f7025f22e0dd4f70a0ca633e974516e2"
+      },
+      "root": "062869abfe9ae5306862d682d47837564e03365ef7421484bc32306fb822f586",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-nob": {
+      "rev": 2,
+      "variants": {
+        "desktop": "47a067dda85f844ddc37e53f62b97e1737ebbdcd4399c9852bedcaf11a4b5ab5",
+        "mobile": "4869532108efd216fe2346714583e095d267060ec5960bc912894c2aa1f11f3a",
+        "mobile-low": "44f61f75999f7e823101734e66064da49375a6b1c3eb6485c09d18fba3702cc3"
+      },
+      "root": "47a067dda85f844ddc37e53f62b97e1737ebbdcd4399c9852bedcaf11a4b5ab5",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-noe": {
+      "rev": 2,
+      "variants": {
+        "desktop": "6dace1f158b9842a7c651cd4384d0fc0290f0279642110add7bcbc8a2a513a43",
+        "mobile": "ce92758ff48674c1d31d105e7ac85fc63f06f659a7cca7176c92306f4ab7f018",
+        "mobile-low": "f47ecbbcb91d35a1c0f54fc7e6d9c766fa6397ad7543ce78e535144c4305861b"
+      },
+      "root": "6dace1f158b9842a7c651cd4384d0fc0290f0279642110add7bcbc8a2a513a43",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-portola": {
+      "rev": 2,
+      "variants": {
+        "desktop": "808466999f02243c5725bb3555e9020a7d09b1a6c0ca566d5b58b57a8a35322c",
+        "mobile": "09e64a2f560376c0eea6a0d23d89d39a598914355a744cb2fb0ed0ede1aad57b",
+        "mobile-low": "c1756574c9e7bb13a1c2958e235942f6cc4133b25ed674ea1ee15ce987c17c59"
+      },
+      "root": "808466999f02243c5725bb3555e9020a7d09b1a6c0ca566d5b58b57a8a35322c",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-potrero": {
+      "rev": 2,
+      "variants": {
+        "desktop": "b38c1f3e74de5704dea6d0b9988bd7e6101dcb786c525291ed3b9c2730ecd1ff",
+        "mobile": "9a43ea34b8b47dabe48490caaf7ab555f0fe94e3445e0f00403a5ae59395ed7b",
+        "mobile-low": "c80299a91f6e654da8452b0a24ffe53d2280f8d876cb9654fbbabfa889a2b6ba"
+      },
+      "root": "b38c1f3e74de5704dea6d0b9988bd7e6101dcb786c525291ed3b9c2730ecd1ff",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-presidio": {
+      "rev": 2,
+      "variants": {
+        "desktop": "cc4709240a6c7417a4621dc89262f8a798b4757ecf36c610229e747ba2f15feb",
+        "mobile": "224aa88ab5b9f3cad3f62f8c9da787eee60151a628da2b2ef6510625155644b2",
+        "mobile-low": "f05800c88d12d0cc2b3d5de1a8b4634d60311cb4cca06244939cb45a9a3a79c7"
+      },
+      "root": "cc4709240a6c7417a4621dc89262f8a798b4757ecf36c610229e747ba2f15feb",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-richmond": {
+      "rev": 2,
+      "variants": {
+        "desktop": "4a3181e284749d21c6e2b9667d6b2a8bd956160117e1dd46df2efe78061c4807",
+        "mobile": "48464684d3c6d49d5d60725456a23dfcf41125e5632bd558d6488d9e9d6eda18",
+        "mobile-low": "be235e921cc8f81d20f4efde0047f371690d9b2376a8c9b1108715a29070934f"
+      },
+      "root": "4a3181e284749d21c6e2b9667d6b2a8bd956160117e1dd46df2efe78061c4807",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-soma": {
+      "rev": 2,
+      "variants": {
+        "desktop": "bfd096a6c2018373dcc45b251698b3f078ac5e8b8c3cf194e59059bf41d84416",
+        "mobile": "6d9da8b2627ad97e427c41265741523f9be67ce5d81bf50dd627da12048f3c2e",
+        "mobile-low": "628d6ee70c56a22f559f4e0a615890eda98b4b11a165813a6918eeefb6edcad0"
+      },
+      "root": "bfd096a6c2018373dcc45b251698b3f078ac5e8b8c3cf194e59059bf41d84416",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-sunset": {
+      "rev": 2,
+      "variants": {
+        "desktop": "bce965f837d0434fd036e10b71b066be05c93743b66e8759857e1b417731f143",
+        "mobile": "03b400f531645768b967aa4d5d3df5b33de67f7c9c59e786540bc579dcbcd8a1",
+        "mobile-low": "d8ecfc8ea71feac7e8cc6ff77eaee4299cbddb73056be1ae2277d290decada7b"
+      },
+      "root": "bce965f837d0434fd036e10b71b066be05c93743b66e8759857e1b417731f143",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-sunset-park": {
+      "rev": 2,
+      "variants": {
+        "desktop": "a85eaf317567808c128345cb165dbffc70b6134b88f91318fd4999cb0f16dfa6",
+        "mobile": "325dbaf9e06b5d4ffcbc5317ec4605b80e7528e95ea1da7b19ff09f19605ff2f",
+        "mobile-low": "1eecc1f9bfaac5398bca0a344443054f3d2cc0c79ec26adf64a36cba5270864f"
+      },
+      "root": "a85eaf317567808c128345cb165dbffc70b6134b88f91318fd4999cb0f16dfa6",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-tenderloin": {
+      "rev": 2,
+      "variants": {
+        "desktop": "21e89737091ebbd8f219383ddfecd0f6974fc2f29edff90732b39dc93b0368c0",
+        "mobile": "19b26bcb7f33ee593ae67b351b3009b1a0608776d1bca0270abf71ce5e81a990",
+        "mobile-low": "a593b8a35c7ca17ea9110d6462fa2f21ed48c089384e3d35551b033a817bedb5"
+      },
+      "root": "21e89737091ebbd8f219383ddfecd0f6974fc2f29edff90732b39dc93b0368c0",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-twin-peaks": {
+      "rev": 2,
+      "variants": {
+        "desktop": "a9d206c4ab6ce1c1f2612fea6638ba606cfe7b4c51e6d31fe32361cbcc02ad27",
+        "mobile": "ee343832f29bf614282109a1b48571e754155b190623d692a6e085938100b190",
+        "mobile-low": "1e965d1637fb4ef6b869d74af0cdcdb2afdf0554413a90706424af6b6fb3be5b"
+      },
+      "root": "a9d206c4ab6ce1c1f2612fea6638ba606cfe7b4c51e6d31fe32361cbcc02ad27",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-face-union-square": {
+      "rev": 2,
+      "variants": {
+        "desktop": "d6c4c4daf538d33c1f0dd8541590c15ad72afb0d4a1a35c36826abd5d7611d0d",
+        "mobile": "5cf2bd1323c8b0cc8869740fbc5c220187207e6aae7ac83daa9dbb226b7c3816",
+        "mobile-low": "d02f2400f0d01799178daff9469a7a2046546b928860f45a28eea546732dabec"
+      },
+      "root": "d6c4c4daf538d33c1f0dd8541590c15ad72afb0d4a1a35c36826abd5d7611d0d",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-afro": {
+      "rev": 2,
+      "variants": {
+        "desktop": "55059134d17aa93fa6c46daaf50ca85250e7e6974ab9dd62bafe5ff7246bac06",
+        "mobile": "f965ce19e7b8bdca5da3829e2a309890397a0b813a44170abcc5b7e44d742ce3",
+        "mobile-low": "99e46c09692e4d6d5270f60e8530928424168fd03ef820afbb939489e134230e"
+      },
+      "root": "55059134d17aa93fa6c46daaf50ca85250e7e6974ab9dd62bafe5ff7246bac06",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-bald": {
+      "rev": 2,
+      "variants": {
+        "desktop": "bed66cb2a21f92ac6967b0c037e671da539b4f91c2d91064ca0857a01339ddda",
+        "mobile": "350d71ddd361c73d90e1c4009d6e130a2e1592ba036f8527abad7a70f97e4153",
+        "mobile-low": "b50e52dbfe87829eb2403c6954b251c3bee8b194936d3921aab3d9048193ec5f"
+      },
+      "root": "bed66cb2a21f92ac6967b0c037e671da539b4f91c2d91064ca0857a01339ddda",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-bob": {
+      "rev": 2,
+      "variants": {
+        "desktop": "896327b0d863ad17512481e08223b9f5eddf57a1a7d32b139e307ece8dc8fd17",
+        "mobile": "9eae42d112a3fc2d64827fcaa255814788128b9f0a199ed9ad725ca3d30ec43c",
+        "mobile-low": "33405719a04a74f1be0bd8889d667740429f2b35ee1e278b9c97f418a8d6c957"
+      },
+      "root": "896327b0d863ad17512481e08223b9f5eddf57a1a7d32b139e307ece8dc8fd17",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-braids": {
+      "rev": 2,
+      "variants": {
+        "desktop": "3d0385bc7cfaa04a38ef2ab86566d18d4b34f527a43ef48dd34f2cb2fa0596b1",
+        "mobile": "cc7dae79f8012e5fbb8b2dcee332a6572505d34b318ab71297835a9ba74b9a37",
+        "mobile-low": "ecad1f78c7bde9923518cff63ec359179c83a5481ab7f6fa3ecd98e2112ed010"
+      },
+      "root": "3d0385bc7cfaa04a38ef2ab86566d18d4b34f527a43ef48dd34f2cb2fa0596b1",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-bun": {
+      "rev": 2,
+      "variants": {
+        "desktop": "47af468236ae310c8987b491bc7bb67941ebef1d631855be00d6f583c93eae81",
+        "mobile": "c3d545e2a84ff34bef9edb2611bb3880ddb896b3fb498cb9c7d960af772c6d9a",
+        "mobile-low": "59c3060761258f8419fecc7e3aef8e5d70868bb144d4df97fe288eca487163fa"
+      },
+      "root": "47af468236ae310c8987b491bc7bb67941ebef1d631855be00d6f583c93eae81",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-buzz": {
+      "rev": 2,
+      "variants": {
+        "desktop": "c988d3fb3ebc3dcd7320d6e1a69bcd40f87cc677db49922f957be9a3f944423b",
+        "mobile": "03864e0ecf647c74ab8130fd56707d14764b4f6a258f81e68be6f469d74ca89d",
+        "mobile-low": "f29bc7edb035585cfcb575c0a0c5975dab7312b2a3b4e582e6a4065644872ead"
+      },
+      "root": "c988d3fb3ebc3dcd7320d6e1a69bcd40f87cc677db49922f957be9a3f944423b",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-coils": {
+      "rev": 2,
+      "variants": {
+        "desktop": "9ec96bab03e736b1319a01aa096fba9ce978e0e83cc06de90f1a4cc5a56e0646",
+        "mobile": "2f3e1450c68bfac79577cc44b411c5ce8050b2211463b01ca180eadea5a521c3",
+        "mobile-low": "603bcacf37af28a31ae94d2d386749d9a4e51fdcc1fdce22930b882bbcaa7af3"
+      },
+      "root": "9ec96bab03e736b1319a01aa096fba9ce978e0e83cc06de90f1a4cc5a56e0646",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-crop": {
+      "rev": 2,
+      "variants": {
+        "desktop": "72cc9d586d6326567ac21b1a7aefb44a9d4e7373f5110e231b0cf6516293ab7f",
+        "mobile": "78b094ee04695d33a8f561bce7cbfb71f8375eef3bea7ab230217fdb79b10469",
+        "mobile-low": "ee6c1a875a5c1ece016d2aab64b7b3e6af9c6822657431f8e90019feeb21e3a0"
+      },
+      "root": "72cc9d586d6326567ac21b1a7aefb44a9d4e7373f5110e231b0cf6516293ab7f",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-curls": {
+      "rev": 2,
+      "variants": {
+        "desktop": "f5712995f932f322e1a55c8cb04e0a0f6eadc34c753d152b1207478558e467a1",
+        "mobile": "26047c80fb065d19386f3699a3c39ec56d97a113495e425f6ced4a857ab654f7",
+        "mobile-low": "90c9934f9f24f88cb70853c01de02ddd79ea5e4463438d5fa595b61afe2f508c"
+      },
+      "root": "f5712995f932f322e1a55c8cb04e0a0f6eadc34c753d152b1207478558e467a1",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-fade": {
+      "rev": 2,
+      "variants": {
+        "desktop": "c801a5079843c26f9582071437b6f90e68912ab0f82a1c033d0df41861fd2925",
+        "mobile": "def61591abe05ee437604dc070dbe9d367d3c8211536f6706184f3ed6eca8548",
+        "mobile-low": "91e0f40e7cb6c010c72309dff6d0e6d2247214112cabfe5b90368745da72df10"
+      },
+      "root": "c801a5079843c26f9582071437b6f90e68912ab0f82a1c033d0df41861fd2925",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-locs": {
+      "rev": 2,
+      "variants": {
+        "desktop": "3d2a9a3721918b9983aa6b4d450a2ccd1961d2d80903b9105ea09ce21f86d5bd",
+        "mobile": "7f66d0e367f1b716c0ee5a94b31df8e578e6061de9235140b4423066138aa427",
+        "mobile-low": "e6600526dbebef7a3eec09556cdc0c7bcb16a99f47be79228ffb48facb53c4c9"
+      },
+      "root": "3d2a9a3721918b9983aa6b4d450a2ccd1961d2d80903b9105ea09ce21f86d5bd",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-long": {
+      "rev": 2,
+      "variants": {
+        "desktop": "1a9b47ea24af7c387a172daa14bb063160dc30cacce05a113762a9c73cecb251",
+        "mobile": "d9b7af55d160868a3deac5fa2166d99eeec2f77061f4d87f727bd485a47d60cc",
+        "mobile-low": "a9dc6a1f3b90d946cea07693de6b835ba2ff6fe3f578f4c587be0a741d8f3b8d"
+      },
+      "root": "1a9b47ea24af7c387a172daa14bb063160dc30cacce05a113762a9c73cecb251",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-pomp": {
+      "rev": 2,
+      "variants": {
+        "desktop": "5acfc6ca3876d0b7f68302e132378e2bde03b007e7205406c47462143ec6e507",
+        "mobile": "4adf6ace8b4d206e3aa0290fbd46ee0e972574b2562df84af5f819ca02f29b6a",
+        "mobile-low": "413ad207f9bda1445ea8813b2f2812547546d54548885790816042f76ef7f137"
+      },
+      "root": "5acfc6ca3876d0b7f68302e132378e2bde03b007e7205406c47462143ec6e507",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-ponytail": {
+      "rev": 2,
+      "variants": {
+        "desktop": "9248ea714628b418760523f18da5603e4777aede5a79d0dd59ed5b36eb660597",
+        "mobile": "fbd663477fa1824950b9845996d518205daa7e4ae263b0486e2c9dd7374b2171",
+        "mobile-low": "bf7ddf960bd1706d7fb8fc03bcebba511e7176fef07ce90ddf7f99cf165dbd9a"
+      },
+      "root": "9248ea714628b418760523f18da5603e4777aede5a79d0dd59ed5b36eb660597",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-shag": {
+      "rev": 2,
+      "variants": {
+        "desktop": "d41fe86d8f03c3c1bba5f3890bafdb3d187a20299eb944f0b81d5cad1b53a513",
+        "mobile": "93319e1c33fec613c900791373a612b507ac1f92e3059c75edb95d55d18fcef0",
+        "mobile-low": "1ab1b88640c17e550919a48e52bf2bc3e522198796f402f3a615bb3d66c3d08e"
+      },
+      "root": "d41fe86d8f03c3c1bba5f3890bafdb3d187a20299eb944f0b81d5cad1b53a513",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-hair-waves": {
+      "rev": 2,
+      "variants": {
+        "desktop": "b235c368c6cfed905a7c0d3aa2ba68d239a2f8adecf014835924c89cf4968e13",
+        "mobile": "34ea994c67fe160c6cea83f7895ddd9676f1ba7878f48256fa4e2a7b70a87baf",
+        "mobile-low": "3f1c0f07c28f79077d492d3a7acf096fb86ab94bb564b9e6dddec807501a9711"
+      },
+      "root": "b235c368c6cfed905a7c0d3aa2ba68d239a2f8adecf014835924c89cf4968e13",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-shoes-boots": {
+      "rev": 2,
+      "variants": {
+        "desktop": "2be1e24f0ffd2b56724706448a1cf59d9d911b11d2fbf5a598692c627aa03c8c",
+        "mobile": "bb6e0c6f510a42b82c2a87db6e6a651996c779ad078cce55ad65d7b67371b3d2",
+        "mobile-low": "c73f2fcee3b6249c181cc007c2fdc54883e7e7140ca0b8093c1480bfd1aa7c86"
+      },
+      "root": "2be1e24f0ffd2b56724706448a1cf59d9d911b11d2fbf5a598692c627aa03c8c",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-shoes-loafers": {
+      "rev": 2,
+      "variants": {
+        "desktop": "c691f7bb5b7a3c305860cfcbd3ba8a02d0ac63784bf2f2309848a8eb94c3527a",
+        "mobile": "3e642406fbaccd6967805758341edda7c3d0a69c04bce7c9cd7d2ad5dc4979c3",
+        "mobile-low": "66d37d0e3a2b39e7103d8975dd39e7bb709bb6fd9eede9a1b57c60667edd4ae6"
+      },
+      "root": "c691f7bb5b7a3c305860cfcbd3ba8a02d0ac63784bf2f2309848a8eb94c3527a",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-shoes-runners": {
+      "rev": 2,
+      "variants": {
+        "desktop": "54699e9db3a88c97e97ad0888b88fa6f51e41efb50c4b34db00598745ef02ac3",
+        "mobile": "f105fd3514f0a5991c08f84425269e675f79b45256bbdb6aee99e0a2e739b94d",
+        "mobile-low": "a5dacd3b64464bd6fc5ff3d0088868001b5ad8d2b911158f33e52268fad3e3e9"
+      },
+      "root": "54699e9db3a88c97e97ad0888b88fa6f51e41efb50c4b34db00598745ef02ac3",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-shoes-sandals": {
+      "rev": 2,
+      "variants": {
+        "desktop": "8c2a6b3ebc7410f211f43bc0718578b481cee7b275946ba069c9651f57e412a2",
+        "mobile": "4e66b9d418f6fda774b1e1e6090fe452ec988d74a7ce1f59a3f4c6e3cf5e1bca",
+        "mobile-low": "18b138ac99423836bfdeb79248b4805e4de62ca76c55d275aeb8dfbb8b557cd2"
+      },
+      "root": "8c2a6b3ebc7410f211f43bc0718578b481cee7b275946ba069c9651f57e412a2",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-shoes-skate-shoes": {
+      "rev": 2,
+      "variants": {
+        "desktop": "2ba816e78039c72934d3984c34e0b600023dd74c01f43c49945e721b54f09d0a",
+        "mobile": "2a78024d0fed922ba90c9f811726c8d42a950d53546f00ffa378704b50184ba0",
+        "mobile-low": "01dfcfc096963eb2f2485e02712f01862347275080155ca1c8ac662b70c8a053"
+      },
+      "root": "2ba816e78039c72934d3984c34e0b600023dd74c01f43c49945e721b54f09d0a",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-shoes-sneakers": {
+      "rev": 2,
+      "variants": {
+        "desktop": "80cd396a84352d32aedac19e7e69205a58f1e078192ba8dd5977ea7c89afd40d",
+        "mobile": "150930d36ea7b3a6a647efa8b012ca2d77a89a5fadbd3ab726eb196a1c26f3e0",
+        "mobile-low": "bd62a2b5fb0327fff030f9859e0138b66bb518af292ac574e481edfd8133a339"
+      },
+      "root": "80cd396a84352d32aedac19e7e69205a58f1e078192ba8dd5977ea7c89afd40d",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-top-bomber": {
+      "rev": 2,
+      "variants": {
+        "desktop": "b9662cfdc88b4ef0bf22a7a3c5f844d60a893a8a09ca8855bf8766ed91ed0505",
+        "mobile": "537a406cbbdb64fe7113bdfc14e444fba106f38d0556dc16c5ff17d9cb031fcb",
+        "mobile-low": "fc97ad9acf4a8cec9a97cb5e9b75660f25cde9518506b0a9c522a31b1c728ebc"
+      },
+      "root": "b9662cfdc88b4ef0bf22a7a3c5f844d60a893a8a09ca8855bf8766ed91ed0505",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-top-button-up": {
+      "rev": 2,
+      "variants": {
+        "desktop": "35d33e80a24ccd4e4156dfdbdb361e5750eee21660b1385e7d616540bdd5d25f",
+        "mobile": "1d0333eef21cefb9e4fbbc108da6931da788b05a30283ae54013699b226bafa8",
+        "mobile-low": "94de48f533323de18abacfdac0ba3b4d2d8f71257f8dfefa16843785d3c3845b"
+      },
+      "root": "35d33e80a24ccd4e4156dfdbdb361e5750eee21660b1385e7d616540bdd5d25f",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-top-crewneck": {
+      "rev": 2,
+      "variants": {
+        "desktop": "4fe8518b5c4ccc667e248dca1a760229b2d08893cdf795e0bad70c4c0e298aad",
+        "mobile": "cef98a761fc71eaee4cca982d205f4c86e2193198bf3655cdaaa7ec7467027e7",
+        "mobile-low": "5a743b5f99fda9dbd72857e017a5f139aa707b42a68c741aebac1422f534358e"
+      },
+      "root": "4fe8518b5c4ccc667e248dca1a760229b2d08893cdf795e0bad70c4c0e298aad",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-top-denim-jacket": {
+      "rev": 2,
+      "variants": {
+        "desktop": "2ffeef7064ecf4c22c2555500a7920a09953a1b8a9343f822b50733ce4969e77",
+        "mobile": "1f67bcf0802bce198a8c056aceff5d202e4ecc5e1b8cb1418c4cde28a58fa087",
+        "mobile-low": "bf8dfdb9bfb96d62154f01002945b99e52296a8a7c00f6d29f45b8cc13edb088"
+      },
+      "root": "2ffeef7064ecf4c22c2555500a7920a09953a1b8a9343f822b50733ce4969e77",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-top-flannel": {
+      "rev": 2,
+      "variants": {
+        "desktop": "ce5769ee0316b2c9ff89955297c20ef50a512905ecdf0733485dd26e7755c94a",
+        "mobile": "1db428e7f3632affaae1a8001361a25e7367f3866eaac8165cc31cb261a485a7",
+        "mobile-low": "c0a135cea463e6e63befa83c69368dfd09b99ad37dc581796db0c4ab4093edaa"
+      },
+      "root": "ce5769ee0316b2c9ff89955297c20ef50a512905ecdf0733485dd26e7755c94a",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-top-fleece": {
+      "rev": 2,
+      "variants": {
+        "desktop": "167e479265bddf47d8e799ed96dde679068e2a86af72c3c309b62abd131147eb",
+        "mobile": "c8956991c5596a6bb02e1c3165bee691fd3c873af5aba820c1428ea3870f49a5",
+        "mobile-low": "9f20e6c971decb3a0858323f8ae17c42e5226bef567ea7d2d6d433fc58c90dbc"
+      },
+      "root": "167e479265bddf47d8e799ed96dde679068e2a86af72c3c309b62abd131147eb",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-top-hoodie": {
+      "rev": 2,
+      "variants": {
+        "desktop": "cea1b62611fee0faee50fe69ec7d7d35954800d781a053aa6e9123aa4927cf5d",
+        "mobile": "280b09d57f7c8d1b6dc4606ce92fd172ff71cdc07bf4de61c733c6a7d41d4a94",
+        "mobile-low": "7ce23fd991cdb50340469fe7ae5f177aac5ad656ee9333dff1208c8d2537d188"
+      },
+      "root": "cea1b62611fee0faee50fe69ec7d7d35954800d781a053aa6e9123aa4927cf5d",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-top-jersey": {
+      "rev": 2,
+      "variants": {
+        "desktop": "d37ff010eb41206d72f807fc6778e24673a992f3c9cc883d9a50cbd92cef5f78",
+        "mobile": "9002759dead6c3af10b07b92441207bcc9cfb4de425282896ac1b8dff6910201",
+        "mobile-low": "1d150de5d657e55a563fe1211ac023976828c16e7346deefe50b62f82a3430c9"
+      },
+      "root": "d37ff010eb41206d72f807fc6778e24673a992f3c9cc883d9a50cbd92cef5f78",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-top-raincoat": {
+      "rev": 2,
+      "variants": {
+        "desktop": "3297b437c253605faeeb87a6e9dd3c2f3891a2b39d511c56320e0dee2ff6ae79",
+        "mobile": "17433d9014b59bcc86b4a19242d17c5cf431225325c678f45e89ad56a666086a",
+        "mobile-low": "14c288d3bea417a3a2b183a02af8e3937a7c02816cf7b91a4b0a0c5cb4469172"
+      },
+      "root": "3297b437c253605faeeb87a6e9dd3c2f3891a2b39d511c56320e0dee2ff6ae79",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-top-tank": {
+      "rev": 2,
+      "variants": {
+        "desktop": "fa98b4a459139c4cc9f4aee2a9ef30433d0e7578201df0e1d9e53a1616ee48e6",
+        "mobile": "4e9a4bfc83c54f2537b3d04199a56f47cdf3ed9a151860b0e8b662a9f45422dc",
+        "mobile-low": "26cb0fb711d7ad77b691ad9549a890a70626ee43bb19d3a389497b767feb3ebc"
+      },
+      "root": "fa98b4a459139c4cc9f4aee2a9ef30433d0e7578201df0e1d9e53a1616ee48e6",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-top-tee": {
+      "rev": 2,
+      "variants": {
+        "desktop": "a88b0c996c452a450ab211e8907713c5bf24e7db52975360b7d69cbfed605067",
+        "mobile": "bb399cccd53f08b3eecbd6a47063b10e79ae22f403a335db4a1bf447b21c61ff",
+        "mobile-low": "67c8d5bbb52b0462d8161c872cc3e388de8877c8b5aef5f00df9a72a3e03ef9c"
+      },
+      "root": "a88b0c996c452a450ab211e8907713c5bf24e7db52975360b7d69cbfed605067",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/pc-top-windbreaker": {
+      "rev": 2,
+      "variants": {
+        "desktop": "558ae9d0f4526468424099de28f9ffe8f79fe8d33875e1094d591d54a517d888",
+        "mobile": "adf62d02eb333247ab620f42029d11de8adad1c1aba0968163693bd273d4a292",
+        "mobile-low": "e5d3b63f727d16474cf477aa25713d7118848da012509a545cccde600b967e48"
+      },
+      "root": "558ae9d0f4526468424099de28f9ffe8f79fe8d33875e1094d591d54a517d888",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.body.a": {
+      "rev": 2,
+      "variants": {
+        "desktop": "e37d74621e4e959398aedaf991efa45fda929d0b07732a379fed9851b1799ec9",
+        "mobile": "275de152e72fe337549525a45c9540eb80cc6d21fc03b14a68fe184b76317c6d",
+        "mobile-low": "e590fc2c24acf7b2cb21ea90f36bf62191c5b365600e6693db6dd4aeae73109b"
+      },
+      "root": "e37d74621e4e959398aedaf991efa45fda929d0b07732a379fed9851b1799ec9",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.body.b": {
+      "rev": 2,
+      "variants": {
+        "desktop": "ca1afa2cc86b71df50cc39b4f44650deafbf5469dd895f10b3f5d29f63abc4b5",
+        "mobile": "8fdffbe2f12deda81816cffbb2bb27e87214be62ba9b7759cce33bcc93162767",
+        "mobile-low": "b7f7eadf74a254e4fc56234a771208021785d45b4ffd410703963ab914becc26"
+      },
+      "root": "ca1afa2cc86b71df50cc39b4f44650deafbf5469dd895f10b3f5d29f63abc4b5",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.body.c": {
+      "rev": 2,
+      "variants": {
+        "desktop": "d26a70f0aa708a82f19b5da7a85fd267df8d95a27c3fc5057c3c10d2aa8f3119",
+        "mobile": "0d5cd55574d45632bb69af23c07623672242e5dcc36b16b93c9abbc86a41669a",
+        "mobile-low": "ab395d525eaf1a7e3bb176c33fb3c0333788e1f5bf7de9b712d1230febc17594"
+      },
+      "root": "d26a70f0aa708a82f19b5da7a85fd267df8d95a27c3fc5057c3c10d2aa8f3119",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.body.d": {
+      "rev": 2,
+      "variants": {
+        "desktop": "a9e2cc28bba2270a00e3357d64983ed7ed5d9340aba88b69632c410a4351ce2c",
+        "mobile": "f2f2ebedeec9d0a1ddc3a1e9c3d765689c7a1d1eb19a883b693867b3dda56253",
+        "mobile-low": "466fe588e51aa24a74b6d0a2726d74dc20a2f011aa7398a77e88cfecda878b94"
+      },
+      "root": "a9e2cc28bba2270a00e3357d64983ed7ed5d9340aba88b69632c410a4351ce2c",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.body.e": {
+      "rev": 2,
+      "variants": {
+        "desktop": "1cb136e76cc749658c07aaa2e93407b16ef4afb49de4ffcf4f9d9c48a1501339",
+        "mobile": "61356a91797fc9a3cb675d88fbec709b39fc2458966934f0f2df7237e31b7a5e",
+        "mobile-low": "74ef99f13dfdd02b9c2fc71971cdd3ee1ccc1fa8703a829ab18000a708e93366"
+      },
+      "root": "1cb136e76cc749658c07aaa2e93407b16ef4afb49de4ffcf4f9d9c48a1501339",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.body.f": {
+      "rev": 2,
+      "variants": {
+        "desktop": "f6ef30b7446856fa67ab44bfa4b195184d1cb9fdb13e1eddea84898b2e9ba79e",
+        "mobile": "d1cb591cbd85fac68e1715c13793e8a0bcd6e787727764ad010042a6fd5e8762",
+        "mobile-low": "2e7b3833b99b56061cade5705c78fe489ef20c07630ab92528bc71161a374b94"
+      },
+      "root": "f6ef30b7446856fa67ab44bfa4b195184d1cb9fdb13e1eddea84898b2e9ba79e",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.body.g": {
+      "rev": 2,
+      "variants": {
+        "desktop": "55320f3cbbc80d51763a772621aa7d0e2fb229f3e80914f2a37e7b9a22b8810a",
+        "mobile": "a729dddb53f921d091bf0de4a20c2c5af565370f989b77d540614b3bc6961f56",
+        "mobile-low": "4512f9c74912a938c7733fffb66c87d93917fa42dc4dbf8a0aba202d764d2630"
+      },
+      "root": "55320f3cbbc80d51763a772621aa7d0e2fb229f3e80914f2a37e7b9a22b8810a",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.body.h": {
+      "rev": 2,
+      "variants": {
+        "desktop": "66c96dc007af560669987578b95bdd2e7d2e07c5e843e8d69dbff851de2ffea8",
+        "mobile": "8df53534d7ea098b6ae1a3ef05610fb701c68c89353765487bf822105e7f9cca",
+        "mobile-low": "e4bc04ef5919a33c1bed417a0b0a307ce6a961ea11e227dcc03ebe4360eda2e9"
+      },
+      "root": "66c96dc007af560669987578b95bdd2e7d2e07c5e843e8d69dbff851de2ffea8",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.01": {
+      "rev": 2,
+      "variants": {
+        "desktop": "da629ce3a819135d1a4067d6b57f040fa8a63b9ae3f5ad89b9948a18d02db677",
+        "mobile": "74425cc8f12c89fe3884cf54d58ca31e3c39b99f3125e871a7caab3323959462",
+        "mobile-low": "49406a136c221f026edb03f3f417c8475afeb0cd0c5f704cf1ffbc8e8fe395a9"
+      },
+      "root": "da629ce3a819135d1a4067d6b57f040fa8a63b9ae3f5ad89b9948a18d02db677",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.02": {
+      "rev": 2,
+      "variants": {
+        "desktop": "163bb031609ea39c877fee6db6d9bca5c0a79e530c5d30974b46a4f4f4745c7e",
+        "mobile": "e2fb3da11c08e1f0a77ea3f9a10ca1bee69ec16eb7c4c649fadb6e79acb58ac1",
+        "mobile-low": "9ccbe615a4e2af40f2b562edf2dfd29e68e7cadd8b1c8e0b713356c8fc69eae5"
+      },
+      "root": "163bb031609ea39c877fee6db6d9bca5c0a79e530c5d30974b46a4f4f4745c7e",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.03": {
+      "rev": 2,
+      "variants": {
+        "desktop": "26f9f60faa7ebb4a17e4cd9f4356affd7b365fda6d305b9fa11b28d357172e9c",
+        "mobile": "ab2c38608f2c4c47d6162fbb67c3c0c2a30c9a187785be213f34b00461d56c83",
+        "mobile-low": "b31a6daa60b2fd3758e129970f80cbef6d75edfacd980990b3f4f0b892a71049"
+      },
+      "root": "26f9f60faa7ebb4a17e4cd9f4356affd7b365fda6d305b9fa11b28d357172e9c",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.04": {
+      "rev": 2,
+      "variants": {
+        "desktop": "40c56ef0e2e9bde8c3a3015ffc9a3dbba4d17c21e357d5f1d73e2d2c466ee290",
+        "mobile": "b0d6cde43c9aa05056c2ae3277caa1b31e8827dade51ef26001deb8af014bf17",
+        "mobile-low": "536916f4fa9ac84b68de10f3fb074af1e37559ee4d48836a24310e37c67284bb"
+      },
+      "root": "40c56ef0e2e9bde8c3a3015ffc9a3dbba4d17c21e357d5f1d73e2d2c466ee290",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.05": {
+      "rev": 2,
+      "variants": {
+        "desktop": "4df13e1aec0bd1537aab302f273938be24dda938cbb34b246f71e04697a5726c",
+        "mobile": "5cbe7eeecb8a2f993bd4eb45b5e0135943169bb5c32ecb659c41d705979806b7",
+        "mobile-low": "d772237237dc79afe8107acd7c29dd9b91ce3e0645b545a57b40eab37170db90"
+      },
+      "root": "4df13e1aec0bd1537aab302f273938be24dda938cbb34b246f71e04697a5726c",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.06": {
+      "rev": 2,
+      "variants": {
+        "desktop": "1a505e92b4d895fe24ffa6d9de860200cae16cac8a62d6ac432ecffff4fa1a41",
+        "mobile": "ad58fbc411b460a7d8669c456057a8672148b20883a337db7bfe1b3eb41571d0",
+        "mobile-low": "603787db4e468bcaf088f98beb09c2fade3c1d4f4e4449f266759a0a921a4a4e"
+      },
+      "root": "1a505e92b4d895fe24ffa6d9de860200cae16cac8a62d6ac432ecffff4fa1a41",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.07": {
+      "rev": 2,
+      "variants": {
+        "desktop": "d450befc4de3b80ce29d02549b37a6a9212e8aced7befcd0c494a40d8e0f7895",
+        "mobile": "12a6e3895665784704cb476638df782c925f440d175014a8d065c8e8102d9cbb",
+        "mobile-low": "573ffa9ce9aaadc866fb4585678fe7ff688eb388f7dc8775907aabab0a92c85a"
+      },
+      "root": "d450befc4de3b80ce29d02549b37a6a9212e8aced7befcd0c494a40d8e0f7895",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.08": {
+      "rev": 2,
+      "variants": {
+        "desktop": "b67a07d8f41c29faa280035422fb275e1fa063104343ff2ae9684521dc6f6dff",
+        "mobile": "8ef9ed1f39be500a8947639397c9640e3cbc806d95a19ec95a37feed77c46e98",
+        "mobile-low": "cbd992a896a6395e5ad47bbfa37b2852100e4813ef7def286f9868c65758bd1e"
+      },
+      "root": "b67a07d8f41c29faa280035422fb275e1fa063104343ff2ae9684521dc6f6dff",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.09": {
+      "rev": 2,
+      "variants": {
+        "desktop": "d460b3fb67f21b830726d0b6a0d6af8db6178c84fd0f09a5db3c7974fc8d0f69",
+        "mobile": "ea216049cef7bcf88060a08ae9691e13833af609b62682b9efe9b0a269aa9f9f",
+        "mobile-low": "de4b28d7d09d09e13180a945e3660424b1943e36d269bac1a43f257593090b01"
+      },
+      "root": "d460b3fb67f21b830726d0b6a0d6af8db6178c84fd0f09a5db3c7974fc8d0f69",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.10": {
+      "rev": 2,
+      "variants": {
+        "desktop": "48409c5463d4f73ca685751732f0f2bc15e644c6a3ad67856d32df52740bff23",
+        "mobile": "2be4d0e60bdcdc9fca6e53faa4ada9000721ff58f19a49cbd823afee96eaff9d",
+        "mobile-low": "4d76db7086b3557580cb6f119ec9c6dbafdd56994171d2eaeb3004b2918cad85"
+      },
+      "root": "48409c5463d4f73ca685751732f0f2bc15e644c6a3ad67856d32df52740bff23",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.11": {
+      "rev": 2,
+      "variants": {
+        "desktop": "d364c9312fb4ffbf1443094dd89304e27164beaae41c639bfcd10a5e4031c6f1",
+        "mobile": "241a53a45a4bb3488f18cc7f83ad72a9841a5a015941baa29cec44a43f96b390",
+        "mobile-low": "af8e932e6d6488d8d3252229a030e670261185b27e80eb9908f5075eb80f7ca3"
+      },
+      "root": "d364c9312fb4ffbf1443094dd89304e27164beaae41c639bfcd10a5e4031c6f1",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.12": {
+      "rev": 2,
+      "variants": {
+        "desktop": "4bca03ed1ac218f05e72eb3a818ca1cf540a4e750dae7844e92585c25957100d",
+        "mobile": "10defe7231a0770797e7a1aac2a8f57fb106aee70bfcaadf7709d568e079a190",
+        "mobile-low": "31fc772da434487820d25ee67b7942b06dcd1f946927741f7c89be6a90134a4e"
+      },
+      "root": "4bca03ed1ac218f05e72eb3a818ca1cf540a4e750dae7844e92585c25957100d",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.13": {
+      "rev": 2,
+      "variants": {
+        "desktop": "e3973ec77051e673b378dd5021ffa453bdfaadca3adfe677339556365d935525",
+        "mobile": "bc9e8fc0f2d77bb6a4175df51a2e735cb175cd007bf6d36e8ca07bf047155018",
+        "mobile-low": "60f18a20d085f608dd06ac0a50a957c0e449edfa1e9d0c1122d99746d2ef465c"
+      },
+      "root": "e3973ec77051e673b378dd5021ffa453bdfaadca3adfe677339556365d935525",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.14": {
+      "rev": 2,
+      "variants": {
+        "desktop": "856a5257880c48a9ea0577c774696232aa5595ca1dddf78da675d715f707667b",
+        "mobile": "d42db7e20ed6d5e6b6070c5e6b15cc35d6df5796141f7879bc77080969e29538",
+        "mobile-low": "9fefb81a689ec2dccf8f269fc032735ffac00cb4ee8481a62a505b0e7d824e5f"
+      },
+      "root": "856a5257880c48a9ea0577c774696232aa5595ca1dddf78da675d715f707667b",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.15": {
+      "rev": 2,
+      "variants": {
+        "desktop": "8e7e63d07b8222e500261d8180be41211f807482e8a3fae9f7ef26178c203824",
+        "mobile": "692fc27ed0aec8dee49583afc8c5a10d0cafa279d8a6020d4b727237068117c7",
+        "mobile-low": "222af8359aece0ae77725867c1a3032c70a07aea2827aef6c97cbb01d7ed0298"
+      },
+      "root": "8e7e63d07b8222e500261d8180be41211f807482e8a3fae9f7ef26178c203824",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.16": {
+      "rev": 2,
+      "variants": {
+        "desktop": "cd272767135300779b1c3b834094769dcd5ad85b71f54909ce68068b594b8351",
+        "mobile": "32b114d88f2853942601baec65e378fd772da1ba2ae699eff0e87b7176bbbe46",
+        "mobile-low": "405a200b1790604cc25c528a904bbdaee1e7aa4562914e7ab5fc02cef7a4bba1"
+      },
+      "root": "cd272767135300779b1c3b834094769dcd5ad85b71f54909ce68068b594b8351",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.17": {
+      "rev": 2,
+      "variants": {
+        "desktop": "2170dcd4b7751666312ea7040fd0d4a74f3020921afe4009e66d2fb558ee1f2f",
+        "mobile": "346d46a7c8a517b213de14372b3e9ce43fb0637a23a2d6df30fd8293ed7f4319",
+        "mobile-low": "750a06c1a7bdbcc3a43df85646ac269cdbc046168fb505f3719c275abdd5a04c"
+      },
+      "root": "2170dcd4b7751666312ea7040fd0d4a74f3020921afe4009e66d2fb558ee1f2f",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.18": {
+      "rev": 2,
+      "variants": {
+        "desktop": "ee1bf3ab4158853b746f675461423aaf2e44ab9cd4a1ca6322e6b6bc66745e49",
+        "mobile": "80a74811a741f29aa2dab820d896dfe42d18b3940bd686f9a34e7e5f830c9dff",
+        "mobile-low": "e7ba984e666e2e6bbc393de20385c4ede5aa0244520cd157734a5641640fcd50"
+      },
+      "root": "ee1bf3ab4158853b746f675461423aaf2e44ab9cd4a1ca6322e6b6bc66745e49",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.19": {
+      "rev": 2,
+      "variants": {
+        "desktop": "9a40d4df8391fb2d5be367f21dd7dbb4e1f3b6c20ca555fe643b0ba69f611da8",
+        "mobile": "c440f24d0b01ceb5ce0cbbf6783695f9f6018cf07e1a1823dc220242b0e4ef0a",
+        "mobile-low": "79b1e4d4c3a25bb4a8916f9fc4500ae6c25a49188e61f880b652e2e7080f03cc"
+      },
+      "root": "9a40d4df8391fb2d5be367f21dd7dbb4e1f3b6c20ca555fe643b0ba69f611da8",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
+    "character/ped.outfit.20": {
+      "rev": 2,
+      "variants": {
+        "desktop": "52c572de842451bf053a1fc4f0d197b20b94ed6c0184d0d62fabb416c9c82181",
+        "mobile": "71bcc27b3596dae5c79beeefe507c72dc0281a63306d52b6f85233133073dfd2",
+        "mobile-low": "d293e09ab5153e35459e619d97ba4be41e50a88cc3362af335139b1038855bd3"
+      },
+      "root": "52c572de842451bf053a1fc4f0d197b20b94ed6c0184d0d62fabb416c9c82181",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:34:46Z"
+    },
     "data/asset-smoke": {
       "rev": 1,
       "variants": {
@@ -984,6 +2238,780 @@
       "approved_by": "m08b1-builder",
       "approved_at": "2026-10-27T14:38:06Z"
     },
+    "portrait/pc-acc-backpack": {
+      "rev": 1,
+      "variants": {
+        "default": "116987441816b6bfcddd11716ca9de31131e908c14a34a1fb05cafa83820dd4a"
+      },
+      "root": "221531fa211c6da470d757d87daa7f402254d94d64e5c5a0129ca4b76265481d",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-acc-beanie": {
+      "rev": 1,
+      "variants": {
+        "default": "d675577b0f51561a164c7f5a73b9c4adad068985fd32903607507f40ca77d333"
+      },
+      "root": "4c1a9b63e4c654469a56c091986323886e5f6911b72f0120d61b5f7fd5b491c4",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-acc-cap": {
+      "rev": 1,
+      "variants": {
+        "default": "c2591a801c8c83a2f26afdb50a568e1d03cde8d24a429455b7ba1b81eddd8b53"
+      },
+      "root": "db67c71da0e162c006d976418f237e7a845e01bed8897ffd0f478323757101c9",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-acc-chain": {
+      "rev": 1,
+      "variants": {
+        "default": "1540011797192ba3f800abb69b07657ef9df3cb8baa26b1cb1a30e12141a5e05"
+      },
+      "root": "d3122d8405872b3b52cb86ec47b69a8d3987c5867ae55924ceebc43310fd9bcb",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-acc-headphones": {
+      "rev": 1,
+      "variants": {
+        "default": "afff3ae2ea74fd622ec7adf826264e4af535fa6c15e1157a8987593a2b22e62c"
+      },
+      "root": "5123395ff0884108bc5c2c027c7f11e22042d3198d1f1fdf68c6b75e113db767",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-acc-scarf": {
+      "rev": 1,
+      "variants": {
+        "default": "acaa0544dc7d3a9a5925e3f059e98037326c7955698c0fce2be03cb5233d57cb"
+      },
+      "root": "ed9c042f5ba9a92965a784a8e69bad0cd541098147f6039cc42d21821b1d1883",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-acc-shades": {
+      "rev": 1,
+      "variants": {
+        "default": "59583628db6af504f264af3b4cb5d97afa5e7f6a8188f36d9e98408a99944d51"
+      },
+      "root": "3cebcc2e7d944492b85167d568ed3384f81632be849b98524d029ba39778d50f",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-acc-watch": {
+      "rev": 1,
+      "variants": {
+        "default": "62825685dee8989542dc77268edf88e0ee4cf3bb58c3aa9414a27a7bd3afe736"
+      },
+      "root": "e9469fa64d7b1cf3f011ba626cfc8228e98ee98f72648fa4245278aab89f13f1",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-body-athletic": {
+      "rev": 1,
+      "variants": {
+        "default": "93143d6a5a014a1f01c3e3f883a1d554e0ee8171ef588a1258a18482169ec11c"
+      },
+      "root": "908bf9252eab0e90a92ed30bc68a1edf8803f2d900a93c2989b1c28475b9e4c1",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-body-broad": {
+      "rev": 1,
+      "variants": {
+        "default": "0cec87cc2df128dd3822781b89c14e06fec22d383e3c132ff16b2d420a768b19"
+      },
+      "root": "9d4efe25b2f0095976d678ee6680f0ab10403d0e93f3a6192b52fbca32deec64",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-body-compact": {
+      "rev": 1,
+      "variants": {
+        "default": "3391d041d93b594be4d616208e62906ecfee5ed4e51fb87b3c1ab1a72166ae42"
+      },
+      "root": "02169b6bb43121d9ee58d2d84db4d03da21e54f5fb8ec204488bddc7cd680441",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-body-lean": {
+      "rev": 1,
+      "variants": {
+        "default": "25419fb87717f0ee54fc8e4ab3c89711fbcbecebc303f60f57dfe362ddb7fb00"
+      },
+      "root": "0417a3c6609c0bd86f9abe86035e52c20677c2ca210c1d7f847db9526a271608",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-body-long": {
+      "rev": 1,
+      "variants": {
+        "default": "806e5a47678441131ca1362b57dbc2e0fc2d5cf9bf1cd92dbf4912ecf2ac3fac"
+      },
+      "root": "7c9110fab06d124db793433ce1510420c9d332454264375d09d940dd53ad872b",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-body-rounded": {
+      "rev": 1,
+      "variants": {
+        "default": "5b68ca801c9699da73ff6d3035171f856a98dfb87be7804061661dd07b822c64"
+      },
+      "root": "1b6ea8a2491e4a01df42ec488ede875e4116f35e43770644340e29422941e2e3",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-body-slight": {
+      "rev": 1,
+      "variants": {
+        "default": "b2a27debeed329d24d538bacbd4ff995fc394097107405433c26663ab518509c"
+      },
+      "root": "1809f02049ce2e96c827688262a25fb187d4a77525e1b75c464d9d254595319e",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-body-solid": {
+      "rev": 1,
+      "variants": {
+        "default": "2ebfd797e9a684894f798a3b791499a17c25b8a4f06fe525bbe1d3632cbaa978"
+      },
+      "root": "b5c331227ea5f2c242e85925a334549ee290614b7f4b35962d755fd876161fe0",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-body-stocky": {
+      "rev": 1,
+      "variants": {
+        "default": "f324a2ce7b63893f27eb6ad8d690a64e7c754d8072a6484a0ba18aa5c8005d2f"
+      },
+      "root": "89d62cdd10981a6adc3ebf2731a0c55fc5adf37b58f649fa18c93e069207d4b5",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-body-sturdy": {
+      "rev": 1,
+      "variants": {
+        "default": "9106ce865ea1dd7591579ee76d25d730af7b4ac02b5890ed9f84ac1cadb24d5f"
+      },
+      "root": "135b8c44ffd723fdab6a152d3d72743613c94b4c53167969ca8e7ec29ecb24c6",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-body-tall": {
+      "rev": 1,
+      "variants": {
+        "default": "89cb6c1440477d42429ace4b55fd81bbca6d8ad7a9c7c8cfd45645e986119dff"
+      },
+      "root": "f7189938aa2324c966e5dc2eec686716f8ddc68465717e64cb1eb27f464b0111",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-body-wiry": {
+      "rev": 1,
+      "variants": {
+        "default": "9a30fccfd2f1417befedc0243f1ec2880bf48eb565b97f2731082de9ff6a407e"
+      },
+      "root": "008a8572633747e73bf231b9c83d28e61e888cb084ba1e017eeb25a1fb6698b1",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-bottom-cargo": {
+      "rev": 1,
+      "variants": {
+        "default": "273a6249a5addfa3102168d07df5dfcc2914817f3038b55dbb751c7edbd95040"
+      },
+      "root": "597e00169836fbf7d56f04345275bb65d539c6aa8f3aea6463048be5f82fad89",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-bottom-chinos": {
+      "rev": 1,
+      "variants": {
+        "default": "c4cdc2a3579efa4d0038ab21ba8ac86e6433b049d0b22323fac74050f9b86e92"
+      },
+      "root": "6637da689394d8a5669d28d83fc25b3921803321503f00462ecae48cf255d197",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-bottom-jeans": {
+      "rev": 1,
+      "variants": {
+        "default": "2179f81e056063b48a1beb219390a6a63e7290cc34b0ab9946221cbde9694a4b"
+      },
+      "root": "358052a885bd9b02383c23cb61caa1eb1eec17964f2c1cb1f93e7abaae8f95e7",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-bottom-joggers": {
+      "rev": 1,
+      "variants": {
+        "default": "20ebe6cabf17b6edc024759e6bf2c0c0934f1e5eba5c5fac1ba5d52693105b5a"
+      },
+      "root": "011cbf7dda1472112dba48472ee9f17eee4d0ded6bd43948c0fadcc8900774b6",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-bottom-overalls": {
+      "rev": 1,
+      "variants": {
+        "default": "1d8da7e2c145b71df7b6977bdc8894264bf2eb6af6aaaea8b1a3025abc7a07f2"
+      },
+      "root": "ed5d5ee5acf64465e2c31b8a659270b5d14b8728d695deb443ea4a471105848e",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-bottom-shorts": {
+      "rev": 1,
+      "variants": {
+        "default": "08ef4c46bc6de516f3ad86ff5fcadee09b4bb9b10ae3f9d3bfe0098fb2561297"
+      },
+      "root": "9a25e8689ac24996fa19f4e846c3989cf8b74cee964ba4c309f7a15c4b861ba1",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-bottom-skirt": {
+      "rev": 1,
+      "variants": {
+        "default": "d8cbeac47e6df3460cd67ab71abcdee149666f4e600f1989a9debcde73bd7b12"
+      },
+      "root": "354f13530a45b9033d5997ede237d5b75d72004cd427236d25e7ad7c28e8d87e",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-bottom-track-pants": {
+      "rev": 1,
+      "variants": {
+        "default": "6e4af9ef35b2d3bdafed7beaf91566269b3921cbf4fe81ec3a72ff5672fcb623"
+      },
+      "root": "f960c4ae95c59d6fa245a494885dafad97e4e868c9d1f29665fef00d15aee223",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-bayview": {
+      "rev": 1,
+      "variants": {
+        "default": "d06c272822db91d82553dce52191b63bae7cc330407b513bfe780640a2a3281a"
+      },
+      "root": "4477670b633c1c69b72f1d52ef107e11ff45e72a4ae5ba8fc44721d516d15abf",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-castro": {
+      "rev": 1,
+      "variants": {
+        "default": "4be679c197163a6a96fcee93cc6927cc564243fbcd6fc8afeb01640ab46569ef"
+      },
+      "root": "59bc781a8aaf488de7cb3dda8c1695018a29adb59081728d453a6f67536e8280",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-chinatown": {
+      "rev": 1,
+      "variants": {
+        "default": "e5fb40ba9b677897874ccb4dd300ceb8a982186e551b9ae1978247579efa8d18"
+      },
+      "root": "fe5beca3314a26e60988a9c89315f1434ffc49727272fdd6a0c4331932cb64db",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-dogpatch": {
+      "rev": 1,
+      "variants": {
+        "default": "80eb525e3f959e2df4277e3196230657f7cd769d9ecb33e9cddd427174032243"
+      },
+      "root": "371d8ab8db7cb61dff47bf4e65ec0427ffcaf68468266473b835d9a986b9ad95",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-embarcadero": {
+      "rev": 1,
+      "variants": {
+        "default": "aa12ddc7b8cebd29c34d37f8eca3ae8e36fc23b443c15f79fdf371cb93e3c35f"
+      },
+      "root": "bd70af22e1a77329aff846e37a97660dd436ee60e49f083ac6845f6194b6dcfd",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-excelsior": {
+      "rev": 1,
+      "variants": {
+        "default": "6dff5022425181ca664890d95c05ef1ed93209b1a28ae47ffc828b675d997111"
+      },
+      "root": "0739eb92bb0237871bd4b3b1d066813b4a5630700492eccb5a2798c03783adaa",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-fillmore": {
+      "rev": 1,
+      "variants": {
+        "default": "3ab814e073db66ce314cb51070f6343a7381226f486bdea4992cf0a48e77313b"
+      },
+      "root": "14c1687aa81580bc9f301c278c1ef5a0f373d2eab86c79ec35be95a315176de9",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-glen-park": {
+      "rev": 1,
+      "variants": {
+        "default": "476151f5e64793d47c3491a36bc0f22586a3a100684c759d62c01d5953e9bdb5"
+      },
+      "root": "2429f8cc3e9b3280eee5845ed4e5221c308ace46f037b145bc6e6a2cf1435e3e",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-haight": {
+      "rev": 1,
+      "variants": {
+        "default": "2cf218f5f252f1d1eb2a3b56d0276682be95e846138716aa4af7f7a32fe2678c"
+      },
+      "root": "0407d1d620fc0ab48059377f8fe87b61f23427dce4fc0981675d251eabf0b04f",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-karl": {
+      "rev": 1,
+      "variants": {
+        "default": "3caea2759060a23bfbf7d83c4df64150207560deb1d982fb3705d8c01eccb94f"
+      },
+      "root": "1a7d1e9546b0cb2a23156be8f85216aaa70a54148785f1bb27e7cb9b4b6297c7",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-marina": {
+      "rev": 1,
+      "variants": {
+        "default": "ffe4c196c5768b68e630df985b05f64a3518f26aab98594c3223da191c3ae962"
+      },
+      "root": "1acebd5723b70e3b47b0c6133ca68d22ba6543129dcc6c66e4a2cf9d0bd27061",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-mission": {
+      "rev": 1,
+      "variants": {
+        "default": "15eb43f9829e1585da275acaeabd840d52177d3bbef8c6febed6af9db012b296"
+      },
+      "root": "33e9b3b27254b4a9477f973b1db6bb0c927a6f7a8a726084d815154a06152882",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-nob": {
+      "rev": 1,
+      "variants": {
+        "default": "d3d2a0d36ee4ef4cf852070c10835b3420509fb34bb19d99478809171e9e8f0d"
+      },
+      "root": "f2cd5cde660417edf63df06cae84f43f5dd1664f1e42233d145010a6c826382d",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-noe": {
+      "rev": 1,
+      "variants": {
+        "default": "6aaf04c3ac7cd893f49902c33f1d6c21855b511a2cdf3277c8ee3367fddf1e73"
+      },
+      "root": "5bef54011552ceb5ce412916fc3dd44afb42c2638a1ece11c98c3a3f48ee747b",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-portola": {
+      "rev": 1,
+      "variants": {
+        "default": "f080a53fd0bac1ae775675cf7ff9c78f21a3fa3c24bc0a6289985b32b823c1a0"
+      },
+      "root": "cff6ce0993470f460b4984c04b5f88db0f71ab4aea5f58366b5fc22ddf14be6f",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-potrero": {
+      "rev": 1,
+      "variants": {
+        "default": "34e2119ea4dca4cc192d1286e9eceb9ba63b26f3cb4fc4c501105ddda1d1260c"
+      },
+      "root": "5e1f3628c04a9cadb58a162b016a6dd80ef6e14adbeafcf576554b6399b933be",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-presidio": {
+      "rev": 1,
+      "variants": {
+        "default": "b3f58812b264086cbc98a41058472ebca4a7b9b3394ddca331f070a39b1d3cda"
+      },
+      "root": "7369cc431b458ee1133ae55d6c8e68eab82c5a34e85dfb2ee9f0c9565d80dcef",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-richmond": {
+      "rev": 1,
+      "variants": {
+        "default": "3af44ba2bc5fda66fc777dfe6873cf8f9d1b0578748c584284748e1dcaa770c5"
+      },
+      "root": "45e32faf86206327ec616e04e68d1521165535310fd49f5ab76bd27e8123c8c6",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-soma": {
+      "rev": 1,
+      "variants": {
+        "default": "6753fbdce62017dd020e25bd8233caa6448786f5b745d6f3a3e6cc8e98356712"
+      },
+      "root": "83a81f94c63b4ec17ef570b517850d899afde0d9c381cf6f1752cf89873f2a7e",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-sunset": {
+      "rev": 1,
+      "variants": {
+        "default": "6e2ffeeb13b82b458618f0e87450e46dbf975bb7874582ab9118d899432a29cc"
+      },
+      "root": "83f65a8030d4658b1476319d587ceabf8158e88dd238ff652225143dba163d3f",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-sunset-park": {
+      "rev": 1,
+      "variants": {
+        "default": "4959e267618518da3ed609f83392ac90d8d6dd0b82a261dd6f7538fcf74815be"
+      },
+      "root": "693b9a4298012fe78afdd58a217d3ffb1e99fcf79d52214703cdcbb5c07e925b",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-tenderloin": {
+      "rev": 1,
+      "variants": {
+        "default": "b3f6d99489d28d6e99f9c5c71faf3f6d7926f2ce5e3d1ba892c634ead4d98cb5"
+      },
+      "root": "067929617025fe623efa708898feb387f7856139dddd5e24e60b1ef100a61e8a",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-twin-peaks": {
+      "rev": 1,
+      "variants": {
+        "default": "9510a24fccf1348812059a80bfb09d17a0f5ec9586d0d88c274dc1f5458533ad"
+      },
+      "root": "17c94adc8ab7a5ed73e73e4fffcbf9998bd500f2048b54f4e1777e54a13feea2",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-face-union-square": {
+      "rev": 1,
+      "variants": {
+        "default": "b4ecc360b7d565b95704eb10d8941b63612898c6510c81334f51e7e4816e8d5f"
+      },
+      "root": "a3618baca2dd29c000512fbaf8fe39a546969e6a85e6b15c5b0c78e742ddbaf1",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-afro": {
+      "rev": 1,
+      "variants": {
+        "default": "03c8bd52fba292c50105b0c27a3bca287052707ef53a4862a605221ce10ea67b"
+      },
+      "root": "2052ba6ddcf895808f94dccf18ffa74f110912bd2e6531cc92e64eee0814a23a",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-bald": {
+      "rev": 1,
+      "variants": {
+        "default": "9bc41fa7a8d9c539682eac17d360245063304fb7460f18b2eec68a68da4b0d5e"
+      },
+      "root": "ecbbca9d3845c2d43488ff6e4c6ab486d1e2350402d7b570e5605f58b6190e03",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-bob": {
+      "rev": 1,
+      "variants": {
+        "default": "a0d65c02ba8f5c08778c2d2dc0245540c19c78e958ac2430ac4749d4f69fe755"
+      },
+      "root": "6b59747f1c3e16a46502897c1d4818a29539cb554cc2772cfe964bf07bb6c9b6",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-braids": {
+      "rev": 1,
+      "variants": {
+        "default": "b08eb7d4b49d26a0905da8051dab698ff4b8b109c4266f37bccd688844724446"
+      },
+      "root": "f598f75ceca751a6158a9b9bcbaed3cee3a8e859e58c641617121ec7ce2836cf",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-bun": {
+      "rev": 1,
+      "variants": {
+        "default": "884014bffdb3bf9f1bfa2c0d7ee336baaf4e95c70ea3e137affa2ca1d5ae181d"
+      },
+      "root": "4b8c780cb1055868d1ecea3e4baa7d5cee9ec7f5038e38cc4efe1669ebb65bbf",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-buzz": {
+      "rev": 1,
+      "variants": {
+        "default": "79d3aff77c5de7574e1c27015e28d8c0854dfba592a0922a569c07c848b49362"
+      },
+      "root": "38821d56e147d59f70350f53d3011450bc6a520c67d3707c643ce61fce512aa9",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-coils": {
+      "rev": 1,
+      "variants": {
+        "default": "80665055b7e06b8d6a3819bdb02245aa99db126db312557c8b0af1e09ce67b56"
+      },
+      "root": "c917b4e2a289d2d4925a238671461d8a4652597ccc157acad904159ab0ad64ef",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-crop": {
+      "rev": 1,
+      "variants": {
+        "default": "72c6ca442cef2fe0d81d2c0725c3c6d56c3dc34cb6d54191369b15c6611c09d9"
+      },
+      "root": "5367402444145eeba7b0ecd6b2b9c38dfad6f626f5416805bd78c31dd7be507b",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-curls": {
+      "rev": 1,
+      "variants": {
+        "default": "31de2475802c52ae634af1d21b0b9ac59f2c8c7094800d3e8f29a77dad98c062"
+      },
+      "root": "6eb35c60f49d9541b8ed38c19971afbe1652a9ed545770d15385ce187d01cdf4",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-fade": {
+      "rev": 1,
+      "variants": {
+        "default": "78d2cd2ccfb7eb34184a7fca2369a6aa857c4b09364330d6170e6120019c73b8"
+      },
+      "root": "8a7f9b784b5c0db93ddbbae7d716a1fb29476e84f31caa193ab097ed9bb0411b",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-locs": {
+      "rev": 1,
+      "variants": {
+        "default": "601b3676ba5e730661f6a09d5dc59ad2a7f1115409198f3f49a60fb71c4330d7"
+      },
+      "root": "0728d58923689ff544dc77daacec2bc639f3cbc2666e187447ea5bb16bba6f6d",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-long": {
+      "rev": 1,
+      "variants": {
+        "default": "4b4c672a1ef6fcdd016c35f5998d9ca61b668b3fe7fd7d83adacfeea6c549daf"
+      },
+      "root": "d5efa3bf9ee9bc1bad95caab76d590feaa0cdeee30295ea88e1d691d3b2e1f99",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-pomp": {
+      "rev": 1,
+      "variants": {
+        "default": "73df3ac1fe87e8df23c2d0b0abda5ec3a664e978eefbfcce5da005184733ef73"
+      },
+      "root": "62791fe260b287949a8ddefb7656f881d53c732551545951dd89437dc3dbd58b",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-ponytail": {
+      "rev": 1,
+      "variants": {
+        "default": "91eb3de3dd954151e94ce3e569e0955d083730806976f19c751a05d6c6976775"
+      },
+      "root": "ba9c7ea9bb3d132873258f99e3a4f9e6bfce95e7432f780340ac7531c42ee568",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-shag": {
+      "rev": 1,
+      "variants": {
+        "default": "7401476746c467d9b8781837a7776a51be7bd4af81b88f221733dd89149cb752"
+      },
+      "root": "1a759e7798b75e86d1a24ee6845aadbab0a012d0e5c1f98b5001ea8e98c17d34",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-hair-waves": {
+      "rev": 1,
+      "variants": {
+        "default": "bb6582d08ddd2c3bf57374c5f6c9e524f1188d686288a25f8949f6c45b2bf4a9"
+      },
+      "root": "a8f3ee4b3d25fa0479ecd305087e85c6d038d541a1663dcb9dee0dd2c3861594",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-shoes-boots": {
+      "rev": 1,
+      "variants": {
+        "default": "2b28ea0d88288f820908775b4d6daeca280952028cbee7cbfcfd97a8570a4f71"
+      },
+      "root": "c086ea4dd654ad3855471858556f32c8c19f5f5c264be6d6b9f75cd59b127f88",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-shoes-loafers": {
+      "rev": 1,
+      "variants": {
+        "default": "312f6aaa4c54f2945b32b4b3c8efda24b1146d5152faa87b92fabed311f84769"
+      },
+      "root": "1c53d7704b47246a44e2a6c2db6757df063937b68d82caeeea33dc27c0ece14e",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-shoes-runners": {
+      "rev": 1,
+      "variants": {
+        "default": "8dac1b3b625e59e4df82a1bed637466453eeaea299af5d23f30796309b6cbfc2"
+      },
+      "root": "48b1d87c797b51243aafb692d6f5c0512e713d1af77726c147c7401e107e7013",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-shoes-sandals": {
+      "rev": 1,
+      "variants": {
+        "default": "aad2fc9acfe9e12d4235903d0882411c32fc38402c56fca3080896c1ccbcfe92"
+      },
+      "root": "e51b2503b21f9ec1e1991190a16d2424b8fe0a1fdaa34c6ba8c1d4808cf343ab",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-shoes-skate-shoes": {
+      "rev": 1,
+      "variants": {
+        "default": "18eb96ec49667f5c97fae46d84d214d8b883cd13cc95031d0ad1805f885aac53"
+      },
+      "root": "180b5e1376e5f82d1b36959dcabda5db0e4a77410a43d05428f3b24557211b7c",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-shoes-sneakers": {
+      "rev": 1,
+      "variants": {
+        "default": "3a0b04959f36f15157b63fac47601c22e3fd1cb43ea7bd9e86bcf4fffc8b1a56"
+      },
+      "root": "6f4152f2f124f5ed3fe5c87f4ec29d7c5e3296a0b74c15813c92acf7a1421930",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-top-bomber": {
+      "rev": 1,
+      "variants": {
+        "default": "b15fc1fac9763ebcd02ad6821ae6545505ba07101abab9d0f401bf3466c35537"
+      },
+      "root": "8dc593cae82d4823cf86c170ff57822296ae3945aa080bc0d8bded46b8447e8e",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-top-button-up": {
+      "rev": 1,
+      "variants": {
+        "default": "cd842797f21c65377f7cb4909f390935a903db1afa0ec7c184973e9e1cbd43a5"
+      },
+      "root": "901664760e4231dda003d0bd09b8c5bb9f33348622a0efd8f23cce521451f6dc",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-top-crewneck": {
+      "rev": 1,
+      "variants": {
+        "default": "4ca1d24ecec2a47a78358b3167a1054e3bffc2bdc97c4267d930886c9b096e81"
+      },
+      "root": "168aea42f42bd4fa8b82c2b510791b18ed086b07852ae6c03f1ce95d4eedd331",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-top-denim-jacket": {
+      "rev": 1,
+      "variants": {
+        "default": "87fd8d8424aa4317652c823c2942c4f7b203c8e4eec5ffdd2534c6a399696001"
+      },
+      "root": "0605f5a6450611b9616a7a07c7be5ddcf03771801eaf7f98e4b2856e600a7491",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-top-flannel": {
+      "rev": 1,
+      "variants": {
+        "default": "0ee7e5a1d24b31e366389610982b251b840f683f56ef93410cd16c5172dfe071"
+      },
+      "root": "20d0825df8dccfcc4268d40664cf4641674ed58b39b0f6a968f67cc0480871b8",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-top-fleece": {
+      "rev": 1,
+      "variants": {
+        "default": "69f711c6afbd9eba0fc512d8381b248fa398ac0f3a036f180940c9b5c2b06ae2"
+      },
+      "root": "99ac11d757bb2cce2da1bcbbe58338a4358e4c32f40c53cfe2118d3e25636f87",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-top-hoodie": {
+      "rev": 1,
+      "variants": {
+        "default": "989be735373d3fdcd2358b4f242030d9d1146f950f018af3c93b944556f2a07b"
+      },
+      "root": "548a17fa01f4f001b7c9fda9b5ea5b5e6aaf9defbada153b52ac068b2f120e6a",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-top-jersey": {
+      "rev": 1,
+      "variants": {
+        "default": "efbc78b67187b274144a37ef515cf3ae121f37917f6c15470d357923145af049"
+      },
+      "root": "a97ad13bebd24dd6bc619dc52d02fe25c6608cc3ba56d95f6b999853cf9cdc19",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-top-raincoat": {
+      "rev": 1,
+      "variants": {
+        "default": "4010045b5e26b757f135494d7d225d6e916cb972d7ba358ce1f959c07dfe79ef"
+      },
+      "root": "d9fb9437690afa424ee8d08322f5ca1ad94f20f9dcd46be792e0da2d660868fb",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-top-tank": {
+      "rev": 1,
+      "variants": {
+        "default": "cdbbf2d6fa1f244121ac5fd3d466631e67d544845f1d584d14218ff5b938e712"
+      },
+      "root": "2a91c55d3f7c34c897b212c66f22711adb0638d3186f7804c6bc031901565a46",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-top-tee": {
+      "rev": 1,
+      "variants": {
+        "default": "141639bce074c1544aa5328a61c33dde1029e7a5162a220767ad136713b40936"
+      },
+      "root": "e7727da9a59a9dfa2b5455b55f459d6c006378a54cbf3f622ab8659d712b734f",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "portrait/pc-top-windbreaker": {
+      "rev": 1,
+      "variants": {
+        "default": "4719f94793ed8878e251778a40f0c5b14117994fec898b0325742d3cf63e0de7"
+      },
+      "root": "344a29053788e8190a356597151834c903e1223f8657024510ed0819ea7823eb",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
     "prop/barrier": {
       "rev": 1,
       "variants": {
@@ -1038,6 +3066,94 @@
       "root": "d0ff1a9ed7b1942d318b38632acb7af92d6604a2bf10fe2726ce1504efb683c1",
       "approved_by": "m10d1-builder",
       "approved_at": "2026-10-29T02:14:52Z"
+    },
+    "prop/ped.far.a": {
+      "rev": 1,
+      "variants": {
+        "desktop": "47243c52e183e0242ff86aa8b1eb21e134dc1d21f4b89522b8a54f075ffe704a",
+        "mobile": "33628805282acbcad0accaf681ae2e339c665c708acae595c65c5ec43a89220a",
+        "mobile-low": "da3ec8cf0cee8e1fc524e0811ae6f5c128f513a8c57e5a500386ee1868562fa1"
+      },
+      "root": "47243c52e183e0242ff86aa8b1eb21e134dc1d21f4b89522b8a54f075ffe704a",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "prop/ped.far.b": {
+      "rev": 1,
+      "variants": {
+        "desktop": "ccd511034ffc9f9b4f39844e8cfc2647c8b24ffb0f616493ae7110897991df70",
+        "mobile": "6252b24d3e24c55eb7fc5240748aaf5b03ab49ddd10457b235f80cd6a01433b8",
+        "mobile-low": "01f90b092d0a98fe61da9e0d0399ac6220eff9e997bbbfb7b57df8f7f0325f89"
+      },
+      "root": "ccd511034ffc9f9b4f39844e8cfc2647c8b24ffb0f616493ae7110897991df70",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "prop/ped.far.c": {
+      "rev": 1,
+      "variants": {
+        "desktop": "e06f7b9c6885c2188e5113d494c1adcb65017a85f9a1a5f7c705e46e10e0c181",
+        "mobile": "a75ee9944aa9963d528fa4e07864edb2222a616c3290a5137079d1e153baa516",
+        "mobile-low": "8053765c411e2064cbfc8de114b090aedecb9b601842f165f8d9d708f8ccd338"
+      },
+      "root": "e06f7b9c6885c2188e5113d494c1adcb65017a85f9a1a5f7c705e46e10e0c181",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "prop/ped.far.d": {
+      "rev": 1,
+      "variants": {
+        "desktop": "03165eca5f35f3e3de83315dc31d7dbf6f9d91682a30ef5f7517156356003e37",
+        "mobile": "4d6f53bb46bd1011c11b962488508e8ffe53f2fd38d6ca4a7d634a45590ab819",
+        "mobile-low": "7d2dde9642ae8f1643eabd54181b9bd7f537398c3ca68ead7b485d80f4881bb1"
+      },
+      "root": "03165eca5f35f3e3de83315dc31d7dbf6f9d91682a30ef5f7517156356003e37",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "prop/ped.far.e": {
+      "rev": 1,
+      "variants": {
+        "desktop": "21ffa12d31217adce63e26cc93a9a92cc7da3bc0201144f0d779ada434da410e",
+        "mobile": "54d11629d82b9d50238effd4d2898bccbf93e93bcd22d6f4362ab4c3dd2247a8",
+        "mobile-low": "4b0c5faf8d154cb495c72f9c1e6e5cc8ca8cdf8680828437c83fcee37e26fd38"
+      },
+      "root": "21ffa12d31217adce63e26cc93a9a92cc7da3bc0201144f0d779ada434da410e",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "prop/ped.far.f": {
+      "rev": 1,
+      "variants": {
+        "desktop": "57ecea0ccfe1364d9514d6df7541ce6bda5611204c99054a89a93963023d31b5",
+        "mobile": "b2330858ebfe9a00a845ba20799a6eaf59d2540517a390bda02007cfc85dfc52",
+        "mobile-low": "910d080db7208917d829021a6ef302990743df5700869cdd35fab0de679499d1"
+      },
+      "root": "57ecea0ccfe1364d9514d6df7541ce6bda5611204c99054a89a93963023d31b5",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "prop/ped.far.g": {
+      "rev": 1,
+      "variants": {
+        "desktop": "f0e1bbf73b2430a44e456d4c12e5497c52ad10026c0345b6281f7b676bfad6ae",
+        "mobile": "4d80be58444a78144100db8eb11839097dbd76bb19af5b46fd929025b7d0965d",
+        "mobile-low": "3bd0b90ce1c0072530ac09435cc1341746ea42fdf4d08193c61257dcc0e5731d"
+      },
+      "root": "f0e1bbf73b2430a44e456d4c12e5497c52ad10026c0345b6281f7b676bfad6ae",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "prop/ped.far.h": {
+      "rev": 1,
+      "variants": {
+        "desktop": "a756e89fb00ea415d78c7767d44100b6b84d53a0d123a01edbfbdd5d912ed1a1",
+        "mobile": "31fcffd320bc6dacbc9a9b1e49dcbd67e79e62b6c54b7fb8178ba1c781949e9b",
+        "mobile-low": "2ac233ea71cc437853d142a108323d32e87343835171c1652602319dd09c227f"
+      },
+      "root": "a756e89fb00ea415d78c7767d44100b6b84d53a0d123a01edbfbdd5d912ed1a1",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
     },
     "prop/pickup-cash": {
       "rev": 2,
@@ -1335,6 +3451,50 @@
       "root": "6ac026a77efbfe49434082f392eefdbda7e37ba89ae9daa7912c177a2faa45e4",
       "approved_by": "m10d0-builder",
       "approved_at": "2026-10-28T08:37:57Z"
+    },
+    "texture/pc.cloth": {
+      "rev": 1,
+      "variants": {
+        "desktop": "3b65d09ab13d1fb596917904c2f3cde4b67ded8a9e4f91fad9445755a9677032",
+        "mobile": "843e1d8729179d8f9221320204a41bffd9103a954b4c0cdd8dd8d0921761fdad",
+        "mobile-low": "894ba6fc211715ae5a2fba2fb3bd939a3e0d688bf1154aa86c9538895c51ec3f"
+      },
+      "root": "3b65d09ab13d1fb596917904c2f3cde4b67ded8a9e4f91fad9445755a9677032",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "texture/pc.hair": {
+      "rev": 1,
+      "variants": {
+        "desktop": "e80d96bd0571acae0208b91182f8ebff1166ed2913d2dcc415090347860a710c",
+        "mobile": "5c62f1faf01c08091c859cff805068d58af735d125ad36995d60cdf9b84fd495",
+        "mobile-low": "3f5be304e2235caefce08e25425bd85015cea6f3a1c446bbcf03e9a667be43a8"
+      },
+      "root": "e80d96bd0571acae0208b91182f8ebff1166ed2913d2dcc415090347860a710c",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "texture/pc.skin": {
+      "rev": 1,
+      "variants": {
+        "desktop": "16ed3980c137c3a89aa83d936ef8f11dd987543ad635c356fc51d3b00fe90537",
+        "mobile": "0f90bea67341eb0a1575d347bd8d20ee4a70dc6c5a3349440031b0c57105ec06",
+        "mobile-low": "28c41e433a2ecedfcbb0f368a8550712e85b4d3c48007e45617ea6e87e56c41a"
+      },
+      "root": "16ed3980c137c3a89aa83d936ef8f11dd987543ad635c356fc51d3b00fe90537",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
+    },
+    "texture/ped.atlas": {
+      "rev": 1,
+      "variants": {
+        "desktop": "e6a6eb3877cbf31e05c457e2f744e2bed95127a0147d179b5f7fc9a5970063c9",
+        "mobile": "22f378bc4464287b1bdebd38f962c4d1d902a5511fb9dd9db57fdf13bc58e6f3",
+        "mobile-low": "8fc344cabfc7880e27a166e7d10f9b3f2c3d3288fde536af01e6416e6946b26b"
+      },
+      "root": "e6a6eb3877cbf31e05c457e2f744e2bed95127a0147d179b5f7fc9a5970063c9",
+      "approved_by": "m10d4-builder",
+      "approved_at": "2026-10-30T09:31:35Z"
     },
     "vehicle/police.cruiser": {
       "rev": 3,

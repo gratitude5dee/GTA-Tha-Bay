@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "2179f81e056063b48a1beb219390a6a63e7290cc34b0ab9946221cbde9694a4b",
+  "paths": [
+    "assets/src/portrait/pc-bottom-jeans/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "2312e4ed29efd244a971be59964e4e3605f325b0d8b00384e22277d7e4ca0a16"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "bb0a9c9be2328f4e8b0301a1ef5f59079625a461848def4ac4c0e0a2a904152f"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

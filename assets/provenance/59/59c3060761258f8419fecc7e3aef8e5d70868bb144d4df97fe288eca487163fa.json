@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "59c3060761258f8419fecc7e3aef8e5d70868bb144d4df97fe288eca487163fa",
+  "paths": [
+    "assets/src/character/pc-hair-bun/mobile-low.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "2be2d9de4f865bfe9bd4ad34fc7270191bd4c56b2efc916e66e9483c0d25e127"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

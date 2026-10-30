@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "b4ecc360b7d565b95704eb10d8941b63612898c6510c81334f51e7e4816e8d5f",
+  "paths": [
+    "assets/src/portrait/pc-face-union-square/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "d6c4c4daf538d33c1f0dd8541590c15ad72afb0d4a1a35c36826abd5d7611d0d"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "c524a03cd219cb9212a43d2359f592d6f4b2f011ee70a4da0a2b437fff1283b3"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

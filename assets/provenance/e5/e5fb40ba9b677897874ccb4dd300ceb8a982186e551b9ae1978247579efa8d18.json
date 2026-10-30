@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "e5fb40ba9b677897874ccb4dd300ceb8a982186e551b9ae1978247579efa8d18",
+  "paths": [
+    "assets/src/portrait/pc-face-chinatown/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "519c0085e7235478bd638aaad10be0e1492c1bbf568a9c546add1f2a5296e094"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "3421590f18e84039e2f5010da5e4dec831b04ca2366830d003eef0156d25fd08"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

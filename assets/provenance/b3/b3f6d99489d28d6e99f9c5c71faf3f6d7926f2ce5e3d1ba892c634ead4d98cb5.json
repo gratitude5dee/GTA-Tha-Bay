@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "b3f6d99489d28d6e99f9c5c71faf3f6d7926f2ce5e3d1ba892c634ead4d98cb5",
+  "paths": [
+    "assets/src/portrait/pc-face-tenderloin/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "21e89737091ebbd8f219383ddfecd0f6974fc2f29edff90732b39dc93b0368c0"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "b77657450b359256dc6fcd2b9643b1c53ad672e92dbed8284e1343c1cd51e5da"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

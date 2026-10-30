@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "ce92758ff48674c1d31d105e7ac85fc63f06f659a7cca7176c92306f4ab7f018",
+  "paths": [
+    "assets/src/character/pc-face-noe/mobile.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "4add08a221edad228bacc4463ec53d27ee063f8cac0131ceb14a77edc8757cf8"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

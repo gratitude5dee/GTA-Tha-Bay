@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "ced3d6de19cc53ebcd3891fe4eaa9d4a660310aeaba38932735fd460630299b0",
+  "paths": [
+    "assets/src/character/pc-bottom-chinos/mobile.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "218edb966ff0ae7e5637a2f489fdb5a79dc74d31cf3c64ef846304a4d24e276a"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

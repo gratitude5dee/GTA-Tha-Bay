@@ -16,6 +16,11 @@ import { args } from '../../../ci/run.ts';
 import { isMain, toolsRoot } from '../../../ci/lib/common.ts';
 import { checkTextures, importTextures, pinSources } from './texture-set.ts';
 import { formatVet, vetDir } from './vet.ts';
+import { writePlan } from '../../../map/src/landmarks/kit/build.ts';
+import { applyRegistry, checkPeople, planAllPeople, refOfDef, type PeopleScope } from '../people-gen.ts';
+import { incomingBases } from './character.ts';
+
+const GATE = 'assets:import';
 
 async function main(): Promise<number> {
   const { values, positionals } = parseArgs({
@@ -56,8 +61,32 @@ async function main(): Promise<number> {
       console.log(`assets:import vet: ${results.length} item(s), ${rejected} rejected`);
       return rejected === 0 && results.length > 0 ? 0 : 1;
     }
+    case 'characters':
+    case 'portraits': {
+      const scope: PeopleScope = positionals[0] === 'portraits' ? 'portraits' : 'characters';
+      const only = values.only ? values.only.split(',') : undefined;
+      if (values.check) {
+        const res = await checkPeople(root, only, scope);
+        for (const d of res.diffs) console.log(`${GATE}: ${d.path}: ${d.why}; run pnpm assets:import -- ${positionals[0]}`);
+        console.log(`assets:import ${positionals[0]} --check: ${res.plans} assets, ${res.diffs.length} difference(s)`);
+        return res.diffs.length === 0 ? 0 : 1;
+      }
+      if (scope === 'characters') {
+        const bases = incomingBases(root);
+        if (bases.length === 0) console.log('SKIP licensed bases: no file in content-incoming/<pack>/; the people kit is built from the authored recipes (BD-M10d4-01)');
+        else console.log(`licensed bases waiting in content-incoming/: ${bases.join(', ')} (they pass inspectBase before use)`);
+      }
+      const plans = await planAllPeople(root, only, scope);
+      for (const p of plans) {
+        writePlan(root, p);
+        if (plans.length <= 40) console.log(`${refOfDef(p.def)}: ${Object.entries(p.stats).map(([v, s]) => `${v} ${(s as { tris: number }).tris} tris`).join(', ')}`);
+      }
+      if (scope === 'characters' && !only && applyRegistry(root)) console.log('config/art-placeholders.json: the M10d4 rows now name the people kit');
+      console.log(`assets:import ${positionals[0]}: ${plans.length} asset(s) written; next: pnpm assets:lock && pnpm assets:catalog`);
+      return 0;
+    }
     default:
-      console.error('usage: assets:import -- textures [--check] [--pin-sources] [--only <set>] | vet <dir|file>');
+      console.error('usage: assets:import -- textures [--check] [--pin-sources] [--only <set>] | vet <dir|file> | characters [--check] [--only <id>] | portraits [--check]');
       return 2;
   }
 }

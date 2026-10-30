@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "01dfcfc096963eb2f2485e02712f01862347275080155ca1c8ac662b70c8a053",
+  "paths": [
+    "assets/src/character/pc-shoes-skate-shoes/mobile-low.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "cdc43ada499e6038980a30d3e15f5385006bc44fa3baf6fbea1c95f5ae28d496"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

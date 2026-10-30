@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "b15fc1fac9763ebcd02ad6821ae6545505ba07101abab9d0f401bf3466c35537",
+  "paths": [
+    "assets/src/portrait/pc-top-bomber/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "b9662cfdc88b4ef0bf22a7a3c5f844d60a893a8a09ca8855bf8766ed91ed0505"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "06187e02ad3fec922794732f6e1203df5acdc7f1fdc4a630548a096d86a11958"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

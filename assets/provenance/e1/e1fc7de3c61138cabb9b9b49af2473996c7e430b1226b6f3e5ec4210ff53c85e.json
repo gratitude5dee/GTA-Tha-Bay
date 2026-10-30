@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "e1fc7de3c61138cabb9b9b49af2473996c7e430b1226b6f3e5ec4210ff53c85e",
+  "paths": [
+    "assets/src/character/pc-bottom-skirt/desktop.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "05dc344f99603ef2cfc5b8f4d44e36a7362e02ccab85aae1d1bcda745011a3f0"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

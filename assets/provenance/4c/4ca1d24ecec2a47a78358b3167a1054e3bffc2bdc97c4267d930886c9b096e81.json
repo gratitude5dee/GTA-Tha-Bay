@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "4ca1d24ecec2a47a78358b3167a1054e3bffc2bdc97c4267d930886c9b096e81",
+  "paths": [
+    "assets/src/portrait/pc-top-crewneck/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "4fe8518b5c4ccc667e248dca1a760229b2d08893cdf795e0bad70c4c0e298aad"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "ed51001b05bc52ab220d6c85cf9178616401b4798b3f2dc041fa01c3ba5e9be3"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

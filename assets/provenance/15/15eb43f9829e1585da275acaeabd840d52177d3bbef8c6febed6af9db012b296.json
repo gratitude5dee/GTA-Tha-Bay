@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "15eb43f9829e1585da275acaeabd840d52177d3bbef8c6febed6af9db012b296",
+  "paths": [
+    "assets/src/portrait/pc-face-mission/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "062869abfe9ae5306862d682d47837564e03365ef7421484bc32306fb822f586"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "fe8644533b7e60126bf8150966b6f45b361336c0b7de88b86af2f64d6b49d1ba"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

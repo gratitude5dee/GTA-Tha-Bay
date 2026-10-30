@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "bce965f837d0434fd036e10b71b066be05c93743b66e8759857e1b417731f143",
+  "paths": [
+    "assets/src/character/pc-face-sunset/desktop.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "e708987dcbe56a8799557e6686de38d9e0090bfb009a6b5bf5ad5b8f07c72283"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

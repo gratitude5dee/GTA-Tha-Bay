@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "66d37d0e3a2b39e7103d8975dd39e7bb709bb6fd9eede9a1b57c60667edd4ae6",
+  "paths": [
+    "assets/src/character/pc-shoes-loafers/mobile-low.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "48858901b2ac35a323c18597afe92083f4bd97632482748a8c0c3a4916518f64"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

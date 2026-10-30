@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "b3f58812b264086cbc98a41058472ebca4a7b9b3394ddca331f070a39b1d3cda",
+  "paths": [
+    "assets/src/portrait/pc-face-presidio/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "cc4709240a6c7417a4621dc89262f8a798b4757ecf36c610229e747ba2f15feb"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "4969f958a4086eb9fb1d873389ffe45ee7b1b76129e1256b4812ff32f1bb9f47"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

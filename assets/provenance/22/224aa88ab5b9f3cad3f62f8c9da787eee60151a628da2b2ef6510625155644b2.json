@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "224aa88ab5b9f3cad3f62f8c9da787eee60151a628da2b2ef6510625155644b2",
+  "paths": [
+    "assets/src/character/pc-face-presidio/mobile.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "87ea95a380fd82ad0a2acf45478bcbfe97cf7b386b8e5d7f794f1acc18c2084b"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "9510a24fccf1348812059a80bfb09d17a0f5ec9586d0d88c274dc1f5458533ad",
+  "paths": [
+    "assets/src/portrait/pc-face-twin-peaks/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "a9d206c4ab6ce1c1f2612fea6638ba606cfe7b4c51e6d31fe32361cbcc02ad27"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "35b8219edc10bbc75385cf6b7bcabafdac6d3afff74b104be95bf159ed248eb9"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "894ba6fc211715ae5a2fba2fb3bd939a3e0d688bf1154aa86c9538895c51ec3f",
+  "paths": [
+    "assets/src/texture/pc.cloth/mobile-low.png"
+  ],
+  "kind": "texture",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "040481330f2c46d8bc089c33af313cf3261f613fe185149038146e1e390baaa1"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

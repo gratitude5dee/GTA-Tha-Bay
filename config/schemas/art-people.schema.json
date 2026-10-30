@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dee-verse.invalid/schemas/art-people-1.json",
+  "title": "content/art/people.json (M10d4)",
+  "description": "The parameters of the people recipes: bodies, faces, hair, garments, accessories and the twenty pedestrian outfits. Every multiplier of a body stays in 0.9 .. 1.08 so one garment fits every body (BD-M10d4-02).",
+  "type": "object",
+  "required": ["schema", "bodies", "pedBodies", "pedBodySpecs", "faces", "hairs", "tops", "bottoms", "shoes", "accessories", "outfits"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "art-people/1" },
+    "bodies": { "type": "array", "minItems": 12, "maxItems": 12, "items": { "$ref": "#/$defs/body" } },
+    "pedBodySpecs": { "type": "array", "minItems": 8, "maxItems": 8, "items": { "$ref": "#/$defs/body" } },
+    "pedBodies": {
+      "type": "array", "minItems": 8, "maxItems": 8,
+      "items": {
+        "type": "object", "required": ["id", "body", "face", "hair", "far"], "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-h]$" },
+          "body": { "type": "string", "pattern": "^[a-h]$" },
+          "face": { "type": "string", "pattern": "^face-[a-z-]+$" },
+          "hair": { "type": "string", "pattern": "^hair-[a-z]+$" },
+          "far": { "type": "object", "required": ["w", "h"], "additionalProperties": false, "properties": { "w": { "type": "number", "minimum": 0.8, "maximum": 1.2 }, "h": { "type": "number", "minimum": 0.85, "maximum": 1.1 } } }
+        }
+      }
+    },
+    "faces": {
+      "type": "array", "minItems": 24, "maxItems": 24,
+      "items": {
+        "type": "object", "required": ["id", "morphs"], "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^face-[a-z-]+$" },
+          "morphs": { "type": "object", "additionalProperties": { "type": "number", "minimum": -1, "maximum": 1 } }
+        }
+      }
+    },
+    "hairs": {
+      "type": "array", "minItems": 16, "maxItems": 16,
+      "items": {
+        "type": "object", "required": ["id", "kind", "scale", "top", "backY", "sideY", "frontY"], "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^hair-[a-z]+$" },
+          "kind": { "enum": ["cap", "afro", "bald"] },
+          "scale": { "type": "number", "minimum": 1, "maximum": 1.6 },
+          "top": { "type": "number", "minimum": 0, "maximum": 0.05 },
+          "backY": { "type": "number" }, "sideY": { "type": "number" }, "frontY": { "type": "number" },
+          "ripple": { "type": "object", "required": ["amp", "freq"], "additionalProperties": false, "properties": { "amp": { "type": "number" }, "freq": { "type": "number" } } },
+          "tail": { "type": "object", "required": ["kind", "count", "endY", "r"], "additionalProperties": false, "properties": { "kind": { "enum": ["pony", "locs", "braids", "curtain"] }, "count": { "type": "integer", "minimum": 1 }, "endY": { "type": "number" }, "r": { "type": "number" } } },
+          "bun": { "type": "object", "required": ["r", "y"], "additionalProperties": false, "properties": { "r": { "type": "number" }, "y": { "type": "number" } } },
+          "pomp": { "type": "number" }
+        }
+      }
+    },
+    "tops": {
+      "type": "array", "minItems": 12, "maxItems": 12,
+      "items": {
+        "type": "object", "required": ["id", "hemY", "ease", "sleeve", "cuffY", "hood", "collar", "hemband", "flare", "cell", "neck"], "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^top-[a-z-]+$" },
+          "hemY": { "type": "number" }, "ease": { "type": "number", "minimum": 0.12, "maximum": 0.3 },
+          "sleeve": { "enum": ["long", "short", "none"] }, "cuffY": { "type": "number" }, "hood": { "type": "boolean" },
+          "collar": { "type": "number", "minimum": 0, "maximum": 1 }, "hemband": { "type": "boolean" }, "flare": { "type": "number", "minimum": 0, "maximum": 0.3 },
+          "cell": { "type": "integer", "minimum": 0, "maximum": 7 }, "neck": { "type": "number", "minimum": 0.8, "maximum": 1 }
+        }
+      }
+    },
+    "bottoms": {
+      "type": "array", "minItems": 8, "maxItems": 8,
+      "items": {
+        "type": "object", "required": ["id", "kind", "hemY", "ease", "flare", "cell"], "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^bottom-[a-z-]+$" }, "kind": { "enum": ["pants", "shorts", "skirt", "overalls"] },
+          "hemY": { "type": "number" }, "ease": { "type": "number", "minimum": 0.12, "maximum": 0.3 }, "flare": { "type": "number", "minimum": 0, "maximum": 0.5 },
+          "cell": { "type": "integer", "minimum": 0, "maximum": 7 }
+        }
+      }
+    },
+    "shoes": {
+      "type": "array", "minItems": 6, "maxItems": 6,
+      "items": {
+        "type": "object", "required": ["id", "shaft", "bulk", "sole", "open", "cell"], "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^shoes-[a-z-]+$" }, "shaft": { "type": "number", "minimum": 0, "maximum": 0.4 }, "bulk": { "type": "number" },
+          "sole": { "type": "number" }, "open": { "type": "boolean" }, "cell": { "type": "integer", "minimum": 0, "maximum": 7 }
+        }
+      }
+    },
+    "accessories": {
+      "type": "array", "minItems": 8, "maxItems": 8,
+      "items": {
+        "type": "object", "required": ["id", "kind", "cell"], "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^acc-[a-z]+$" },
+          "kind": { "enum": ["cap", "beanie", "shades", "chain", "watch", "backpack", "scarf", "headphones"] },
+          "cell": { "type": "integer", "minimum": 0, "maximum": 7 }
+        }
+      }
+    },
+    "outfits": {
+      "type": "array", "minItems": 20, "maxItems": 20,
+      "items": {
+        "type": "object", "required": ["n", "top", "bottom", "shoes", "accessory"], "additionalProperties": false,
+        "properties": {
+          "n": { "type": "integer", "minimum": 1, "maximum": 20 },
+          "top": { "type": "string" }, "bottom": { "type": "string" }, "shoes": { "type": "string" },
+          "accessory": { "type": ["string", "null"] }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "body": {
+      "type": "object",
+      "required": ["id", "heightM", "shoulder", "chest", "waist", "hips", "thigh", "arm", "neck", "depth", "belly", "bust"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "heightM": { "type": "number", "minimum": 1.55, "maximum": 1.95 },
+        "shoulder": { "$ref": "#/$defs/mult" }, "chest": { "$ref": "#/$defs/mult" }, "waist": { "$ref": "#/$defs/mult" }, "hips": { "$ref": "#/$defs/mult" },
+        "thigh": { "$ref": "#/$defs/mult" }, "arm": { "$ref": "#/$defs/mult" }, "neck": { "$ref": "#/$defs/mult" }, "depth": { "$ref": "#/$defs/mult" },
+        "belly": { "type": "number", "minimum": 0, "maximum": 0.5 }, "bust": { "type": "number", "minimum": 0, "maximum": 0.4 }
+      }
+    },
+    "mult": { "type": "number", "minimum": 0.9, "maximum": 1.08 }
+  }
+}

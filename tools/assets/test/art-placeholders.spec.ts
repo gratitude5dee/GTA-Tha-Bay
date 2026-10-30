@@ -14,7 +14,7 @@ const reg = readRegistry(toolsRoot);
 
 const catalog = (): Set<string> => {
   const out = new Set<string>();
-  for (const kind of ['vehicle', 'prop']) {
+  for (const kind of ['vehicle', 'prop', 'character', 'texture']) {
     const dir = path.join(toolsRoot, 'assets/src', kind);
     for (const id of readdirSync(dir)) if (existsSync(path.join(dir, id, 'asset.json'))) out.add(`${kind}/${id}`);
   }
@@ -42,6 +42,31 @@ describe('config/art-placeholders.json', () => {
     (bad.rows.find((r) => r.id === 'props') as PlaceholderRegistry['rows'][number]).replacedBy = [];
     const findings = registryFindings(bad, toolsRoot, catalog());
     expect(findings.some((f) => f.rule === 'replaced-by-empty' && f.detail.startsWith('props:'))).toBe(true);
+  });
+
+  it('has M10d4 rows whose replacedBy is non-empty and resolves, names no Coast row and keeps the owner enum (M10d4 AC-2)', () => {
+    const rows = reg.rows.filter((r) => r.owner === 'M10d4');
+    expect(rows.map((r) => r.id)).toEqual(['ped-mannequins', 'creator-parts']);
+    expect(registryFindings(reg, toolsRoot, catalog())).toEqual([]);
+    for (const r of rows) {
+      expect(r.replacedBy.length).toBeGreaterThan(0);
+      for (const ref of r.replacedBy) expect(catalog().has(ref), ref).toBe(true);
+      expect(r.replacedBy.some((x) => /-coast(\.|$)/.test(x))).toBe(false);
+    }
+    expect(new Set(reg.rows.map((r) => r.owner))).toEqual(new Set(['M10d1', 'M10d4', 'M10d5', 'M10d2', 'M10d3']));
+    const schema = JSON.parse(readFileSync(path.join(toolsRoot, 'config/schemas/art-placeholders.schema.json'), 'utf8')) as { $defs?: Record<string, { enum?: string[] }>; properties?: unknown };
+    expect(JSON.stringify(schema)).toContain('M10d3');
+  });
+
+  it('fails an M10d4 fixture with an empty replacedBy naming its id, and one that lists a Coast row', () => {
+    const empty: PlaceholderRegistry = structuredClone(reg);
+    (empty.rows.find((r) => r.id === 'creator-parts') as PlaceholderRegistry['rows'][number]).replacedBy = [];
+    expect(registryFindings(empty, toolsRoot, catalog()).some((f) => f.rule === 'replaced-by-empty' && f.detail.startsWith('creator-parts:'))).toBe(true);
+    const coast: PlaceholderRegistry = structuredClone(reg);
+    (coast.rows.find((r) => r.id === 'creator-parts') as PlaceholderRegistry['rows'][number]).replacedBy.push('character/pc-body-coast');
+    const rules = registryFindings(coast, toolsRoot, catalog()).map((f) => f.rule);
+    expect(rules).toContain('replaced-by-coast');
+    expect(rules).toContain('replaced-by-unresolved');
   });
 
   it('fails a repoint to a ref the catalog lacks, and a source its row does not match', () => {

@@ -99,6 +99,16 @@ export function registryFindings(reg: PlaceholderRegistry, root: string, catalog
         bad('bad-match', `${row.id}: ${(e as Error).message}`);
       }
     }
+    if (row.owner === 'M10d4') {
+      // the ped and creator rows of M10d4: a non-empty replacedBy that resolves, and no Coast row (those are M10a2's, DL-741)
+      if (row.replacedBy.length === 0) bad('replaced-by-empty', `${row.id}: replacedBy is empty`);
+      for (const ref of row.replacedBy) {
+        if (catalog && !catalog.has(ref)) bad('replaced-by-unresolved', `${row.id}: ${ref} is not in the catalog`);
+        if (/-coast(\.|$)/.test(ref)) bad('replaced-by-coast', `${row.id}: ${ref} is a Coast row, which is M10a2's`);
+      }
+      if (row.repoint && Object.keys(row.repoint).length > 0) bad('repoint-owner', `${row.id}: only rows owned by M10d1 carry a repoint here`);
+      continue;
+    }
     if (row.owner !== 'M10d1') {
       if (row.repoint && Object.keys(row.repoint).length > 0) bad('repoint-owner', `${row.id}: only rows owned by M10d1 carry a repoint here`);
       continue;

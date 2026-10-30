@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "3af44ba2bc5fda66fc777dfe6873cf8f9d1b0578748c584284748e1dcaa770c5",
+  "paths": [
+    "assets/src/portrait/pc-face-richmond/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "4a3181e284749d21c6e2b9667d6b2a8bd956160117e1dd46df2efe78061c4807"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "765bf6557b561c6b3fbf976187d4dbdf36f0cf862d1552e80477fe0f8abeec11"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

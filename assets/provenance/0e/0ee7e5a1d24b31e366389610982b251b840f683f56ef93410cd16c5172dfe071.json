@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "0ee7e5a1d24b31e366389610982b251b840f683f56ef93410cd16c5172dfe071",
+  "paths": [
+    "assets/src/portrait/pc-top-flannel/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "ce5769ee0316b2c9ff89955297c20ef50a512905ecdf0733485dd26e7755c94a"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "3c43e8461d026b486e13efe71f0d32efb12d658de37df26cb6c25f04fee0ee80"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}
