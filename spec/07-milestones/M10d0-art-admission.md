@@ -14,7 +14,7 @@ After this session third-party art enters lawfully and the first licensed art is
 ## Depends on
 - **M00f:** `provenance:check --emit-credits` (`attributions`), `license:scan`, `config/license-allowlist.json` (CC0-1.0 and CC-BY-4.0 already listed).
 - **M01d:** `assets:catalog`, `assets:verify`, the lock, `assets/src/<kind>/<id>/asset.json`, `VariantStats.texGpuBytes`, `codec.tex` `ktx2-uastc`/`ktx2-etc1s`.
-- **M02g2** (merge order only, not the start, `_PLAN.md` §4): `look/look-materials.ts`, `world-view.ts`, `world-bridge.ts`, `tests/e2e/world-look.spec.ts`, the look goldens and the ledger chain. Until it merges this row holds the existing files under `packages/world/src/client/**` (its new `textures/` folder is free), `tests/e2e/world-look.spec.ts`, `tests/e2e/golden/look/*` and `docs/look/`; then it rebases.
+- **M02g2** (no edge since DL-757): shares `look/look-materials.ts`, `world-view.ts`, `world-bridge.ts`, `tests/e2e/world-look.spec.ts`, the look goldens and the ledger chain. This row edits existing files under `packages/world/src/client/**` only at the `_PLAN-3.md` rule 2 hook sites (its new `textures/` folder is free); whichever of M10d0 and M02g2 merges second keeps both sides of the fences, regenerates every look golden set and rebaselines its ledger.
 - Track B (`_PLAN-3.md` Look program): never edits `chunks/{mesher,mesh-types,chunk-renderer}.ts`, `look/{surfaces,ground,facade}.ts`, `config/world/{look,look-shots,mesher}.json` or the `tools/map` bake files, and adds no surface id. No dependency on M10a1: this row writes `genai.lines` itself (Scope in).
 - Contracts: C07 1.1 and C13 1.2, read only.
 
@@ -100,7 +100,7 @@ Evidence: art-source study ("Licence gate setup", "Ground"); capture study "Grou
 5. Open `/menu/credits`: the Art section.
 
 ## Effort
-1 Builder session; ≈ 31 code files; risk **medium-high** (KTX2 on WebKit and WebGL2, golden churn). Order: packs, snapshots, gate, checklist and `vet.ts`, fal lines, the import of the 18 KTX2 sets, loader and credits (none of these edits an existing file under `packages/world/src/client/`; the loader is the new `textures/` folder, so they start once M00f and M01d are merged); then, after M02g2 merges and a rebase: hook, tiling, bindings, goldens, ledger. No further split: two halves would still run one after the other on Track B.
+1 Builder session; ≈ 31 code files; risk **medium-high** (KTX2 on WebKit and WebGL2, golden churn). Order: packs, snapshots, gate, checklist and `vet.ts`, fal lines, the import of the 18 KTX2 sets, loader and credits (none of these edits an existing file under `packages/world/src/client/`; the loader is the new `textures/` folder, so they start once M00f and M01d are merged); then hook, tiling, bindings, goldens, ledger (DL-757: no wait for M02g2; the later of the two to merge re-proves them at rebase). No further split: two halves would still run one after the other on Track B.
 
 ## Risks & fallbacks
 - **KTX2 fails on a backend:** list it in `unsupported` (`spec/03` row); it stays procedural and AC-6 subtracts it. Failing everywhere stops the session (Blocked on the Architect).
