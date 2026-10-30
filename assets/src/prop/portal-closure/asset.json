@@ -1,0 +1,39 @@
+{
+  "kind": "prop",
+  "id": "portal-closure",
+  "variants": {
+    "desktop": "assets/src/prop/portal-closure/desktop.glb",
+    "mobile": "assets/src/prop/portal-closure/mobile.glb",
+    "mobile-low": "assets/src/prop/portal-closure/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 204,
+      "verts": 408,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile": {
+      "tris": 156,
+      "verts": 312,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile-low": {
+      "tris": 108,
+      "verts": 216,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "prop:street",
+    "art:m10d1"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

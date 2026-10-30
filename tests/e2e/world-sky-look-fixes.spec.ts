@@ -68,8 +68,9 @@ test.describe('fixes ledger @fixes-ledger', () => {
 
   for (const tier of LEDGER_TIERS) {
     test(`${tier}: render objects and triangles on a held frame, against M10d0's ledger @fixes-ledger`, async ({ page }) => {
-      // the protocol of M02g1's ledger: no `perf=1` (a held frame must not change), traffic resident, `mobile-low` at the `fog-west` shot
-      await bootWorld(page, tier);
+      // the protocol of M02g1's ledger: no `perf=1` (a held frame must not change), traffic resident, `mobile-low` at the `fog-west` shot.
+      // `&art=0` (M10d1's QA switch, BD-REPAIR-M10d1-01): this row measures M02g2's own change against M10d0's `after`, so the art of later rows stays out of the frame, as the flicker pairs keep the textures out with `&textures=0`
+      await bootWorld(page, tier, SMALL_VIEWPORT, '&art=0');
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);
       if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));
@@ -135,7 +136,7 @@ test.describe('xr fixes ledger @fixes-ledger', () => {
   test('the Quest tier holds its render objects on a held frame, against M10d0 @xr @fixes-ledger', async ({ page }, testInfo: TestInfo) => {
     test.setTimeout(240_000);
     await page.setViewportSize(SMALL_VIEWPORT);
-    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1');
+    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1&art=0');
     await waitForEngine(page);
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
     await world(page, (w) => w.hold(true));

@@ -3,7 +3,7 @@
   "kind": "prop",
   "version": 1,
   "render": {
-    "asset": "prop/graybox.crate"
+    "asset": "prop/crate"
   },
   "physics": {
     "body": "dynamic",

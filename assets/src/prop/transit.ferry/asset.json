@@ -1,0 +1,39 @@
+{
+  "kind": "prop",
+  "id": "transit.ferry",
+  "variants": {
+    "desktop": "assets/src/prop/transit.ferry/desktop.glb",
+    "mobile": "assets/src/prop/transit.ferry/mobile.glb",
+    "mobile-low": "assets/src/prop/transit.ferry/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 2124,
+      "verts": 1363,
+      "primitives": 2,
+      "materials": 2
+    },
+    "mobile": {
+      "tris": 2100,
+      "verts": 1345,
+      "primitives": 2,
+      "materials": 2
+    },
+    "mobile-low": {
+      "tris": 800,
+      "verts": 605,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "prop:backdrop",
+    "art:m10d1"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

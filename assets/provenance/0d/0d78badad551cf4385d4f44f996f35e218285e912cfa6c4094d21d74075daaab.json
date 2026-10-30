@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "0d78badad551cf4385d4f44f996f35e218285e912cfa6c4094d21d74075daaab",
+  "paths": [
+    "assets/src/prop/spikestrip/mobile-low.glb"
+  ],
+  "kind": "prop",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "4fa3f527116bb073123d46b3e625ee88bc52f1d3d9843e9aba20940b755d7318"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

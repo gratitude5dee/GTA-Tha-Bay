@@ -12,6 +12,7 @@ import {
 } from 'three/webgpu';
 import { handlingById } from '../../sim/vehicle/presets.ts';
 import { resolveAnchors, type VehicleAnchors } from './anchors.ts';
+import { ART_VEHICLES } from './art-tables.ts';
 
 /**
  * A part of a vehicle that the chase camera can look through (M02g1): the tow boom. It has materials of its own, so fading it does not
@@ -98,6 +99,9 @@ export function setReflectHook(hook: ReflectHook | null): void {
 
 /** Where a gray-box vehicle touches the ground and how wide its footprint is, from its C07 asset key (`vehicle/graybox.<archetype>`). */
 export function vehicleFootprint(key: string): { halfWidth: number; halfLength: number; dropM: number } | null {
+  // M10d1: the final road vehicles have the footprint of the handling preset they follow
+  const art = ART_VEHICLES[key];
+  if (art) return { halfWidth: art.width / 2, halfLength: art.length / 2, dropM: handlingById(art.hp).cgHeightM };
   const m = /^vehicle\/graybox\.([a-z-]+)$/.exec(key);
   const arch = m ? ARCHETYPES[m[1] as string] : undefined;
   if (!arch) return null;
@@ -177,6 +181,28 @@ function mesh(a: GrayboxAssets, g: BufferGeometry, color: number, x: number, y: 
   return m;
 }
 
+/**
+ * The tow boom of the m.a1.01 pickup (M02g1): a mast and an arm that leans back over the bed, in materials of their own so that the
+ * chase camera can fade them. `deck` is the bed height and `bedZ` the mast's z in the vehicle's frame (origin at the centre of gravity,
+ * forward -Z). Shared by the gray-box pickup and the final one (M10d1).
+ */
+export function buildTowBoom(a: GrayboxAssets, deck: number, bedZ: number): { node: Group; attachment: Attachment } {
+  const boom = named(new Group(), 'attach_boom');
+  const mats: MeshStandardNodeMaterial[] = [];
+  const part = (w: number, h: number, l: number, x: number, y: number, z: number, color: number, rotX = 0): void => {
+    const m = new MeshStandardNodeMaterial({ color, roughness: 0.6, metalness: 0.2, transparent: true, opacity: 1 });
+    mats.push(m);
+    const o = new Mesh(a.box(w, h, l), m);
+    o.position.set(x, y, z);
+    o.rotation.x = rotX;
+    boom.add(o);
+  };
+  part(0.22, 1.5, 0.22, 0, deck + 0.75, bedZ, 0xe3a21a);
+  part(0.16, 0.16, 2.4, 0, deck + 1.55, bedZ + 0.95, 0xe3a21a, -0.2);
+  part(0.1, 0.5, 0.1, 0, deck + 1.3, bedZ + 2.0, 0x2b2f35);
+  return { node: boom, attachment: { node: boom, materials: mats, centre: [0, deck + 1.1, bedZ + 0.8], radius: 1.7 } };
+}
+
 /** A gray-box vehicle for `archetype`: forward is -Z, the origin is the centre of gravity (the sim's body position). */
 export function buildGrayboxVehicle(a: GrayboxAssets, archetype: string): DrawnThing {
   const arch = ARCHETYPES[archetype] ?? (ARCHETYPES['sedan'] as Archetype);
@@ -204,24 +230,11 @@ export function buildGrayboxVehicle(a: GrayboxAssets, archetype: string): DrawnT
   }
   let attachments: Attachment[] | undefined;
   if (arch.boom) {
-    // The tow boom stands over the bed behind the cabin: a mast and an arm that leans back, in its own materials (the camera fades them).
-    const boom = named(new Group(), 'attach_boom');
-    const mats: MeshStandardNodeMaterial[] = [];
-    const part = (w: number, h: number, l: number, x: number, y: number, z: number, color: number, rotX = 0): void => {
-      const m = new MeshStandardNodeMaterial({ color, roughness: 0.6, metalness: 0.2, transparent: true, opacity: 1 });
-      mats.push(m);
-      const o = new Mesh(a.box(w, h, l), m);
-      o.position.set(x, y, z);
-      o.rotation.x = rotX;
-      boom.add(o);
-    };
     const deck = -cg + CLEARANCE + arch.bodyH;
     const bedZ = arch.cabinZ + arch.cabinLength / 2 + 0.7;
-    part(0.22, 1.5, 0.22, 0, deck + 0.75, bedZ, 0xe3a21a);
-    part(0.16, 0.16, 2.4, 0, deck + 1.55, bedZ + 0.95, 0xe3a21a, -0.2);
-    part(0.1, 0.5, 0.1, 0, deck + 1.3, bedZ + 2.0, 0x2b2f35);
-    body.add(boom);
-    attachments = [{ node: boom, materials: mats, centre: [0, deck + 1.1, bedZ + 0.8], radius: 1.7 }];
+    const tow = buildTowBoom(a, deck, bedZ);
+    body.add(tow.node);
+    attachments = [tow.attachment];
   }
   const roofY = cabY + arch.cabinH / 2 + 0.06;
   if (arch.roof === 'lightbar') {

@@ -8,6 +8,7 @@
  *   world.mesh    meshes one L0 chunk, L1 tile or L2 block and returns its buffers (transferred).
  *   world.far     the backdrop: the ring mesh, the massing instances or the card atlas bytes.
  *   world.texture reads the tier's variant of one `texture/pbr.<set>.<map>` and returns its bytes transferred (M10d0).
+ *   world.vehicle  reads one vehicle or prop model (`vehicle/...`, `prop/...`) at a variant and returns it decoded (transferred; M10d1).
  *   world.landmark  reads one landmark model (`building/lm.<slug>`, the tier's variant) and returns its decoded buffers (transferred; M02d1).
  */
 import { PackUnavailable, type PackRef as StorePackRef } from '@dv/engine/assets/types';
@@ -27,6 +28,7 @@ import { landmarkTransferList, readLandmarkGlb, type LandmarkModelData } from '.
 import { meshChunk } from './chunks/mesher.ts';
 import { transferListOf, type UnitMesh } from './chunks/mesh-types.ts';
 import { textureJob } from './textures/texture-job.ts';
+import { vehicleJob } from './vehicles/vehicle-job.ts';
 
 // ---- plain pack reads ------------------------------------------------------------------------------------------------------
 
@@ -410,6 +412,8 @@ export const worldJobs: Readonly<Record<string, AssetJob>> = {
   'world.mesh': mesh,
   'world.far': far,
   'world.landmark': landmark,
+  /** M10d1: one vehicle or prop model, the variant of the tier, decoded (transferred). */
+  'world.vehicle': vehicleJob,
   /** M10d0: one KTX2 surface texture, the tier's variant, through the pack store (the page transcodes it). */
   'world.texture': textureJob,
 };

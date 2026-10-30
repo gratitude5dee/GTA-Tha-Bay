@@ -2,6 +2,10 @@ import { BoxGeometry, Group, Mesh, MeshStandardNodeMaterial, Vector3, type Buffe
 import { AnimLod, ENGINE_TIERS } from '../anim/lod.ts';
 import { buildPlaceholderRig, MannequinAnimator, type PlaceholderRig } from '../anim/placeholder-rig.ts';
 import { buildGrayboxThing, GrayboxAssets, isGrayboxThing, type DrawnThing } from '../vehicle/vehicle-view.ts';
+import { art } from '../vehicle/art.ts';
+import { isArtKey } from '../vehicle/art-model.ts';
+import { grayboxOf } from '../vehicle/art-tables.ts';
+import { buildArtThing } from '../vehicle/gltf-thing.ts';
 import type { Pose } from './interpolate.ts';
 
 export const GRAYBOX_CAPSULE = 'prop/graybox.capsule';
@@ -81,6 +85,9 @@ export class ObjectPool {
   private readonly assets = new GrayboxAssets();
   private readonly geometries = new Map<string, BufferGeometry>();
   private readonly materials = new Map<number, MeshStandardNodeMaterial>();
+  /** Entities drawn from a gray-box stand-in while the model of their final art loads (M10d1): handle to asset key. */
+  private readonly pendingArt = new Map<number, string>();
+  private artSeen = -1;
   /** The handle whose mesh stays hidden (the player in first person). */
   hiddenHandle: number | null = null;
   /** The handle whose mesh fades with the camera distance (the followed player), and its opacity 0..1 (`CameraRig.playerOpacity`). */
@@ -161,6 +168,7 @@ export class ObjectPool {
   ): void {
     this.stamp++;
     this.lod.nextFrame();
+    if (art.version !== this.artSeen) this.refreshArt();
     for (let i = 0; i < count; i++) {
       const p = poses[i] as Pose;
       // ambient entities (traffic, parked cars) are drawn instanced by the world layer, not one mesh each
@@ -176,11 +184,23 @@ export class ObjectPool {
           const thing = buildGrayboxThing(this.assets, key) as DrawnThing;
           this.things.set(p.handle, thing);
           mesh = thing.root;
+        } else if (isArtKey(key)) {
+          // the final model, or the gray-box stand-in until it has arrived (M10d1)
+          const model = art.get(key);
+          let thing: DrawnThing;
+          if (model) thing = buildArtThing(this.assets, key, model);
+          else {
+            art.request(key);
+            thing = buildGrayboxThing(this.assets, grayboxOf(key)) as DrawnThing;
+            this.pendingArt.set(p.handle, key);
+          }
+          this.things.set(p.handle, thing);
+          mesh = thing.root;
         } else {
           mesh = this.create(key);
         }
         // M02g1: the look finds the actors by this tag (shadow casters on the desktop tiers); the engine draws them either way.
-        mesh.userData['dvActor'] = key === GRAYBOX_CAPSULE ? 'avatar' : key.startsWith('vehicle/') ? 'vehicle' : 'prop';
+        mesh.userData['dvActor'] = key === GRAYBOX_CAPSULE ? 'avatar' : key.startsWith('vehicle/') || key === 'prop/police.heli' ? 'vehicle' : 'prop';
         this.meshes.set(p.handle, mesh);
         this.scene.add(mesh);
       }
@@ -212,6 +232,7 @@ export class ObjectPool {
       this.seen.delete(handle);
       for (const a of this.things.get(handle)?.attachments ?? []) for (const m of a.materials) m.dispose();
       this.things.delete(handle);
+      this.pendingArt.delete(handle);
       this.disposeAvatar(handle);
     }
   }
@@ -255,8 +276,35 @@ export class ObjectPool {
     );
   }
 
+  /** Swaps the gray-box stand-ins whose model has arrived for the final art (M10d1), keeping pose, visibility and tags. */
+  private refreshArt(): void {
+    this.artSeen = art.version;
+    for (const [handle, key] of [...this.pendingArt]) {
+      const model = art.get(key);
+      const old = this.meshes.get(handle);
+      if (!model || !old) continue;
+      const thing = buildArtThing(this.assets, key, model);
+      thing.root.position.copy(old.position);
+      thing.root.quaternion.copy(old.quaternion);
+      thing.root.visible = old.visible;
+      thing.root.userData['dvActor'] = old.userData['dvActor'];
+      this.scene.remove(old);
+      this.scene.add(thing.root);
+      for (const a of this.things.get(handle)?.attachments ?? []) for (const m of a.materials) m.dispose();
+      this.things.set(handle, thing);
+      this.meshes.set(handle, thing.root);
+      this.pendingArt.delete(handle);
+    }
+  }
+
+  /** The asset keys whose final model has not arrived yet (QA bridge and tests). */
+  pendingArtKeys(): string[] {
+    return [...new Set(this.pendingArt.values())].sort();
+  }
+
   /** Remove every mesh (worker restart: handles are not valid across sessions). */
   clear(): void {
+    this.pendingArt.clear();
     for (const mesh of this.meshes.values()) this.scene.remove(mesh);
     for (const handle of [...this.avatars.keys()]) this.disposeAvatar(handle);
     this.things.clear();
