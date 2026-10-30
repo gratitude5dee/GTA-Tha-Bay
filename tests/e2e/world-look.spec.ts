@@ -1,11 +1,10 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import type { QualityTierId } from '../../packages/shared/src/index.ts';
-import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
 import { adaptForBackend, postNodes } from '../../packages/engine/src/platform/post/levels.ts';
-import { composeGrid, decodePng, diffImages, encodePng, goldenFailures, identical, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
-import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
+import { composeGrid, decodePng, encodePng, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
+import { waitForEngine } from './engine-helpers.ts';
+import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, world, type W } from './world-look-helpers.ts';
 
 /**
  * M02e look pass in a real browser, on a `DV_WORLD=synth` QA build (the world half of the e2e legs).
@@ -14,16 +13,13 @@ import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
  *                   backend), the shadow mode and pass count, the casters, the sky, the window emissive; `setLook(false)` is the legacy
  *                   look; no image or `texture/` request that a `?look=0` boot does not make, other than the tier's bound surface
  *                   textures (`look().textures.refs`, M10d0)
- *  - @look-golden   AC-6  ten 256 x 144 captures against the committed goldens (`chromium-webgl2` only)
+ *  - @look-golden   AC-6  in `city-look-golden.spec.ts` (BD-FIX-CI-WORLDLOOK-01)
  *  - @look-compare  AC-10 the before/after pair of `docs/look` (`chromium-webgl2` only)
  *  - @xr @world-look AC-7 the Quest tier keeps the direct pipeline and the legacy look
  */
-type W = { __dvBridge: { world: WorldBridge } };
 type FlatTier = 'desktop-ultra' | 'desktop' | 'mobile' | 'mobile-low';
 const FLAT_TIERS: readonly FlatTier[] = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low'];
 
-interface Json { [k: string]: unknown }
-const read = <T>(p: string): T => JSON.parse(readFileSync(p, 'utf8')) as T;
 const LOOK = read<{
   tierProfile: Record<string, string>;
   postLevelCap: 0 | 1 | 2 | 3;
@@ -32,17 +28,6 @@ const LOOK = read<{
   webgl2AaFallback: Record<string, string>;
 }>('config/world/look.json');
 const BUDGETS = read<{ tiers: Record<string, { features: Parameters<typeof postNodes>[0] & { shadows: { mode: string } } }> }>('config/tier-budgets.json');
-
-async function bootWorld(page: Page, tier: QualityTierId, query = '', size: { width: number; height: number } = SMALL_VIEWPORT): Promise<void> {
-  await page.setViewportSize(size);
-  await page.goto(`/?tier=${tier}&debug=1${query}`);
-  await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world !== undefined, undefined, { timeout: 180_000 });
-  await page.waitForFunction(() => (window as unknown as W).__dvBridge.world.boot().revealed, undefined, { timeout: 240_000 });
-  await page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(90_000));
-}
-
-const world = <T>(page: Page, fn: (w: WorldBridge) => T | Promise<T>): Promise<T> =>
-  page.evaluate(`(${fn.toString()})(window.__dvBridge.world)`) as Promise<T>;
 
 /** Sets the sky through the sim and waits until the page's sky shows it. */
 async function setSky(page: Page, hour: number, weather: string): Promise<void> {
@@ -63,12 +48,6 @@ async function setSky(page: Page, hour: number, weather: string): Promise<void> 
     { timeout: 120_000 },
   );
 }
-
-/** Frames the page presents after now. */
-const frames = async (page: Page, n: number): Promise<void> => {
-  const f0 = await world(page, (w) => w.chunks().frame);
-  await page.waitForFunction((t) => (window as unknown as W).__dvBridge.world.chunks().frame >= t, f0 + n, { timeout: 180_000, polling: 250 });
-};
 
 /** The nodes `AC-5` expects: the tier list at the effective level, for the backend the page reports. */
 function expectedNodes(tier: FlatTier, backend: string): string[] {
@@ -187,91 +166,6 @@ test.describe('xr look @world-look', () => {
       const prev = existsSync(file) ? read<{ commit: string; bakeId: string; tiers: Record<string, unknown>; xr?: unknown }>(file) : { commit: process.env['GITHUB_SHA'] ?? process.env['DV_COMMIT'] ?? 'local', bakeId: read<{ bakeId: string }>('dist/world/latest-synth.json').bakeId, tiers: {} };
       writeFileSync(file, `${JSON.stringify({ ...prev, xr: { baseline, after: withLayers } }, null, 2)}\n`);
     }
-  });
-});
-
-// ---- goldens ------------------------------------------------------------------------------------------------------------
-
-const GOLDEN_DIR = 'tests/e2e/golden/look';
-const GOLDEN_VIEWPORT = { width: 256, height: 144 } as const;
-const GOLDEN_SHOTS: { tier: string; shot: string }[] = [
-  ...(['desktop', 'mobile', 'mobile-low'] as const).flatMap((tier) => ['noon-street', 'golden-water', 'night-street'].map((shot) => ({ tier, shot }))),
-  { tier: 'desktop', shot: 'fog-west' },
-];
-
-/** The 256 x 144 canvas of the page after `shot(id)` has presented its frame. The debug panel is hidden so the picture is the canvas alone. */
-async function captureShot(page: Page, tier: string, shot: string): Promise<Rgba> {
-  await bootWorld(page, tier as QualityTierId, '', GOLDEN_VIEWPORT);
-  await page.addStyleTag({ content: '.dv-hud, .dv-sim-panel, .dv-sky-controls, .dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg, .dv-npcagency, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
-  // M03b1/M03b2 integration: the ambient traffic, pedestrians and transit vehicles move between two captures, so the goldens are taken
-  // without them (their groups are hidden; the goldens predate them). The groups are children of the scene, so the shadow pass skips them too.
-  await page.evaluate(() => {
-    type G = { group: { visible: boolean } } | null;
-    const view = (window as unknown as { __dvBridge: { world: { internals(): { view: { traffic: G; peds: G; transit: G } } } } }).__dvBridge.world.internals().view;
-    for (const r of [view.traffic, view.peds, view.transit]) if (r) r.group.visible = false;
-  });
-  await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id), shot);
-  await frames(page, 2);
-  const buf = await page.locator('#dv-engine-canvas').screenshot();
-  return decodePng(buf);
-}
-
-const bakeIdOf = (): string => read<{ bakeId: string }>('dist/world/latest-synth.json').bakeId;
-
-test.describe('look goldens @look-golden', () => {
-  test.describe.configure({ timeout: 1_800_000 });
-  test.beforeEach(({}, testInfo: TestInfo) => {
-    test.skip(testInfo.project.name !== 'chromium-webgl2', 'goldens are chromium-webgl2 only');
-  });
-
-  const update = process.env['DV_UPDATE_GOLDEN'] === '1' && !process.env['CI'];
-
-  test('the manifest names the current synth bake, or fails naming both @look-golden', () => {
-    if (update) return;
-    const manifest = read<{ bakeId: string }>(`${GOLDEN_DIR}/manifest.json`);
-    const current = bakeIdOf();
-    expect(manifest.bakeId, `look golden from bake ${manifest.bakeId}, current bake ${current}`).toBe(current);
-  });
-
-  for (const { tier, shot } of GOLDEN_SHOTS) {
-    test(`${tier} ${shot} is within the tolerance of its golden and a second capture is byte-identical @look-golden`, async ({ page }) => {
-      const file = `${GOLDEN_DIR}/${tier}.${shot}.png`;
-      const first = await captureShot(page, tier, shot);
-      expect(first).toMatchObject({ width: GOLDEN_VIEWPORT.width, height: GOLDEN_VIEWPORT.height });
-      // Two consecutive captures of one shot are byte-identical.
-      await frames(page, 2);
-      const second = decodePng(await page.locator('#dv-engine-canvas').screenshot());
-      expect(identical(first, second), 'two consecutive captures differ').toBe(true);
-      if (update) {
-        mkdirSync(GOLDEN_DIR, { recursive: true });
-        writeFileSync(file, encodePng(first));
-        return;
-      }
-      expect(existsSync(file), `${file} is missing; DV_UPDATE_GOLDEN=1 writes it (outside CI, under the golden-update label)`).toBe(true);
-      const diff = diffImages(first, decodePng(readFileSync(file)));
-      expect(goldenFailures(diff), `${tier} ${shot}: ${JSON.stringify(diff)}`).toEqual([]);
-    });
-  }
-
-  test('regenerating writes the manifest @look-golden', () => {
-    test.skip(!update, 'DV_UPDATE_GOLDEN=1 only');
-    mkdirSync(GOLDEN_DIR, { recursive: true });
-    writeFileSync(
-      `${GOLDEN_DIR}/manifest.json`,
-      `${JSON.stringify(
-        {
-          $comment: 'M02e look goldens: written by DV_UPDATE_GOLDEN=1 pnpm check:e2e -- --project=chromium-webgl2 --grep @look-golden (outside CI, under the golden-update label). 256 x 144 captures of the canvas on chromium-webgl2 at the shots of config/world/look-shots.json.',
-          schema: 'look-golden/1',
-          bakeId: bakeIdOf(),
-          source: 'synth',
-          viewport: GOLDEN_VIEWPORT,
-          tolerance: { channel: 6, minFraction: 0.99, meanAbs: 2 },
-          shots: GOLDEN_SHOTS.map((s) => `${s.tier}.${s.shot}.png`),
-        } satisfies Json,
-        null,
-        2,
-      )}\n`,
-    );
   });
 });
 
