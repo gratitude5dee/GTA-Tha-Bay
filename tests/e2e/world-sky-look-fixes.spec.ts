@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
+import { streamAtPlan } from './ledger-helpers.ts';
 import { BASELINE_MODE, bootWorld, frames, MESHER, read, readBaseline, registerFlickerPair, setSky, world, WRITE, writeBaseline, type W } from './look-fixes-helpers.ts';
 
 /**
@@ -74,7 +75,8 @@ test.describe('fixes ledger @fixes-ledger', () => {
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);
       if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));
-      await frames(page, 6);
+      // the frame of the whole plan, six frames after it (DL-758)
+      await streamAtPlan(page);
       await world(page, (w) => w.hold(true));
       const m = await live(page);
       await world(page, (w) => w.hold(false));
@@ -139,6 +141,8 @@ test.describe('xr fixes ledger @fixes-ledger', () => {
     await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1&art=0');
     await waitForEngine(page);
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
+    // the frame of the whole plan, six frames after it (DL-758)
+    await streamAtPlan(page);
     await world(page, (w) => w.hold(true));
     const m = await live(page);
     await world(page, (w) => w.hold(false));

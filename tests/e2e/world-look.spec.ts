@@ -4,6 +4,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { adaptForBackend, postNodes } from '../../packages/engine/src/platform/post/levels.ts';
 import { composeGrid, decodePng, encodePng, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
 import { waitForEngine } from './engine-helpers.ts';
+import { streamAtPlan } from './ledger-helpers.ts';
 import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, world, type W } from './world-look-helpers.ts';
 
 /**
@@ -155,6 +156,8 @@ test.describe('xr look @world-look', () => {
     expect(look).toMatchObject({ layers: [], blobs: 0, dynamicCasters: [], skyReflect: false, gradeOn: null });
     const LAYERS = ['grade', 'haze', 'blob', 'casters', 'skyReflect', 'windows'];
     const liveObjects = (): Promise<number> => page.evaluate(() => (window as unknown as { __dvBridge: { platform: { perf: { live(): { renderObjects: number } } } } }).__dvBridge.platform.perf.live().renderObjects);
+    // the frame of the whole plan, six frames after it (DL-758)
+    await streamAtPlan(page);
     await world(page, (w) => w.hold(true));
     const baseline = await liveObjects();
     for (const id of LAYERS) expect(await page.evaluate((i) => (window as unknown as W).__dvBridge.world.setLookLayer(i, true), id), `${id} on a legacy tier`).toBe(false);

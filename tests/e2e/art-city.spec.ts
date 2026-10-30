@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
+import { streamAtPlan } from './ledger-helpers.ts';
 
 /**
  * M10d1 vehicles and props in a real browser, on a `DV_WORLD=synth` QA build (the world half of the e2e legs).
@@ -230,7 +231,8 @@ async function measure(page: Page, tier: QualityTierId): Promise<{
   if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));
   await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
   await artSettled(page);
-  await frames(page, 3);
+  // the frame of the whole plan, six frames after it (DL-758)
+  await streamAtPlan(page);
   await world(page, (w) => w.hold(true));
   const l = await live(page);
   const t = await world(page, (w) => w.traffic());
@@ -325,7 +327,8 @@ test.describe('xr art ledger @xr @art-ledger', () => {
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
     await artSettled(page);
     await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
-    await frames(page, 3);
+    // the frame of the whole plan, six frames after it (DL-758)
+    await streamAtPlan(page);
     await world(page, (w) => w.hold(true));
     const after = (await live(page)).renderObjects;
     const t = await world(page, (w) => w.traffic());

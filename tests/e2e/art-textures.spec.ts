@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
+import { streamAtPlan } from './ledger-helpers.ts';
 import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, texturesSettled, world, type W } from './art-textures-helpers.ts';
 
 /**
@@ -166,12 +167,14 @@ test.describe('textures ledger @textures-ledger', () => {
   for (const tier of ['desktop-ultra', 'desktop', 'mobile', 'mobile-low'] as const) {
     test(`${tier}: the textures add no render object @textures-ledger`, async ({ page }) => {
       // The same state as the ledger it measures from (M02g1): 480 x 270, 13:00 clear, traffic resident, `fog-west` at `mobile-low`.
-      await bootWorld(page, tier, '', SMALL_VIEWPORT);
+      // `&art=0` (DL-758): this row is M10d0's own scene, so the art of the later M10d1 row stays out of the frame (BD-REPAIR-M10d1-01)
+      await bootWorld(page, tier, '&art=0', SMALL_VIEWPORT);
       await texturesSettled(page);
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);
       if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));
-      await frames(page, 6);
+      // the frame of the whole plan, six frames after it (DL-758)
+      await streamAtPlan(page);
       await world(page, (w) => w.hold(true));
       const set = (on: boolean): Promise<boolean> => page.evaluate((o) => (window as unknown as W).__dvBridge.world.setLookLayer('textures', o as boolean), on);
       expect(await set(false)).toBe(true);
@@ -236,6 +239,8 @@ test.describe('xr textures @xr @textures-ledger', () => {
     await texturesSettled(page);
     expect((await world(page, (w) => w.look()))?.textures).toMatchObject({ mode: 'off', refs: [], sets: [], gpuBytes: 0, downloadBytes: 0 });
     expect(await page.evaluate(() => (window as unknown as W).__dvBridge.world.setLookLayer('textures', true))).toBe(false);
+    // the frame of the whole plan, six frames after it (DL-758)
+    await streamAtPlan(page);
     await world(page, (w) => w.hold(true));
     const baseline = await live(page);
     await page.evaluate(() => (window as unknown as W).__dvBridge.world.setLookLayer('textures', true));
