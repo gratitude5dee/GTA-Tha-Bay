@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "1f7c5b4650e081e8f402ef7dc85529983b37a864ee12db0c9186d09c4fe20ff6",
+  "paths": [
+    "assets/src/character/pc-face-mission/mobile.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "9b9c81c61d81f2fe37443f835cac12c998823a48b3bf2fbf6afd623d169a64d4"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

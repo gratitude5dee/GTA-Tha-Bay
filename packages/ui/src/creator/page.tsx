@@ -34,8 +34,24 @@ function Sprite() {
   return <div class="dv-sprite" aria-hidden="true" dangerouslySetInnerHTML={{ __html: iconsSvg }} />;
 }
 
-function PartCard(props: { part: CreatorPart; slot: CreatorSlot; on: boolean; onPick(): void }) {
+/** The portrait card art of a part (M10d4): the 256 px card of `portrait/pc-<id>` once the stage has it, else the sprite icon. */
+function usePortrait(stage: CreatorStagePort | null, ref: string | undefined): string | null {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    if (ref && stage?.portrait) {
+      stage.portrait(ref).then((u) => live && setSrc(u), () => undefined);
+    }
+    return () => {
+      live = false;
+    };
+  }, [stage, ref]);
+  return src;
+}
+
+function PartCard(props: { part: CreatorPart; slot: CreatorSlot; on: boolean; stage: CreatorStagePort | null; onPick(): void }) {
   const { part, on } = props;
+  const portrait = usePortrait(props.stage, part.portrait);
   return (
     <button
       type="button"
@@ -44,11 +60,17 @@ function PartCard(props: { part: CreatorPart; slot: CreatorSlot; on: boolean; on
       aria-checked={on ? 'true' : 'false'}
       data-fid={`creator.part.${part.id}`}
       data-testid={`creator-card-${part.id}`}
+      data-model={part.model ?? ''}
+      data-portrait={part.portrait ?? ''}
       onClick={props.onPick}
     >
-      <svg viewBox="0 0 48 48" class="dv-part-art" aria-hidden="true">
-        <use href={`#cr-${props.slot}-${part.index}`} />
-      </svg>
+      {portrait ? (
+        <img class="dv-part-art dv-part-portrait" src={portrait} alt="" aria-hidden="true" draggable={false} data-portrait-loaded="1" />
+      ) : (
+        <svg viewBox="0 0 48 48" class="dv-part-art" aria-hidden="true">
+          <use href={`#cr-${props.slot}-${part.index}`} />
+        </svg>
+      )}
       <span class="dv-part-name">{t(part.titleKey)}</span>
     </button>
   );
@@ -148,7 +170,7 @@ export function CreatorEditor(props: CreatorEditorProps) {
     <div class="dv-parts" role="radiogroup" aria-label={t(`creator.slot.${slot}`)} data-testid={`creator-grid-${slot}`}>
       {optional ? <NoneCard on={partOf(a, slot) === undefined} onPick={() => pick(slot, undefined)} /> : null}
       {cardsOf(CATALOG, slot).map((p) => (
-        <PartCard key={p.id} part={p} slot={slot} on={partOf(a, slot) === p.id} onPick={() => pick(slot, p.id)} />
+        <PartCard key={p.id} part={p} slot={slot} on={partOf(a, slot) === p.id} stage={props.stage} onPick={() => pick(slot, p.id)} />
       ))}
     </div>
   );

@@ -56,6 +56,8 @@ const SKIN: readonly Painter[] = [
     return [0.9 - lid * 0.2, 0.88 - lid * 0.24, 0.84 - lid * 0.26];
   },
   (u, v, px, s) => rgb(0.9 + (noise(u * px, v * px, px / 8, s) - 0.5) * 0.1, 1, 0.74, 0.7),
+  // 5 brows: fine grain, tinted by the hair colour
+  (u, v, px) => rgb(0.82 + (hash01((u * px) | 0, (v * px) | 0) - 0.5) * 0.2, 1, 1, 1),
 ];
 
 const CLOTH: readonly Painter[] = [

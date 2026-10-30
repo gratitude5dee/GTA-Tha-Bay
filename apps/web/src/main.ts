@@ -195,7 +195,24 @@ async function boot(): Promise<void> {
     return;
   }
   void import('@dv/engine/client/creator-stage').then((m) => {
-    creatorStage = m.createCreatorStage(platform.host) as unknown as CreatorStagePort;
+    // The part models of the creator (M10d4): the stage loads `character/pc-<part>` and the atlas pages through the asset client; without
+    // the client (or a catalog that is not ready) it keeps the mannequin figure.
+    const store = platform.assets;
+    const stageAssets = store
+      ? {
+          load: async (ref: string): Promise<ArrayBuffer> => {
+            if ((await store.loadCatalog()) !== 'ready') throw new Error('catalog not ready');
+            return store.get(ref as `character/${string}`);
+          },
+          texture: async (ref: string): Promise<ImageBitmap | null> => {
+            if ((await store.loadCatalog()) !== 'ready') return null;
+            return createImageBitmap(new Blob([await store.get(ref as `texture/${string}`)], { type: 'image/png' }));
+          },
+        }
+      : undefined;
+    creatorStage = m.createCreatorStage(platform.host, stageAssets) as unknown as CreatorStagePort;
+    // QA builds only: the stage state (figure, parts, triangles, textures) for the @art-creator case.
+    if (import.meta.env.VITE_DV_QA === '1') Object.defineProperty(window, '__dvCreatorStage', { configurable: true, get: () => (creatorStage as unknown as { state: unknown } | null)?.state ?? null });
   });
   platformPort = createPlatformPort(platform, (name, props) => platform.telemetry.emit(name, props), {
     // The player's render scale reaches the canvas at once (M04b5); the engine may not exist yet, and takes the stored value at boot.

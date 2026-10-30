@@ -142,6 +142,8 @@ export function cellOf(layout: AtlasLayout, pool: Pool, i: number): Cell {
 export const SKIN_CELL = { body: 0, face: 1, hands: 2, eye: 3 } as const;
 /** Lips take the skin page's cell 3 neighbour in the ped atlas; the creator page has its own spare cell. */
 export const LIP_CELL = 4;
+/** Brows on the creator's skin page. */
+export const BROW_CELL = 5;
 export const HAIR_CELL = { straight: 0, curly: 1, coil: 2, short: 3 } as const;
 
 // ---- shared geometry helpers -------------------------------------------------------------------------------------------------------

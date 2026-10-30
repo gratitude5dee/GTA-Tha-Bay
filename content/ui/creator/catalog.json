@@ -7,6 +7,8 @@
     "id": "body-lean",
     "index": 1,
     "titleKey": "creator.part.body.lean",
+    "model": "character/pc-body-lean",
+    "portrait": "portrait/pc-body-lean",
     "tags": [
      "starter"
     ],
@@ -17,6 +19,8 @@
     "id": "body-wiry",
     "index": 2,
     "titleKey": "creator.part.body.wiry",
+    "model": "character/pc-body-wiry",
+    "portrait": "portrait/pc-body-wiry",
     "tags": [
      "starter"
     ],
@@ -27,6 +31,8 @@
     "id": "body-athletic",
     "index": 3,
     "titleKey": "creator.part.body.athletic",
+    "model": "character/pc-body-athletic",
+    "portrait": "portrait/pc-body-athletic",
     "tags": [
      "starter"
     ],
@@ -37,6 +43,8 @@
     "id": "body-stocky",
     "index": 4,
     "titleKey": "creator.part.body.stocky",
+    "model": "character/pc-body-stocky",
+    "portrait": "portrait/pc-body-stocky",
     "tags": [
      "starter"
     ],
@@ -47,6 +55,8 @@
     "id": "body-broad",
     "index": 5,
     "titleKey": "creator.part.body.broad",
+    "model": "character/pc-body-broad",
+    "portrait": "portrait/pc-body-broad",
     "tags": [],
     "icon": "body-5",
     "tint": 0.3333333333333333
@@ -55,6 +65,8 @@
     "id": "body-sturdy",
     "index": 6,
     "titleKey": "creator.part.body.sturdy",
+    "model": "character/pc-body-sturdy",
+    "portrait": "portrait/pc-body-sturdy",
     "tags": [],
     "icon": "body-6",
     "tint": 0.4166666666666667
@@ -63,6 +75,8 @@
     "id": "body-compact",
     "index": 7,
     "titleKey": "creator.part.body.compact",
+    "model": "character/pc-body-compact",
+    "portrait": "portrait/pc-body-compact",
     "tags": [],
     "icon": "body-7",
     "tint": 0.5
@@ -71,6 +85,8 @@
     "id": "body-tall",
     "index": 8,
     "titleKey": "creator.part.body.tall",
+    "model": "character/pc-body-tall",
+    "portrait": "portrait/pc-body-tall",
     "tags": [],
     "icon": "body-8",
     "tint": 0.5833333333333334
@@ -79,6 +95,8 @@
     "id": "body-long",
     "index": 9,
     "titleKey": "creator.part.body.long",
+    "model": "character/pc-body-long",
+    "portrait": "portrait/pc-body-long",
     "tags": [],
     "icon": "body-9",
     "tint": 0.6666666666666666
@@ -87,6 +105,8 @@
     "id": "body-rounded",
     "index": 10,
     "titleKey": "creator.part.body.rounded",
+    "model": "character/pc-body-rounded",
+    "portrait": "portrait/pc-body-rounded",
     "tags": [],
     "icon": "body-10",
     "tint": 0.75
@@ -95,6 +115,8 @@
     "id": "body-solid",
     "index": 11,
     "titleKey": "creator.part.body.solid",
+    "model": "character/pc-body-solid",
+    "portrait": "portrait/pc-body-solid",
     "tags": [],
     "icon": "body-11",
     "tint": 0.8333333333333334
@@ -103,6 +125,8 @@
     "id": "body-slight",
     "index": 12,
     "titleKey": "creator.part.body.slight",
+    "model": "character/pc-body-slight",
+    "portrait": "portrait/pc-body-slight",
     "tags": [],
     "icon": "body-12",
     "tint": 0.9166666666666666
@@ -111,6 +135,7 @@
     "id": "body-coast",
     "index": 13,
     "titleKey": "creator.part.body.coast",
+    "fallbackPart": "body-athletic",
     "tags": [
      "starter",
      "coast",
@@ -124,6 +149,8 @@
     "id": "face-sunset",
     "index": 1,
     "titleKey": "creator.part.face.sunset",
+    "model": "character/pc-face-sunset",
+    "portrait": "portrait/pc-face-sunset",
     "tags": [
      "starter"
     ],
@@ -134,6 +161,8 @@
     "id": "face-karl",
     "index": 2,
     "titleKey": "creator.part.face.karl",
+    "model": "character/pc-face-karl",
+    "portrait": "portrait/pc-face-karl",
     "tags": [
      "starter"
     ],
@@ -144,6 +173,8 @@
     "id": "face-mission",
     "index": 3,
     "titleKey": "creator.part.face.mission",
+    "model": "character/pc-face-mission",
+    "portrait": "portrait/pc-face-mission",
     "tags": [
      "starter"
     ],
@@ -154,6 +185,8 @@
     "id": "face-marina",
     "index": 4,
     "titleKey": "creator.part.face.marina",
+    "model": "character/pc-face-marina",
+    "portrait": "portrait/pc-face-marina",
     "tags": [
      "starter"
     ],
@@ -164,6 +197,8 @@
     "id": "face-haight",
     "index": 5,
     "titleKey": "creator.part.face.haight",
+    "model": "character/pc-face-haight",
+    "portrait": "portrait/pc-face-haight",
     "tags": [],
     "icon": "face-5",
     "tint": 0.16666666666666666
@@ -172,6 +207,8 @@
     "id": "face-presidio",
     "index": 6,
     "titleKey": "creator.part.face.presidio",
+    "model": "character/pc-face-presidio",
+    "portrait": "portrait/pc-face-presidio",
     "tags": [],
     "icon": "face-6",
     "tint": 0.20833333333333334
@@ -180,6 +217,8 @@
     "id": "face-embarcadero",
     "index": 7,
     "titleKey": "creator.part.face.embarcadero",
+    "model": "character/pc-face-embarcadero",
+    "portrait": "portrait/pc-face-embarcadero",
     "tags": [],
     "icon": "face-7",
     "tint": 0.25
@@ -188,6 +227,8 @@
     "id": "face-tenderloin",
     "index": 8,
     "titleKey": "creator.part.face.tenderloin",
+    "model": "character/pc-face-tenderloin",
+    "portrait": "portrait/pc-face-tenderloin",
     "tags": [],
     "icon": "face-8",
     "tint": 0.2916666666666667
@@ -196,6 +237,8 @@
     "id": "face-nob",
     "index": 9,
     "titleKey": "creator.part.face.nob",
+    "model": "character/pc-face-nob",
+    "portrait": "portrait/pc-face-nob",
     "tags": [],
     "icon": "face-9",
     "tint": 0.3333333333333333
@@ -204,6 +247,8 @@
     "id": "face-castro",
     "index": 10,
     "titleKey": "creator.part.face.castro",
+    "model": "character/pc-face-castro",
+    "portrait": "portrait/pc-face-castro",
     "tags": [],
     "icon": "face-10",
     "tint": 0.375
@@ -212,6 +257,8 @@
     "id": "face-sunset-park",
     "index": 11,
     "titleKey": "creator.part.face.sunset-park",
+    "model": "character/pc-face-sunset-park",
+    "portrait": "portrait/pc-face-sunset-park",
     "tags": [],
     "icon": "face-11",
     "tint": 0.4166666666666667
@@ -220,6 +267,8 @@
     "id": "face-richmond",
     "index": 12,
     "titleKey": "creator.part.face.richmond",
+    "model": "character/pc-face-richmond",
+    "portrait": "portrait/pc-face-richmond",
     "tags": [],
     "icon": "face-12",
     "tint": 0.4583333333333333
@@ -228,6 +277,8 @@
     "id": "face-soma",
     "index": 13,
     "titleKey": "creator.part.face.soma",
+    "model": "character/pc-face-soma",
+    "portrait": "portrait/pc-face-soma",
     "tags": [],
     "icon": "face-13",
     "tint": 0.5
@@ -236,6 +287,8 @@
     "id": "face-dogpatch",
     "index": 14,
     "titleKey": "creator.part.face.dogpatch",
+    "model": "character/pc-face-dogpatch",
+    "portrait": "portrait/pc-face-dogpatch",
     "tags": [],
     "icon": "face-14",
     "tint": 0.5416666666666666
@@ -244,6 +297,8 @@
     "id": "face-bayview",
     "index": 15,
     "titleKey": "creator.part.face.bayview",
+    "model": "character/pc-face-bayview",
+    "portrait": "portrait/pc-face-bayview",
     "tags": [],
     "icon": "face-15",
     "tint": 0.5833333333333334
@@ -252,6 +307,8 @@
     "id": "face-noe",
     "index": 16,
     "titleKey": "creator.part.face.noe",
+    "model": "character/pc-face-noe",
+    "portrait": "portrait/pc-face-noe",
     "tags": [],
     "icon": "face-16",
     "tint": 0.625
@@ -260,6 +317,8 @@
     "id": "face-twin-peaks",
     "index": 17,
     "titleKey": "creator.part.face.twin-peaks",
+    "model": "character/pc-face-twin-peaks",
+    "portrait": "portrait/pc-face-twin-peaks",
     "tags": [],
     "icon": "face-17",
     "tint": 0.6666666666666666
@@ -268,6 +327,8 @@
     "id": "face-fillmore",
     "index": 18,
     "titleKey": "creator.part.face.fillmore",
+    "model": "character/pc-face-fillmore",
+    "portrait": "portrait/pc-face-fillmore",
     "tags": [],
     "icon": "face-18",
     "tint": 0.7083333333333334
@@ -276,6 +337,8 @@
     "id": "face-chinatown",
     "index": 19,
     "titleKey": "creator.part.face.chinatown",
+    "model": "character/pc-face-chinatown",
+    "portrait": "portrait/pc-face-chinatown",
     "tags": [],
     "icon": "face-19",
     "tint": 0.75
@@ -284,6 +347,8 @@
     "id": "face-excelsior",
     "index": 20,
     "titleKey": "creator.part.face.excelsior",
+    "model": "character/pc-face-excelsior",
+    "portrait": "portrait/pc-face-excelsior",
     "tags": [],
     "icon": "face-20",
     "tint": 0.7916666666666666
@@ -292,6 +357,8 @@
     "id": "face-glen-park",
     "index": 21,
     "titleKey": "creator.part.face.glen-park",
+    "model": "character/pc-face-glen-park",
+    "portrait": "portrait/pc-face-glen-park",
     "tags": [],
     "icon": "face-21",
     "tint": 0.8333333333333334
@@ -300,6 +367,8 @@
     "id": "face-portola",
     "index": 22,
     "titleKey": "creator.part.face.portola",
+    "model": "character/pc-face-portola",
+    "portrait": "portrait/pc-face-portola",
     "tags": [],
     "icon": "face-22",
     "tint": 0.875
@@ -308,6 +377,8 @@
     "id": "face-potrero",
     "index": 23,
     "titleKey": "creator.part.face.potrero",
+    "model": "character/pc-face-potrero",
+    "portrait": "portrait/pc-face-potrero",
     "tags": [],
     "icon": "face-23",
     "tint": 0.9166666666666666
@@ -316,6 +387,8 @@
     "id": "face-union-square",
     "index": 24,
     "titleKey": "creator.part.face.union-square",
+    "model": "character/pc-face-union-square",
+    "portrait": "portrait/pc-face-union-square",
     "tags": [],
     "icon": "face-24",
     "tint": 0.9583333333333334
@@ -324,6 +397,7 @@
     "id": "face-coast",
     "index": 25,
     "titleKey": "creator.part.face.coast",
+    "fallbackPart": "face-sunset",
     "tags": [
      "starter",
      "coast",
@@ -337,6 +411,8 @@
     "id": "hair-buzz",
     "index": 1,
     "titleKey": "creator.part.hair.buzz",
+    "model": "character/pc-hair-buzz",
+    "portrait": "portrait/pc-hair-buzz",
     "tags": [
      "starter"
     ],
@@ -347,6 +423,8 @@
     "id": "hair-crop",
     "index": 2,
     "titleKey": "creator.part.hair.crop",
+    "model": "character/pc-hair-crop",
+    "portrait": "portrait/pc-hair-crop",
     "tags": [
      "starter"
     ],
@@ -357,6 +435,8 @@
     "id": "hair-fade",
     "index": 3,
     "titleKey": "creator.part.hair.fade",
+    "model": "character/pc-hair-fade",
+    "portrait": "portrait/pc-hair-fade",
     "tags": [
      "starter"
     ],
@@ -367,6 +447,8 @@
     "id": "hair-waves",
     "index": 4,
     "titleKey": "creator.part.hair.waves",
+    "model": "character/pc-hair-waves",
+    "portrait": "portrait/pc-hair-waves",
     "tags": [
      "starter"
     ],
@@ -377,6 +459,8 @@
     "id": "hair-curls",
     "index": 5,
     "titleKey": "creator.part.hair.curls",
+    "model": "character/pc-hair-curls",
+    "portrait": "portrait/pc-hair-curls",
     "tags": [],
     "icon": "hair-5",
     "tint": 0.25
@@ -385,6 +469,8 @@
     "id": "hair-coils",
     "index": 6,
     "titleKey": "creator.part.hair.coils",
+    "model": "character/pc-hair-coils",
+    "portrait": "portrait/pc-hair-coils",
     "tags": [],
     "icon": "hair-6",
     "tint": 0.3125
@@ -393,6 +479,8 @@
     "id": "hair-locs",
     "index": 7,
     "titleKey": "creator.part.hair.locs",
+    "model": "character/pc-hair-locs",
+    "portrait": "portrait/pc-hair-locs",
     "tags": [],
     "icon": "hair-7",
     "tint": 0.375
@@ -401,6 +489,8 @@
     "id": "hair-braids",
     "index": 8,
     "titleKey": "creator.part.hair.braids",
+    "model": "character/pc-hair-braids",
+    "portrait": "portrait/pc-hair-braids",
     "tags": [],
     "icon": "hair-8",
     "tint": 0.4375
@@ -409,6 +499,8 @@
     "id": "hair-bob",
     "index": 9,
     "titleKey": "creator.part.hair.bob",
+    "model": "character/pc-hair-bob",
+    "portrait": "portrait/pc-hair-bob",
     "tags": [],
     "icon": "hair-9",
     "tint": 0.5
@@ -417,6 +509,8 @@
     "id": "hair-long",
     "index": 10,
     "titleKey": "creator.part.hair.long",
+    "model": "character/pc-hair-long",
+    "portrait": "portrait/pc-hair-long",
     "tags": [],
     "icon": "hair-10",
     "tint": 0.5625
@@ -425,6 +519,8 @@
     "id": "hair-ponytail",
     "index": 11,
     "titleKey": "creator.part.hair.ponytail",
+    "model": "character/pc-hair-ponytail",
+    "portrait": "portrait/pc-hair-ponytail",
     "tags": [],
     "icon": "hair-11",
     "tint": 0.625
@@ -433,6 +529,8 @@
     "id": "hair-bun",
     "index": 12,
     "titleKey": "creator.part.hair.bun",
+    "model": "character/pc-hair-bun",
+    "portrait": "portrait/pc-hair-bun",
     "tags": [],
     "icon": "hair-12",
     "tint": 0.6875
@@ -441,6 +539,8 @@
     "id": "hair-afro",
     "index": 13,
     "titleKey": "creator.part.hair.afro",
+    "model": "character/pc-hair-afro",
+    "portrait": "portrait/pc-hair-afro",
     "tags": [],
     "icon": "hair-13",
     "tint": 0.75
@@ -449,6 +549,8 @@
     "id": "hair-pomp",
     "index": 14,
     "titleKey": "creator.part.hair.pomp",
+    "model": "character/pc-hair-pomp",
+    "portrait": "portrait/pc-hair-pomp",
     "tags": [],
     "icon": "hair-14",
     "tint": 0.8125
@@ -457,6 +559,8 @@
     "id": "hair-shag",
     "index": 15,
     "titleKey": "creator.part.hair.shag",
+    "model": "character/pc-hair-shag",
+    "portrait": "portrait/pc-hair-shag",
     "tags": [],
     "icon": "hair-15",
     "tint": 0.875
@@ -465,6 +569,8 @@
     "id": "hair-bald",
     "index": 16,
     "titleKey": "creator.part.hair.bald",
+    "model": "character/pc-hair-bald",
+    "portrait": "portrait/pc-hair-bald",
     "tags": [],
     "icon": "hair-16",
     "tint": 0.9375
@@ -473,6 +579,7 @@
     "id": "hair-coast",
     "index": 17,
     "titleKey": "creator.part.hair.coast",
+    "fallbackPart": "hair-crop",
     "tags": [
      "starter",
      "coast"
@@ -485,6 +592,8 @@
     "id": "top-hoodie",
     "index": 1,
     "titleKey": "creator.part.top.hoodie",
+    "model": "character/pc-top-hoodie",
+    "portrait": "portrait/pc-top-hoodie",
     "tags": [
      "starter"
     ],
@@ -495,6 +604,8 @@
     "id": "top-tee",
     "index": 2,
     "titleKey": "creator.part.top.tee",
+    "model": "character/pc-top-tee",
+    "portrait": "portrait/pc-top-tee",
     "tags": [
      "starter"
     ],
@@ -505,6 +616,8 @@
     "id": "top-windbreaker",
     "index": 3,
     "titleKey": "creator.part.top.windbreaker",
+    "model": "character/pc-top-windbreaker",
+    "portrait": "portrait/pc-top-windbreaker",
     "tags": [
      "starter"
     ],
@@ -515,6 +628,8 @@
     "id": "top-flannel",
     "index": 4,
     "titleKey": "creator.part.top.flannel",
+    "model": "character/pc-top-flannel",
+    "portrait": "portrait/pc-top-flannel",
     "tags": [
      "starter"
     ],
@@ -525,6 +640,8 @@
     "id": "top-tank",
     "index": 5,
     "titleKey": "creator.part.top.tank",
+    "model": "character/pc-top-tank",
+    "portrait": "portrait/pc-top-tank",
     "tags": [],
     "icon": "top-5",
     "tint": 0.3333333333333333
@@ -533,6 +650,8 @@
     "id": "top-bomber",
     "index": 6,
     "titleKey": "creator.part.top.bomber",
+    "model": "character/pc-top-bomber",
+    "portrait": "portrait/pc-top-bomber",
     "tags": [],
     "icon": "top-6",
     "tint": 0.4166666666666667
@@ -541,6 +660,8 @@
     "id": "top-fleece",
     "index": 7,
     "titleKey": "creator.part.top.fleece",
+    "model": "character/pc-top-fleece",
+    "portrait": "portrait/pc-top-fleece",
     "tags": [],
     "icon": "top-7",
     "tint": 0.5
@@ -549,6 +670,8 @@
     "id": "top-crewneck",
     "index": 8,
     "titleKey": "creator.part.top.crewneck",
+    "model": "character/pc-top-crewneck",
+    "portrait": "portrait/pc-top-crewneck",
     "tags": [],
     "icon": "top-8",
     "tint": 0.5833333333333334
@@ -557,6 +680,8 @@
     "id": "top-jersey",
     "index": 9,
     "titleKey": "creator.part.top.jersey",
+    "model": "character/pc-top-jersey",
+    "portrait": "portrait/pc-top-jersey",
     "tags": [],
     "icon": "top-9",
     "tint": 0.6666666666666666
@@ -565,6 +690,8 @@
     "id": "top-denim-jacket",
     "index": 10,
     "titleKey": "creator.part.top.denim-jacket",
+    "model": "character/pc-top-denim-jacket",
+    "portrait": "portrait/pc-top-denim-jacket",
     "tags": [],
     "icon": "top-10",
     "tint": 0.75
@@ -573,6 +700,8 @@
     "id": "top-raincoat",
     "index": 11,
     "titleKey": "creator.part.top.raincoat",
+    "model": "character/pc-top-raincoat",
+    "portrait": "portrait/pc-top-raincoat",
     "tags": [],
     "icon": "top-11",
     "tint": 0.8333333333333334
@@ -581,6 +710,8 @@
     "id": "top-button-up",
     "index": 12,
     "titleKey": "creator.part.top.button-up",
+    "model": "character/pc-top-button-up",
+    "portrait": "portrait/pc-top-button-up",
     "tags": [],
     "icon": "top-12",
     "tint": 0.9166666666666666
@@ -589,6 +720,7 @@
     "id": "top-coast-hoodie",
     "index": 13,
     "titleKey": "creator.part.top.coast-hoodie",
+    "fallbackPart": "top-hoodie",
     "tags": [
      "starter",
      "coast"
@@ -602,6 +734,8 @@
     "id": "bottom-jeans",
     "index": 1,
     "titleKey": "creator.part.bottom.jeans",
+    "model": "character/pc-bottom-jeans",
+    "portrait": "portrait/pc-bottom-jeans",
     "tags": [
      "starter"
     ],
@@ -612,6 +746,8 @@
     "id": "bottom-joggers",
     "index": 2,
     "titleKey": "creator.part.bottom.joggers",
+    "model": "character/pc-bottom-joggers",
+    "portrait": "portrait/pc-bottom-joggers",
     "tags": [
      "starter"
     ],
@@ -622,6 +758,8 @@
     "id": "bottom-cargo",
     "index": 3,
     "titleKey": "creator.part.bottom.cargo",
+    "model": "character/pc-bottom-cargo",
+    "portrait": "portrait/pc-bottom-cargo",
     "tags": [
      "starter"
     ],
@@ -632,6 +770,8 @@
     "id": "bottom-shorts",
     "index": 4,
     "titleKey": "creator.part.bottom.shorts",
+    "model": "character/pc-bottom-shorts",
+    "portrait": "portrait/pc-bottom-shorts",
     "tags": [
      "starter"
     ],
@@ -642,6 +782,8 @@
     "id": "bottom-chinos",
     "index": 5,
     "titleKey": "creator.part.bottom.chinos",
+    "model": "character/pc-bottom-chinos",
+    "portrait": "portrait/pc-bottom-chinos",
     "tags": [],
     "icon": "bottom-5",
     "tint": 0.5
@@ -650,6 +792,8 @@
     "id": "bottom-track-pants",
     "index": 6,
     "titleKey": "creator.part.bottom.track-pants",
+    "model": "character/pc-bottom-track-pants",
+    "portrait": "portrait/pc-bottom-track-pants",
     "tags": [],
     "icon": "bottom-6",
     "tint": 0.625
@@ -658,6 +802,8 @@
     "id": "bottom-skirt",
     "index": 7,
     "titleKey": "creator.part.bottom.skirt",
+    "model": "character/pc-bottom-skirt",
+    "portrait": "portrait/pc-bottom-skirt",
     "tags": [],
     "icon": "bottom-7",
     "tint": 0.75
@@ -666,6 +812,8 @@
     "id": "bottom-overalls",
     "index": 8,
     "titleKey": "creator.part.bottom.overalls",
+    "model": "character/pc-bottom-overalls",
+    "portrait": "portrait/pc-bottom-overalls",
     "tags": [],
     "icon": "bottom-8",
     "tint": 0.875
@@ -674,6 +822,7 @@
     "id": "bottom-coast-jeans",
     "index": 9,
     "titleKey": "creator.part.bottom.coast-jeans",
+    "fallbackPart": "bottom-jeans",
     "tags": [
      "starter",
      "coast"
@@ -687,6 +836,8 @@
     "id": "shoes-sneakers",
     "index": 1,
     "titleKey": "creator.part.shoes.sneakers",
+    "model": "character/pc-shoes-sneakers",
+    "portrait": "portrait/pc-shoes-sneakers",
     "tags": [
      "starter"
     ],
@@ -697,6 +848,8 @@
     "id": "shoes-boots",
     "index": 2,
     "titleKey": "creator.part.shoes.boots",
+    "model": "character/pc-shoes-boots",
+    "portrait": "portrait/pc-shoes-boots",
     "tags": [
      "starter"
     ],
@@ -707,6 +860,8 @@
     "id": "shoes-skate-shoes",
     "index": 3,
     "titleKey": "creator.part.shoes.skate-shoes",
+    "model": "character/pc-shoes-skate-shoes",
+    "portrait": "portrait/pc-shoes-skate-shoes",
     "tags": [
      "starter"
     ],
@@ -717,6 +872,8 @@
     "id": "shoes-runners",
     "index": 4,
     "titleKey": "creator.part.shoes.runners",
+    "model": "character/pc-shoes-runners",
+    "portrait": "portrait/pc-shoes-runners",
     "tags": [
      "starter"
     ],
@@ -727,6 +884,8 @@
     "id": "shoes-loafers",
     "index": 5,
     "titleKey": "creator.part.shoes.loafers",
+    "model": "character/pc-shoes-loafers",
+    "portrait": "portrait/pc-shoes-loafers",
     "tags": [],
     "icon": "shoes-5",
     "tint": 0.6666666666666666
@@ -735,6 +894,8 @@
     "id": "shoes-sandals",
     "index": 6,
     "titleKey": "creator.part.shoes.sandals",
+    "model": "character/pc-shoes-sandals",
+    "portrait": "portrait/pc-shoes-sandals",
     "tags": [],
     "icon": "shoes-6",
     "tint": 0.8333333333333334
@@ -743,6 +904,7 @@
     "id": "shoes-coast-sneakers",
     "index": 7,
     "titleKey": "creator.part.shoes.coast-sneakers",
+    "fallbackPart": "shoes-sneakers",
     "tags": [
      "starter",
      "coast"
@@ -756,6 +918,8 @@
     "id": "acc-cap",
     "index": 1,
     "titleKey": "creator.part.accessory.cap",
+    "model": "character/pc-acc-cap",
+    "portrait": "portrait/pc-acc-cap",
     "tags": [
      "starter"
     ],
@@ -766,6 +930,8 @@
     "id": "acc-beanie",
     "index": 2,
     "titleKey": "creator.part.accessory.beanie",
+    "model": "character/pc-acc-beanie",
+    "portrait": "portrait/pc-acc-beanie",
     "tags": [
      "starter"
     ],
@@ -776,6 +942,8 @@
     "id": "acc-shades",
     "index": 3,
     "titleKey": "creator.part.accessory.shades",
+    "model": "character/pc-acc-shades",
+    "portrait": "portrait/pc-acc-shades",
     "tags": [
      "starter"
     ],
@@ -786,6 +954,8 @@
     "id": "acc-chain",
     "index": 4,
     "titleKey": "creator.part.accessory.chain",
+    "model": "character/pc-acc-chain",
+    "portrait": "portrait/pc-acc-chain",
     "tags": [
      "starter"
     ],
@@ -796,6 +966,8 @@
     "id": "acc-watch",
     "index": 5,
     "titleKey": "creator.part.accessory.watch",
+    "model": "character/pc-acc-watch",
+    "portrait": "portrait/pc-acc-watch",
     "tags": [],
     "icon": "accessory-5",
     "tint": 0.5
@@ -804,6 +976,8 @@
     "id": "acc-backpack",
     "index": 6,
     "titleKey": "creator.part.accessory.backpack",
+    "model": "character/pc-acc-backpack",
+    "portrait": "portrait/pc-acc-backpack",
     "tags": [],
     "icon": "accessory-6",
     "tint": 0.625
@@ -812,6 +986,8 @@
     "id": "acc-scarf",
     "index": 7,
     "titleKey": "creator.part.accessory.scarf",
+    "model": "character/pc-acc-scarf",
+    "portrait": "portrait/pc-acc-scarf",
     "tags": [],
     "icon": "accessory-7",
     "tint": 0.75
@@ -820,6 +996,8 @@
     "id": "acc-headphones",
     "index": 8,
     "titleKey": "creator.part.accessory.headphones",
+    "model": "character/pc-acc-headphones",
+    "portrait": "portrait/pc-acc-headphones",
     "tags": [],
     "icon": "accessory-8",
     "tint": 0.875

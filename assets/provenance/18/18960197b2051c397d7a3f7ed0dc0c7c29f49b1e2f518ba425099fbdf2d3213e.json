@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "18960197b2051c397d7a3f7ed0dc0c7c29f49b1e2f518ba425099fbdf2d3213e",
+  "paths": [
+    "assets/src/character/pc-face-glen-park/mobile.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "2999758c6c040eb34707e722caaa2dceb89436310fd18cb3a8822240d44f3550"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

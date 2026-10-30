@@ -8,7 +8,7 @@ import {
   ellipsoid, FRAME_X, FRAME_Y, FRAME_Z, hash01, lerp, profileAt, rigid, SkinMesh, smoothNormals, tube, PERSON_PART,
   type Cell, type Ring,
 } from './skin-mesh.ts';
-import { cellOf, HAIR_CELL, LIP_CELL, LODS, SKIN_CELL, steps, type AtlasLayout, type FaceSpec, type Fidelity, type HairSpec } from './people.ts';
+import { BROW_CELL, cellOf, HAIR_CELL, LIP_CELL, LODS, SKIN_CELL, steps, type AtlasLayout, type FaceSpec, type Fidelity, type HairSpec } from './people.ts';
 import type { V3 } from './rig.ts';
 
 /** The centre of the skull and its radii (x, y, z); the crown is at y = 1.788 and the chin at 1.572. */
@@ -180,7 +180,8 @@ export function buildHeadBase(f: Fidelity, layout: AtlasLayout): SkinMesh {
   for (const sd of [1, -1]) m.append(eyeBall(sd * E, 1.7, eyeZ, 0.0125, Math.max(6, Math.round(lod.seg * 0.7)), eyeCell));
   if (lod.detail) {
     // brows: flattened bars over the eyes, hair class
-    const hairCell = cellOf(layout, 'hair', HAIR_CELL.short);
+    // the brows ride on the face's own page: the creator's skin page holds a grain cell for them, the ped atlas its short-hair cell
+    const hairCell = layout === 'pc' ? cellOf('pc', 'skin', BROW_CELL) : cellOf('ped', 'hair', HAIR_CELL.short);
     for (const sd of [1, -1]) {
       const brow: Ring[] = [0, 1, 2, 3, 4].map((i) => ({ c: [sd * lerp(0.012, 0.058, i / 4), 1.724 + Math.sin((i / 4) * Math.PI) * 0.004 - (i / 4) * 0.004, surfaceZ(1.724) + 0.004] as V3, ru: 0.0055, rv: 0.0045 }));
       m.append(tube(brow, { seg: 5, frame: FRAME_X, cell: hairCell, part: PERSON_PART.hair, weights: () => headW, capStart: true, capEnd: true }));
