@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
-import { streamAtPlan } from './ledger-helpers.ts';
+import { crowdMax, streamAtPlan } from './ledger-helpers.ts';
 import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, texturesSettled, world, type W } from './art-textures-helpers.ts';
 
 /**
@@ -185,7 +185,7 @@ test.describe('textures ledger @textures-ledger', () => {
       const t = (await world(page, (w) => w.look()))?.textures;
       expect(after - baseline, `${tier}: render objects added by the textures`).toBe(0);
       measured[tier] = { baseline, after, perLayer: { textures: after - baseline }, textureMB: Math.round(((t?.gpuBytes ?? 0) / MIB) * 100) / 100 };
-      console.log(`textures ledger ${tier}: ${JSON.stringify(measured[tier])}`);
+      console.log(`textures ledger ${tier}: ${JSON.stringify(measured[tier])} (crowd max ${crowdMax(tier)})`);
     });
   }
 
@@ -224,7 +224,8 @@ test.describe('textures ledger @textures-ledger', () => {
       const base = prev?.after[tier];
       if (base !== undefined && t.baseline !== base) expect(ledger.drift?.previousAfter[tier], `${tier} baseline ${t.baseline} is not the after ${base} of ${prev?.file}: the ledger says why`).toBe(base);
     }
-    expect(ledger.tiers['mobile-low']?.after ?? 0).toBeLessThanOrEqual(100);
+    // the crowd is hidden in the count and added back at its most in the ceiling (BD-FIX-LEDGER-SETTLED-01)
+    expect((ledger.tiers['mobile-low']?.after ?? 0) + crowdMax('mobile-low'), 'mobile-low after + crowd max').toBeLessThanOrEqual(100);
     if (ledger.xr) expect(ledger.xr.after).toBe(ledger.xr.baseline);
   });
 });

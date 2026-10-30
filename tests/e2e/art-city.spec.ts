@@ -3,7 +3,7 @@ import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
-import { streamAtPlan } from './ledger-helpers.ts';
+import { crowdMax, streamAtPlan } from './ledger-helpers.ts';
 
 /**
  * M10d1 vehicles and props in a real browser, on a `DV_WORLD=synth` QA build (the world half of the e2e legs).
@@ -268,12 +268,13 @@ test.describe('art ledger @art-ledger', () => {
         triangles: { baseline: m.trianglesBaseline, after: m.trianglesAfter, traffic: m.traffic.triangles, instances: m.traffic.instances },
       };
       measured[tier] = row;
-      console.log(`art ledger ${tier}: ${JSON.stringify(row)}`);
+      console.log(`art ledger ${tier}: ${JSON.stringify(row)} (crowd max ${crowdMax(tier)})`);
       const bound = TABLE[tier] as NonNullable<(typeof TABLE)[string]>;
       expect(row.perLayer.art, `${tier}: render objects added by the art`).toBeLessThanOrEqual(bound.objects);
       expect(row.perLayer.art, `${tier}: the art cannot take objects away`).toBeGreaterThanOrEqual(0);
       expect(after.traffic.triangles, `${tier}: traffic triangles`).toBeLessThanOrEqual(after.traffic.cap * bound.trisPerInstance);
-      if (tier === 'mobile-low') expect(row.after).toBeLessThanOrEqual(100);
+      // the crowd is hidden in the count and added back at its most in the ceiling (BD-FIX-LEDGER-SETTLED-01)
+      if (tier === 'mobile-low') expect(row.after + crowdMax(tier), `mobile-low after ${row.after} + crowd max ${crowdMax(tier)}`).toBeLessThanOrEqual(100);
     });
   }
 
@@ -314,7 +315,7 @@ test.describe('art ledger @art-ledger', () => {
       const base = prev?.after[tier];
       if (base !== undefined && t.baseline !== base) expect(ledger.drift?.previousAfter[tier], `${tier} baseline ${t.baseline} is not the after ${base} of ${prev?.file}: the ledger says why`).toBe(base);
     }
-    expect(ledger.tiers['mobile-low']?.after ?? 0).toBeLessThanOrEqual(100);
+    expect((ledger.tiers['mobile-low']?.after ?? 0) + crowdMax('mobile-low'), 'mobile-low after + crowd max').toBeLessThanOrEqual(100);
     if (ledger.xr) expect(ledger.xr.after).toBe(ledger.xr.baseline);
   });
 });

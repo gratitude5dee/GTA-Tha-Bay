@@ -7,7 +7,7 @@ import type { PlatformBridge } from '../../packages/engine/src/platform/probe.ts
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
 import { composeGrid, decodePng, diffImages, encodePng, goldenFailures, identical, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
-import { streamAtPlan } from './ledger-helpers.ts';
+import { crowdMax, streamAtPlan } from './ledger-helpers.ts';
 
 /**
  * M02g1 look-tune in a real browser, on a `DV_WORLD=synth` QA build (the world half of the e2e legs).
@@ -231,11 +231,12 @@ test.describe('look ledger @look-ledger', () => {
       for (const id of ['grade', 'haze', 'skyReflect', 'windows']) if (id in perLayer) expect(perLayer[id], id).toBe(0);
       if (!layers.includes('casters')) expect(after).toBeLessThanOrEqual(baseline + 1);
       if (tier === 'mobile-low') {
-        expect(after, 'mobile-low after').toBeLessThanOrEqual(100);
+        // the crowd is hidden in the count and added back at its most in the ceiling (BD-FIX-LEDGER-SETTLED-01)
+        expect(after + crowdMax(tier), `mobile-low after ${after} + crowd max ${crowdMax(tier)}`).toBeLessThanOrEqual(100);
         expect(after, 'mobile-low after <= baseline + 1').toBeLessThanOrEqual(baseline + 1);
       }
       measured[tier] = { baseline, after, perLayer };
-      console.log(`look ledger ${tier}: baseline ${baseline}, after ${after}, ${JSON.stringify(perLayer)}`);
+      console.log(`look ledger ${tier}: baseline ${baseline}, after ${after} (crowd max ${crowdMax(tier)}), ${JSON.stringify(perLayer)}`);
     });
   }
 
@@ -262,7 +263,7 @@ test.describe('look ledger @look-ledger', () => {
       if ('blob' in t.perLayer) expect(t.perLayer['blob'], `${tier} blob`).toBe(1);
       expect(Object.keys(t.perLayer).sort()).toEqual([...layersOf(tier)].sort());
     }
-    expect(ledger.tiers['mobile-low']?.after ?? 0).toBeLessThanOrEqual(100);
+    expect((ledger.tiers['mobile-low']?.after ?? 0) + crowdMax('mobile-low'), 'mobile-low after + crowd max').toBeLessThanOrEqual(100);
     expect((ledger.tiers['mobile-low']?.after ?? 0) - (ledger.tiers['mobile-low']?.baseline ?? 0)).toBeLessThanOrEqual(1);
     if (ledger.xr) expect(ledger.xr.after).toBe(ledger.xr.baseline);
   });
