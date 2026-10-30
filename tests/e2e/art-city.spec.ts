@@ -202,11 +202,8 @@ const live = (page: Page): Promise<{ renderObjects: number; triangles: number }>
 
 /** The `after` of the ledger of `docs/look` most recently merged: the baseline this row measures from (newest first, M10d1's own excluded). */
 function previousLedger(): { file: string; after: Record<string, number> } | null {
-  const candidates = [
-    'docs/look/M02h8-render-ledger.json', 'docs/look/M02h7-render-ledger.json', 'docs/look/M02h6-render-ledger.json', 'docs/look/M02h5-render-ledger.json',
-    'docs/look/M02h4-render-ledger.json', 'docs/look/M02h3-render-ledger.json', 'docs/look/M02h2-render-ledger.json', 'docs/look/M02h1-render-ledger.json',
-    'docs/look/M10d0-render-ledger.json', 'docs/look/M02g2-render-ledger.json', 'docs/look/M02g1-render-ledger.json',
-  ];
+  // the street rows (M02h1 on) merged after this row and measure from this ledger's after; this row never reads them (M02h1, BD-M02h1-07)
+  const candidates = ['docs/look/M10d0-render-ledger.json', 'docs/look/M02g2-render-ledger.json', 'docs/look/M02g1-render-ledger.json'];
   for (const file of candidates) {
     if (!existsSync(file)) continue;
     const l = read<{ tiers: Record<string, { after: number }> }>(file);
