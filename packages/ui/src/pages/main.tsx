@@ -1,11 +1,12 @@
 /** The main menu (10-ui-pages.md section 2.5): items from `config/ui/nav.json`, each gated by its page. */
+import { useState } from 'preact/hooks';
 import navJson from '../../../../config/ui/nav.json';
 import { t } from '../i18n/index.ts';
 import { Banner, Button, useAsync } from '../kit/widgets.tsx';
 import { Link, useShell } from '../shell/context.tsx';
 import { pageDef } from '../shell/registry.ts';
 import type { GateCtx, GateResult, PageId, PageProps } from '../shell/types.ts';
-import { lastSaveLine, mostRecent, playtimeText, waitForProfile } from './saves.tsx';
+import { lastSaveLine, mostRecent, NOT_READY_UI, playtimeText, selectProfile, useUnmountSignal } from './saves.tsx';
 
 export interface NavItem { id: string; page: PageId; labelKey: string; params?: Record<string, string>; also?: PageId[] }
 export const NAV_ITEMS = (navJson as { items: NavItem[] }).items;
@@ -42,11 +43,19 @@ export function MainPage(_props: PageProps) {
   const views = navViews(ctx.gate);
   const line = last ? lastSaveLine(last.lastSave, Date.now()) : null;
   const identityKey = `identity.${ctx.gate.identity.tier}`;
+  const [pending, setPending] = useState(false);
+  const signal = useUnmountSignal();
+  // The profile is opened first (BD-FIX-NEWGAME-01): before the engine attaches a select was dropped and the press did nothing; now it
+  // waits for the engine, with the busy line meanwhile, and says so when the game does not come up.
   const continueGame = async (): Promise<void> => {
-    if (!last) return;
-    if (ctx.profile?.id !== last.id) {
-      ctx.sendUi({ t: 'save.profile', op: 'select', id: last.id });
-      if (!(await waitForProfile(ctx, last.id))) return;
+    if (!last || pending) return;
+    setPending(true);
+    const r = await selectProfile(ctx, last.id, { signal });
+    if (signal.aborted) return;
+    setPending(false);
+    if (r !== 'ok') {
+      shell.toast({ id: 'engine.notReady', kind: 'warning', text: NOT_READY_UI.message });
+      return;
     }
     ctx.startMode('story', 'story:auto');
   };
@@ -78,13 +87,14 @@ export function MainPage(_props: PageProps) {
                 testId={`nav-${item.id}`}
                 style={item.id === 'continue' ? 'primary' : 'secondary'}
                 label={t(item.labelKey)}
-                disabledReason={reason}
+                disabledReason={item.id === 'continue' && pending ? t('common.preparing') : reason}
                 onPress={() => {
                   if (item.id === 'continue') void continueGame();
                   else shell.navigate(item.page, item.params);
                 }}
               />
               {COMING_SOON_PAGES.has(item.page) ? <span class="dv-badge">{t('common.comingSoon')}</span> : null}
+              {item.id === 'continue' && pending ? <small role="status" data-testid="continue-busy">{t('common.preparing')}</small> : null}
               {item.id === 'continue' && last && line ? (
                 <small data-testid="continue-line" class={line.ok ? '' : 'dv-warn'}>
                   {line.ok ? '' : '! '}
