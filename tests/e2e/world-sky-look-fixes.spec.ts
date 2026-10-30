@@ -69,7 +69,7 @@ test.describe('fixes ledger @fixes-ledger', () => {
   for (const tier of LEDGER_TIERS) {
     test(`${tier}: render objects and triangles on a held frame, against M10d0's ledger @fixes-ledger`, async ({ page }) => {
       // the protocol of M02g1's ledger: no `perf=1` (a held frame must not change), traffic resident, `mobile-low` at the `fog-west` shot.
-      // `&art=0` (M10d1's QA switch, BD-FIX-M10d1-01): this row measures M02g2's own change against M10d0's `after`, so the art of later rows stays out of the frame, as the flicker pairs keep the textures out with `&textures=0`
+      // `&art=0` (M10d1's QA switch, BD-REPAIR-M10d1-01): this row measures M02g2's own change against M10d0's `after`, so the art of later rows stays out of the frame, as the flicker pairs keep the textures out with `&textures=0`
       await bootWorld(page, tier, SMALL_VIEWPORT, '&art=0');
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);

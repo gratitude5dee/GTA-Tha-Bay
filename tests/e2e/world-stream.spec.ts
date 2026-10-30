@@ -51,6 +51,15 @@ test.describe('world streaming @world', () => {
       expect(report.frames.count).toBeGreaterThan(0);
       expect(report.errors.gpuLost).toBe(0);
 
+      // M10d1 (BD-REPAIR-M10d1-02): the ambient traffic, pedestrians and transit are out of the picture from here on, as the golden specs hide them.
+      // The final vehicle art doubles the triangles of a desktop frame (2.2 M against 1.0 M), and software GL then draws a frame in 2 to 5 s;
+      // the gate lets one chunk through per frame, so with the art in the frame the 16 blocks of L2 outlasted 240 s on a CI runner. The check
+      // is of the stream (uploads per frame, the plan, failed tiles), which the crowd does not touch; the perf run above drew them.
+      await page.evaluate(() => {
+        type G = { group: { visible: boolean } } | null;
+        const view = (window as unknown as W).__dvBridge.world.internals().view as unknown as { traffic: G; peds: G; transit: G };
+        for (const r of [view.traffic, view.peds, view.transit]) if (r) r.group.visible = false;
+      });
       // The coarse level fills first; software GL meshes L0 slowly, so the check waits for L2 and not for the whole stream to settle.
       await expect
         .poll(
