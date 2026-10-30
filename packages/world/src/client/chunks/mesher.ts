@@ -727,15 +727,17 @@ export interface RoadMarkStats {
   clipped: number;
 }
 
-/** A junction patch: a fan over the convex outline of the clipped ribbon corners, at the lift of each corner's road and the busiest road's in the middle. */
+/**
+ * A junction patch: the convex outline of the clipped ribbon corners as a fan from its first corner (n - 2 triangles), each corner at the
+ * lift of its own road, so the patch meets every ribbon end at the ribbon's height.
+ */
 function addPatch(b: MeshBuilder, pj: PlannedJunction, ox: number, oz: number): void {
   b.setSurf(Surf.Junction);
-  const centre = b.vertex(pj.x - ox, pj.y + ribbonLift(pj.cls), pj.z - oz, UP, roadColor(pj.cls));
   const ring = pj.hull.map((i) => {
     const c = pj.corners[i] as PlannedJunction['corners'][number];
     return b.vertex(c.x - ox, c.y + ribbonLift(c.cls), c.z - oz, UP, roadColor(c.cls));
   });
-  for (let k = 0; k < ring.length; k++) b.triUp(centre, ring[k] as number, ring[(k + 1) % ring.length] as number, true);
+  for (let k = 1; k + 1 < ring.length; k++) b.triUp(ring[0] as number, ring[k] as number, ring[k + 1] as number, true);
 }
 
 const clampI = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, Math.round(v)));

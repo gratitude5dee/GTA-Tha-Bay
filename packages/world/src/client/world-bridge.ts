@@ -252,7 +252,7 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
     setLook: (on) => view.setLook(on),
     setLookLayer: (id, on) => view.setLookLayer(id, on),
     shot: async (id) => {
-      const lv = view.lookView;
+      const lv = view.shotRig();
       if (!lv) throw new Error('look shot: this view has no look');
       const s = lv.holdShot(id);
       view.setFocus({ x: s.x, z: s.z, vx: 0, vz: 0 });
@@ -278,17 +278,17 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
       await nextFrames(4);
       // One environment bake from the settled sky (see `PhysicalSky.refreshEnvironment`): without it the map was whatever the last bake of the
       // transition left, and a golden at `desktop` on Chromium differed from boot to boot.
-      const bakes = lv.report().envBakes;
+      const bakes = lv.envBakes();
       if (lv.refreshEnvironment()) {
-        await until(() => lv.report().envBakes > bakes, 120_000, 'the environment bake');
+        await until(() => lv.envBakes() > bakes, 120_000, 'the environment bake');
         await nextFrames(2);
       }
       return { id: s.id, hour: s.hour, weather: s.weather };
     },
     shotMove: async (id) => {
-      const lv = view.lookView;
+      const lv = view.shotRig();
       if (!lv) throw new Error('look shot: this view has no look');
-      if (lv.shotCamera === null) throw new Error('look shot: no shot is held; call shot() first');
+      if (!lv.held()) throw new Error('look shot: no shot is held; call shot() first');
       const s = lookShot(id);
       const k = view.skyInfo();
       if (!k || Math.abs(k.hour - s.hour) >= 0.05 || k.weather !== s.weather || k.next !== s.weather) {
@@ -302,8 +302,8 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
     },
     hold: (on) => view.holdRender(on),
     clearShot: () => {
-      view.lookView?.releaseShot();
-      view.lookView?.freezeClock(false);
+      view.shotRig()?.releaseShot();
+      view.shotRig()?.freezeClock(false);
       view.setFocus(null);
     },
     call: (op, args, timeoutMs = 30_000) => call(op, args, timeoutMs),

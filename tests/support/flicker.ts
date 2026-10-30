@@ -63,22 +63,41 @@ function hasMatch(a: Rgba, b: Rgba, x: number, y: number, threshold: number, rea
  * the sparkle. A pixel with a look-alike one pixel away is the same surface moved; a pixel with none is a texel that changed in place,
  * which is what sparkle is. Moire of a period under three pixels moves by a texel and is not seen, which is the limit of the window.
  */
-export function flickerShare(a: Rgba, b: Rgba, threshold = FLICKER_THRESHOLD, reach = 1): number {
+export function flickerShare(a: Rgba, b: Rgba, threshold = FLICKER_THRESHOLD, reach = 1, mask?: RegionMask): number {
   if (a.width !== b.width || a.height !== b.height) throw new Error(`flicker: image sizes differ: ${a.width}x${a.height} against ${b.width}x${b.height}`);
   const w = a.width, h = a.height;
   let over = 0;
+  let total = 0;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
+      if (mask && !mask(x, y)) continue;
+      total++;
       if (pixelDiff(a, y * w + x, b, y * w + x) <= threshold) continue;
       if (!hasMatch(a, b, x, y, threshold, reach) || !hasMatch(b, a, x, y, threshold, reach)) over++;
     }
   }
-  return over / (w * h);
+  return total === 0 ? 0 : over / total;
+}
+
+/** A region of the canvas: whether pixel (x, y) counts. `flickerShare` then divides by the pixels of the region, not of the canvas (M02h1). */
+export type RegionMask = (x: number, y: number) => boolean;
+
+/**
+ * The pixels of a view along a straight road that are road: below the horizon and inside the cone of the road's edges seen from `eyeM`
+ * above its middle (a road of half width `halfWidthM` fills `|x - cx| <= (halfWidthM / eyeM) (y - horizon)`). `pitchDeg` is the camera's
+ * pitch (negative looks down); `fovDeg` the vertical field of view. A margin of a few rows keeps the vanishing point out.
+ */
+export function roadRegion(o: { width: number; height: number; pitchDeg: number; fovDeg: number; eyeM: number; halfWidthM: number; marginPx?: number }): RegionMask {
+  const f = o.height / 2 / Math.tan((o.fovDeg * Math.PI) / 360);
+  const horizon = o.height / 2 + f * Math.tan((o.pitchDeg * Math.PI) / 180);
+  const slope = o.halfWidthM / o.eyeM;
+  const margin = o.marginPx ?? 3;
+  return (x, y) => y > horizon + margin && Math.abs(x + 0.5 - o.width / 2) <= slope * (y - horizon);
 }
 
 /** The share of pixels whose largest colour-channel difference between `a` and `b` is above `threshold`, with no search: the parallax is in it. */
-export function flickerShareRaw(a: Rgba, b: Rgba, threshold = FLICKER_THRESHOLD): number {
-  return flickerShare(a, b, threshold, 0);
+export function flickerShareRaw(a: Rgba, b: Rgba, threshold = FLICKER_THRESHOLD, mask?: RegionMask): number {
+  return flickerShare(a, b, threshold, 0, mask);
 }
 
 /**

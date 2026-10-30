@@ -32,7 +32,8 @@ import { MESHER, profileOf, wantNearStride } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
 import { LOOK, LOOK_LAYERS, lookProfileFor, type LookLayer } from './look/config.ts';
-import { LookView, markingsReportOf, type LookReport } from './look/look-view.ts';
+import { LookView, markingsReportOf, type LookReport, type ShotCamera } from './look/look-view.ts';
+import { lookShot, shotQuaternion, type LookShot } from './look/shots.ts';
 // art-hook:textures begin (M10d0)
 import { TEXTURES_FLAG } from './textures/config.ts';
 import { SurfaceTextures, installSurfaceTextures, installedSurfaceTextures } from './textures/surface-textures.ts';
@@ -125,6 +126,17 @@ export interface ChunksReport {
   objects: number;
   triangles: number;
   frame: number;
+}
+
+/** The held-camera rig of a look shot (`WorldView.shotRig`). */
+export interface ShotRig {
+  holdShot(id: string): LookShot;
+  placeShot(id: string, groundY: number): void;
+  releaseShot(): void;
+  freezeClock(on: boolean): void;
+  refreshEnvironment(): boolean;
+  envBakes(): number;
+  held(): boolean;
 }
 
 export interface BootReport {
@@ -435,7 +447,7 @@ export class WorldView implements WorldLayer {
     if (this.disposed) return;
     this.frames++;
     let f = frameIn;
-    const held = this.lookView?.shotCamera;
+    const held = this.lookView?.shotCamera ?? this.legacyHeld;
     if (held && this.host) {
       // A look shot holds the camera: the host's camera, the culling and the sky all see the shot's pose.
       const cam = this.host.camera as PerspectiveCamera;
@@ -963,6 +975,44 @@ export class WorldView implements WorldLayer {
     if (!this.host) return;
     if (on) this.host.stopLoop();
     else this.host.startLoop();
+  }
+
+  /** M02h1 QA: the camera a shot holds on a tier without a look view (the XR tiers on the flat canvas). */
+  private legacyHeld: ShotCamera | null = null;
+
+  /**
+   * The rig the bridge's `shot()` drives: the look view's when there is one; on a tier without a look view (the XR tiers, which still draw
+   * the flat street paint) a held camera and the frozen sky clock, with no look clock and no environment bake. Null without a look config.
+   */
+  shotRig(): ShotRig | null {
+    const lv = this.lookView;
+    if (lv) {
+      return {
+        holdShot: (id) => lv.holdShot(id),
+        placeShot: (id, gy) => lv.placeShot(id, gy),
+        releaseShot: () => lv.releaseShot(),
+        freezeClock: (on) => lv.freezeClock(on),
+        refreshEnvironment: () => lv.refreshEnvironment(),
+        envBakes: () => lv.report().envBakes,
+        held: () => lv.shotCamera !== null,
+      };
+    }
+    if (!this.o.look || !this.host) return null;
+    return {
+      holdShot: (id) => {
+        const s = lookShot(id);
+        this.legacyHeld = { x: s.x, y: 40 + s.y, z: s.z, quat: shotQuaternion(s.yawDeg, s.pitchDeg), fovDeg: s.fovDeg };
+        return s;
+      },
+      placeShot: (id, gy) => {
+        if (this.legacyHeld) this.legacyHeld.y = gy + lookShot(id).y;
+      },
+      releaseShot: () => void (this.legacyHeld = null),
+      freezeClock: (on) => this.sky?.freezeTime(on),
+      refreshEnvironment: () => false,
+      envBakes: () => 0,
+      held: () => this.legacyHeld !== null,
+    };
   }
 
   lookReport(): LookReport | null {
