@@ -7,7 +7,7 @@ import { TRANSIT_ART, TransitRenderer } from '../../packages/world/src/client/tr
 import { PED_BODIES } from '../../packages/world/src/sim/peds/components.ts';
 import { NEAR_PED_CAP } from '../../packages/world/src/sim/peds/density.ts';
 import { NEAR_PED_CAP as PERF_NEAR_PED_CAP, PED_FAR_DRAWS_MAX } from '../../tools/ci/perf-check.ts';
-import { crowdMax, crowdParts } from '../e2e/ledger-helpers.ts';
+import { crowdMax, crowdParts, LEDGER_NEAR_PED_CAP, LEDGER_PED_BODIES } from '../e2e/ledger-helpers.ts';
 
 /**
  * BD-FIX-LEDGER-SETTLED-01: the ledger cases hide the transit and the pedestrians in the frame they count, and add `crowdMax(tier)` back
@@ -33,6 +33,7 @@ describe('crowdMax, the most the hidden crowd draws (BD-FIX-LEDGER-SETTLED-01)',
     expect(far.length).toBe(PED_BODIES);
     expect(far.every((m) => m.isInstancedMesh === true && !m.castShadow)).toBe(true);
     expect(PED_BODIES).toBe(PED_FAR_DRAWS_MAX);
+    expect(LEDGER_PED_BODIES).toBe(PED_BODIES);
   });
 
   it('a near pedestrian is one skinned mesh that casts no shadow, up to the tier cap of both tables', () => {
@@ -41,7 +42,10 @@ describe('crowdMax, the most the hidden crowd draws (BD-FIX-LEDGER-SETTLED-01)',
     expect(parts.length).toBe(1);
     expect(parts[0]?.isSkinnedMesh).toBe(true);
     expect(parts[0]?.castShadow).toBe(false);
-    for (const tier of TIERS) expect(NEAR_PED_CAP[tier], tier).toBe(PERF_NEAR_PED_CAP[tier]);
+    for (const tier of TIERS) {
+      expect(NEAR_PED_CAP[tier], tier).toBe(PERF_NEAR_PED_CAP[tier]);
+      expect(LEDGER_NEAR_PED_CAP[tier], tier).toBe(NEAR_PED_CAP[tier]);
+    }
   });
 
   it('the transit is one instanced mesh per kind, none casts a shadow, and the kinds are the moving rows of transit.json plus the entrances', () => {

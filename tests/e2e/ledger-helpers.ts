@@ -2,8 +2,6 @@ import { readFileSync } from 'node:fs';
 import { expect, type Page } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
-import { PED_BODIES } from '../../packages/world/src/sim/peds/components.ts';
-import { NEAR_PED_CAP } from '../../packages/world/src/sim/peds/density.ts';
 
 /**
  * The frame every render-object and triangle ledger of `docs/look` measures (DL-758, BD-FIX-LEDGER-SETTLED-01): one whose stream has
@@ -55,13 +53,29 @@ export async function streamAtPlan(page: Page, timeoutMs = 600_000): Promise<voi
   console.log(`ledger frame at plan: resident l0 ${c.l0}, l1 ${c.l1}, l2 ${c.l2}; traffic objects ${String(c.traffic)}; transit and pedestrians hidden`);
 }
 
+/**
+ * Far pedestrian meshes: one per body (`PED_BODIES` of `packages/world/src/sim/peds/components.ts`, `PED_FAR_DRAWS_MAX` of
+ * `tools/ci/perf-check.ts`). A copy, because the Playwright loader cannot import the sim modules (they import JSON without an import
+ * attribute); `tests/support/ledger-crowd.spec.ts` keeps it equal to both.
+ */
+export const LEDGER_PED_BODIES = 8;
+/** Near (skinned) pedestrians per tier: `NEAR_PED_CAP` of `packages/world/src/sim/peds/density.ts` and of `tools/ci/perf-check.ts` (same pin). */
+export const LEDGER_NEAR_PED_CAP: Readonly<Record<QualityTierId, number>> = {
+  'desktop-ultra': 24,
+  desktop: 24,
+  'xr-visionpro': 16,
+  mobile: 12,
+  'xr-quest': 8,
+  'mobile-low': 6,
+};
+
 /** The per-tier counts of the moving transit kinds (`config/world/transit.json`, read by the transit sim through `countOf`). */
 const TRANSIT_COUNTS = (JSON.parse(readFileSync(new URL('../../config/world/transit.json', import.meta.url), 'utf8')) as { counts: Record<string, Record<string, number>> }).counts;
 
 /**
  * The most render objects the layers `streamAtPlan` hides can draw at `tier`, from the code and config that bound them, not from a
- * frame: the far pedestrians are one instanced mesh per body (`PED_BODIES`, `PED_FAR_DRAWS_MAX` of `tools/ci/perf-check.ts`), each near
- * pedestrian is one skinned mesh up to the tier's `NEAR_PED_CAP`, and the transit is one instanced mesh per kind the tier runs (each
+ * frame: the far pedestrians are one instanced mesh per body (`LEDGER_PED_BODIES`), each near pedestrian is one skinned mesh up to the
+ * tier's near cap (`LEDGER_NEAR_PED_CAP`), and the transit is one instanced mesh per kind the tier runs (each
  * row of `counts` in `config/world/transit.json` above zero at the tier, `air` drawn as `airliner`) plus the Bay Rail entrances, which
  * stand on every tier. None of them casts a shadow, so none adds a shadow pass. `tests/support/ledger-crowd.spec.ts` pins the numbers to
  * the renderers.
@@ -74,5 +88,5 @@ export function crowdMax(tier: QualityTierId): number {
 /** The three terms of `crowdMax`. */
 export function crowdParts(tier: QualityTierId): { pedFar: number; pedNear: number; transit: number } {
   const kinds = Object.values(TRANSIT_COUNTS).filter((row) => (row[tier] ?? 0) > 0).length;
-  return { pedFar: PED_BODIES, pedNear: NEAR_PED_CAP[tier], transit: kinds + 1 };
+  return { pedFar: LEDGER_PED_BODIES, pedNear: LEDGER_NEAR_PED_CAP[tier], transit: kinds + 1 };
 }
