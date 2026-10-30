@@ -4,7 +4,7 @@
   "version": 1,
   "nameKey": "vehicle.truck",
   "render": {
-    "asset": "vehicle/graybox.truck"
+    "asset": "vehicle/traffic.truck"
   },
   "physics": {
     "body": "dynamic",

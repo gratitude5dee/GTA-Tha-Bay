@@ -65,6 +65,12 @@ export interface SimHostOptions {
 const STALL_MS = 2000;
 /** A gap between two frame signals longer than this means the page was hidden; the stall timer starts over. */
 const FRAME_GAP_RESET_MS = 1000;
+/**
+ * One frame adds at most this much to the stall timer (BD-REPAIR-M10d1-03). A page whose frames take 0.5 to 1 s (software GL, a
+ * starved core) also starves the worker thread beside it, so wall-clock time between two frames says little about a worker that
+ * answers every frame signal late; a dead worker still shows as `STALL_MS / STALL_FRAME_CAP_MS` frames without a fresh snapshot.
+ */
+const STALL_FRAME_CAP_MS = 250;
 
 /**
  * The page's handle on sim.worker (C02 SimHost). It owns the worker and the transport, sends one `FrameSignal` per
@@ -88,7 +94,8 @@ export class SimHostImpl implements SimHost {
   qaResults = new Map<string, unknown>();
 
   private worker: WorkerLike | null = null;
-  private lastFreshMs = 0;
+  /** Stall time since the last fresh snapshot: frame gaps, each capped at `STALL_FRAME_CAP_MS`. */
+  private staleMs = 0;
   private lastFrameMs = -1;
   private readyResolve: (() => void) | null = null;
   private generation = 0;
@@ -152,23 +159,30 @@ export class SimHostImpl implements SimHost {
     else worker.postMessage(init);
     const timeoutMs = this.opts.readyTimeoutMs ?? 30_000;
     await (this.opts.timeoutAfter ? Promise.race([ready, this.opts.timeoutAfter(timeoutMs, 'sim worker was not ready')]) : ready);
-    this.lastFreshMs = 0;
+    this.staleMs = 0;
   }
 
   /** Send the frame signal, collect events, read the newest snapshot pair. Never blocks. */
   frame(sig: FrameSignal): void {
     const t = this.transport;
     if (!t || this.crashed) return;
-    if (sig.paused || this.lastFrameMs < 0 || sig.nowMs - this.lastFrameMs > FRAME_GAP_RESET_MS) this.lastFreshMs = sig.nowMs;
+    const gap = this.lastFrameMs < 0 ? 0 : sig.nowMs - this.lastFrameMs;
+    if (sig.paused || this.lastFrameMs < 0 || gap > FRAME_GAP_RESET_MS) {
+      this.staleMs = 0;
+    } else {
+      this.staleMs += Math.min(gap, STALL_FRAME_CAP_MS);
+    }
     this.lastFrameMs = sig.nowMs;
     t.sendFrame(sig);
     t.drainEvents((m) => this.onEvent(m));
     const v = t.readSnapshot();
     if (v) {
       this.view = v;
-      if (v.fresh) this.lastFreshMs = sig.nowMs;
+      if (v.fresh) {
+        this.staleMs = 0;
+      }
     }
-    if (sig.nowMs - this.lastFreshMs > STALL_MS) this.fail('stalled', `no snapshot for ${Math.round(sig.nowMs - this.lastFreshMs)} ms`);
+    if (this.staleMs > STALL_MS) this.fail('stalled', `no snapshot for ${Math.round(this.staleMs)} ms`);
   }
 
   /** Debug and headless only (C02): runs one tick while paused. Needs a QA build. */

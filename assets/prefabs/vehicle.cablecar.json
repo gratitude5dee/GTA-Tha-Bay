@@ -4,7 +4,7 @@
   "version": 1,
   "nameKey": "transit.vehicle.cablecar",
   "render": {
-    "asset": "vehicle/graybox.cablecar"
+    "asset": "vehicle/transit.cablecar"
   },
   "physics": {
     "body": "kinematic",

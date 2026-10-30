@@ -4,7 +4,7 @@
   "version": 1,
   "nameKey": "vehicle.suv",
   "render": {
-    "asset": "vehicle/graybox.suv"
+    "asset": "vehicle/police.suv"
   },
   "physics": {
     "body": "dynamic",

@@ -1,0 +1,65 @@
+{
+  "kind": "vehicle",
+  "id": "traffic.pickup",
+  "variants": {
+    "desktop": "assets/src/vehicle/traffic.pickup/desktop.glb",
+    "mobile": "assets/src/vehicle/traffic.pickup/mobile.glb",
+    "mobile-low": "assets/src/vehicle/traffic.pickup/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 3956,
+      "verts": 2702,
+      "primitives": 15,
+      "materials": 4
+    },
+    "mobile": {
+      "tris": 2392,
+      "verts": 1802,
+      "primitives": 15,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 608,
+      "verts": 657,
+      "primitives": 13,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "class:traffic",
+    "art:m10d1"
+  ],
+  "extras": {
+    "t": "vehicle",
+    "class": "traffic",
+    "fictionalMake": "Harlow Dray",
+    "wheelRadiusM": 0.35,
+    "nodes": {
+      "body": "body",
+      "wheels": [
+        "wheel_fl",
+        "wheel_fr",
+        "wheel_rl",
+        "wheel_rr"
+      ],
+      "steer": [
+        "steer_fl",
+        "steer_fr"
+      ],
+      "lights": [
+        "light_head_l",
+        "light_head_r",
+        "light_brake_l",
+        "light_brake_r"
+      ],
+      "collider": "collider_hull"
+    }
+  },
+  "status": "active",
+  "visibility": "public"
+}
