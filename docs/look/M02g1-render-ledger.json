@@ -11,7 +11,8 @@
         "blob": 1,
         "casters": 102,
         "skyReflect": 0,
-        "windows": 0
+        "windows": 0,
+        "markings": 0
       }
     },
     "desktop": {
@@ -23,7 +24,8 @@
         "blob": 1,
         "casters": 102,
         "skyReflect": 0,
-        "windows": 0
+        "windows": 0,
+        "markings": 0
       }
     },
     "mobile": {
@@ -34,7 +36,8 @@
         "haze": 0,
         "blob": 1,
         "skyReflect": 0,
-        "windows": 0
+        "windows": 0,
+        "markings": 0
       }
     },
     "mobile-low": {
@@ -45,7 +48,8 @@
         "haze": 0,
         "blob": 1,
         "skyReflect": 0,
-        "windows": 0
+        "windows": 0,
+        "markings": 0
       }
     }
   },
