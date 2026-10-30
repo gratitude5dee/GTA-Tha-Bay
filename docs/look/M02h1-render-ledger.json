@@ -7,7 +7,8 @@
     "measuredOff": {
       "desktop-ultra": 265,
       "desktop": 269,
-      "mobile": 158
+      "mobile": 158,
+      "xr": 94
     }
   },
   "tiers": {
@@ -59,5 +60,9 @@
         "after": 200551
       }
     }
+  },
+  "xr": {
+    "baseline": 94,
+    "after": 94
   }
 }
