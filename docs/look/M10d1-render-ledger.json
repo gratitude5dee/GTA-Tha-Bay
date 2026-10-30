@@ -5,61 +5,61 @@
   "drift": {
     "reason": "docs/look/M10d0-render-ledger.json was measured before later milestones changed the scene; the baseline here is the same frame with the gray-box traffic mesh (one render object, one more per shadow pass) in place of the art's meshes, so the art is measured against what the scene draws now",
     "previousAfter": {
-      "desktop-ultra": 272,
+      "desktop-ultra": 278,
       "desktop": 278,
-      "mobile": 158,
-      "mobile-low": 87
+      "mobile": 157,
+      "mobile-low": 85
     }
   },
   "tiers": {
     "desktop-ultra": {
-      "baseline": 249,
-      "after": 265,
+      "baseline": 235,
+      "after": 251,
       "perLayer": {
         "art": 16
       },
       "triangles": {
-        "baseline": 1034144,
-        "after": 2917592,
-        "traffic": 1912176,
-        "instances": 798
+        "baseline": 1009598,
+        "after": 2878798,
+        "traffic": 1897712,
+        "instances": 792
       }
     },
     "desktop": {
-      "baseline": 270,
-      "after": 286,
+      "baseline": 241,
+      "after": 257,
       "perLayer": {
         "art": 16
       },
       "triangles": {
-        "baseline": 1151223,
-        "after": 2418971,
-        "traffic": 1287080,
-        "instances": 537
+        "baseline": 960586,
+        "after": 2235066,
+        "traffic": 1293920,
+        "instances": 540
       }
     },
     "mobile": {
-      "baseline": 159,
-      "after": 161,
+      "baseline": 157,
+      "after": 159,
       "perLayer": {
         "art": 2
       },
       "triangles": {
-        "baseline": 295134,
-        "after": 408390,
+        "baseline": 370730,
+        "after": 483986,
         "traffic": 120384,
         "instances": 198
       }
     },
     "mobile-low": {
-      "baseline": 87,
-      "after": 88,
+      "baseline": 85,
+      "after": 86,
       "perLayer": {
         "art": 1
       },
       "triangles": {
-        "baseline": 135143,
-        "after": 191199,
+        "baseline": 143271,
+        "after": 199327,
         "traffic": 59584,
         "instances": 98
       }
