@@ -3,7 +3,8 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { expect, test, type TestInfo } from '@playwright/test';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
-import { bakeIdOf, bootWorld, frames, live, read, setSky, world, type W } from './markings-helpers.ts';
+import { crowdMax, streamAtPlan } from './ledger-helpers.ts';
+import { bakeIdOf, bootWorld, live, read, setSky, world, type W } from './markings-helpers.ts';
 
 /**
  * M02h1 AC-6, `@markings-ledger`: the render-object ledger of `docs/look/M02h1-render-ledger.json` in M02g1's shape with `perLayer.markings`.
@@ -12,6 +13,11 @@ import { bakeIdOf, bootWorld, frames, live, read, setSky, world, type W } from '
  * crosswalks and stop bars and the collinear-vertex merge, against the ribbons as M02g2 drew them). `@xr`: the Quest tier holds its count.
  * `baseline` is the `after` of the ledger named in `baselineFrom` (`PRIOR`, the newest merged one before this row), as the Look program
  * rules say (rule 5); `DV_LOOK_WRITE=1` writes the ledger.
+ *
+ * The frame is the one every ledger measures since DL-758 (BD-FIX-LEDGER-SETTLED-01): `streamAtPlan` holds the world's draw until the stream
+ * has reached its plan, then six frames, with the transit and the pedestrians hidden; each `mobile-low` ceiling reads count + `crowdMax(tier)`.
+ * This row is the newest scene, so it boots with every earlier row's layers on (the art, the textures): its baseline is the `after` of the
+ * ledger before it, measured the same way.
  */
 const LEDGER = 'docs/look/M02h1-render-ledger.json';
 /** The ledgers that come before this row in the chain, newest first; the first one that exists is the baseline. */
@@ -64,7 +70,8 @@ test.describe('markings ledger @markings-ledger', () => {
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);
       if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));
-      await frames(page, 6);
+      // the frame of the whole plan, six frames after it (DL-758)
+      await streamAtPlan(page);
       await world(page, (w) => w.hold(true));
       const set = (on: boolean): Promise<boolean> => page.evaluate((o) => (window as unknown as W).__dvBridge.world.setLookLayer('markings', o as boolean), on);
       expect(await set(false)).toBe(true);
@@ -74,11 +81,16 @@ test.describe('markings ledger @markings-ledger', () => {
       const keys = (await world(page, (w) => w.chunks())).resident.l0;
       await world(page, (w) => w.hold(false));
       expect(on.renderObjects - off.renderObjects, `${tier}: render objects added by the markings`).toBe(0);
+      // the crowd is hidden in the count and added back at its most in the ceiling (BD-FIX-LEDGER-SETTLED-01)
+      if (tier === 'mobile-low') expect(on.renderObjects + crowdMax(tier), `mobile-low after ${on.renderObjects} + crowd max ${crowdMax(tier)}`).toBeLessThanOrEqual(100);
+      const baseline = prior().ledger.tiers[tier]?.after;
+      expect(baseline, `${prior().file} holds ${tier}`).toBeDefined();
+      expect(off.renderObjects, `${tier}: render objects with the paint off against the after (${baseline}) of ${prior().file}`).toBeLessThanOrEqual(baseline ?? 0);
       const roads = roadTriangles(keys, tier);
       expect(roads.baseline).toBeGreaterThan(0);
       expect(roads.after / roads.baseline, `${tier}: road triangles ${roads.after} against ${roads.baseline}`).toBeLessThanOrEqual(1.1);
       measured[tier] = { off: off.renderObjects, on: on.renderObjects, roads, triangles: on.triangles };
-      console.log(`markings ledger ${tier}: ${JSON.stringify(measured[tier])}`);
+      console.log(`markings ledger ${tier}: ${JSON.stringify(measured[tier])} (crowd max ${crowdMax(tier)})`);
     });
   }
 
@@ -128,7 +140,7 @@ test.describe('markings ledger @markings-ledger', () => {
       if (t.after !== t.baseline) expect(ledger.drift?.measuredOff[tier], `${tier}: after ${t.after} is not the baseline ${t.baseline}: the ledger says why`).toBe(t.after);
       expect(t.roadTriangles.after / t.roadTriangles.baseline, `${tier} road triangles`).toBeLessThanOrEqual(1.1);
     }
-    expect(ledger.tiers['mobile-low']?.after ?? 0).toBeLessThanOrEqual(100);
+    expect((ledger.tiers['mobile-low']?.after ?? 0) + crowdMax('mobile-low'), 'mobile-low after + crowd max').toBeLessThanOrEqual(100);
     if (ledger.xr) {
       expect(ledger.xr.after).toBe(ledger.xr.baseline);
       const priorXr = base.ledger.xr?.after;
@@ -144,7 +156,8 @@ test.describe('xr markings ledger @xr @markings-ledger', () => {
     await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1');
     await waitForEngine(page);
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
-    await frames(page, 4);
+    // the frame of the whole plan, six frames after it (DL-758)
+    await streamAtPlan(page);
     await world(page, (w) => w.hold(true));
     const set = (on: boolean): Promise<boolean> => page.evaluate((o) => (window as unknown as W).__dvBridge.world.setLookLayer('markings', o as boolean), on);
     expect(await set(false)).toBe(true);
@@ -152,6 +165,7 @@ test.describe('xr markings ledger @xr @markings-ledger', () => {
     expect(await set(true)).toBe(true);
     const on = await live(page);
     await world(page, (w) => w.hold(false));
+    console.log(`markings ledger xr: off ${off.renderObjects}, on ${on.renderObjects} (crowd max ${crowdMax('xr-quest')})`);
     const base = prior();
     expect(on.renderObjects, 'xr after = the objects with the paint off').toBe(off.renderObjects);
     if (write) {
@@ -163,7 +177,7 @@ test.describe('xr markings ledger @xr @markings-ledger', () => {
       mkdirSync(dirname(LEDGER), { recursive: true });
       writeFileSync(LEDGER, `${JSON.stringify({ ...prev, ...(drift ? { drift } : {}), xr: { baseline: off.renderObjects, after: on.renderObjects } }, null, 2)}\n`);
     }
-    // the absolute count moves with the streaming of the held frame (94 to 101 across runs), so it is recorded in the ledger and not compared; the paint's own delta is
-    // what the case proves
+    // the settled frame repeats (DL-758): the Quest count with the paint off is the `after` of the ledger before this row, or lower
+    if (base.ledger.xr) expect(off.renderObjects, `xr objects against the after (${base.ledger.xr.after}) of ${base.file}`).toBeLessThanOrEqual(base.ledger.xr.after);
   });
 });
