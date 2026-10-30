@@ -3,24 +3,24 @@
   "bakeId": "3537499f7cc5c17703cea67785128b51f3262dc2d693a344409c031cb9f33136",
   "tiers": {
     "desktop": {
-      "baseline": 278,
-      "after": 248
+      "baseline": 538,
+      "after": 538
     },
     "mobile": {
-      "baseline": 157,
-      "after": 157
+      "baseline": 144,
+      "after": 144
     },
     "mobile-low": {
-      "baseline": 85,
-      "after": 85,
+      "baseline": 73,
+      "after": 73,
       "triangles": {
         "baseline": 127127,
-        "after": 135327
+        "after": 129315
       }
     }
   },
   "xr": {
-    "baseline": 88,
-    "after": 54
+    "baseline": 102,
+    "after": 102
   }
 }

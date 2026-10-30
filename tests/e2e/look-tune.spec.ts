@@ -7,6 +7,7 @@ import type { PlatformBridge } from '../../packages/engine/src/platform/probe.ts
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
 import { composeGrid, decodePng, diffImages, encodePng, goldenFailures, identical, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
+import { crowdMax, streamAtPlan } from './ledger-helpers.ts';
 
 /**
  * M02g1 look-tune in a real browser, on a `DV_WORLD=synth` QA build (the world half of the e2e legs).
@@ -196,13 +197,16 @@ test.describe('look ledger @look-ledger', () => {
   for (const tier of ['desktop-ultra', 'desktop', 'mobile', 'mobile-low'] as const) {
     test(`${tier}: each layer toggled on a held frame; the baseline is every layer off @look-ledger`, async ({ page }) => {
       // no `perf=1`: with it `live()` returns the last frame the loop measured, and a held frame would never change
-      await bootWorld(page, tier);
+      // `&textures=0&art=0` (DL-758): this row is M02g1's own scene, so the layers of the later rows (M10d0's surface textures, M10d1's art)
+      // stay out of the frame, as M02g2's row keeps the art out (BD-REPAIR-M10d1-01)
+      await bootWorld(page, tier, '&textures=0&art=0');
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);
       // `mobile-low`: the `fog-west` shot looks down a street of the synth world with 87 render objects (the spawn's street has 116 with
       // the rig and a car, over the tier's 100 whatever the look adds); the other tiers are read at the spawn, as their ledger rows say
       if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));
-      await frames(page, 6);
+      // the frame of the whole plan, six frames after it (DL-758)
+      await streamAtPlan(page);
       const layers = (await world(page, (w) => w.look()))?.layers ?? [];
       expect(layers).toEqual(layersOf(tier));
       // a held frame: the render loop stops, so the scene is the same for every reading
@@ -227,11 +231,12 @@ test.describe('look ledger @look-ledger', () => {
       for (const id of ['grade', 'haze', 'skyReflect', 'windows']) if (id in perLayer) expect(perLayer[id], id).toBe(0);
       if (!layers.includes('casters')) expect(after).toBeLessThanOrEqual(baseline + 1);
       if (tier === 'mobile-low') {
-        expect(after, 'mobile-low after').toBeLessThanOrEqual(100);
+        // the crowd is hidden in the count and added back at its most in the ceiling (BD-FIX-LEDGER-SETTLED-01)
+        expect(after + crowdMax(tier), `mobile-low after ${after} + crowd max ${crowdMax(tier)}`).toBeLessThanOrEqual(100);
         expect(after, 'mobile-low after <= baseline + 1').toBeLessThanOrEqual(baseline + 1);
       }
       measured[tier] = { baseline, after, perLayer };
-      console.log(`look ledger ${tier}: baseline ${baseline}, after ${after}, ${JSON.stringify(perLayer)}`);
+      console.log(`look ledger ${tier}: baseline ${baseline}, after ${after} (crowd max ${crowdMax(tier)}), ${JSON.stringify(perLayer)}`);
     });
   }
 
@@ -258,7 +263,7 @@ test.describe('look ledger @look-ledger', () => {
       if ('blob' in t.perLayer) expect(t.perLayer['blob'], `${tier} blob`).toBe(1);
       expect(Object.keys(t.perLayer).sort()).toEqual([...layersOf(tier)].sort());
     }
-    expect(ledger.tiers['mobile-low']?.after ?? 0).toBeLessThanOrEqual(100);
+    expect((ledger.tiers['mobile-low']?.after ?? 0) + crowdMax('mobile-low'), 'mobile-low after + crowd max').toBeLessThanOrEqual(100);
     expect((ledger.tiers['mobile-low']?.after ?? 0) - (ledger.tiers['mobile-low']?.baseline ?? 0)).toBeLessThanOrEqual(1);
     if (ledger.xr) expect(ledger.xr.after).toBe(ledger.xr.baseline);
   });
@@ -311,8 +316,14 @@ async function bootStory(page: Page, tier: string): Promise<void> {
   await page.addStyleTag({ content: HIDE_ALL });
 }
 
-/** The canvas after `shot(id)` has presented its frame. */
-async function captureOwnerShot(page: Page, shot: string): Promise<Rgba> {
+/**
+ * The canvas after `shot(id)` has presented its frame. The sim is paused for the capture; `resume: false` leaves it paused afterwards, so
+ * that the next capture of the same shot draws the same sim state (BD-FIX-FLAKE-BURNOFF-01): a vehicle standing still in the sim is not
+ * still at float precision (the tow truck's height and attitude move by about 1e-7 from tick to tick), and one pixel on its edge read
+ * 114 or 115 in green on `mobile-low` `a1-burnoff` depending on the tick the capture drew. A shot whose sky differs from the one in force
+ * needs the sim running (`shot()` applies the hour and weather through it), so only a repeat of the same shot may start paused.
+ */
+async function captureOwnerShot(page: Page, shot: string, resume = true): Promise<Rgba> {
   await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id), shot);
   // Still pictures: the sim stops (the shot's clock and weather were applied before), the ambient crowds are hidden and so are the
   // animated characters (the goldens of M02e do the same with the crowds); the tow truck, the street and the sky are what is compared.
@@ -335,12 +346,12 @@ async function captureOwnerShot(page: Page, shot: string): Promise<Rgba> {
     img = next;
     if (same) break;
   }
-  await page.evaluate(() => {
+  await page.evaluate((r) => {
     const b = (window as unknown as { __dvBridge: { engine: { setPaused(p: boolean): void }; world: WorldBridge } }).__dvBridge;
     const view = b.world.internals().view as unknown as { host: { scene: { children: { userData: Record<string, unknown>; traverse(f: (o: { layers: { set(n: number): void } }) => void): void }[] } } };
     for (const c of view.host.scene.children) if (c.userData['dvActor'] === 'avatar') c.traverse((o) => o.layers.set(0));
-    b.engine.setPaused(false);
-  });
+    if (r) b.engine.setPaused(false);
+  }, resume);
   return img;
 }
 
@@ -356,7 +367,8 @@ test.describe('look owner frames @look-owner', () => {
     test(`${tier}: a1-truck and a1-burnoff are within the golden tolerance, byte-identical twice, and differ from the frames before this milestone @look-owner`, async ({ page }) => {
       await bootStory(page, tier);
       for (const shot of OWNER_SHOTS) {
-        const first = await captureOwnerShot(page, shot);
+        // the sim stays paused from the first capture to the second: both run the whole shot, and both draw the same sim state
+        const first = await captureOwnerShot(page, shot, beforeDir !== undefined);
         expect(first).toMatchObject({ width: OWNER_VIEWPORT.width, height: OWNER_VIEWPORT.height });
         if (beforeDir !== undefined) {
           // Step 0: the frames of the code before the milestone

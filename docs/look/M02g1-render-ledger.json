@@ -3,8 +3,8 @@
   "bakeId": "3537499f7cc5c17703cea67785128b51f3262dc2d693a344409c031cb9f33136",
   "tiers": {
     "desktop-ultra": {
-      "baseline": 228,
-      "after": 331,
+      "baseline": 603,
+      "after": 706,
       "perLayer": {
         "grade": 0,
         "haze": 0,
@@ -16,8 +16,8 @@
       }
     },
     "desktop": {
-      "baseline": 276,
-      "after": 379,
+      "baseline": 435,
+      "after": 538,
       "perLayer": {
         "grade": 0,
         "haze": 0,
@@ -29,8 +29,8 @@
       }
     },
     "mobile": {
-      "baseline": 158,
-      "after": 159,
+      "baseline": 143,
+      "after": 144,
       "perLayer": {
         "grade": 0,
         "haze": 0,
@@ -41,8 +41,8 @@
       }
     },
     "mobile-low": {
-      "baseline": 86,
-      "after": 87,
+      "baseline": 72,
+      "after": 73,
       "perLayer": {
         "grade": 0,
         "haze": 0,
@@ -54,7 +54,7 @@
     }
   },
   "xr": {
-    "baseline": 80,
-    "after": 80
+    "baseline": 102,
+    "after": 102
   }
 }

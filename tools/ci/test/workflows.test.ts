@@ -324,7 +324,7 @@ describe('Playwright system packages: mirror-resilient install, one apt cache pe
     expect(nightly['e2e-full']).not.toContain('check:coi');
     // check:perf runs chromium-webgl2 and webkit-webgl2 (tools/ci/perf-check.ts PERF_PROJECTS); the preview job runs check:coi.
     const both = [
-      ['ci perf', ci['perf']],
+      ['ci perf-group', ci['perf-group']],
       ['nightly perf', nightly['perf']],
       ['preview', jobsOf(wf('preview.yml'))['preview']],
     ] as const;
@@ -381,7 +381,7 @@ describe('world builds in CI (M02b1 AC-12)', () => {
   it('ci.yml: unit, e2e and perf restore or build the bakes before their test step; unit requires them', () => {
     bakeBefore(ciJobs['unit'] ?? '', /pnpm check:unit/, 'unit');
     bakeBefore(ciJobs['e2e-shard'] ?? '', /pnpm check:e2e/, 'e2e-shard');
-    bakeBefore(ciJobs['perf'] ?? '', /pnpm check:perf/, 'perf');
+    bakeBefore(ciJobs['perf-group'] ?? '', /pnpm check:perf/, 'perf-group');
     expect(ciJobs['unit']).toContain("DV_REQUIRE_BAKE: '1'");
   });
 
@@ -401,9 +401,11 @@ describe('world builds in CI (M02b1 AC-12)', () => {
   });
 
   it('ci.yml perf: DV_WORLD=synth with DV_SKIP_BUILD empty on the check:perf step, warnings only, not in the e2e legs', () => {
-    const perf = ciJobs['perf'] ?? '';
+    const perf = ciJobs['perf-group'] ?? '';
     const step = stepsOf(perf).find((s) => s.includes('pnpm check:perf')) ?? '';
-    expect(step).toContain('run: pnpm check:perf\n');
+    // BD-FIX-CI-PERFSPLIT-01: each leg runs its scenario group.
+    expect(step).toContain('run: pnpm check:perf -- --scenario "$PERF_SCENARIO_SET"\n');
+    expect(step).toContain('PERF_SCENARIO_SET: ${{ matrix.scenarios }}');
     expect(step).toContain('DV_WORLD: synth');
     expect(step).toContain("DV_SKIP_BUILD: ''");
     expect(step).not.toContain('--fail');
@@ -429,6 +431,41 @@ describe('world builds in CI (M02b1 AC-12)', () => {
     expect(perf).toContain("DV_SKIP_BUILD: ''");
     for (const [name, block] of Object.entries(nightlyJobs)) expect(block, `nightly ${name}`).not.toMatch(JOB_LEVEL_SKIP);
     expect(nightly.split('\njobs:')[0]).not.toContain('DV_SKIP_BUILD');
+  });
+});
+
+/** The `scenarios:` list of a job's matrix: one entry per leg, each a comma-separated set of scenario ids. */
+function scenarioGroups(job: string): string[] {
+  const m = /^ {8}scenarios:\n((?: {10}- .*\n)+)/m.exec(job);
+  return m ? (m[1] as string).trim().split('\n').map((l) => l.trim().replace(/^- /, '')) : [];
+}
+
+describe('perf scenario groups (BD-FIX-CI-PERFSPLIT-01)', () => {
+  const ciJobs = jobsOf(wf('ci.yml'));
+  const nightlyJobs = jobsOf(wf('nightly.yml'));
+  const registered = JSON.parse(readFileSync(path.join(repoRoot, 'config', 'perf', 'scenarios.json'), 'utf8')) as string[];
+
+  it('ci.yml and nightly.yml run the same groups, which cover every registered scenario exactly once', () => {
+    const ci = scenarioGroups(ciJobs['perf-group'] ?? '');
+    expect(ci.length).toBeGreaterThan(1);
+    expect(scenarioGroups(nightlyJobs['perf'] ?? '')).toEqual(ci);
+    const ids = ci.flatMap((g) => g.split(','));
+    expect([...ids].sort()).toEqual([...registered].sort());
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('each leg uploads its reports under its own name', () => {
+    expect(ciJobs['perf-group']).toContain('name: perf-reports-${{ strategy.job-index }}');
+    expect(nightlyJobs['perf']).toContain('name: perf-reports-${{ strategy.job-index }}');
+    expect(stepsOf(nightlyJobs['perf'] ?? '').find((s) => s.includes('check:perf'))).toContain('--scenario "$PERF_SCENARIO_SET"');
+  });
+
+  it('ci.yml keeps one `perf` check that passes only when every group passed', () => {
+    const job = ciJobs['perf'] ?? '';
+    expect(job).toContain('needs: perf-group');
+    expect(job).toContain('if: ${{ !cancelled() }}');
+    expect(job).toContain('GROUPS_RESULT: ${{ needs.perf-group.result }}');
+    expect(job).toContain('test "${GROUPS_RESULT}" = success');
   });
 });
 

@@ -468,10 +468,24 @@ jobs:
 
   # M01c, M02b1: CPU-side budget counts of every registered scenario on the two software-GL projects, on a DV_WORLD=synth build.
   # Warnings on pull requests (check:perf exits 0 without --fail); nightly.yml runs it with --fail. BD-M02b1-15: this job did not exist
-  # on the code branch (M01c ran check:perf as a step of the chromium-webgl2 e2e leg), so it is created here.
-  perf:
+  # on the code branch (M01c ran check:perf as a step of the chromium-webgl2 e2e leg), so it is created here. BD-FIX-CI-PERFSPLIT-01: it
+  # runs as one leg per scenario group, and the job `perf` below gives the one check the groups' verdict.
+  perf-group:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        # BD-FIX-CI-PERFSPLIT-01: five groups of the registered scenarios (config/perf/scenarios.json), cut by the measured time of
+        # each scenario on both engines in run 41021126822 (one job took 88 of 90 min): story-chase 18.5 min, npc-mission-crowd 19.0
+        # with fight-stage 1.5, downtown-rush 14.7, walk-civic-center 11.6 with route-ferry-ocean-beach 10.3, boot-cityhall 11.5.
+        # tools/ci/test/workflows.test.ts keeps the groups equal in ci.yml and nightly.yml and covering every registered id once.
+        scenarios:
+          - story-chase
+          - npc-mission-crowd,fight-stage
+          - downtown-rush
+          - walk-civic-center,route-ferry-ocean-beach
+          - boot-cityhall
     env:
       # BD-FIX-CI10-P01: this job launches both engines.
       DV_PW_BROWSERS: 'chromium webkit'
@@ -540,17 +554,32 @@ jobs:
       - if: steps.bake-cache.outputs.cache-hit != 'true'
         run: pnpm map:build -- --area synth && pnpm map:build -- --area civic-excerpt
       - name: Perf budget counts (warnings)
-        run: pnpm check:perf
+        run: pnpm check:perf -- --scenario "$PERF_SCENARIO_SET"
         env:
+          PERF_SCENARIO_SET: ${{ matrix.scenarios }}
           DV_WORLD: synth
           DV_SKIP_BUILD: ''
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
-          name: perf-reports
+          name: perf-reports-${{ strategy.job-index }}
           path: test-results/perf.*.json
           if-no-files-found: ignore
           retention-days: 14
+
+  # BD-FIX-CI-PERFSPLIT-01: the check named `perf`, as before the split: green only when every scenario group passed.
+  perf:
+    needs: perf-group
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Every perf group passed
+        env:
+          GROUPS_RESULT: ${{ needs.perf-group.result }}
+        run: |
+          echo "perf-group: ${GROUPS_RESULT}"
+          test "${GROUPS_RESULT}" = success
 
   # IP, provenance and likeness gates on the built dist (M00b). Required for merge once the operator marks `ip`
   # in branch protection. The real-side name list is the optional secret DV_NAMES_REAL_JSON; absent on forks.
