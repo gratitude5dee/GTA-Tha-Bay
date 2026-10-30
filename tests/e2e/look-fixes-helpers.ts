@@ -148,6 +148,10 @@ export function registerFlickerPair(pairId: FlickerPairId): void {
       await bootWorld(page, tier, FLICKER_VIEWPORT, '&textures=0');
       await page.addStyleTag({ content: HIDE_ALL });
       await setSky(page, 13, 'clear');
+      // M02h1: these pairs measure what M02g2 fixed (depth fights, footprint fades) on plain asphalt. Paint on the road is a line the 5 cm step
+      // moves by whole pixels near the camera (10 px at 1.5 m: parallax, not sparkle), so the layer is off here; the paint's own pair, with its
+      // own region and threshold, is `markings-flicker-*.spec.ts` (@markings-golden). Tiers without the layer ignore the call.
+      await page.evaluate(() => (window as unknown as W).__dvBridge.world.setLookLayer('markings', false));
       const t1 = Date.now();
       const a = await captureShot(page, pair.id, 'shot');
       const t2 = Date.now();

@@ -247,7 +247,7 @@
     "markings": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["classes", "byClass", "rules", "paint", "parkingM", "centreWideMinM", "lineM", "dashOnM", "dashOffM", "doubleGapM", "edgeInsetM", "tEveryM", "tStemM", "tBarM", "busTint", "worn", "decalLiftM", "decalFarM", "fade", "junctionExtraM", "stopBar", "crosswalk"],
+      "required": ["classes", "byClass", "rules", "paint", "parkingM", "centreWideMinM", "lineM", "dashOnM", "dashOffM", "doubleGapM", "edgeInsetM", "tEveryM", "tStemM", "tBarM", "busTint", "worn", "decalLiftM", "decalFarM", "decalFootprintM", "fade", "junctionExtraM", "stopBar", "crosswalk"],
       "properties": {
         "classes": { "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z]+$" } },
         "byClass": {
@@ -302,6 +302,12 @@
         },
         "decalLiftM": { "type": "number", "minimum": 0.005, "maximum": 0.1 },
         "decalFarM": { "type": "number", "minimum": 50, "maximum": 1000 },
+        "decalFootprintM": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fromM", "toM"],
+          "properties": { "fromM": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 }, "toM": { "type": "number", "exclusiveMinimum": 0, "maximum": 10 } }
+        },
         "fade": {
           "type": "object",
           "additionalProperties": false,

@@ -91,7 +91,7 @@ export function paintNodes(i: PaintInput): PaintOutput {
   // the filter window grows with the footprint (the distance fade, `fade` in look.json): a line under a pixel wide moves less between frames
   const widen = (fp: L): L => fp.mul(float(1).add(smoothstep(m.fade.fromM, m.fade.toM, fp).mul(m.fade.widen)));
   const fpT = widen(fwidth(t));
-  const fpS = fwidth(s);
+  const fpS = widen(fwidth(s));
   const fpW = pixelFootprint(positionWorld).max(0.002);
   const line = (d: L, half: number | L): L => select(aa, paintAA(d, half, fpT), paintHard(d, half));
   const along = (x: L, period: number, from: number | L, width: number | L): L => select(aa, periodicAA(x, period, from, width, fpS), periodicHard(x, period, from, width));
@@ -174,7 +174,8 @@ export function paintNodes(i: PaintInput): PaintOutput {
 
   // decals fade to the asphalt past `decalFarM`: they are lifted 2 cm and a coarse depth buffer cannot hold them apart that far
   const dist = positionWorld.sub(cameraPosition).length();
-  const decalFade = float(1).sub(smoothstep(m.decalFarM * 0.6, m.decalFarM, dist));
+  // and, being polygons with hard edges, once a pixel on the ground is about as long as the quad is deep
+  const decalFade = float(1).sub(smoothstep(m.decalFarM * 0.6, m.decalFarM, dist)).mul(float(1).sub(select(aa, smoothstep(m.decalFootprintM.fromM, m.decalFootprintM.toM, fpW), float(0))));
   const whiteDecal = max(crosswalk.mul(isCross), isBar).mul(decalFade);
 
   // ---- wear (worn mode) --------------------------------------------------------------------------------------------------------------

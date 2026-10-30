@@ -72,6 +72,11 @@ export interface MarkingsFile extends LayoutConfig {
   decalLiftM: number;
   decalFarM: number;
   /**
+   * A crosswalk or stop-bar quad has a hard geometry edge, and a quad a fraction of a pixel wide that moves by a pixel between frames is
+   * sparkle: its paint fades out as the ground footprint of a pixel (metres) goes from `fromM` to `toM` (a stop bar is 0.4 m deep).
+   */
+  decalFootprintM: { fromM: number; toM: number };
+  /**
    * The distance fade of the paint (QA: `markings.aa` turns it off). Every line is filtered over the pixel footprint of its own coordinate;
    * once the footprint passes `fromM` (metres) the window grows, to `1 + widen` times the footprint at `toM`, so a line that is a fraction of a
    * pixel wide spreads its paint over more pixels and moves less between two frames. The mean coverage stays: far paint is a soft tint, never gone.

@@ -62,6 +62,7 @@ describe('look.json markings (AC-2)', () => {
     expect(m).toMatchObject({ lineM: 0.1, dashOnM: 3, dashOffM: 9, doubleGapM: 0.1, tEveryM: 6, parkingM: 2.4, decalLiftM: 0.02, decalFarM: 250, junctionExtraM: 1, worn: { roughness: 0.6 } });
     expect(m.stopBar).toEqual({ depthM: 0.4, behindCrosswalkM: 1.2 });
     expect(m.fade.fromM).toBeLessThan(m.fade.toM);
+    expect(m.decalFootprintM.fromM).toBeLessThan(m.decalFootprintM.toM);
     for (const hex of Object.values(m.paint)) expect(hex).toMatch(/^#[0-9a-f]{6}$/);
   });
 
