@@ -107,20 +107,21 @@ describe('surf and facade arrays on the synth bake (AC-3)', () => {
     }
   });
 
-  it('meshBytes and the transfer list count the new arrays (4 B per vertex, 8 B more on a building vertex)', () => {
+  it('meshBytes and the transfer list count the new arrays (4 B per vertex, 8 B more on a building vertex, 8 B more on a road vertex)', () => {
     if (!bake) return;
     const { sim, render } = denseChunks(bake.dir, 1)[0] as { sim: SimChunk; render: RenderChunk };
     const m = meshChunk(sim, render, { tier: 'desktop', distM: 0 });
     let expected = m.trees.byteLength;
     for (const o of m.objects) {
       const n = o.positions.length / 3;
-      expected += o.positions.byteLength + o.normals.byteLength + o.colors.byteLength + o.ao.byteLength + o.indices.byteLength + n * 4 + n * 4 + (o.kind === 'buildings' ? n * 8 : 0);
+      expected += o.positions.byteLength + o.normals.byteLength + o.colors.byteLength + o.ao.byteLength + o.indices.byteLength + n * 4 + n * 4 + (o.kind === 'buildings' ? n * 8 : 0) + (o.kind === 'roads' ? n * 8 : 0);
     }
     expect(meshBytes(m.objects, m.trees)).toBe(expected);
     const buffers = new Set(transferListOf(m));
     for (const o of m.objects) {
       expect(buffers.has(o.surf.buffer as ArrayBuffer)).toBe(true);
       if (o.facade) expect(buffers.has(o.facade.buffer as ArrayBuffer)).toBe(true);
+      if (o.road) expect(buffers.has(o.road.buffer as ArrayBuffer)).toBe(true);
     }
   });
 

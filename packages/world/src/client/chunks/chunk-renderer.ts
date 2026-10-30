@@ -347,6 +347,8 @@ export class ChunkRenderer {
     // M02e: the surface ids and the façade coordinates, uploaded normalised (unorm8, snorm16); the look materials read them.
     g.setAttribute('surf', new BufferAttribute(o.surf, 4, true));
     if (o.facade) g.setAttribute('facade', new BufferAttribute(o.facade, 4, true));
+    // M02h1: the lane coordinates of the street markings, on the L0 roads (normalised snorm16 like the façade)
+    if (o.road) g.setAttribute('road', new BufferAttribute(o.road, 4, true));
     if (cellM > 0) {
       g.setAttribute('aCover', new BufferAttribute(new Float32Array(n), 1));
       g.setAttribute('aCell', new BufferAttribute(new Float32Array(n).fill(cellM), 1));
@@ -617,6 +619,20 @@ export class ChunkRenderer {
       } else hidden++;
     }
     return { shown, hidden, farthestM: farthest, drawM: this.treeDrawM, crossings: this.treeCrossings };
+  }
+
+  /** M02h1: what the resident L0 roads objects hold (the QA bridge's `look().markings` counts). */
+  markingsCounts(): { roadVerts: number; patches: number; crosswalks: number; stopBars: number } {
+    const out = { roadVerts: 0, patches: 0, crosswalks: 0, stopBars: 0 };
+    for (const u of this.units.values()) {
+      const m = u.level === 'l0' ? u.mesh.stats.markings : undefined;
+      if (!m) continue;
+      out.roadVerts += m.roadVerts;
+      out.patches += m.patches;
+      out.crosswalks += m.crosswalks;
+      out.stopBars += m.stopBars;
+    }
+    return out;
   }
 
   // ---- GPU loss ------------------------------------------------------------------------------------------------------------

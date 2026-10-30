@@ -32,7 +32,7 @@ import { MESHER, profileOf, wantNearStride } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
 import { LOOK, LOOK_LAYERS, lookProfileFor, type LookLayer } from './look/config.ts';
-import { LookView, type LookReport } from './look/look-view.ts';
+import { LookView, markingsReportOf, type LookReport } from './look/look-view.ts';
 // art-hook:textures begin (M10d0)
 import { TEXTURES_FLAG } from './textures/config.ts';
 import { SurfaceTextures, installSurfaceTextures, installedSurfaceTextures } from './textures/surface-textures.ts';
@@ -205,6 +205,11 @@ export class WorldView implements WorldLayer {
       isOn: () => this.lookView?.on ?? false,
       setOn: (on) => this.setLook(on),
       nodes: () => this.lookView?.report().postNodes ?? [],
+      markings: {
+        available: () => this.materials?.markings.base != null,
+        aaOn: () => this.materials?.markings.aaOn() ?? true,
+        setAA: (on) => this.materials?.markings.setAA(on),
+      },
     },
   };
 
@@ -271,7 +276,9 @@ export class WorldView implements WorldLayer {
       });
     }
     // art-hook:textures end
-    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK }, depthPolicy: host.depthPolicy });
+    // M02h1: an XR tier (the look profile `legacy` in look.json) keeps the legacy materials and draws the flat street paint on its roads
+    const xrMarkings = this.o.look?.enabled === true && lookProfileFor(this.o.tier, true) === 'legacy';
+    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK }, depthPolicy: host.depthPolicy, xrMarkings });
     // The world pass draws over the backdrop pass: no scene background of its own.
     host.scene.background = null;
     const hemi = new HemisphereLight(0xdbe9ff, 0x6a6f64, 3.4);
@@ -969,6 +976,7 @@ export class WorldView implements WorldLayer {
       pipeline: this.host.tier?.features.pipeline ?? 'direct', sun: null,
       layers: [], blobs: 0, dynamicCasters: [], skyReflect: false, gradeOn: null, windowLit: [0.55, 0.85],
       vegetation: this.renderer.vegetationReport(),
+      markings: markingsReportOf(this.materials, this.renderer),
     };
   }
 
@@ -982,6 +990,13 @@ export class WorldView implements WorldLayer {
     // art-hook:textures begin (M10d0): the surface textures are a layer of the look that has no entry in look.json
     if (id === 'textures') return this.textures?.setOn(on) ?? false;
     // art-hook:textures end
+    // M02h1: the debug toggle of the street paint's antialiasing, and the paint layer of a tier without a look view (the XR tiers)
+    if (id === 'markings.aa') {
+      if (this.materials.markings.base === null) return false;
+      this.materials.markings.setAA(on);
+      return true;
+    }
+    if (id === 'markings' && !this.lookView) return this.materials.markings.setLayer(on);
     if (!this.lookView || !(LOOK_LAYERS as readonly string[]).includes(id)) return false;
     return this.lookView.setLayer(id as LookLayer, on);
   }

@@ -45,6 +45,21 @@ export interface LookTune {
 }
 export const DEFAULT_TUNE: LookTune = { hemi: 1, env: 0.55, sun: 1, desat: 0.5 };
 
+/** M02h1: the street paint as the QA bridge reports it (`look().markings`): the mode in force and what the resident L0 roads hold. */
+export interface MarkingsReport {
+  mode: 'worn' | 'flat' | 'off';
+  roadVerts: number;
+  patches: number;
+  crosswalks: number;
+  stopBars: number;
+  /** The antialiasing and distance fade of the paint (`markings.aa`). */
+  aa: boolean;
+}
+
+export function markingsReportOf(materials: WorldMaterials, chunks: ChunkRenderer): MarkingsReport {
+  return { mode: materials.markings.mode(), ...chunks.markingsCounts(), aa: materials.markings.aaOn() };
+}
+
 export interface LookReport {
   /** `legacy` while the look is off. */
   profile: LookProfile;
@@ -85,6 +100,8 @@ export interface LookReport {
   windowLit: [number, number];
   /** M02g2: the trees of the L0 units: units drawing theirs and the distance of the farthest, against `tree.drawM`. */
   vegetation: VegetationReport;
+  /** M02h1: the street paint, its mode and counts. */
+  markings: MarkingsReport;
 }
 
 export interface LookViewOptions {
@@ -424,6 +441,7 @@ export class LookView {
     if (on) this.layerSet.add(id);
     else this.layerSet.delete(id);
     if (id === 'blob') this.blobs?.setEnabled(on);
+    if (id === 'markings') this.o.materials.markings.setLayer(on);
     if (id === 'casters') {
       this.applyDynamicCasters(true);
       this.o.chunks.refreshTreeCasters();
@@ -522,6 +540,7 @@ export class LookView {
       gradeOn: on && this.layerSet.has('grade') ? this.stack?.gradeOwner ?? null : null,
       windowLit: [this.lastLitRange[0], this.lastLitRange[1]],
       vegetation: this.o.chunks.vegetationReport(),
+      markings: markingsReportOf(this.o.materials, this.o.chunks),
     };
   }
 

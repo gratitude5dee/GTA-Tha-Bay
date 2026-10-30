@@ -13,9 +13,10 @@ import {
   attribute, clamp, dot, exp2, floor, fract, mod, positionLocal, positionWorld, normalLocal, screenCoordinate, select, sin, uniform, vec2, float, vertexColor,
 } from 'three/tsl';
 import { DoubleSide, FrontSide, MeshStandardNodeMaterial, type Material } from 'three/webgpu';
-import { createLookNodes, type LookNodes } from '../look/common.ts';
+import { createLookNodes, surfNodes, type LookNodes } from '../look/common.ts';
 import { LOOK, type LookFile } from '../look/config.ts';
 import { createLandmarkMaterial } from '../look/landmark.ts';
+import { paintNodes } from '../look/markings.ts';
 import { createLookMaterials, type LookMaterialSet, type MaterialProfile } from '../look/look-materials.ts';
 import { windowEmissive } from '../sky/night.ts';
 import { createSkyNodes, type SkyNodes } from '../sky/nodes.ts';
@@ -41,6 +42,8 @@ export interface WorldMaterials {
   depth: DepthRules;
   /** M02g2: the depth buffer the renderer really has (`RendererHost.depthPolicy`): which sign of a polygon offset is nearer. */
   setDepthPolicy(policy: DepthPolicy): void;
+  /** M02h1: the street paint of this tier: its base mode, the layer switch and the antialiasing toggle (QA). */
+  markings: MarkingsControl;
   /** Whether the look materials are in use (QA `setLook` and the `world.look` flag switch it). */
   lookOn(): boolean;
   /** The material for an object kind of a level: the look's when it is on, else the legacy one. */
@@ -59,6 +62,18 @@ export interface WorldMaterials {
 
 export const COARSE_CELLS = 4;
 
+/** What the markings of a tier are doing; `mode()` is what `look().markings.mode` reports. */
+export interface MarkingsControl {
+  /** The paint the tier has when the layer and the look are on: `worn` (full, lite), `flat` (min, the XR tiers) or null (none). */
+  readonly base: 'worn' | 'flat' | null;
+  mode(): 'worn' | 'flat' | 'off';
+  layerOn(): boolean;
+  /** False when the tier has no paint. */
+  setLayer(on: boolean): boolean;
+  aaOn(): boolean;
+  setAA(on: boolean): void;
+}
+
 export function createWorldMaterials(o: {
   fadeSeconds: number;
   coarseCellM?: { l1: number; l2: number };
@@ -67,6 +82,8 @@ export function createWorldMaterials(o: {
   look?: { profile: MaterialProfile | 'legacy'; config?: LookFile };
   /** The renderer's depth buffer (M02g2); `reversed` (the one the host asks for) when absent. */
   depthPolicy?: DepthPolicy;
+  /** M02h1: a `legacy` tier that still draws the flat street paint on its plain roads material (the XR tiers, with the look flag on). */
+  xrMarkings?: boolean;
 }): WorldMaterials {
   const depth = new DepthRules(o.depthPolicy ?? 'reversed');
   const uTime = uniform(0);
@@ -112,6 +129,17 @@ export function createWorldMaterials(o: {
   const chunkRoads = depth.set(base(), roadOffset);
   chunkRoads.opacityNode = shown;
 
+  // M02h1: the XR tiers keep the legacy materials and draw the flat street paint on the roads one (a copy of `chunkRoads` with the paint on it).
+  let chunkRoadsPaint: MeshStandardNodeMaterial | null = null;
+  if (o.xrMarkings === true && (o.look?.profile ?? 'legacy') === 'legacy') {
+    chunkRoadsPaint = depth.set(base(), roadOffset);
+    chunkRoadsPaint.opacityNode = shown;
+    const paint = paintNodes({
+      look: (o.look?.config ?? LOOK).markings, nodes: lookNodes, mode: 'flat', id: surfNodes().id, color: loose(vertexColor(0)), roughness: loose(float(0.95)),
+    });
+    chunkRoadsPaint.colorNode = asNode(paint.color.mul(loose(shade)).mul(loose(wetDark)));
+  }
+
   // Cover mask: the cell of the fragment inside its unit (positions are local to the unit corner).
   const cellM = aCell; // metres per cell, constant per object (256 for an L1 tile, 1024 for an L2 block)
   const cx = clamp(floor(positionLocal.x.div(cellM)), 0, COARSE_CELLS - 1);
@@ -134,6 +162,21 @@ export function createWorldMaterials(o: {
       ? null
       : createLookMaterials({ profile, look: o.look?.config ?? LOOK, nodes: lookNodes, foundationM: MESHER.foundationM, parapetM: MESHER.parapetM, depth });
   let lookOn = look !== null;
+  const markingsBase: 'worn' | 'flat' | null = look !== null ? (profile === 'min' ? 'flat' : 'worn') : chunkRoadsPaint !== null ? 'flat' : null;
+  let markingsLayer = true;
+  const markings: MarkingsControl = {
+    base: markingsBase,
+    mode: () => (markingsBase === null || !markingsLayer || (look !== null && !lookOn) ? 'off' : markingsBase),
+    layerOn: () => markingsLayer,
+    setLayer: (on) => {
+      if (markingsBase === null) return false;
+      markingsLayer = on;
+      lookNodes.uMarkings.value = on ? 1 : 0;
+      return true;
+    },
+    aaOn: () => lookNodes.uMarkAA.value > 0.5,
+    setAA: (on) => void (lookNodes.uMarkAA.value = on ? 1 : 0),
+  };
   // Landmarks (M02g2): the look's material on a look tier, else the plain vertex-colour one with the same depth rule.
   const landmark: Material = profile === 'legacy' ? depth.set(base(), LANDMARK_FRONT) : createLandmarkMaterial({ nodes: lookNodes, depth });
   if (profile === 'legacy') (landmark as MeshStandardNodeMaterial).opacityNode = shown;
@@ -146,13 +189,14 @@ export function createWorldMaterials(o: {
     landmark,
     depth,
     setDepthPolicy: (policy) => depth.setPolicy(policy),
+    markings,
     lookOn: () => lookOn,
     materialFor: (level, kind) => {
       if (lookOn && look) {
         const m = (level === 'l0' ? look.l0 : look.coarse)[kind];
         if (m) return m;
       }
-      if (kind === 'roads') return level === 'l0' ? chunkRoads : coarseRoads;
+      if (kind === 'roads') return level === 'l0' ? chunkRoadsPaint ?? chunkRoads : coarseRoads;
       return level === 'l0' ? chunk : coarse;
     },
     setLook: (on) => {
@@ -174,6 +218,7 @@ export function createWorldMaterials(o: {
       chunk.dispose();
       coarse.dispose();
       chunkRoads.dispose();
+      chunkRoadsPaint?.dispose();
       coarseRoads.dispose();
       landmark.dispose();
       look?.dispose();

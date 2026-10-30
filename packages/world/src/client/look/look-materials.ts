@@ -24,6 +24,7 @@ import { baseAttributes, coverMask, facadeNodes, fadeShown, surfNodes, type Look
 import { FACADE_KEYS, type LookFile } from './config.ts';
 import { wallNodes } from './facade.ts';
 import { groundNodes } from './ground.ts';
+import { paintNodes } from './markings.ts';
 import { around1, pickFloat, vnoise } from './noise.ts';
 import { roofNodes } from './roof.ts';
 import { Surf } from './surfaces.ts';
@@ -72,7 +73,7 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
   // ---- ground -------------------------------------------------------------------------------------------------------------
   // The terrain and the roads are the same node graph in two instances: a road ribbon lies 0.12 m over the terrain, which a coarse
   // depth buffer cannot tell apart at a distance, so the roads' instance has its own polygon offset (M02g2).
-  const ground = (coarse: boolean): MeshStandardNodeMaterial => {
+  const ground = (coarse: boolean, roads = false): MeshStandardNodeMaterial => {
     const m = make(coarse ? DoubleSide : FrontSide, coarse);
     const s = surfNodes();
     const vc = vertexColor(0);
@@ -81,15 +82,19 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     const plain = { color: profile === 'min' ? vc : g.color, roughness: g.roughness, normal: profile === 'min' ? null : normalView };
     const tx = coarse ? plain : withSurfaceTextures({ id: s.id, normal: normalWorld }, plain);
     // art-hook:textures end
+    // M02h1: the street paint over the L0 roads' asphalt (the `markings` layer); the coarse levels have no `road` attribute
+    const paint = roads && !coarse ? paintNodes({ look: look.markings, nodes: n, mode: profile === 'min' ? 'flat' : 'worn', id: s.id, color: tx.color, roughness: tx.roughness }) : null;
+    const baseColor = paint ? paint.color : tx.color;
+    const baseRough = paint ? paint.roughness : tx.roughness;
     if (profile === 'min') {
       // Vertex colour with the class roughness; the sea a flat colour.
-      m.colorNode = asNode(tx.color.mul(shade));
-      m.roughnessNode = asNode(tx.roughness) as never;
+      m.colorNode = asNode(baseColor.mul(shade));
+      m.roughnessNode = asNode(baseRough) as never;
       return m;
     }
     const w = waterNodes(profile, look, n, g.deep, vc);
-    m.colorNode = asNode(mix(tx.color, w.color, g.water).mul(shade));
-    m.roughnessNode = asNode(mix(tx.roughness, w.roughness, g.water)) as never;
+    m.colorNode = asNode(mix(baseColor, w.color, g.water).mul(shade));
+    m.roughnessNode = asNode(mix(baseRough, w.roughness, g.water)) as never;
     m.metalnessNode = asNode(float(0)) as never;
     set(m, 'normalNode', normalize(mix(tx.normal ?? normalView, w.normal, g.water)));
     return m;
@@ -158,7 +163,7 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
 
   const l0: LookMaterialSet['l0'] = {};
   l0.terrain = ground(false);
-  l0.roads = depth.set(ground(false), roadBias(MESHER.depth.roadFactor, MESHER.depth.roadUnits));
+  l0.roads = depth.set(ground(false, true), roadBias(MESHER.depth.roadFactor, MESHER.depth.roadUnits));
   l0.buildings = buildings();
   l0.vegetation = trees();
   const coarse: LookMaterialSet['coarse'] = {};

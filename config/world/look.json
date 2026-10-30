@@ -106,10 +106,39 @@
     "litFrac": [[0, 0.3, 0.6], [3, 0.12, 0.3], [5.5, 0.08, 0.22], [6.5, 0.05, 0.16], [8, 0.02, 0.07], [12, 0.0, 0.04], [16, 0.04, 0.12], [18, 0.3, 0.55], [20, 0.5, 0.8], [22, 0.55, 0.85]]
   },
   "layers": {
-    "full": ["grade", "haze", "blob", "casters", "skyReflect", "windows"],
-    "lite": ["grade", "haze", "blob", "skyReflect", "windows"],
-    "min": ["grade", "haze", "blob", "skyReflect", "windows"],
-    "legacy": []
+    "full": ["grade", "haze", "blob", "casters", "skyReflect", "windows", "markings"],
+    "lite": ["grade", "haze", "blob", "skyReflect", "windows", "markings"],
+    "min": ["grade", "haze", "blob", "skyReflect", "windows", "markings"],
+    "legacy": ["markings"]
+  },
+  "markings": {
+    "classes": ["none", "freeway", "arterial", "collector", "local"],
+    "byClass": { "freeway": "freeway", "ramp": "freeway", "arterial": "arterial", "collector": "collector", "local": "local", "service": "none" },
+    "rules": {
+      "none": { "edges": false, "dashes": false, "centre": "never", "ts": false },
+      "freeway": { "edges": true, "dashes": true, "centre": "never", "ts": false },
+      "arterial": { "edges": true, "dashes": true, "centre": "twoWay", "ts": true },
+      "collector": { "edges": false, "dashes": true, "centre": "twoWay", "ts": true },
+      "local": { "edges": false, "dashes": false, "centre": "twoWayWide", "ts": true }
+    },
+    "paint": { "white": "#d9d7cf", "yellow": "#d9a521", "bus": "#8d3a33" },
+    "parkingM": 2.4,
+    "centreWideMinM": 9,
+    "lineM": 0.1,
+    "dashOnM": 3,
+    "dashOffM": 9,
+    "doubleGapM": 0.1,
+    "edgeInsetM": 0.3,
+    "tEveryM": 6,
+    "tStemM": 1.2,
+    "tBarM": 0.6,
+    "busTint": 0.55,
+    "worn": { "wear": 0.35, "roughness": 0.6 },
+    "decalLiftM": 0.02,
+    "decalFarM": 250,
+    "junctionExtraM": 1.0,
+    "stopBar": { "depthM": 0.4, "behindCrosswalkM": 1.2 },
+    "crosswalk": { "barM": 0.3, "rungM": 0.5, "rungPeriodM": 1.2 }
   },
   "dynamicCasterRadiusM": 70,
   "webgl2Unsupported": [],
