@@ -112,7 +112,7 @@
   "layers": {
     "full": ["grade", "haze", "blob", "casters", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots"],
     "lite": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots"],
-    "min": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs", "lots"],
+    "min": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs"],
     "legacy": ["markings"]
   },
   "bump": { "full": 1.5, "lite": 1.0, "min": 0, "legacy": 0 },

@@ -20,6 +20,6 @@
     { "id": "markings-graze", "x": 60, "y": 1.6, "z": 376, "yawDeg": 0, "pitchDeg": -0.5, "fovDeg": 60, "hour": 13, "weather": "clear" },
     { "id": "markings-graze-b", "x": 60.05, "y": 1.6, "z": 376, "yawDeg": 0, "pitchDeg": -0.5, "fovDeg": 60, "hour": 13, "weather": "clear" },
     { "id": "curb-corner", "x": 84, "y": 1.8, "z": 141, "yawDeg": 52, "pitchDeg": -9, "fovDeg": 60, "hour": 13, "weather": "clear" },
-    { "id": "lot-plaza", "x": 30, "y": 2.5, "z": -22, "yawDeg": 90, "pitchDeg": -8, "fovDeg": 60, "hour": 13, "weather": "clear" }
+    { "id": "lot-plaza", "x": 92, "y": 3.5, "z": -12, "yawDeg": 10, "pitchDeg": -14, "fovDeg": 60, "hour": 13, "weather": "clear" }
   ]
 }
