@@ -21,15 +21,28 @@
  * Touch (BD-FIX-MOBILE-HUD-01). While the touch layer shows, the engine sets `data-dv-touch` on the root and, per corner, the block its
  * anchored widgets hold (`--dv-touch-<corner>-w`/`-h`: CSS px from the safe-area corner, the 8 px spacing included; touch.ts
  * `touchReserves`). The HUD keeps out of those blocks, so no HUD element lies under a touch target, and its regions become cells of one
- * grid, so they cannot run into each other either:
- *  - the move stick owns the bottom-left (2.9 defaults per context), so `bl` (the minimap) leads the top row, beside whatever the
- *    top-left corner holds, then `tl`, then `tr` beside the top-right buttons (Phone, Pause); the row is as tall as its tallest cell;
- *  - below it, `bc` (tip, prompt, subtitles) fills the bottom from the right of the bottom-left block to the `tr`/`br` column, which is
- *    never narrower than the bottom-right block, and `br` sits above the bottom-right thumb cluster.
+ * grid of three columns that each run the full height, so they cannot run into each other either:
+ *  - left, `bl`: the minimap at the top (the move stick owns the bottom-left, 2.9 defaults per context), beside whatever the top-left
+ *    corner holds; the column is never narrower than the bottom-left block, so nothing to its right lies over the stick ring;
+ *  - middle: `tl` (objective) at the top, `bc` (tip, prompt, subtitles) in all the height under it, held to the bottom safe edge;
+ *  - right: `tr` (status pills) beside the top-right buttons, `br` (speed, health) above the thumb cluster; the column is never narrower
+ *    than the bottom-right block.
+ * The middle column's height is what the objective leaves, not what the minimap or the pills take (the CI find at 740 x 360: a strip
+ * under a full-height top row ran past the bottom safe edge).
  * Desktop and XR never get the attribute, so their layout is the one above.
  */
-:root[data-dv-touch] .dv-hud { grid-template: 'bl tl tr' auto 'bc bc br' 1fr / auto minmax(0, 1fr) minmax(min-content, 1fr); }
-:root[data-dv-touch] .dv-hud-bl { justify-content: flex-start; padding-inline-start: max(0.75em, var(--dv-touch-tl-w, 0px)); }
+:root[data-dv-touch] .dv-hud {
+  grid-template:
+    'bl tl tr' auto
+    'bl bc tr' minmax(0, 1fr)
+    'bl bc br' auto
+    / auto minmax(0, 1fr) min-content;
+}
+:root[data-dv-touch] .dv-hud-bl {
+  justify-content: flex-start;
+  padding-inline-start: max(0.75em, var(--dv-touch-tl-w, 0px));
+  min-inline-size: var(--dv-touch-bl-w, 0px);
+}
 :root[data-dv-touch] .dv-hud-tr {
   padding-inline-end: max(0.75em, var(--dv-touch-tr-w, 0px));
   min-inline-size: max(var(--dv-touch-tr-w, 0px), var(--dv-touch-br-w, 0px));
@@ -38,10 +51,9 @@
    when both do not fit side by side. */
 :root[data-dv-touch] .dv-hud-tr > * { white-space: nowrap; }
 :root[data-dv-touch] .dv-objective { flex-wrap: wrap; }
-:root[data-dv-touch] .dv-hud-br { padding-block-end: max(0.75em, var(--dv-touch-br-h, 0px)); }
+:root[data-dv-touch] .dv-hud-br { padding-block-end: max(0.75em, var(--dv-touch-br-h, 0px)); min-inline-size: var(--dv-touch-br-w, 0px); }
 :root[data-dv-touch] .dv-hud-bc {
-  position: static; grid-area: bc; min-inline-size: 0;
-  margin-inline-start: var(--dv-touch-bl-w, 0px);
+  position: static; grid-area: bc; min-inline-size: 0; min-block-size: 0;
   padding-block-end: max(0px, calc(1.5em - env(safe-area-inset-bottom, 0px)));
 }
 /* A subtitle runs on as one paragraph after its speaker's name, so a narrow strip takes fewer lines. */
