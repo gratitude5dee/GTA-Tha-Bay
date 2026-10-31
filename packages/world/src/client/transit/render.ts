@@ -139,6 +139,9 @@ const ASSET_KIND = new Map<string, TransitKindName>([
   [TRANSIT_PREFABS.entrance.asset, 'entrance'],
 ]);
 
+/** Whether this renderer draws the ambient records of a render key (the blob shadows ask which group draws an actor). */
+export const isTransitKey = (key: string): boolean => ASSET_KIND.has(key);
+
 const CAPACITY: Record<TransitKindName, number> = { bus: 64, metro: 24, cablecar: 24, ferry: 12, airliner: 12, entrance: 16 };
 
 export class TransitRenderer {

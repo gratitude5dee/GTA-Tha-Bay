@@ -49,8 +49,9 @@ import { artMaterialFactory } from './traffic/materials.ts';
 import { artVariantOf, type VehicleJobArgs, type VehicleJobResult } from './vehicles/vehicle-job.ts';
 // art-hook:vehicles end
 import { NEAR_PED_CAP, pedCap } from '../sim/peds/density.ts';
+import { PED_ASSETS } from '../sim/peds/components.ts';
 import { PedRenderer, type PedInfo } from './peds/instances.ts';
-import { TransitRenderer, type TransitInfo } from './transit/render.ts';
+import { TransitRenderer, isTransitKey, type TransitInfo } from './transit/render.ts';
 import { MapLayer } from './map/layer.ts';
 import type { AreaBannerPatch } from './map/banner.ts';
 
@@ -146,6 +147,9 @@ export interface ChunksReport {
   frame: number;
 }
 
+/** The pedestrian bodies' render keys (the blob shadows ask which group draws an ambient actor). */
+const PED_KEYS: ReadonlySet<string> = new Set<string>(PED_ASSETS);
+
 /** The held-camera rig of a look shot (`WorldView.shotRig`). */
 export interface ShotRig {
   holdShot(id: string): LookShot;
@@ -218,6 +222,14 @@ export class WorldView implements WorldLayer {
   peds: PedRenderer | null = null;
   /** Buses, trains, cable cars, ferries, airliners and station entrances (M03b2); set in `attach`. */
   transit: TransitRenderer | null = null;
+  /**
+   * M02h2 repair: whether the renderer group that draws an ambient record of this render key is shown (pedestrian bodies: `peds`; transit
+   * assets: `transit`; every other ambient record: `traffic`). The blob shadows skip an actor whose group is hidden.
+   */
+  private readonly ambientShown = (key: string): boolean => {
+    const r = PED_KEYS.has(key) ? this.peds : isTransitKey(key) ? this.transit : this.traffic;
+    return r?.group.visible !== false;
+  };
   /** The teleport fade (M02c1): the veil the sim's `world.teleport` events drive. */
   readonly fade: TeleportFade;
   /** The maps of the world (M02c2): the HUD minimap, the banner and the full map; null when the view was built with `map: false`. */
@@ -454,7 +466,10 @@ export class WorldView implements WorldLayer {
       parent: host.scene, sky: this.skyNodes, cap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier), profile: artProfile, ...(artLoader ? { load: artLoader } : {}),
     });
     // art-hook:vehicles end
-    this.peds = new PedRenderer({ parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier] });
+    this.peds = new PedRenderer({
+      parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier],
+      lift: (x, z) => this.renderer.walkLiftAt(x, z),
+    });
     this.transit = new TransitRenderer({
       parent: host.scene,
       trafficCap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier),
@@ -530,7 +545,8 @@ export class WorldView implements WorldLayer {
     if (this.lookView && this.host) this.lookView.frame(f.dtSec, this.host.camera as PerspectiveCamera);
     this.peds?.update(f, tSec);
     // M02g1: the blob shadows follow the poses the traffic, the pedestrians and the object pool just drew.
-    this.lookView?.feedBlobs(f);
+    // M02h2 repair: an ambient actor whose renderer group is hidden (the goldens hide traffic, pedestrians and transit) casts no blob.
+    this.lookView?.feedBlobs(f, this.ambientShown);
     this.transit?.update(f);
     this.updateOverlays();
     this.map?.frame(f);
@@ -1099,7 +1115,22 @@ export class WorldView implements WorldLayer {
       layers: [], blobs: 0, dynamicCasters: [], skyReflect: false, gradeOn: null, windowLit: [0.55, 0.85],
       vegetation: this.renderer.vegetationReport(),
       markings: markingsReportOf(this.materials, this.renderer),
+      curbs: this.renderer.curbsCounts(),
     };
+  }
+
+  /**
+   * M02h2: the render lift of a foot at world (x, z): the curb height on a curbed sidewalk of a resident L0 chunk, else 0 (chunks/sidewalks.ts
+   * walk masks). The pedestrians and the on-foot player figure add it to their drawn height; the sim never sees it.
+   */
+  walkLiftAt(x: number, z: number): number {
+    return this.renderer.walkLiftAt(x, z);
+  }
+
+  /** M02h2 QA (`__dvBridge.world.pedFeet()`): the drawn feet of the pedestrians, the lift and the sidewalk top under each. */
+  pedFeet(max = 64): { x: number; y: number; z: number; lift: number; top: number | null }[] {
+    const feet = this.peds?.drawnFeet(max) ?? [];
+    return feet.map((f) => ({ ...f, lift: this.renderer.walkLiftAt(f.x, f.z), top: this.renderer.walkTopAt(f.x, f.z) }));
   }
 
   /** M02e QA: the look on or off at runtime; false when the tier has none. */

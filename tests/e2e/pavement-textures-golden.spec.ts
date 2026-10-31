@@ -19,8 +19,14 @@ const GOLDEN_SHOTS = ['noon-street', 'night-street', 'curb-corner', 'lot-plaza']
 /** The shots where the textures must show: the mean difference from textures-off. */
 const SHOWS = new Set(['noon-street', 'curb-corner', 'lot-plaza']);
 
-async function capture(page: Page, tier: string, shot: string, textures: boolean): Promise<Rgba> {
-  await bootWorld(page, tier as QualityTierId, textures ? '' : '&textures=0', GOLDEN_VIEWPORT);
+/**
+ * The canvas at `shot` after one boot with the textures on. The shot settles with the world's draw held (`shot(id, { held: true })`, as the
+ * look-fix pairs do since BD-REPAIR-M02h1-01): at `desktop` on software GL the upload gate lets one unit up per presented frame and a frame
+ * takes seconds, so the plain shot spent its two ten-minute settles at every desktop boot (14 minutes a golden in run 41204371272); held,
+ * the gate drains in about a minute and the picture is the same finished stream (BD-REPAIR-M02h2-04).
+ */
+async function capture(page: Page, tier: string, shot: string): Promise<Rgba> {
+  await bootWorld(page, tier as QualityTierId, '', GOLDEN_VIEWPORT);
   await texturesSettled(page);
   await page.addStyleTag({ content: HIDE });
   await page.evaluate(() => {
@@ -28,8 +34,15 @@ async function capture(page: Page, tier: string, shot: string, textures: boolean
     const view = (window as unknown as { __dvBridge: { world: { internals(): { view: { traffic: G; peds: G; transit: G } } } } }).__dvBridge.world.internals().view;
     for (const r of [view.traffic, view.peds, view.transit]) if (r) r.group.visible = false;
   });
-  await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id), shot);
+  await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id, { held: true }), shot);
   await frames(page, 2);
+  return decodePng(await page.locator('#dv-engine-canvas').screenshot());
+}
+
+/** The canvas of the shot already held, with the surface textures switched (`setLookLayer('textures', on)`: off is the procedural look at once). */
+async function recapture(page: Page, on: boolean): Promise<Rgba> {
+  expect(await page.evaluate((o) => (window as unknown as W).__dvBridge.world.setLookLayer('textures', o), on)).toBe(true);
+  await frames(page, 3);
   return decodePng(await page.locator('#dv-engine-canvas').screenshot());
 }
 
@@ -50,7 +63,7 @@ test.describe('textures goldens @textures-golden', () => {
     for (const shot of GOLDEN_SHOTS) {
       test(`${tier} ${shot} is within the tolerance of its golden, a repeat is byte-identical @textures-golden`, async ({ page }) => {
         const file = `${GOLDEN_DIR}/${tier}.${shot}.png`;
-        const first = await capture(page, tier, shot, true);
+        const first = await capture(page, tier, shot);
         expect(first).toMatchObject({ width: GOLDEN_VIEWPORT.width, height: GOLDEN_VIEWPORT.height });
         await frames(page, 2);
         const second = decodePng(await page.locator('#dv-engine-canvas').screenshot());
@@ -72,10 +85,13 @@ test.describe('textures goldens @textures-golden', () => {
     for (const shot of GOLDEN_SHOTS.filter((s) => SHOWS.has(s))) {
       test(`${tier} ${shot} differs from textures-off by at least 0.02 @textures-golden`, async ({ page }) => {
         test.setTimeout(3_600_000);
-        const on = await capture(page, tier, shot, true);
-        // the second boot reuses the page, so the first world is gone (its renderer released) before the textures-off world renders:
-        // two software-rendered worlds at once doubled this case's time on CI (BD-FIX-CI-TEXGOLD-01)
-        const without = await capture(page, tier, shot, false);
+        const on = await capture(page, tier, shot);
+        // textures-off on the same boot and the same held shot: the layer switch draws the procedural look at once, so the two pictures differ
+        // by the textures alone (a second boot with `?textures=0` took another 12 minutes at desktop on CI, BD-REPAIR-M02h2-04; the
+        // `?textures=0` boot itself is `@art-textures`). The second textures-on picture shows the switch back restores the first.
+        const without = await recapture(page, false);
+        const again = await recapture(page, true);
+        expect(identical(again, on), `${tier} ${shot}: switching the textures back on restores the picture`).toBe(true);
         const delta = meanAbsDifference(on, without);
         expect(delta, `${tier} ${shot}: the textures change the picture by ${delta.toFixed(4)}`).toBeGreaterThanOrEqual(0.02);
       });

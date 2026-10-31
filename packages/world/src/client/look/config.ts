@@ -88,8 +88,11 @@ export interface MarkingsFile extends LayoutConfig {
   crosswalk: { barM: number; rungM: number; rungPeriodM: number };
 }
 
-/** The layers of the M02g1 look-tune (and `markings`, M02h1); each is gated per look profile by `LookFile.layers`. */
-export const LOOK_LAYERS = ['grade', 'haze', 'blob', 'casters', 'skyReflect', 'windows', 'markings'] as const;
+/**
+ * The layers of the M02g1 look-tune (and `markings`, M02h1; `curbs`, `bump`, `macro` and `lots`, M02h2); each is gated per look profile by
+ * `LookFile.layers`.
+ */
+export const LOOK_LAYERS = ['grade', 'haze', 'blob', 'casters', 'skyReflect', 'windows', 'markings', 'curbs', 'bump', 'macro', 'lots'] as const;
 export type LookLayer = (typeof LOOK_LAYERS)[number];
 
 export interface LookFile {
@@ -119,6 +122,8 @@ export interface LookFile {
   windows: { litFrac: readonly (readonly [hour: number, min: number, max: number])[] };
   /** The layer ids each look profile enables; `legacy` only `markings` (the XR tiers draw the flat paint, M02h1) and nothing else (M02g1). */
   layers: Record<LookProfile, readonly LookLayer[]>;
+  /** M02h2: the strength of the ground bump (`groundNodes().height` through `look-materials.ts`) per look profile; 0 on `min` and `legacy`. */
+  bump: Record<LookProfile, number>;
   /** The street markings (M02h1). */
   markings: MarkingsFile;
   /** Trees and traffic within this many metres of the focus cast shadows on the `casters` layer (M02g1). */

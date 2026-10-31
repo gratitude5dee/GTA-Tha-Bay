@@ -159,8 +159,12 @@ export class BlobShadows {
     this.count++;
   }
 
-  /** The pose loop: one blob for every shown car, pedestrian and actor of the frame that has a footprint. */
-  feed(f: Pick<WorldFrame, 'poses' | 'poseCount' | 'poseKeys' | 'camera'>): void {
+  /**
+   * The pose loop: one blob for every shown car, pedestrian and actor of the frame that has a footprint. `ambientShown(key)` (M02h2 repair)
+   * says whether the renderer that draws an ambient record (`flags & 2`: traffic, pedestrians, transit) is shown: a hidden group casts no
+   * blob either, as it casts no shadow-map shadow.
+   */
+  feed(f: Pick<WorldFrame, 'poses' | 'poseCount' | 'poseKeys' | 'camera'>, ambientShown?: (key: string) => boolean): void {
     if (!this.on) return;
     const poses = f.poses;
     const keys = f.poseKeys;
@@ -174,6 +178,7 @@ export class BlobShadows {
       if (key === undefined) continue;
       const style = blobStyleOf(key);
       if (!style) continue;
+      if ((p.flags & 2) !== 0 && ambientShown && !ambientShown(key)) continue;
       const dx = p.px - cx, dz = p.pz - cz;
       if (dx * dx + dz * dz > style.range * style.range) continue;
       this.push(p.px, p.py - style.dropM, p.pz, poseYaw(p), style.halfWidth, style.halfLength);

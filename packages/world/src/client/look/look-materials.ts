@@ -15,7 +15,7 @@
 import { DoubleSide, FrontSide, MeshStandardNodeMaterial } from 'three/webgpu';
 import { windowEmissive } from '../sky/night.ts';
 import {
-  clamp, float, fract, mix, normalLocal, normalView, normalWorld, normalize, positionWorld, select, smoothstep, vec2, vertexColor, asNode, loose, step, type L,
+  attribute, clamp, float, fract, mix, normalLocal, normalView, normalWorld, normalize, positionLocal, positionWorld, select, smoothstep, vec2, vec3, vertexColor, asNode, loose, step, type L,
 } from '../sky/tsl.ts';
 import { COARSE_BACK, plus, roadBias, type DepthRules } from '../chunks/depth.ts';
 import { MESHER } from '../chunks/mesher.ts';
@@ -25,9 +25,9 @@ import { FACADE_KEYS, type LookFile } from './config.ts';
 import { wallNodes } from './facade.ts';
 import { groundNodes } from './ground.ts';
 import { paintNodes } from './markings.ts';
-import { around1, pickFloat, vnoise } from './noise.ts';
+import { around1, bumpNormal, pickFloat, vnoise } from './noise.ts';
 import { roofNodes } from './roof.ts';
-import { Surf } from './surfaces.ts';
+import { SURF_SCALE, Surf } from './surfaces.ts';
 import { waterNodes } from './water.ts';
 // art-hook:textures begin (M10d0): the one import of the surface textures
 import { withSurfaceTextures } from '../textures/surface-textures.ts';
@@ -86,6 +86,12 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     const paint = roads && !coarse ? paintNodes({ look: look.markings, nodes: n, mode: profile === 'min' ? 'flat' : 'worn', id: s.id, color: tx.color, roughness: tx.roughness }) : null;
     const baseColor = paint ? paint.color : tx.color;
     const baseRough = paint ? paint.roughness : tx.roughness;
+    // M02h2: the `curbs` layer off puts the sidewalk ribbons back on the road plane: each vertex's raise over the road (centimetres in the
+    // `surf` code byte, chunks/sidewalks.ts) comes off its height (L0 roads only; the gutter turns back into road in groundNodes)
+    if (roads && !coarse) {
+      const raise = (attribute('surf', 'vec4') as L).z.mul(SURF_SCALE).round().mul(0.01);
+      m.positionNode = asNode(positionLocal.sub(vec3(0, raise.mul(float(1).sub(n.uCurbs)), 0)));
+    }
     if (profile === 'min') {
       // Vertex colour with the class roughness; the sea a flat colour.
       m.colorNode = asNode(baseColor.mul(shade));
@@ -96,7 +102,10 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     m.colorNode = asNode(mix(baseColor, w.color, g.water).mul(shade));
     m.roughnessNode = asNode(mix(baseRough, w.roughness, g.water)) as never;
     m.metalnessNode = asNode(float(0)) as never;
-    set(m, 'normalNode', normalize(mix(tx.normal ?? normalView, w.normal, g.water)));
+    // M02h2: the bump of the ground detail (`full` and `lite`; `look.bump`), off with the `bump` layer; the coarse levels have none
+    const strength = look.bump[profile] ?? 0;
+    const surface = !coarse && strength > 0 ? bumpNormal(g.height, n.uBump.mul(strength), tx.normal ?? normalView) : (tx.normal ?? normalView);
+    set(m, 'normalNode', normalize(mix(surface, w.normal, g.water)));
     return m;
   };
 

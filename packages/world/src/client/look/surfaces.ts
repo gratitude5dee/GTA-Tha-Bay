@@ -37,12 +37,20 @@ export const enum Surf {
   Junction = 35,
   /** M02h1: a crosswalk quad (ladder or two transverse lines, painted in the shader). */
   Crosswalk = 36,
-  /** M02h1: a stop bar quad. M02h2 takes 38 and 39. */
+  /** M02h1: a stop bar quad. */
   StopBar = 37,
+  /** M02h2: the curb face and its top band (concrete). */
+  Curb = 38,
+  /** M02h2: the gutter strip at the outer edge of a curbed road ribbon. */
+  Gutter = 39,
+  /** M02h2: a `Paved` terrain post away from a plaza: a lot (worn concrete). */
+  Lot = 40,
+  /** M02h2: a `Paved` terrain post within `lotPlaza.plazaM` of a plaza ped edge or node: pavers. */
+  Plaza = 41,
 }
 
 /** One past the largest id. */
-export const SURFACE_COUNT = 38;
+export const SURFACE_COUNT = 42;
 
 export const SURFACE_NAMES: readonly string[] = [
   ...GROUND_NAMES.map((n) => `ground.${n}`),
@@ -50,7 +58,7 @@ export const SURFACE_NAMES: readonly string[] = [
   'sidewalk',
   ...KIND_NAMES.map((n) => `wall.${n}`),
   'roof.flat', 'roof.gable', 'roof.hip', 'parapet', 'equipment', 'trunk', 'leaves', 'massing.l1', 'massing.l2', 'sea',
-  'junction', 'crosswalk', 'stopbar',
+  'junction', 'crosswalk', 'stopbar', 'curb', 'gutter', 'lot', 'plaza',
 ];
 
 export const isSurfaceId = (id: number): boolean => Number.isInteger(id) && id >= 0 && id < SURFACE_COUNT;

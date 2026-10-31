@@ -43,6 +43,8 @@ export interface MeshStats {
   terrainStride?: number;
   /** L0, with the markings on (M02h1): what the roads object holds, see `RoadMarkStats` in mesher.ts. */
   markings?: { roadVerts: number; patches: number; crosswalks: number; stopBars: number; approaches: number; skipped: number; clipped: number };
+  /** L0, with the curbs on (M02h2): the sidewalk ribbons of the roads object, see `CurbStats` in sidewalks.ts. */
+  curbs?: { ribbons: number; attached: number; unattached: number; chains: number; curbedM: number; rampCount: number; triangles: number };
 }
 
 /** The result of meshing one unit (an L0 chunk, an L1 tile or an L2 block). */
@@ -63,6 +65,14 @@ export interface UnitMesh {
   proxies: number[];
   /** L0: the subset of `proxies` left out of the meshes because a landmark model stands in their place (M02d1). */
   masked: number[];
+  /**
+   * L0 with the curbs on (M02h2): the walk lift mask, one bit per 1 m cell of the chunk (row-major from the north-west corner, 8 KiB), set
+   * on full-height curbed sidewalk; pedestrians and the on-foot player figure draw `walkLiftM` higher there (render only).
+   */
+  walk?: Uint8Array;
+  walkLiftM?: number;
+  /** Tests only (`MeshChunkOptions.curbDebug`): the curb samples of sidewalks.ts. */
+  curbSamples?: { x: number; z: number; roadTop: number; top: number; heightM: number; rampD: number; outerX: number; outerZ: number }[];
 }
 
 /** All the buffers of a unit mesh, for the transfer list. */
@@ -83,6 +93,7 @@ export function transferListOf(m: UnitMesh): ArrayBuffer[] {
   }
   add(m.trees);
   add(m.lamps);
+  if (m.walk) add(m.walk);
   return [...new Set(out)];
 }
 

@@ -1185,6 +1185,9 @@ async function createView(
   resize();
 
   const pool = new ObjectPool(scene);
+  // M02h2: the on-foot figures step up onto curbed sidewalks (render only)
+  const lift = worldBoot?.layer.walkLiftAt?.bind(worldBoot.layer);
+  if (lift) pool.footLift = lift;
   // The cast kit's render programs compile now, long before a mission beat spawns its cast on the beat's first frame (DL-715).
   if (host.ready) {
     const r = host.renderer;
