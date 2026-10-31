@@ -7,7 +7,7 @@ import { FLICKER_BASELINE_FILE, FLICKER_FLOOR, flickerShare } from '../support/f
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
 import { crowdMax, streamAtPlan } from './ledger-helpers.ts';
 import { captureShot, readBaseline } from './look-fixes-helpers.ts';
-import { FLAT_TIERS, bakeIdOf, bootWorld, clearActors, frames, live, read, setSky, world, type W } from './markings-helpers.ts';
+import { FLAT_TIERS, HIDE, bakeIdOf, bootWorld, clearActors, frames, live, read, setSky, world, type W } from './markings-helpers.ts';
 
 /**
  * M02h2 curbs, gutters and sidewalks in a real browser, on a `DV_WORLD=synth` QA build.
@@ -55,6 +55,8 @@ test.describe('world curbs @world-curbs', () => {
         if (m.type() === 'error' && !/Failed to load resource|favicon/.test(m.text())) errors.push(m.text());
       });
       await bootWorld(page, tier, '', SMALL_VIEWPORT);
+      // the panels over the canvas out of the picture (a canvas screenshot includes what is drawn over it)
+      await page.addStyleTag({ content: HIDE });
       const look = await world(page, (w) => w.look());
       expect(look?.layers).toEqual(LOOK.layers[PROFILE[tier]]);
       await setSky(page, 13, 'clear');
