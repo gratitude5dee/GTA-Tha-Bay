@@ -78,7 +78,7 @@
     "Gutter": { "albedo": "#74767a", "roughness": 0.8, "noise": 0.12 },
     "Lot": { "albedo": "#8e9093", "roughness": 0.9, "noise": 0.12 },
     "Plaza": { "albedo": "#b8ab9b", "roughness": 0.86, "noise": 0.1 },
-    "cover.yard": { "albedo": "#7fa65a", "roughness": 0.95, "noise": 0.06 },
+    "cover.yard": { "albedo": "#7d9c55", "roughness": 0.95, "noise": 0.06 },
     "cover.dirt": { "albedo": "#8a7353", "roughness": 0.96, "noise": 0.2 },
     "cover.mixed": { "albedo": "#86905a", "roughness": 0.95, "noise": 0.45 },
     "cover.driveway": { "albedo": "#a6a49d", "roughness": 0.88, "noise": 0.1 },
