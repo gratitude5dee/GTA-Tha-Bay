@@ -244,15 +244,18 @@ test.describe('xr curbs ledger @xr @curbs-ledger', () => {
     test.setTimeout(900_000);
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.setViewportSize(SMALL_VIEWPORT);
+    // the protocol of the XR rows of the earlier ledgers (M10d1 `@xr @art-ledger`): 256 x 144, traffic resident, the frame of the plan (DL-758)
+    await page.setViewportSize({ width: 256, height: 144 });
     await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1');
     await waitForEngine(page);
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
-    await page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(120_000));
-    await frames(page, 4);
-    const look = await world(page, (w) => w.look());
-    expect(look?.curbs.ribbons ?? 0, 'the Quest tier (mobile mesher profile) has its sidewalk ribbons').toBeGreaterThan(0);
+    await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
+    await streamAtPlan(page);
+    await world(page, (w) => w.hold(true));
     const objects = (await live(page)).renderObjects;
+    const look = await world(page, (w) => w.look());
+    await world(page, (w) => w.hold(false));
+    expect(look?.curbs.ribbons ?? 0, 'the Quest tier (mobile mesher profile) has its sidewalk ribbons').toBeGreaterThan(0);
     const priorXr = prior().ledger.xr?.after;
     console.log(`curbs ledger xr: ${objects} render objects (prior after ${String(priorXr)})`);
     if (priorXr !== undefined) expect(objects, 'the Quest count against the prior ledger').toBeLessThanOrEqual(priorXr);
