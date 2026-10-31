@@ -479,6 +479,7 @@ jobs:
         # BD-FIX-CI-PERFSPLIT-01: five groups of the registered scenarios (config/perf/scenarios.json), cut by the measured time of
         # each scenario on both engines in run 41021126822 (one job took 88 of 90 min): story-chase 18.5 min, npc-mission-crowd 19.0
         # with fight-stage 1.5, downtown-rush 14.7, walk-civic-center 11.6 with route-ferry-ocean-beach 10.3, boot-cityhall 11.5.
+        # M11a1 (BD-M11a1-17): the two racing scenarios, about 25 minutes each, run as a group of their own each.
         # tools/ci/test/workflows.test.ts keeps the groups equal in ci.yml and nightly.yml and covering every registered id once.
         scenarios:
           - story-chase
@@ -486,7 +487,6 @@ jobs:
           - downtown-rush
           - walk-civic-center,route-ferry-ocean-beach
           - boot-cityhall
-          # M11a1 (BD-M11a1-17): the two racing scenarios, about 25 minutes each, run as a group of their own each.
           - race-sprint
           - race-pursuit-heat4
     env:
