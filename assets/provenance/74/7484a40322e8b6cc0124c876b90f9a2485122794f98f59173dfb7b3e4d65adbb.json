@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "7484a40322e8b6cc0124c876b90f9a2485122794f98f59173dfb7b3e4d65adbb",
+  "paths": [
+    "assets/src/prop/transit-entrance/desktop.glb"
+  ],
+  "kind": "prop",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "bee262735f2e7f819c8da7beeb4e379ab046ba0e8cded09e6716e7f64f195350"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

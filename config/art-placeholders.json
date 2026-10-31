@@ -1,0 +1,153 @@
+{
+  "schema": "art-placeholders/1",
+  "note": "The placeholders the look program replaces and who replaces each (M10d1 seeds it, DL-390, DL-741). `match` is a regular expression over AssetRef strings, or `code:<name>` for a placeholder that lives in code. M10d1 fills `replacedBy` and `repoint` for its three rows; the other owners fill theirs when their row lands. tools/assets/test/art-placeholders.spec.ts checks it; `assets:vehicle -- --repoint` applies `repoint` to assets/prefabs.",
+  "rows": [
+    {
+      "id": "vehicles",
+      "what": "Gray-box ambient, police, transit and aircraft vehicles (vehicle/graybox.*) other than the race cars",
+      "owner": "M10d1",
+      "match": "^vehicle/graybox\\.(?!kestrel-quill$|brackenridge-rasp$|aurelian-sorrel$|solenne-skip$|halcyon-cormorant$)",
+      "replacedBy": [
+        "vehicle/traffic.compact",
+        "vehicle/traffic.sedan",
+        "vehicle/traffic.rideshare",
+        "vehicle/traffic.van",
+        "vehicle/traffic.truck",
+        "vehicle/traffic.pickup",
+        "vehicle/robotaxi.default",
+        "vehicle/police.cruiser",
+        "vehicle/police.suv",
+        "vehicle/transit.bus",
+        "vehicle/transit.cablecar",
+        "prop/police.heli",
+        "prop/transit.ferry",
+        "prop/transit.airliner"
+      ],
+      "repoint": {
+        "vehicle/graybox.compact": "vehicle/traffic.compact",
+        "vehicle/graybox.sedan": "vehicle/traffic.sedan",
+        "vehicle/graybox.rideshare": "vehicle/traffic.rideshare",
+        "vehicle/graybox.van": "vehicle/traffic.van",
+        "vehicle/graybox.truck": "vehicle/traffic.truck",
+        "vehicle/graybox.pickup": "vehicle/traffic.pickup",
+        "vehicle/graybox.robotaxi": "vehicle/robotaxi.default",
+        "vehicle/graybox.cruiser": "vehicle/police.cruiser",
+        "vehicle/graybox.suv": "vehicle/police.suv",
+        "vehicle/graybox.bus": "vehicle/transit.bus",
+        "vehicle/graybox.cablecar": "vehicle/transit.cablecar",
+        "vehicle/graybox.heli": "prop/police.heli",
+        "vehicle/graybox.ferry": "prop/transit.ferry",
+        "vehicle/graybox.airliner": "prop/transit.airliner"
+      }
+    },
+    {
+      "id": "props",
+      "what": "Gray-box props, pickups, the objective beam and the portal closures (prop/graybox.*) other than the on-foot capsule, the stage dioramas and the fighter props",
+      "owner": "M10d1",
+      "match": "^prop/graybox\\.(?!capsule$|stage-|fighter-)",
+      "replacedBy": [
+        "prop/cone",
+        "prop/barrier",
+        "prop/county-barrier",
+        "prop/spikestrip",
+        "prop/crate",
+        "prop/transit-entrance",
+        "prop/portal-closure",
+        "prop/pickup-cash",
+        "prop/pickup-item",
+        "prop/marker.beam"
+      ],
+      "repoint": {
+        "prop/graybox.cone": "prop/cone",
+        "prop/graybox.barrier": "prop/barrier",
+        "prop/graybox.county-barrier": "prop/county-barrier",
+        "prop/graybox.spikestrip": "prop/spikestrip",
+        "prop/graybox.crate": "prop/crate",
+        "prop/graybox.transit-entrance": "prop/transit-entrance",
+        "prop/graybox.portal-closure": "prop/portal-closure",
+        "prop/graybox.pickup-cash": "prop/pickup-cash",
+        "prop/graybox.pickup-item": "prop/pickup-item",
+        "prop/graybox.beam": "prop/marker.beam"
+      }
+    },
+    {
+      "id": "traffic-box-cars",
+      "what": "The two-box car that the instanced traffic draws for every ambient archetype (traffic/instances.ts carGeometry)",
+      "owner": "M10d1",
+      "match": "code:traffic-box-car",
+      "replacedBy": [
+        "vehicle/traffic.compact",
+        "vehicle/traffic.sedan",
+        "vehicle/traffic.rideshare",
+        "vehicle/traffic.van",
+        "vehicle/traffic.truck",
+        "vehicle/traffic.pickup",
+        "vehicle/robotaxi.default",
+        "vehicle/police.cruiser"
+      ]
+    },
+    {
+      "id": "ped-mannequins",
+      "what": "The instanced pedestrian mannequin (peds/mannequin.ts)",
+      "owner": "M10d4",
+      "match": "code:ped-mannequin",
+      "replacedBy": []
+    },
+    {
+      "id": "creator-parts",
+      "what": "Creator catalog rows without a model, other than the six Coast rows (packages/ui creator catalog)",
+      "owner": "M10d4",
+      "match": "code:creator-row-no-model",
+      "replacedBy": []
+    },
+    {
+      "id": "far-bay-cards",
+      "what": "The far-bay card atlas (texture/far-bay-cards)",
+      "owner": "M10d2",
+      "match": "^texture/far-bay-cards$",
+      "replacedBy": []
+    },
+    {
+      "id": "facade-atlas",
+      "what": "The procedural facade atlas of the look (look/facade.ts)",
+      "owner": "M10d2",
+      "match": "code:facade-atlas",
+      "replacedBy": []
+    },
+    {
+      "id": "desktop-ultra-sky",
+      "what": "The procedural desktop-ultra sky dome",
+      "owner": "M10d2",
+      "match": "code:desktop-ultra-sky",
+      "replacedBy": []
+    },
+    {
+      "id": "player-cars",
+      "what": "Gray-box bodies of the five race and player cars (vehicle/graybox.<make>)",
+      "owner": "M10d3",
+      "match": "^vehicle/graybox\\.(kestrel-quill|brackenridge-rasp|aurelian-sorrel|solenne-skip|halcyon-cormorant)$",
+      "replacedBy": []
+    },
+    {
+      "id": "stage-dioramas",
+      "what": "The gray-box fighter stage dioramas (prop/graybox.stage-*)",
+      "owner": "M10d3",
+      "match": "^prop/graybox\\.stage-",
+      "replacedBy": []
+    },
+    {
+      "id": "fighter-capsules",
+      "what": "The gray-box fighter bodies and props (character/graybox.*, prop/graybox.fighter-*)",
+      "owner": "M10d3",
+      "match": "^(character/graybox\\.|prop/graybox\\.fighter-)",
+      "replacedBy": []
+    },
+    {
+      "id": "capsule",
+      "what": "The on-foot capsule of player.default and ped.actor (prop/graybox.capsule)",
+      "owner": "M10d5",
+      "match": "^prop/graybox\\.capsule$",
+      "replacedBy": []
+    }
+  ]
+}

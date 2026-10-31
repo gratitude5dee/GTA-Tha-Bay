@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "c80a09a1fdba2aebf95c91c7e250f3943c1ec14cba64a59dc5742b55f25f1f28",
+  "paths": [
+    "assets/src/vehicle/traffic.truck/mobile.glb"
+  ],
+  "kind": "vehicle",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "8bf11cfc14b3c720da4ec4f2bd87f9b1f2f98962b3e137e73e73daf871794b14"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

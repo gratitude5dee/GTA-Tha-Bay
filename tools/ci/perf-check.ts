@@ -6,7 +6,8 @@
  * It runs tests/perf (Playwright) on `chromium-webgl2` and `webkit-webgl2` for each flat tier, once per selected scenario, which
  * writes `test-results/perf.<scenario>.<project>.<tier>.json`, then runs `perf-verify --counts-only` on every report. The default
  * selection is `PERF_SCENARIOS`, the ids in `config/perf/scenarios.json` (M02b1); `--scenario <id>` selects one of them or
- * `graybox-walk` (a build without `DV_WORLD`), and an unknown id exits non-zero. Before a run the selected scenarios' reports are
+ * `graybox-walk` (a build without `DV_WORLD`), `--scenario <id>,<id>` a comma-separated set (the CI perf groups,
+ * BD-FIX-CI-PERFSPLIT-01), and an unknown id exits non-zero. Before a run the selected scenarios' reports are
  * deleted, so a stale file never passes for a fresh one. SwiftShader frame times
  * are never asserted. Without `--fail` a miss is a warning and the exit code is 0 (PR mode); with `--fail` it is an error
  * (nightly mode) and a missing report counts as a miss. `--skip-run` verifies the reports already on disk.
@@ -34,10 +35,15 @@ export function reportPath(root: string, scenario: string, project: string, tier
   return path.join(root, 'test-results', `perf.${scenario}.${project}.${tier}.json`);
 }
 
-/** The scenarios a `--scenario` argument selects: that one id (when known), or the registered list. */
+/**
+ * The scenarios a `--scenario` argument selects: the registered list without one, else each id of the comma-separated argument in
+ * its order, once. Null when any id is unknown or the list is empty, so a typo in a CI group never runs a smaller set in silence.
+ */
 export function selectScenarios(arg: string | undefined): string[] | null {
   if (arg === undefined) return [...PERF_SCENARIOS];
-  return [...PERF_SCENARIOS, ...EXTRA_SCENARIOS].includes(arg) ? [arg] : null;
+  const ids = [...new Set(arg.split(',').map((x) => x.trim()))];
+  const known = [...PERF_SCENARIOS, ...EXTRA_SCENARIOS];
+  return ids.length > 0 && ids.every((id) => id !== '' && known.includes(id)) ? ids : null;
 }
 
 /** Scenarios that show the ambient traffic (M03b1): their run also writes `perf.<scenario>.<project>.<tier>.traffic.json`. */
@@ -61,7 +67,7 @@ export function verifyTraffic(file: string, tier: QualityTierId): string[] {
   if (t.instancesMax < 1) out.push('FAIL  no traffic instance was drawn during the run');
   if (t.instancesMax > crowd.maxTrafficInstances) out.push(`FAIL  traffic instances ${t.instancesMax} > crowd.maxTrafficInstances ${crowd.maxTrafficInstances}`);
   if (t.simAgents > crowd.maxTrafficInstances + 400) out.push(`FAIL  sim agents ${t.simAgents} are far over the instance cap ${crowd.maxTrafficInstances}`);
-  if (t.drawsMax > TRAFFIC_DRAWS_MAX) out.push(`FAIL  traffic draws ${t.drawsMax} > ${TRAFFIC_DRAWS_MAX} (one instanced mesh)`);
+  if (t.drawsMax > TRAFFIC_DRAWS_MAX) out.push(`FAIL  traffic draws ${t.drawsMax} > ${TRAFFIC_DRAWS_MAX} (one instanced mesh per family, two on full)`);
   return out;
 }
 
@@ -187,8 +193,8 @@ export function verifyRace(file: string, tier: QualityTierId, scenario: string):
   return out;
 }
 
-/** One instanced mesh draws every archetype (compact, sedan, rideshare, robotaxi, van, truck, pickup, cruiser). */
-export const TRAFFIC_DRAWS_MAX = 1;
+/** M10d1: the traffic is one instanced mesh per family, two with the glass pass split off: four families on `full`. */
+export const TRAFFIC_DRAWS_MAX = 8;
 
 export interface CheckResult {
   ok: boolean;

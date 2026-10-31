@@ -2,6 +2,7 @@
  * The M03a1 prefabs: 17 JSON files validate against the prefab schema, load, point at real handling presets and agree with
  * them; every car settles on its springs at its designed height.
  */
+import { isArtKey } from '../src/client/vehicle/art-model.ts';
 import { readdirSync, readFileSync } from 'node:fs';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
@@ -56,8 +57,11 @@ describe('M03a1 prefabs', () => {
     }
   });
 
-  it('render assets are the procedural gray-box placeholders', () => {
-    for (const def of VEHICLE_PREFABS) expect(def.render.asset, def.id).toMatch(/^(vehicle|prop)\/graybox\.[a-z-]+$/);
+  it('render assets are the final art (M10d1) or, for the race cars of M10d3, the gray-box placeholders', () => {
+    for (const def of VEHICLE_PREFABS) {
+      const gray = /^vehicle\/graybox\.(kestrel-quill|brackenridge-rasp|aurelian-sorrel|solenne-skip|halcyon-cormorant)$/.test(def.render.asset);
+      expect(gray || isArtKey(def.render.asset), def.id).toBe(true);
+    }
   });
 
   it('the interact block fills the Interactable component', async () => {

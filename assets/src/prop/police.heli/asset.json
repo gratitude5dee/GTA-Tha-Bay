@@ -1,0 +1,39 @@
+{
+  "kind": "prop",
+  "id": "police.heli",
+  "variants": {
+    "desktop": "assets/src/prop/police.heli/desktop.glb",
+    "mobile": "assets/src/prop/police.heli/mobile.glb",
+    "mobile-low": "assets/src/prop/police.heli/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1180,
+      "verts": 904,
+      "primitives": 4,
+      "materials": 2
+    },
+    "mobile": {
+      "tris": 580,
+      "verts": 570,
+      "primitives": 4,
+      "materials": 2
+    },
+    "mobile-low": {
+      "tris": 324,
+      "verts": 404,
+      "primitives": 3,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "prop:backdrop",
+    "art:m10d1"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

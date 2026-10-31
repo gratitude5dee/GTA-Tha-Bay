@@ -1,0 +1,39 @@
+{
+  "kind": "prop",
+  "id": "marker.beam",
+  "variants": {
+    "desktop": "assets/src/prop/marker.beam/desktop.glb",
+    "mobile": "assets/src/prop/marker.beam/mobile.glb",
+    "mobile-low": "assets/src/prop/marker.beam/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 160,
+      "verts": 176,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile": {
+      "tris": 96,
+      "verts": 108,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile-low": {
+      "tris": 68,
+      "verts": 80,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "prop:street",
+    "art:m10d1"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

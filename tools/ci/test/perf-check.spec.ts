@@ -76,6 +76,12 @@ describe('--scenario selection (AC-12)', () => {
     expect(selectScenarios('graybox-walk')).toEqual(['graybox-walk']);
     expect(selectScenarios(undefined)).toEqual([...PERF_SCENARIOS]);
     expect(selectScenarios('no-such-scenario')).toBeNull();
+    // BD-FIX-CI-PERFSPLIT-01: a comma-separated group, in its order and once; one unknown or empty id rejects the whole group.
+    expect(selectScenarios('story-chase,fight-stage')).toEqual(['story-chase', 'fight-stage']);
+    expect(selectScenarios('fight-stage, story-chase,fight-stage')).toEqual(['fight-stage', 'story-chase']);
+    expect(selectScenarios('story-chase,no-such-scenario')).toBeNull();
+    expect(selectScenarios('story-chase,')).toBeNull();
+    expect(selectScenarios('')).toBeNull();
   });
 
   it('perf-check --scenario <unknown> exits non-zero and names the known ids', () => {

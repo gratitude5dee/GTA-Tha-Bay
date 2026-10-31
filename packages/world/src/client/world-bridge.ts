@@ -11,7 +11,7 @@ import type { TexturesReport } from './textures/surface-textures.ts';
 // art-hook:textures end
 import { mountWorldControls } from './world-controls.ts';
 import type { PrefetchReport } from './boot-prefetch.ts';
-import type { BootReport, ChunksReport, WorldView } from './world-view.ts';
+import type { ArtReport, BootReport, ChunksReport, WorldView } from './world-view.ts';
 import type { TrafficInfo } from './traffic/instances.ts';
 import type { PedInfo } from './peds/instances.ts';
 import type { TransitInfo } from './transit/render.ts';
@@ -145,6 +145,10 @@ export interface WorldBridge {
    * attached. `traffic.sim()` asks the sim for its own counts (agents, near bodies, promotions, honks, stalls, witness events).
    */
   traffic(): TrafficInfo | null;
+  // art-hook:vehicles begin (M10d1)
+  /** The final vehicle and prop art: profile, traffic families and base models, render objects, material class, the pool's models and the snapshot's asset keys; null before attach. */
+  art(): ArtReport | null;
+  // art-hook:vehicles end
   /** Counts of the ambient traffic inside sim.worker (`debug.world` op `traffic`); null after `timeoutMs`. */
   trafficSim(timeoutMs?: number): Promise<unknown>;
   /** The instanced pedestrians (M03b2): far and near-LOD instances, per body, draws and the caps of the tier; null before the world is attached. */
@@ -350,6 +354,7 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
     landmarks: () => view.landmarksReport(),
     swaps: () => view.landmarksReport()?.swaps ?? [],
     traffic: () => view.trafficReport(),
+    art: () => view.artReport(), // art-hook:vehicles (M10d1)
     trafficSim: (timeoutMs) => call('traffic', undefined, timeoutMs),
     peds: () => view.pedsReport(),
     pedsSim: (head, timeoutMs) => call('peds', head === undefined ? undefined : head === null ? { clearHead: true } : { headX: head.x, headZ: head.z }, timeoutMs),

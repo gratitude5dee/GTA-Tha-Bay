@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "14d2cca019394220868d9cb3361f4d33eb2829654af6cb3130082f944c9bef5c",
+  "paths": [
+    "assets/src/prop/crate/mobile.glb"
+  ],
+  "kind": "prop",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "a50a92eb2dfe37d286da28b0900f9e3fe1dd0e6ad2b048d5f40e74d5f4d6fcd8"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

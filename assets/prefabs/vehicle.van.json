@@ -4,7 +4,7 @@
   "version": 1,
   "nameKey": "vehicle.van",
   "render": {
-    "asset": "vehicle/graybox.van"
+    "asset": "vehicle/traffic.van"
   },
   "physics": {
     "body": "dynamic",

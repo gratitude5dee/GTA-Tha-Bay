@@ -1,0 +1,65 @@
+{
+  "kind": "vehicle",
+  "id": "police.suv",
+  "variants": {
+    "desktop": "assets/src/vehicle/police.suv/desktop.glb",
+    "mobile": "assets/src/vehicle/police.suv/mobile.glb",
+    "mobile-low": "assets/src/vehicle/police.suv/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 3916,
+      "verts": 2712,
+      "primitives": 16,
+      "materials": 4
+    },
+    "mobile": {
+      "tris": 2700,
+      "verts": 1992,
+      "primitives": 16,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 814,
+      "verts": 813,
+      "primitives": 14,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "class:police",
+    "art:m10d1"
+  ],
+  "extras": {
+    "t": "vehicle",
+    "class": "police",
+    "fictionalMake": "Northgate Warden",
+    "wheelRadiusM": 0.36,
+    "nodes": {
+      "body": "body",
+      "wheels": [
+        "wheel_fl",
+        "wheel_fr",
+        "wheel_rl",
+        "wheel_rr"
+      ],
+      "steer": [
+        "steer_fl",
+        "steer_fr"
+      ],
+      "lights": [
+        "light_head_l",
+        "light_head_r",
+        "light_brake_l",
+        "light_brake_r"
+      ],
+      "collider": "collider_hull"
+    }
+  },
+  "status": "active",
+  "visibility": "public"
+}

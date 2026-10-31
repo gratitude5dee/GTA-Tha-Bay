@@ -3,7 +3,7 @@
   "kind": "prop",
   "version": 1,
   "render": {
-    "asset": "prop/graybox.spikestrip"
+    "asset": "prop/spikestrip"
   },
   "physics": {
     "body": "fixed",

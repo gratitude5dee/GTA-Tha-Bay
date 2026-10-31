@@ -42,6 +42,11 @@ import { SkyView, type LumaOptions, type LumaSample, type SkyInfo } from './sky/
 import { TeleportFade } from './teleport-fade.ts';
 import { trafficCap } from '../sim/traffic/density.ts';
 import { TrafficRenderer, type TrafficInfo } from './traffic/instances.ts';
+// art-hook:vehicles begin (M10d1)
+import { art, type ArtLoader } from '@dv/engine/client/vehicle/art';
+import { artMaterialFactory } from './traffic/materials.ts';
+import { artVariantOf, type VehicleJobArgs, type VehicleJobResult } from './vehicles/vehicle-job.ts';
+// art-hook:vehicles end
 import { NEAR_PED_CAP, pedCap } from '../sim/peds/density.ts';
 import { PedRenderer, type PedInfo } from './peds/instances.ts';
 import { TransitRenderer, type TransitInfo } from './transit/render.ts';
@@ -63,6 +68,19 @@ export interface AssetsLike extends JobClient {
    */
   bytesSeen?(): number;
 }
+
+// art-hook:vehicles begin (M10d1)
+export interface ArtReport {
+  profile: string;
+  families: string[];
+  objects: number;
+  refs: string[];
+  materialKind: 'physical' | 'standard';
+  loaded: number;
+  pool: { variant: string; loaded: string[]; pending: string[]; failed: string[] };
+  renderKeys: string[];
+}
+// art-hook:vehicles end
 
 /** The ambient traffic as the perf scenarios drive it (QA builds): see `WorldView.trafficLink`. */
 export interface TrafficLink {
@@ -400,12 +418,27 @@ export class WorldView implements WorldLayer {
       .then(() => host.warm())
       .catch((e: unknown) => console.warn('world backdrop failed to load', e));
 
-    this.traffic = new TrafficRenderer({ parent: host.scene, sky: this.skyNodes, cap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier) });
+    // art-hook:vehicles begin (M10d1): the vehicle and prop models load through asset.worker; the traffic and the object pool draw them.
+    // The QA switch `?art=0` keeps the gray-box stand-ins (one legacy family, no model requests): the baseline of the M10d1 ledger.
+    const artOff = this.o.qa === true && new URLSearchParams(globalThis.location?.search ?? '').get('art') === '0';
+    const artProfile = this.o.look && !artOff ? lookProfileFor(this.o.tier, this.o.look.enabled) : 'legacy';
+    const artLoader: ArtLoader | undefined = artOff
+      ? undefined
+      : async (ref, variant) => {
+          const r = (await this.o.assets.job('world.vehicle', { ref, variant } satisfies VehicleJobArgs)) as VehicleJobResult;
+          return 'model' in r ? r.model : null;
+        };
+    art.configure({ loader: artLoader ?? null, profile: artProfile, variant: artVariantOf(this.o.tier), factory: artMaterialFactory(artProfile, this.skyNodes) });
+    this.traffic = new TrafficRenderer({
+      parent: host.scene, sky: this.skyNodes, cap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier), profile: artProfile, ...(artLoader ? { load: artLoader } : {}),
+    });
+    // art-hook:vehicles end
     this.peds = new PedRenderer({ parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier] });
     this.transit = new TransitRenderer({
       parent: host.scene,
       trafficCap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier),
       carsDrawn: () => this.traffic?.instances ?? 0,
+      ...(artLoader ? { load: artLoader, sky: this.skyNodes, profile: artProfile, variant: artVariantOf(this.o.tier) } : {}), // art-hook:vehicles (M10d1)
     });
     this.makeOverlays();
     this.lastFocus = { x: this.o.spawn.x, z: this.o.spawn.z, vx: 0, vz: 0 };
@@ -472,6 +505,7 @@ export class WorldView implements WorldLayer {
     if (this.host) this.backdrop.sync(this.host.camera as PerspectiveCamera);
     this.sky?.update(f);
     this.traffic?.update(f, tSec);
+    this.lastPoseKeys = f.poseKeys ?? null; // art-hook:vehicles (M10d1)
     if (this.lookView && this.host) this.lookView.frame(f.dtSec, this.host.camera as PerspectiveCamera);
     this.peds?.update(f, tSec);
     // M02g1: the blob shadows follow the poses the traffic, the pedestrians and the object pool just drew.
@@ -574,6 +608,7 @@ export class WorldView implements WorldLayer {
     this.sky = null;
     this.traffic?.dispose();
     this.traffic = null;
+    art.reset(); // art-hook:vehicles (M10d1)
     this.peds?.dispose();
     this.peds = null;
     this.transit?.dispose();
@@ -744,6 +779,33 @@ export class WorldView implements WorldLayer {
   trafficReport(): TrafficInfo | null {
     return this.traffic?.info() ?? null;
   }
+
+  // art-hook:vehicles begin (M10d1)
+  /** The newest snapshot's render keys by record (set every frame, read only by `artReport`). */
+  private lastPoseKeys: ReadonlyMap<number, string> | null = null;
+
+  /**
+   * The final vehicle and prop art for the QA bridge (`__dvBridge.world.art()`): the look profile, the traffic families and their base
+   * models, the render objects of the traffic, the material class, the object pool's models (loaded, pending, failed) and the distinct
+   * asset keys of the newest snapshot. Null before `attach`.
+   */
+  artReport(): ArtReport | null {
+    const t = this.traffic;
+    if (!t) return null;
+    const info = t.info();
+    const st = art.status();
+    return {
+      profile: t.profile,
+      families: t.familyNames,
+      objects: info.objects,
+      refs: t.refs,
+      materialKind: t.materialKind,
+      loaded: info.loaded,
+      pool: { variant: st.variant, loaded: st.loaded, pending: st.pending, failed: st.failed },
+      renderKeys: this.lastPoseKeys ? [...new Set(this.lastPoseKeys.values())].sort() : [],
+    };
+  }
+  // art-hook:vehicles end
 
   /** The instanced pedestrians' counts for the QA bridge (`__dvBridge.world.peds()`); null before `attach`. */
   pedsReport(): PedInfo | null {

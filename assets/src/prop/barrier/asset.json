@@ -1,0 +1,39 @@
+{
+  "kind": "prop",
+  "id": "barrier",
+  "variants": {
+    "desktop": "assets/src/prop/barrier/desktop.glb",
+    "mobile": "assets/src/prop/barrier/mobile.glb",
+    "mobile-low": "assets/src/prop/barrier/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 208,
+      "verts": 258,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile": {
+      "tris": 112,
+      "verts": 138,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile-low": {
+      "tris": 112,
+      "verts": 138,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "prop:street",
+    "art:m10d1"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

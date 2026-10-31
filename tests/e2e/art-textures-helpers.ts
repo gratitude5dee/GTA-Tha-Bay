@@ -4,7 +4,7 @@ import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
 
 /**
- * Shared helpers of the M10d0 texture specs (`art-textures.spec.ts`, `art-textures-golden.spec.ts`). The goldens live in their own spec
+ * Shared helpers of the M10d0 texture specs (`art-textures.spec.ts`, `pavement-textures-golden.spec.ts`). The goldens live in their own spec
  * file so CI's file-level sharding can place them apart from the other texture cases (BD-FIX-CI-TEXGOLD-01).
  */
 export type W = { __dvBridge: { world: WorldBridge; platform: { perf: { live(): { renderObjects: number } } } } };
