@@ -5,6 +5,7 @@
 import type { PostNode, QualityTierId, ShadowMode, WeatherPreset } from '@dv/shared';
 import lookJson from '../../../../../config/world/look.json';
 import flagsJson from '../../../../../config/platform-flags.json';
+import type { LayoutConfig } from './road-layout.ts';
 
 /** `legacy` is the M02b1/M02b2 material set, unchanged. */
 export type LookProfile = 'full' | 'lite' | 'min' | 'legacy';
@@ -59,8 +60,36 @@ export interface HazePreset {
   ext: number;
 }
 
-/** The layers of the M02g1 look-tune; each is gated per look profile by `LookFile.layers`. */
-export const LOOK_LAYERS = ['grade', 'haze', 'blob', 'casters', 'skyReflect', 'windows'] as const;
+/** The street markings (M02h1): which road class paints what, and the design values of the paint. See `look/road-layout.ts`. */
+export interface MarkingsFile extends LayoutConfig {
+  /** sRGB hex. */
+  paint: { white: string; yellow: string; bus: string };
+  /** How much of the outer lane the bus tint covers, 0..1. */
+  busTint: number;
+  /** The `worn` mode (`full`, `lite`): the share of the paint the wear noise takes away, and the roughness of the paint. */
+  worn: { wear: number; roughness: number };
+  /** Crosswalk and stop-bar quads lie this far (metres) over the highest ribbon under them, and fade to the road beyond `decalFarM`. */
+  decalLiftM: number;
+  decalFarM: number;
+  /**
+   * A crosswalk or stop-bar quad has a hard geometry edge, and a quad a fraction of a pixel wide that moves by a pixel between frames is
+   * sparkle: its paint fades out as the ground footprint of a pixel (metres) goes from `fromM` to `toM` (a stop bar is 0.4 m deep).
+   */
+  decalFootprintM: { fromM: number; toM: number };
+  /**
+   * The distance fade of the paint (QA: `markings.aa` turns it off). Every line is filtered over the pixel footprint of its own coordinate;
+   * once the footprint passes `fromM` (metres) the window grows, to `1 + widen` times the footprint at `toM`, so a line that is a fraction of a
+   * pixel wide spreads its paint over more pixels and moves less between two frames. The mean coverage stays: far paint is a soft tint, never gone.
+   */
+  fade: { fromM: number; toM: number; widen: number };
+  /** Ribbons end at the largest incident half-width plus this at a junction of three or more roads. */
+  junctionExtraM: number;
+  stopBar: { depthM: number; behindCrosswalkM: number };
+  crosswalk: { barM: number; rungM: number; rungPeriodM: number };
+}
+
+/** The layers of the M02g1 look-tune (and `markings`, M02h1); each is gated per look profile by `LookFile.layers`. */
+export const LOOK_LAYERS = ['grade', 'haze', 'blob', 'casters', 'skyReflect', 'windows', 'markings'] as const;
 export type LookLayer = (typeof LOOK_LAYERS)[number];
 
 export interface LookFile {
@@ -88,8 +117,10 @@ export interface LookFile {
   haze: Record<WeatherPreset, HazePreset>;
   /** `litFrac`: rows of `[hour, min, max]`, the share of a lit building's windows that are lit, cyclic over 24 h (M02g1). */
   windows: { litFrac: readonly (readonly [hour: number, min: number, max: number])[] };
-  /** The layer ids each look profile enables; `legacy` none, so the XR tiers add nothing (M02g1). */
+  /** The layer ids each look profile enables; `legacy` only `markings` (the XR tiers draw the flat paint, M02h1) and nothing else (M02g1). */
   layers: Record<LookProfile, readonly LookLayer[]>;
+  /** The street markings (M02h1). */
+  markings: MarkingsFile;
   /** Trees and traffic within this many metres of the focus cast shadows on the `casters` layer (M02g1). */
   dynamicCasterRadiusM: number;
   /** `gtao-half`, `bloom` or `fsr1` when they fail on the WebGL2 backend (each with a spec/03 section 7 row). Never `tonemap` or an AA node. */
@@ -133,6 +164,22 @@ export function srgbHexToLinear(hex: string): [number, number, number] {
 
 const POST_NODES: readonly PostNode[] = ['gtao-half', 'bloom', 'smaa', 'traa', 'fxaa', 'fsr1', 'tonemap'];
 
+/** The structural rules of `markings` the schema cannot say: every class maps to a rule, class 0 paints nothing, the paint is not wider than the lane. */
+export function markingsErrors(m: MarkingsFile): string[] {
+  const errors: string[] = [];
+  if (m.classes[0] !== 'none') errors.push('markings.classes[0] must be "none": class 0 paints nothing');
+  for (const [cls, rule] of Object.entries(m.byClass)) {
+    if (!m.classes.includes(rule)) errors.push(`markings.byClass.${cls} names ${rule}, which is not in markings.classes`);
+  }
+  for (const name of m.classes) if (m.rules[name] === undefined) errors.push(`markings.rules has no entry for the class ${name}`);
+  for (const name of Object.keys(m.rules)) if (!m.classes.includes(name)) errors.push(`markings.rules.${name} is not in markings.classes`);
+  const none = m.rules['none'];
+  if (none && (none.edges || none.dashes || none.ts || none.centre !== 'never')) errors.push('markings.rules.none must paint nothing');
+  if (m.doubleGapM + 2 * m.lineM > 0.5) errors.push('markings: the double yellow line is wider than 0.5 m');
+  if (m.tStemM >= m.parkingM) errors.push(`markings.tStemM ${m.tStemM} must stay under parkingM ${m.parkingM}`);
+  return errors;
+}
+
 /**
  * The structural rules the schema cannot say: every `casterRadiusM` within the tier's shadow distance, the XR tiers `legacy`,
  * `webgl2Unsupported` never holds `tonemap` or an AA node, and the AA substitutions only go to a node that exists.
@@ -150,7 +197,8 @@ export function lookErrors(look: LookFile, shadowDistanceM: Partial<Record<Quali
     if (!POST_NODES.includes(n)) errors.push(`webgl2Unsupported names unknown node ${String(n)}`);
   }
   if (look.webgl2AaFallback.smaa !== undefined && look.webgl2AaFallback.smaa !== 'fxaa') errors.push('webgl2AaFallback.smaa can only be fxaa');
-  if (look.layers.legacy.length > 0) errors.push('layers.legacy must be empty: the legacy look adds nothing');
+  if (look.layers.legacy.some((id) => id !== 'markings')) errors.push('layers.legacy may hold only markings: the legacy look adds nothing else');
+  errors.push(...markingsErrors(look.markings));
   for (const [profile, ids] of Object.entries(look.layers) as [LookProfile, readonly string[]][]) {
     for (const id of ids) if (!(LOOK_LAYERS as readonly string[]).includes(id)) errors.push(`layers.${profile} names unknown layer ${id}`);
   }

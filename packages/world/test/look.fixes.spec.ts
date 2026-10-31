@@ -13,6 +13,7 @@ import {
   MESHER, MeshBuilder, addBuilding, aoRing, meshChunk, meshSurfaceAt, profileOf, roadRank, terrainAo, treeHeightCap, wantNearStride, type MesherProfile,
 } from '../src/client/chunks/mesher.ts';
 import type { MeshBuffers } from '../src/client/chunks/mesh-types.ts';
+import { Surf } from '../src/client/look/surfaces.ts';
 import { requireBake } from '../../../tests/support/require-bake.ts';
 
 const TIERS: QualityTierId[] = ['desktop', 'mobile', 'mobile-low'];
@@ -454,8 +455,10 @@ describe('road ribbons (M02g2)', () => {
       const roads = m.objects.find((o) => o.kind === 'roads');
       if (!roads) continue;
       // the surface id of the first vertex of each ribbon (4 vertices a quad): the rank never falls along the buffer
+      // (M02h1: the junction patches, crosswalks and stop bars come after the ribbons, on surfaces 35 and up)
       let last = -1;
       for (let v = 0; v < roads.positions.length / 3; v++) {
+        if ((roads.surf[v * 4] as number) >= Surf.Sidewalk) continue;
         const rank = roadRank((roads.surf[v * 4] as number) - 12);
         expect(rank).toBeGreaterThanOrEqual(last);
         last = rank;

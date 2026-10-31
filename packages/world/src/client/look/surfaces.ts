@@ -33,10 +33,16 @@ export const enum Surf {
   MassingL1 = 32,
   MassingL2 = 33,
   Sea = 34,
+  /** M02h1: the plain patch where the ribbons of a junction of three or more roads end. */
+  Junction = 35,
+  /** M02h1: a crosswalk quad (ladder or two transverse lines, painted in the shader). */
+  Crosswalk = 36,
+  /** M02h1: a stop bar quad. M02h2 takes 38 and 39. */
+  StopBar = 37,
 }
 
 /** One past the largest id. */
-export const SURFACE_COUNT = 35;
+export const SURFACE_COUNT = 38;
 
 export const SURFACE_NAMES: readonly string[] = [
   ...GROUND_NAMES.map((n) => `ground.${n}`),
@@ -44,6 +50,7 @@ export const SURFACE_NAMES: readonly string[] = [
   'sidewalk',
   ...KIND_NAMES.map((n) => `wall.${n}`),
   'roof.flat', 'roof.gable', 'roof.hip', 'parapet', 'equipment', 'trunk', 'leaves', 'massing.l1', 'massing.l2', 'sea',
+  'junction', 'crosswalk', 'stopbar',
 ];
 
 export const isSurfaceId = (id: number): boolean => Number.isInteger(id) && id >= 0 && id < SURFACE_COUNT;

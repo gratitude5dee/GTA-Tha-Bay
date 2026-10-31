@@ -22,6 +22,12 @@
     "mobile-low.noon-street.png",
     "mobile-low.golden-water.png",
     "mobile-low.night-street.png",
-    "desktop.fog-west.png"
+    "desktop.fog-west.png",
+    "desktop.markings-near.png",
+    "desktop.markings-graze.png",
+    "mobile-low.markings-near.png",
+    "mobile-low.markings-graze.png",
+    "xr-quest.markings-near.png",
+    "xr-quest.markings-graze.png"
   ]
 }

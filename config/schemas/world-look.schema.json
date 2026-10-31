@@ -4,7 +4,7 @@
   "title": "config/world/look.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "tierProfile", "postLevelCap", "exposureBias", "casterRadiusM", "shadowsOff", "facade", "roof", "ground", "water", "sky", "bloom", "grade", "haze", "windows", "layers", "dynamicCasterRadiusM", "webgl2Unsupported", "webgl2AaFallback"],
+  "required": ["schema", "tierProfile", "postLevelCap", "exposureBias", "casterRadiusM", "shadowsOff", "facade", "roof", "ground", "water", "sky", "bloom", "grade", "haze", "windows", "layers", "markings", "dynamicCasterRadiusM", "webgl2Unsupported", "webgl2AaFallback"],
   "$defs": {
     "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
     "tier": { "enum": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"] },
@@ -45,7 +45,7 @@
         "ext": { "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
-    "layerList": { "type": "array", "uniqueItems": true, "items": { "enum": ["grade", "haze", "blob", "casters", "skyReflect", "windows"] } },
+    "layerList": { "type": "array", "uniqueItems": true, "items": { "enum": ["grade", "haze", "blob", "casters", "skyReflect", "windows", "markings"] } },
     "facadeClass": {
       "type": "object",
       "additionalProperties": false,
@@ -241,7 +241,100 @@
         "full": { "$ref": "#/$defs/layerList" },
         "lite": { "$ref": "#/$defs/layerList" },
         "min": { "$ref": "#/$defs/layerList" },
-        "legacy": { "$ref": "#/$defs/layerList", "maxItems": 0 }
+        "legacy": { "$ref": "#/$defs/layerList", "maxItems": 1, "items": { "const": "markings" } }
+      }
+    },
+    "markings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["classes", "byClass", "rules", "paint", "parkingM", "centreWideMinM", "lineM", "dashOnM", "dashOffM", "doubleGapM", "edgeInsetM", "tEveryM", "tStemM", "tBarM", "busTint", "worn", "decalLiftM", "decalFarM", "decalFootprintM", "fade", "junctionExtraM", "stopBar", "crosswalk"],
+      "properties": {
+        "classes": { "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z]+$" } },
+        "byClass": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["freeway", "ramp", "arterial", "collector", "local", "service"],
+          "properties": {
+            "freeway": { "type": "string" },
+            "ramp": { "type": "string" },
+            "arterial": { "type": "string" },
+            "collector": { "type": "string" },
+            "local": { "type": "string" },
+            "service": { "type": "string" }
+          }
+        },
+        "rules": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["edges", "dashes", "centre", "ts"],
+            "properties": {
+              "edges": { "type": "boolean" },
+              "dashes": { "type": "boolean" },
+              "centre": { "enum": ["never", "twoWay", "twoWayWide"] },
+              "ts": { "type": "boolean" }
+            }
+          }
+        },
+        "paint": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["white", "yellow", "bus"],
+          "properties": { "white": { "$ref": "#/$defs/hex" }, "yellow": { "$ref": "#/$defs/hex" }, "bus": { "$ref": "#/$defs/hex" } }
+        },
+        "parkingM": { "type": "number", "minimum": 1.5, "maximum": 3.5 },
+        "centreWideMinM": { "type": "number", "minimum": 4, "maximum": 20 },
+        "lineM": { "type": "number", "minimum": 0.05, "maximum": 0.3 },
+        "dashOnM": { "type": "number", "minimum": 0.5, "maximum": 10 },
+        "dashOffM": { "type": "number", "minimum": 0.5, "maximum": 20 },
+        "doubleGapM": { "type": "number", "minimum": 0.05, "maximum": 0.3 },
+        "edgeInsetM": { "type": "number", "minimum": 0, "maximum": 1 },
+        "tEveryM": { "type": "number", "minimum": 2, "maximum": 12 },
+        "tStemM": { "type": "number", "minimum": 0.4, "maximum": 2.4 },
+        "tBarM": { "type": "number", "minimum": 0.2, "maximum": 1.5 },
+        "busTint": { "type": "number", "minimum": 0, "maximum": 1 },
+        "worn": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["wear", "roughness"],
+          "properties": { "wear": { "type": "number", "minimum": 0, "maximum": 1 }, "roughness": { "type": "number", "minimum": 0, "maximum": 1 } }
+        },
+        "decalLiftM": { "type": "number", "minimum": 0.005, "maximum": 0.1 },
+        "decalFarM": { "type": "number", "minimum": 50, "maximum": 1000 },
+        "decalFootprintM": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fromM", "toM"],
+          "properties": { "fromM": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 }, "toM": { "type": "number", "exclusiveMinimum": 0, "maximum": 10 } }
+        },
+        "fade": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fromM", "toM", "widen"],
+          "properties": {
+            "fromM": { "type": "number", "exclusiveMinimum": 0, "maximum": 2 },
+            "toM": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 },
+            "widen": { "type": "number", "minimum": 0, "maximum": 4 }
+          }
+        },
+        "junctionExtraM": { "type": "number", "minimum": 0, "maximum": 4 },
+        "stopBar": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["depthM", "behindCrosswalkM"],
+          "properties": { "depthM": { "type": "number", "minimum": 0.1, "maximum": 1 }, "behindCrosswalkM": { "type": "number", "minimum": 0, "maximum": 4 } }
+        },
+        "crosswalk": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["barM", "rungM", "rungPeriodM"],
+          "properties": {
+            "barM": { "type": "number", "minimum": 0.1, "maximum": 1 },
+            "rungM": { "type": "number", "minimum": 0.1, "maximum": 1 },
+            "rungPeriodM": { "type": "number", "minimum": 0.4, "maximum": 3 }
+          }
+        }
       }
     },
     "dynamicCasterRadiusM": { "type": "number", "minimum": 0, "maximum": 400 },

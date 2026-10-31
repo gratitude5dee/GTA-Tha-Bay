@@ -5,7 +5,7 @@
  * between two classes stays soft, with the class's pattern on top. Wetness and its per-tier form (albedo, or albedo and roughness)
  * come from M02b2's nodes (`uWet`, `uWetRough`), never redefined here.
  */
-import { clamp, float, mix, positionWorld, smoothstep, step, vec2, vec3, type L } from '../sky/tsl.ts';
+import { clamp, float, mix, positionWorld, select, smoothstep, step, vec2, vec3, type L } from '../sky/tsl.ts';
 import type { LookNodes } from './common.ts';
 import { srgbHexToLinear, type LookFile } from './config.ts';
 import { around1, bandFade, edgeLineAA, fbm2AA, fbm3AA, hash21, pickColor, pickFloat, pixelFootprint, vnoise, vnoiseAA } from './noise.ts';
@@ -32,11 +32,13 @@ const inRange = (id: L, lo: number, hi: number): L => step(lo - 0.5, id).mul(ste
  */
 export function groundNodes(look: LookFile, n: LookNodes, id: L, vertexColor: L, up: L, detail: 'full' | 'lite'): GroundOut {
   const table = NAMES.map((name) => look.ground[name] ?? look.ground['Paved'] ?? { albedo: '#808080', roughness: 0.9, noise: 0.1 });
-  const albedo = pickColor(id, table.map((g) => srgbHexToLinear(g.albedo)));
-  const rough = pickFloat(id, table.map((g) => g.roughness));
-  const noiseAmt = pickFloat(id, table.map((g) => g.noise));
+  // M02h1: the junction patch, the crosswalk and the stop bar (ids past the sea) are local-street asphalt; the paint goes on in markings.ts
+  const key = select(id.greaterThan(Surf.Sea + 0.5), float(Surf.RoadBase + 4), id);
+  const albedo = pickColor(key, table.map((g) => srgbHexToLinear(g.albedo)));
+  const rough = pickFloat(key, table.map((g) => g.roughness));
+  const noiseAmt = pickFloat(key, table.map((g) => g.noise));
 
-  const asphalt = inRange(id, 12, 17).max(inRange(id, Surf.GroundBase + 6, Surf.GroundBase + 6));
+  const asphalt = inRange(key, 12, 17).max(inRange(id, Surf.GroundBase + 6, Surf.GroundBase + 6));
   const walk = inRange(id, 3, 3).max(inRange(id, 7, 7)).max(inRange(id, Surf.Sidewalk, Surf.Sidewalk));
   const grass = inRange(id, 0, 1);
   const sand = inRange(id, 2, 2);

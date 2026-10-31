@@ -23,11 +23,16 @@
  */
 import earcut from 'earcut';
 import {
-  TERRAIN_POSTS, chunkBounds, sampleHeight, type BuildingRecord, type ChunkKey, type QualityTierId, type RenderChunk, type SimChunk,
+  NodeControl, TERRAIN_POSTS, chunkBounds, sampleHeight, type BuildingRecord, type ChunkKey, type QualityTierId, type RenderChunk, type SimChunk,
 } from '@dv/shared';
 import mesherJson from '../../../../../config/world/mesher.json';
-import { facadeClassOf, lookProfileFor } from '../look/config.ts';
+import { LOOK, LOOK_FLAG, facadeClassOf, lookProfileFor } from '../look/config.ts';
+import { packRoad, roadFields, roadVertex, wrapAlong, type RoadFields } from '../look/road-layout.ts';
 import { FLAG_PARAPET, Surf, facadeDm, facadeSignedDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
+import {
+  approachesOf, clipKey, clippedPolyline, armsOf, crosswalkQuad, planRoads, ribbonSides, roadsContext, simplifyPoints, stopBarQuad, tileOf, type DecalQuad, type PlannedJunction,
+  type RibbonPoint, type RoadsContext, type RoadsPlan,
+} from './junction-patch.ts';
 import { meshBytes, type MeshBuffers, type MeshStats, type UnitMesh } from './mesh-types.ts';
 
 // ---- configuration -------------------------------------------------------------------------------------------------------
@@ -132,10 +137,13 @@ export class MeshBuilder {
   readonly surf: number[] = [];
   /** M02e: `Int16x4` per vertex (decimetres); only when the builder was made with `facade`. */
   readonly fac: number[] | null;
+  /** M02h1: `Int16x4` per vertex, the lane coordinates of the street markings (`look/road-layout.ts`); only when the builder was made with `road`. */
+  readonly roadAttr: number[] | null;
   private cur: [number, number, number, number] = [Surf.GroundBase + 3, 0, 0, 0];
 
-  constructor(o: { facade?: boolean } = {}) {
+  constructor(o: { facade?: boolean; road?: boolean } = {}) {
     this.fac = o.facade ? [] : null;
+    this.roadAttr = o.road ? [] : null;
   }
 
   /** The surface the next vertices belong to: id (look/surfaces.ts), palette index, kind/roof code, flags. */
@@ -151,7 +159,7 @@ export class MeshBuilder {
   }
 
   /** `fac` is the building vertex's `facade` record in decimetres (u, v, wall height, seed); zeros when absent. */
-  vertex(x: number, y: number, z: number, n: Rgb, c: Rgb, ao = 1, fac?: readonly [number, number, number, number]): number {
+  vertex(x: number, y: number, z: number, n: Rgb, c: Rgb, ao = 1, fac?: readonly [number, number, number, number], road?: readonly [number, number, number, number]): number {
     this.pos.push(x, y, z);
     this.nor.push(n[0], n[1], n[2]);
     this.col.push(c[0], c[1], c[2]);
@@ -160,6 +168,10 @@ export class MeshBuilder {
     if (this.fac) {
       if (fac) this.fac.push(fac[0], fac[1], fac[2], fac[3]);
       else this.fac.push(0, 0, 0, 0);
+    }
+    if (this.roadAttr) {
+      if (road) this.roadAttr.push(road[0], road[1], road[2], road[3]);
+      else this.roadAttr.push(0, 0, 0, 0);
     }
     return this.pos.length / 3 - 1;
   }
@@ -214,6 +226,7 @@ export class MeshBuilder {
       indices: big ? new Uint32Array(this.idx) : new Uint16Array(this.idx),
       surf: new Uint8Array(this.surf),
       ...(this.fac ? { facade: new Int16Array(this.fac) } : {}),
+      ...(this.roadAttr ? { road: new Int16Array(this.roadAttr) } : {}),
       bounds: [minX, minY, minZ, maxX, maxY, maxZ],
     };
   }
@@ -654,30 +667,157 @@ const ROAD_LIFT_M = 0.12;
 /** The importance of a road class (`RoadClass` 0 freeway .. 5 service): the busier road is lifted more and drawn after the lesser. */
 export const roadRank = (cls: number): number => 5 - Math.max(0, Math.min(5, cls));
 
-/** A ribbon of constant width along a polyline of (x, y, z) triples, local to (ox, oz). */
-export function addRibbon(b: MeshBuilder, pts: Float32Array, ox: number, oz: number, width: number, lift: number, color: Rgb): void {
-  const n = pts.length / 3;
-  if (n < 2) return;
-  const left: [number, number, number][] = [];
-  const right: [number, number, number][] = [];
-  for (let i = 0; i < n; i++) {
-    const i0 = Math.max(0, i - 1), i1 = Math.min(n - 1, i + 1);
-    let tx = (pts[i1 * 3] as number) - (pts[i0 * 3] as number);
-    let tz = (pts[i1 * 3 + 2] as number) - (pts[i0 * 3 + 2] as number);
-    const len = Math.sqrt(tx * tx + tz * tz) || 1;
-    tx /= len;
-    tz /= len;
-    const x = (pts[i * 3] as number) - ox, z = (pts[i * 3 + 2] as number) - oz, y = (pts[i * 3 + 1] as number) + lift;
-    left.push([x - tz * (width / 2), y, z + tx * (width / 2)]);
-    right.push([x + tz * (width / 2), y, z - tx * (width / 2)]);
-  }
-  for (let i = 0; i < n - 1; i++) {
-    const a = b.vertex(...(left[i] as [number, number, number]), UP, color);
-    const bb = b.vertex(...(right[i] as [number, number, number]), UP, color);
-    const c = b.vertex(...(right[i + 1] as [number, number, number]), UP, color);
-    const d = b.vertex(...(left[i + 1] as [number, number, number]), UP, color);
+/** What `addRibbon` takes beyond the plain ribbon (M02h1). */
+export interface RibbonOptions {
+  /** Metres cut off the start and the end of the polyline: the ribbons end short of a junction patch. */
+  clipStart?: number;
+  clipEnd?: number;
+  /** The lane fields of the segment: every vertex then carries its `road` coordinates, and collinear vertices are dropped. */
+  road?: RoadFields;
+}
+
+/**
+ * A ribbon of constant width along a polyline of (x, y, z) triples, local to (ox, oz). With `road`, each vertex also gets its position
+ * along the segment (`x`, wrapped; the far row of a quad adds the quad's length to its near row's, so the wrap never falls inside a quad)
+ * and across it (`y`: + on the left of the point order, which is the `right` side of `ribbonSides`).
+ */
+export function addRibbon(b: MeshBuilder, pts: Float32Array, ox: number, oz: number, width: number, lift: number, color: Rgb, o: RibbonOptions = {}): void {
+  const cut = clippedPolyline(pts, o.clipStart ?? 0, o.clipEnd ?? 0);
+  if (!cut) return;
+  const points: RibbonPoint[] = o.road ? simplifyPoints(cut) : cut;
+  const half = width / 2;
+  const sides = ribbonSides(points, half);
+  const at = (p: { x: number; y: number; z: number }): [number, number, number] => [p.x - ox, p.y + lift, p.z - oz];
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i] as RibbonPoint, p1 = points[i + 1] as RibbonPoint;
+    let r0: [number, number, number, number] | undefined, r1: [number, number, number, number] | undefined, l0: [number, number, number, number] | undefined, l1: [number, number, number, number] | undefined;
+    if (o.road) {
+      const near = wrapAlong(p0.s), far = near + (p1.s - p0.s);
+      l0 = roadVertex(near, -half, o.road);
+      r0 = roadVertex(near, half, o.road);
+      l1 = roadVertex(far, -half, o.road);
+      r1 = roadVertex(far, half, o.road);
+    }
+    const a = b.vertex(...at(sides.left[i] as RibbonPoint), UP, color, 1, undefined, l0);
+    const bb = b.vertex(...at(sides.right[i] as RibbonPoint), UP, color, 1, undefined, r0);
+    const c = b.vertex(...at(sides.right[i + 1] as RibbonPoint), UP, color, 1, undefined, r1);
+    const d = b.vertex(...at(sides.left[i + 1] as RibbonPoint), UP, color, 1, undefined, l1);
     b.quadUp(a, bb, c, d);
   }
+}
+
+// ---- the roads object: ribbons, junction patches, crosswalks and stop bars (M02h1) ------------------------------------------------
+
+/** The height of a ribbon of road class `cls` over the road's own points: lifts by rank, the busier road higher (M02g2). */
+export const ribbonLift = (cls: number): number => ROAD_LIFT_M + MESHER.depth.ribbonStepM * roadRank(cls);
+
+/** What the roads object of a chunk holds, for the QA bridge and the ledger. */
+export interface RoadMarkStats {
+  /** Vertices of the `roads` object (each carries a `road` record). */
+  roadVerts: number;
+  /** Junction patches (junctions of three or more roads that lie in this chunk and got a convex patch). */
+  patches: number;
+  crosswalks: number;
+  stopBars: number;
+  /** Stop-bar approaches the junctions of this chunk name (`stopBars` plus those whose edge is not in the tile). */
+  approaches: number;
+  /** Junctions of this chunk with three or more roads that kept the overlapping ribbons of M02g2 (no patch). */
+  skipped: number;
+  /** Ribbon ends clipped short of a patch (counted for the segments of this chunk). */
+  clipped: number;
+}
+
+/**
+ * A junction patch: the convex outline of the clipped ribbon corners as a fan from its first corner (n - 2 triangles), each corner at the
+ * lift of its own road, so the patch meets every ribbon end at the ribbon's height.
+ */
+function addPatch(b: MeshBuilder, pj: PlannedJunction, ox: number, oz: number): void {
+  b.setSurf(Surf.Junction);
+  const ring = pj.hull.map((i) => {
+    const c = pj.corners[i] as PlannedJunction['corners'][number];
+    return b.vertex(c.x - ox, c.y + ribbonLift(c.cls), c.z - oz, UP, roadColor(c.cls));
+  });
+  for (let k = 1; k + 1 < ring.length; k++) b.triUp(ring[0] as number, ring[k] as number, ring[k + 1] as number, true);
+}
+
+const clampI = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, Math.round(v)));
+
+/** A crosswalk or stop-bar quad. A crosswalk's vertices carry the crossing coordinates in `road` (`look/road-layout.ts`); a stop bar's carry zeros. */
+function addDecal(b: MeshBuilder, q: DecalQuad, surf: number, ox: number, oz: number, crosswalk: boolean): void {
+  b.setSurf(surf);
+  const ids = q.corners.map((c) =>
+    b.vertex(
+      c.x - ox, c.y, c.z - oz, UP, roadColor(q.cls), 1, undefined,
+      crosswalk ? [clampI(c.u * 10, 0, 32767), clampI(c.v * 100, -32767, 32767), clampI(q.lengthM * 10, 0, 16000) * 2 + (q.ladder ? 1 : 0), 0] : undefined,
+    ),
+  );
+  b.quadUp(ids[0] as number, ids[1] as number, ids[2] as number, ids[3] as number);
+}
+
+/**
+ * The `roads` object of an L0 chunk. Ribbons lowest rank first, each rank a little higher (M02g2): where two ribbons cross, the busier road
+ * is the later and the higher. With `markings`, each vertex carries its lane coordinates, the ribbons of a junction of three or more roads
+ * end short of a convex patch (`junction-patch.ts`), and the crosswalk and stop-bar quads follow. `tile` is the chunks of the z7 tile the
+ * job decoded (the roads of a junction are often in the next chunk); without it only this chunk's roads are known.
+ */
+export function buildRoads(sim: SimChunk, ox: number, oz: number, markings: boolean, tile?: readonly SimChunk[]): { mesh: MeshBuffers | null; stats: RoadMarkStats } {
+  const stats: RoadMarkStats = { roadVerts: 0, patches: 0, crosswalks: 0, stopBars: 0, approaches: 0, skipped: 0, clipped: 0 };
+  if (sim.segments.length === 0) return { mesh: null, stats };
+  const cfg = LOOK.markings;
+  const rctx: RoadsContext | null = markings ? roadsContext(tileOf(sim, tile)) : null;
+  const plan: RoadsPlan | null = rctx ? planRoads(rctx, cfg.junctionExtraM) : null;
+  const clsOf = new Map<number, number>();
+  for (const e of sim.edges) if (!clsOf.has(e.seg)) clsOf.set(e.seg, e.cls);
+  const rb = new MeshBuilder({ road: markings });
+  const ranked = sim.segments
+    .map((seg, i) => ({ seg, i, cls: clsOf.get(seg.id) ?? 4 }))
+    .sort((a, b) => roadRank(a.cls) - roadRank(b.cls) || a.i - b.i);
+  for (const { seg, cls } of ranked) {
+    rb.setSurf(roadSurf(cls));
+    const opts: RibbonOptions = {};
+    if (rctx && plan) {
+      const edges = rctx.edgesBySeg.get(seg.id) ?? sim.edges.filter((e) => e.seg === seg.id);
+      opts.road = roadFields(packRoad(seg, edges, cfg));
+      const c0 = plan.clip.get(clipKey(seg.id, 0)) ?? 0, c1 = plan.clip.get(clipKey(seg.id, 1)) ?? 0;
+      if (c0 > 0) opts.clipStart = c0;
+      if (c1 > 0) opts.clipEnd = c1;
+      stats.clipped += (c0 > 0 ? 1 : 0) + (c1 > 0 ? 1 : 0);
+    }
+    addRibbon(rb, seg.pts, ox, oz, seg.widthM, ribbonLift(cls), roadColor(cls), opts);
+  }
+  if (rctx && plan) {
+    for (const pj of plan.junctions.values()) {
+      if (pj.chunk !== sim.key) continue;
+      addPatch(rb, pj, ox, oz);
+      stats.patches++;
+    }
+    for (const j of sim.junctions) {
+      if (!plan.junctions.has(j.id)) {
+        const arms = armsOf(rctx, j);
+        if (arms === null || arms.length >= 3) stats.skipped++;
+      }
+    }
+    const raise = ribbonLift(0) + cfg.decalLiftM;
+    for (const rec of rctx.crosswalks.get(sim.key) ?? []) {
+      const j = rec.junction >= 0 ? rctx.junctionById.get(rec.junction) : undefined;
+      const q = crosswalkQuad(rctx, rec, j?.control === NodeControl.Signal, raise);
+      if (!q) continue;
+      addDecal(rb, q, Surf.Crosswalk, ox, oz, true);
+      stats.crosswalks++;
+    }
+    for (const j of sim.junctions) {
+      const planned = plan.junctions.get(j.id);
+      for (const edge of approachesOf(j)) {
+        stats.approaches++;
+        const q = stopBarQuad(rctx, j, planned, edge, { depthM: cfg.stopBar.depthM, behindCrosswalkM: cfg.stopBar.behindCrosswalkM, raiseM: raise, layout: cfg });
+        if (!q) continue;
+        addDecal(rb, q, Surf.StopBar, ox, oz, false);
+        stats.stopBars++;
+      }
+    }
+  }
+  stats.roadVerts = rb.vertexCount;
+  return { mesh: rb.build('roads'), stats };
 }
 
 // ---- the chunk -----------------------------------------------------------------------------------------------------------
@@ -696,6 +836,13 @@ export interface MeshChunkOptions {
    * place (`proxy-mask.ts`). Empty or absent: every proxy footprint is meshed as an ordinary building.
    */
   maskProxies?: readonly number[] | undefined;
+  /**
+   * M02h1: the sim chunks of the z7 tile the job decoded, `sim` among them. The roads of a junction are often in the next chunk of the
+   * tile; the street markings plan their junction patches over all of them. Absent (or without `sim`): this chunk's roads only.
+   */
+  tile?: readonly SimChunk[] | undefined;
+  /** M02h1: the street markings (the `road` attribute, junction patches, crosswalks, stop bars); defaults to the `world.look` flag. */
+  markings?: boolean | undefined;
 }
 
 /**
@@ -778,20 +925,10 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
   stats.maxBuildingTris = b0.maxTris;
   if (b0.built) objects.push(b0.built);
 
-  if (sim.segments.length > 0) {
-    const clsOf = new Map<number, number>();
-    for (const e of sim.edges) if (!clsOf.has(e.seg)) clsOf.set(e.seg, e.cls);
-    const rb = new MeshBuilder();
-    // Lowest rank first, each rank a little higher (M02g2): where two ribbons cross, the busier road is the later and the higher.
-    const ranked = sim.segments
-      .map((seg, i) => ({ seg, i, cls: clsOf.get(seg.id) ?? 4 }))
-      .sort((a, b) => roadRank(a.cls) - roadRank(b.cls) || a.i - b.i);
-    for (const { seg, cls } of ranked) {
-      rb.setSurf(roadSurf(cls));
-      addRibbon(rb, seg.pts, ox, oz, seg.widthM, ROAD_LIFT_M + MESHER.depth.ribbonStepM * roadRank(cls), roadColor(cls));
-    }
-    const built = rb.build('roads');
-    if (built) objects.push(built);
+  const roads = buildRoads(sim, ox, oz, o.markings ?? LOOK_FLAG, o.tile);
+  if (roads.mesh) {
+    objects.push(roads.mesh);
+    stats.markings = roads.stats;
   }
 
   for (const obj of objects) {

@@ -148,7 +148,8 @@ const live = (page: Page): Promise<number> => page.evaluate(() => (window as unk
 
 /** The `after` of the newest ledger of `docs/look` that is not this milestone's: the baseline this row measures from. */
 function previousLedger(): { file: string; after: Record<string, number> } | null {
-  const candidates = ['docs/look/M02h8-render-ledger.json', 'docs/look/M02h7-render-ledger.json', 'docs/look/M02h6-render-ledger.json', 'docs/look/M02h5-render-ledger.json', 'docs/look/M02h4-render-ledger.json', 'docs/look/M02h3-render-ledger.json', 'docs/look/M02h2-render-ledger.json', 'docs/look/M02h1-render-ledger.json', 'docs/look/M02g2-render-ledger.json', 'docs/look/M02g1-render-ledger.json'];
+  // M02h1 merged after this row: the ledgers of the street rows (M02h1 and on) measure from this one, so this one never reads them (their baseline is this ledger's after)
+  const candidates = ['docs/look/M02g2-render-ledger.json', 'docs/look/M02g1-render-ledger.json'];
   for (const file of candidates) {
     if (!existsSync(file)) continue;
     const l = read<{ tiers: Record<string, { after: number }> }>(file);

@@ -219,7 +219,7 @@ const mesh: AssetJob = async (svc, raw, signal) => {
     const tile = await l0Tile(svc, host.x, host.y, a.tier, priority, signal);
     const sim = tile.sim.find((c) => c.key === a.key);
     if (!sim) return { result: { empty: true } satisfies MeshJobResult };
-    m = meshChunk(sim, tile.render.find((c) => c.key === a.key) ?? null, { tier: a.tier, distM: a.distM, maxBytes: basePlan(a.tier).uploadBytes, maskProxies: a.maskProxies });
+    m = meshChunk(sim, tile.render.find((c) => c.key === a.key) ?? null, { tier: a.tier, distM: a.distM, maxBytes: basePlan(a.tier).uploadBytes, maskProxies: a.maskProxies, tile: tile.sim });
   } else {
     const packRef = packRefOf(a.key, a.level);
     const cache = cacheOf(svc);

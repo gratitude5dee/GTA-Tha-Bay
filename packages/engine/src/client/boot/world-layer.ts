@@ -61,6 +61,8 @@ export interface WorldLayerDebug {
     setOn(on: boolean): boolean;
     /** The post nodes running now, in order (empty when the look is off). */
     nodes(): readonly string[];
+    /** M02h1: the antialiasing of the street paint (`markings.aa`); absent where the tier draws no paint. Off shows the sparkle the fade removes. */
+    markings?: { available(): boolean; aaOn(): boolean; setAA(on: boolean): void };
   };
 }
 
