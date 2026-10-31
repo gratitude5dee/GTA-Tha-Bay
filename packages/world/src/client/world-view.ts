@@ -1114,6 +1114,12 @@ export class WorldView implements WorldLayer {
     return this.renderer.walkLiftAt(x, z);
   }
 
+  /** M02h2 QA (`__dvBridge.world.pedFeet()`): the drawn feet of the pedestrians, the lift and the sidewalk top under each. */
+  pedFeet(max = 64): { x: number; y: number; z: number; lift: number; top: number | null }[] {
+    const feet = this.peds?.drawnFeet(max) ?? [];
+    return feet.map((f) => ({ ...f, lift: this.renderer.walkLiftAt(f.x, f.z), top: this.renderer.walkTopAt(f.x, f.z) }));
+  }
+
   /** M02e QA: the look on or off at runtime; false when the tier has none. */
   setLook(on: boolean): boolean {
     return this.lookView ? this.lookView.setOn(on) : !on;

@@ -662,6 +662,32 @@ export class ChunkRenderer {
     return walkLiftAt(m.walk, m.walkLiftM, x - m.originX, z - m.originZ);
   }
 
+  /**
+   * M02h2 QA: the height of the top of the resident L0 sidewalk ribbon at world (x, z) (the highest `Sidewalk` or `Curb` triangle of the roads
+   * object that faces up and covers the point), or null where none does.
+   */
+  walkTopAt(x: number, z: number): number | null {
+    const u = this.units.get(idOf('l0', chunkKeyAt(9, x, z)));
+    const o = u?.mesh.objects.find((b) => b.kind === 'roads');
+    if (!u || !o) return null;
+    const lx = x - u.mesh.originX, lz = z - u.mesh.originZ;
+    const p = o.positions;
+    let best: number | null = null;
+    for (let t = 0; t < o.indices.length; t += 3) {
+      const a = o.indices[t] as number, b = o.indices[t + 1] as number, c = o.indices[t + 2] as number;
+      const id = o.surf[a * 4] as number;
+      if ((id !== 18 && id !== 38) || (o.normals[a * 3 + 1] as number) < 0.9) continue;
+      const ax = p[a * 3] as number, az = p[a * 3 + 2] as number, bx = p[b * 3] as number, bz = p[b * 3 + 2] as number, cx = p[c * 3] as number, cz = p[c * 3 + 2] as number;
+      const d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz);
+      if (Math.abs(d) < 1e-9) continue;
+      const w0 = ((bz - cz) * (lx - cx) + (cx - bx) * (lz - cz)) / d, w1 = ((cz - az) * (lx - cx) + (ax - cx) * (lz - cz)) / d, w2 = 1 - w0 - w1;
+      if (w0 < -1e-6 || w1 < -1e-6 || w2 < -1e-6) continue;
+      const y = w0 * (p[a * 3 + 1] as number) + w1 * (p[b * 3 + 1] as number) + w2 * (p[c * 3 + 1] as number);
+      if (best === null || y > best) best = y;
+    }
+    return best;
+  }
+
   // ---- GPU loss ------------------------------------------------------------------------------------------------------------
 
   /**

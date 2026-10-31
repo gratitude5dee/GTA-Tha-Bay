@@ -158,6 +158,11 @@ export interface WorldBridge {
   trafficSim(timeoutMs?: number): Promise<unknown>;
   /** The instanced pedestrians (M03b2): far and near-LOD instances, per body, draws and the caps of the tier; null before the world is attached. */
   peds(): PedInfo | null;
+  /**
+   * M02h2 QA: the drawn feet of the pedestrians on the screen now (world x, the drawn y, z), each with the render lift there (`walkLiftAt`)
+   * and the top of the resident sidewalk ribbon under it (null off a ribbon); at most `max` (default 64).
+   */
+  pedFeet(max?: number): { x: number; y: number; z: number; lift: number; top: number | null }[];
   /** Counts of the pedestrians inside sim.worker (`debug.world` op `peds`); `head` sets the XR head pose they keep clear of. */
   pedsSim(head?: { x: number; z: number } | null, timeoutMs?: number): Promise<unknown>;
   /** A `crowd.attract` source at (x, z): the pedestrians within 40 m gather (3 live at most). Returns its id, or 0 when 3 are live. */
@@ -367,6 +372,7 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
     art: () => view.artReport(), // art-hook:vehicles (M10d1)
     trafficSim: (timeoutMs) => call('traffic', undefined, timeoutMs),
     peds: () => view.pedsReport(),
+    pedFeet: (max) => view.pedFeet(max),
     pedsSim: (head, timeoutMs) => call('peds', head === undefined ? undefined : head === null ? { clearHead: true } : { headX: head.x, headZ: head.z }, timeoutMs),
     attract: async (x, z) => (await call('attract', { x, z, by: 'qa' })) as { id: number } | null,
     releaseAttract: (id) => call('attract', { release: id }),

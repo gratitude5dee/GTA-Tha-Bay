@@ -6,7 +6,7 @@ import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, type Json, type W }
 import { MARKINGS_GOLDEN_SHOTS, PAINT_TIERS } from './markings-helpers.ts';
 
 /**
- * M02e AC-6 (@look-golden, `chromium-webgl2` only): ten 256 x 144 captures against the committed goldens, each repeated byte-identical.
+ * M02e AC-6 (@look-golden, `chromium-webgl2` only): ten 256 x 144 captures (fourteen since M02h2's `curb-corner` and `lot-plaza`) against the committed goldens, each repeated byte-identical.
  * Split out of `world-look.spec.ts` (BD-FIX-CI-WORLDLOOK-01): Playwright shards by file and by test count over the sorted file names, so
  * the goldens and the other look cases (one desktop boot each, seconds per frame on software GL) shared chromium-webgl2 shard 8, 53 to
  * 56 of its 60 minutes; the `city-` name sorts this file into a light slice.
@@ -18,6 +18,8 @@ const GOLDEN_DIR = 'tests/e2e/golden/look';
 const GOLDEN_SHOTS: { tier: string; shot: string }[] = [
   ...(['desktop', 'mobile', 'mobile-low'] as const).flatMap((tier) => ['noon-street', 'golden-water', 'night-street'].map((shot) => ({ tier, shot }))),
   { tier: 'desktop', shot: 'fog-west' },
+  // M02h2: the curb, gutter and ramp at a corner, and a lot beside a plaza
+  ...(['desktop', 'mobile-low'] as const).flatMap((tier) => ['curb-corner', 'lot-plaza'].map((shot) => ({ tier, shot }))),
 ];
 
 /** The 256 x 144 canvas of the page after `shot(id)` has presented its frame. The debug panel is hidden so the picture is the canvas alone. */

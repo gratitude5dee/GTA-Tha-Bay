@@ -185,6 +185,23 @@ export class PedRenderer {
     return this.info0;
   }
 
+  /** M02h2 QA: the drawn feet of up to `max` pedestrians (the far instances' translations and the near figures' roots). */
+  drawnFeet(max = 64): { x: number; y: number; z: number }[] {
+    const out: { x: number; y: number; z: number }[] = [];
+    for (const s of this.near) {
+      if (out.length >= max) return out;
+      if (s.handle !== 0) out.push({ x: s.fig.root.position.x, y: s.fig.root.position.y, z: s.fig.root.position.z });
+    }
+    for (const body of this.bodies) {
+      const m = body.mesh.instanceMatrix.array as Float32Array;
+      for (const slot of body.slotOf.values()) {
+        if (out.length >= max) return out;
+        out.push({ x: m[slot * 16 + 12] as number, y: m[slot * 16 + 13] as number, z: m[slot * 16 + 14] as number });
+      }
+    }
+    return out;
+  }
+
   /** M02h2: the render lift at a foot (0 without a lift source). */
   private liftAt(x: number, z: number): number {
     return this.o.lift ? this.o.lift(x, z) : 0;

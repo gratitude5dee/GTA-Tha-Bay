@@ -18,6 +18,8 @@
     { "id": "civic-hall-graze-b", "x": -99.95, "y": 2, "z": 100, "yawDeg": -55, "pitchDeg": 2, "fovDeg": 60, "hour": 13, "weather": "clear" },
     { "id": "markings-near", "x": 65, "y": 5, "z": 331, "yawDeg": 0, "pitchDeg": -9, "fovDeg": 60, "hour": 13, "weather": "clear" },
     { "id": "markings-graze", "x": 60, "y": 1.6, "z": 376, "yawDeg": 0, "pitchDeg": -0.5, "fovDeg": 60, "hour": 13, "weather": "clear" },
-    { "id": "markings-graze-b", "x": 60.05, "y": 1.6, "z": 376, "yawDeg": 0, "pitchDeg": -0.5, "fovDeg": 60, "hour": 13, "weather": "clear" }
+    { "id": "markings-graze-b", "x": 60.05, "y": 1.6, "z": 376, "yawDeg": 0, "pitchDeg": -0.5, "fovDeg": 60, "hour": 13, "weather": "clear" },
+    { "id": "curb-corner", "x": 84, "y": 1.8, "z": 141, "yawDeg": 52, "pitchDeg": -9, "fovDeg": 60, "hour": 13, "weather": "clear" },
+    { "id": "lot-plaza", "x": 30, "y": 2.5, "z": -22, "yawDeg": 90, "pitchDeg": -8, "fovDeg": 60, "hour": 13, "weather": "clear" }
   ]
 }
