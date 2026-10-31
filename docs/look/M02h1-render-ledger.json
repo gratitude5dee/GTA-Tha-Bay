@@ -1,0 +1,59 @@
+{
+  "commit": "local",
+  "bakeId": "3537499f7cc5c17703cea67785128b51f3262dc2d693a344409c031cb9f33136",
+  "baselineFrom": "docs/look/M10d1-render-ledger.json",
+  "tiers": {
+    "desktop-ultra": {
+      "baseline": 722,
+      "after": 722,
+      "perLayer": {
+        "markings": 0
+      },
+      "roadTriangles": {
+        "baseline": 26676,
+        "after": 27320
+      }
+    },
+    "desktop": {
+      "baseline": 554,
+      "after": 554,
+      "perLayer": {
+        "markings": 0
+      },
+      "roadTriangles": {
+        "baseline": 16186,
+        "after": 17136
+      }
+    },
+    "mobile": {
+      "baseline": 146,
+      "after": 146,
+      "perLayer": {
+        "markings": 0
+      },
+      "roadTriangles": {
+        "baseline": 2178,
+        "after": 2330
+      }
+    },
+    "mobile-low": {
+      "baseline": 74,
+      "after": 74,
+      "perLayer": {
+        "markings": 0
+      },
+      "roadTriangles": {
+        "baseline": 1434,
+        "after": 1496
+      },
+      "triangles": {
+        "baseline": 188803,
+        "after": 188811
+      }
+    }
+  },
+  "xr": {
+    "baseline": 100,
+    "after": 100
+  }
+}

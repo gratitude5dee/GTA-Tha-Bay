@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FLICKER_FLOOR, FLICKER_THRESHOLD, flickerLimit, flickerShare, flickerShareRaw } from './flicker.ts';
+import { FLICKER_FLOOR, FLICKER_THRESHOLD, flickerLimit, flickerShare, flickerShareRaw, roadRegion } from './flicker.ts';
 import type { Rgba } from './image-diff.ts';
 
 const flat = (w: number, h: number, v: number): Rgba => {
@@ -56,5 +56,47 @@ describe('flicker measure (M02g2)', () => {
     expect(flickerLimit(0.2)).toBeCloseTo(0.1, 12);
     expect(flickerLimit(0)).toBe(FLICKER_FLOOR);
     expect(flickerLimit(0.0017)).toBe(FLICKER_FLOOR);
+  });
+});
+
+describe('flicker region mask (M02h1)', () => {
+  it('counts only the pixels of the region, and divides by them', () => {
+    const a = flat(8, 4, 0);
+    const b = flat(8, 4, 0);
+    // a changed pixel outside the region does not count; one inside counts against the region's size
+    b.data.set([255, 255, 255, 255], (0 * 8 + 0) * 4);
+    b.data.set([255, 255, 255, 255], (3 * 8 + 7) * 4);
+    const bottom = (_x: number, y: number): boolean => y >= 2;
+    expect(flickerShare(a, b, FLICKER_THRESHOLD, 1, bottom)).toBeCloseTo(1 / 16, 12);
+    expect(flickerShare(a, b)).toBeCloseTo(2 / 32, 12);
+    expect(flickerShare(a, b, FLICKER_THRESHOLD, 1, () => false)).toBe(0);
+  });
+
+  it('puts the road below the horizon and inside the cone of its edges', () => {
+    // looking along a road 18.2 m wide from 1.6 m up, level: the horizon is the middle row, the cone is 5.7 pixels wide per row
+    const m = roadRegion({ width: 640, height: 360, pitchDeg: 0, fovDeg: 60, eyeM: 1.6, halfWidthM: 9.1 });
+    expect(m(320, 100)).toBe(false);
+    expect(m(320, 181)).toBe(false);
+    expect(m(320, 200)).toBe(true);
+    expect(m(0, 200)).toBe(false);
+    expect(m(0, 359)).toBe(true);
+    expect(m(320, 359)).toBe(true);
+    // looking down moves the horizon up
+    const down = roadRegion({ width: 640, height: 360, pitchDeg: -10, fovDeg: 60, eyeM: 1.6, halfWidthM: 9.1 });
+    expect(down(320, 150)).toBe(true);
+  });
+
+  it('cuts the road to a band of ground distances', () => {
+    // level, 1.6 m up, focal length 311.8 px: 40 m away is 12.5 rows under the horizon (row 192.5), 300 m away is 1.7 rows
+    const band = roadRegion({ width: 640, height: 360, pitchDeg: 0, fovDeg: 60, eyeM: 1.6, halfWidthM: 9.1, marginPx: 0, nearM: 40, farM: 300 });
+    expect(band(320, 359)).toBe(false);
+    expect(band(320, 193)).toBe(false);
+    expect(band(320, 192)).toBe(true);
+    expect(band(320, 185)).toBe(true);
+    expect(band(320, 182)).toBe(true);
+    expect(band(320, 181)).toBe(false);
+    const nearOnly = roadRegion({ width: 640, height: 360, pitchDeg: 0, fovDeg: 60, eyeM: 1.6, halfWidthM: 9.1, marginPx: 0, nearM: 40 });
+    expect(nearOnly(320, 200)).toBe(false);
+    expect(nearOnly(320, 190)).toBe(true);
   });
 });

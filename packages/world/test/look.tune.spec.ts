@@ -65,18 +65,18 @@ describe('config/world/look.json (M02g1)', () => {
     }
   });
 
-  it('gates every layer per profile: legacy none, the casters on full only, the rest on every flat profile', () => {
-    expect(LOOK.layers.legacy).toEqual([]);
-    expect(layersOf('legacy')).toEqual([]);
+  it('gates every layer per profile: legacy only the markings (M02h1), the casters on full only, the rest on every flat profile', () => {
+    expect(LOOK.layers.legacy).toEqual(['markings']);
+    expect(layersOf('legacy')).toEqual(['markings']);
     expect([...LOOK.layers.full].sort()).toEqual([...LOOK_LAYERS].sort());
     for (const p of ['lite', 'min'] as const) {
       expect(LOOK.layers[p]).not.toContain('casters');
       expect([...LOOK.layers[p]].sort()).toEqual(LOOK_LAYERS.filter((l) => l !== 'casters').sort());
     }
-    // every tier's profile resolves to a layer list; the XR tiers' is empty
+    // every tier's profile resolves to a layer list; the XR tiers' holds the flat street paint and nothing else
     for (const t of TIER_IDS) {
       const profile = LOOK.tierProfile[t];
-      if (t === 'xr-quest' || t === 'xr-visionpro') expect(layersOf(profile)).toEqual([]);
+      if (t === 'xr-quest' || t === 'xr-visionpro') expect(layersOf(profile)).toEqual(['markings']);
       else expect(layersOf(profile).length).toBeGreaterThan(0);
     }
   });
@@ -86,7 +86,7 @@ describe('config/world/look.json (M02g1)', () => {
     (broken.layers.legacy as LookLayer[]).push('blob');
     (broken.layers.lite as unknown as string[]).push('casters', 'bogus');
     const text = lookErrors(broken, shadowDistances()).join('\n');
-    expect(text).toMatch(/layers\.legacy must be empty/);
+    expect(text).toMatch(/layers\.legacy may hold only markings/);
     expect(text).toMatch(/unknown layer bogus/);
     expect(text).toMatch(/casters layer is desktop only/);
   });

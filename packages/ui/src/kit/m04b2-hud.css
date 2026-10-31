@@ -17,6 +17,51 @@
 .dv-hud-bc { position: absolute; inset-inline: 25%; inset-block-end: max(env(safe-area-inset-bottom), 1.5em); align-items: center; justify-content: flex-end; }
 .dv-hud-c { position: absolute; inset: 50% auto auto 50%; transform: translate(-50%, -50%); }
 .dv-hud-region:empty { display: none; }
+/*
+ * Touch (BD-FIX-MOBILE-HUD-01). While the touch layer shows, the engine sets `data-dv-touch` on the root and, per corner, the block its
+ * anchored widgets hold (`--dv-touch-<corner>-w`/`-h`: CSS px from the safe-area corner, the 8 px spacing included; touch.ts
+ * `touchReserves`). The HUD keeps out of those blocks, so no HUD element lies under a touch target, and its regions become cells of one
+ * grid of three columns that each run the full height, so they cannot run into each other either:
+ *  - left, `bl`: the minimap at the top (the move stick owns the bottom-left, 2.9 defaults per context), beside whatever the top-left
+ *    corner holds; the column is never narrower than the bottom-left block, so nothing to its right lies over the stick ring;
+ *  - middle: `tl` (objective) at the top, `bc` (tip, prompt, subtitles) in all the height under it, held to the bottom safe edge;
+ *  - right: `tr` (status pills) beside the top-right buttons, `br` (speed, health) above the thumb cluster; the column is never narrower
+ *    than the bottom-right block.
+ * The middle column's height is what the objective leaves, not what the minimap or the pills take (the CI find at 740 x 360: a strip
+ * under a full-height top row ran past the bottom safe edge).
+ * Desktop and XR never get the attribute, so their layout is the one above.
+ */
+:root[data-dv-touch] .dv-hud {
+  grid-template:
+    'bl tl tr' auto
+    'bl bc tr' minmax(0, 1fr)
+    'bl bc br' auto
+    / auto minmax(0, 1fr) min-content;
+}
+:root[data-dv-touch] .dv-hud-bl {
+  justify-content: flex-start;
+  padding-inline-start: max(0.75em, var(--dv-touch-tl-w, 0px));
+  min-inline-size: var(--dv-touch-bl-w, 0px);
+}
+:root[data-dv-touch] .dv-hud-tr {
+  padding-inline-end: max(0.75em, var(--dv-touch-tr-w, 0px));
+  min-inline-size: max(var(--dv-touch-tr-w, 0px), var(--dv-touch-br-w, 0px));
+}
+/* The status pills keep their line (the column is never narrower than they are); the objective puts its text under the mission title
+   when both do not fit side by side. */
+:root[data-dv-touch] .dv-hud-tr > * { white-space: nowrap; }
+:root[data-dv-touch] .dv-objective { flex-wrap: wrap; }
+:root[data-dv-touch] .dv-hud-br { padding-block-end: max(0.75em, var(--dv-touch-br-h, 0px)); min-inline-size: var(--dv-touch-br-w, 0px); }
+:root[data-dv-touch] .dv-hud-bc {
+  position: static; grid-area: bc; min-inline-size: 0; min-block-size: 0;
+  padding-block-end: max(0px, calc(1.5em - env(safe-area-inset-bottom, 0px)));
+}
+/* A subtitle runs on as one paragraph after its speaker's name, so a narrow strip takes fewer lines. */
+:root[data-dv-touch] .dv-subtitles { display: block; }
+:root[data-dv-touch] .dv-toasts {
+  inset-inline: max(var(--dv-space-4), calc(env(safe-area-inset-left, 0px) + var(--dv-touch-bl-w, 0px)))
+    max(var(--dv-space-4), calc(env(safe-area-inset-right, 0px) + var(--dv-touch-br-w, 0px)));
+}
 /* The sandbox's Display tab (M04e2): a hidden region keeps its place, fades in 150 ms and does not fade under reduced motion. */
 .dv-hud-region { transition: opacity 150ms linear; }
 .dv-hud-region[data-hidden='true'] { visibility: hidden; opacity: 0; transition: opacity 150ms linear, visibility 0s linear 150ms; }
@@ -73,6 +118,9 @@
 .dv-install-chip { position: fixed; inset-inline-end: var(--dv-space-4); inset-block-start: max(var(--dv-space-4), env(safe-area-inset-top)); z-index: var(--dv-z-menu); display: flex; gap: var(--dv-space-2); }
 .dv-rotate { position: fixed; inset: 0; z-index: var(--dv-z-overlay); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--dv-space-3); background: var(--dv-color-bg); text-align: center; padding: var(--dv-space-6); }
 .dv-rotate-icon { font-size: 4rem; }
+/* While the card is up the shell root (a stacking context: z-index 6 in play, apps/web/src/engine.css) rises over the touch layer, the cutscene
+   layer and the QA panels beside it in the body, so the card covers everything in play as 2.11 rule 4 says (BD-FIX-MOBILE-HUD-01). */
+html[data-dv-rotate] body #app { z-index: calc(var(--dv-z-overlay) + 1); }
 
 /* ---- touch layer editor */
 .dv-touch-edit { position: fixed; inset: 0; z-index: var(--dv-z-overlay); background: var(--dv-color-bg); display: flex; flex-direction: column; }

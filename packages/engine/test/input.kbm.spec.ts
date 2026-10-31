@@ -1,6 +1,6 @@
 import type { RawInputState } from '@dv/shared';
 import { describe, expect, it, vi } from 'vitest';
-import { wheelNotches } from '../src/client/input/kbm.ts';
+import { TOUCH_COMPAT_MOUSE_MS, wheelNotches } from '../src/client/input/kbm.ts';
 import { createRawInputState } from '../src/client/input/raw-state.ts';
 import { makeRig } from './input-helpers.ts';
 
@@ -140,5 +140,54 @@ describe('kbm binder (AC-2)', () => {
     expect(r.doc.count('visibilitychange')).toBe(0);
     expect(r.canvas.count('click')).toBe(0);
     expect(poll(r).controls.size).toBe(0);
+  });
+});
+
+describe('the mouse events a tap brings (BD-FIX-MOBILE-HUD-01)', () => {
+  it('a mouse button within TOUCH_COMPAT_MOUSE_MS of a touch neither presses a control nor makes keyboard and mouse active', () => {
+    const r = makeRig();
+    const raw = createRawInputState('touch');
+    // a tap on a DOM button (Skip, the minimap): the touch, then the compatibility mouse events
+    r.win.emit('pointerdown', { pointerType: 'touch', timeStamp: 1000 });
+    r.win.emit('pointerup', { pointerType: 'touch', timeStamp: 1080 });
+    r.win.emit('mousedown', { button: 0, timeStamp: 1090 });
+    r.win.emit('mouseup', { button: 0, timeStamp: 1092 });
+    poll(r, raw);
+    expect(raw.controls.has('mouse:0')).toBe(false);
+    expect(raw.latchedPress.size).toBe(0);
+    expect(raw.lastActiveDevice).toBe('touch');
+    // Touch Events mark it too; Chromium also flags the event itself
+    r.win.emit('touchend', { timeStamp: 3000 });
+    r.win.emit('mousedown', { button: 0, timeStamp: 3000 + TOUCH_COMPAT_MOUSE_MS - 1 });
+    r.win.emit('mousedown', { button: 0, timeStamp: 9000, sourceCapabilities: { firesTouchEvents: true } });
+    poll(r, raw);
+    expect(raw.latchedPress.size).toBe(0);
+    expect(raw.lastActiveDevice).toBe('touch');
+    // a real click later is the mouse
+    r.win.emit('mousedown', { button: 0, timeStamp: 3000 + TOUCH_COMPAT_MOUSE_MS + 1 });
+    poll(r, raw);
+    expect(raw.controls.get('mouse:0')).toBe(1);
+    expect(raw.lastActiveDevice).toBe('kbm');
+  });
+
+  it('a mouse pointer marks no touch, and a mouse event without a time stamp is the mouse', () => {
+    const r = makeRig();
+    const raw = createRawInputState('touch');
+    r.win.emit('pointerdown', { pointerType: 'mouse', timeStamp: 1000 });
+    r.win.emit('mousedown', { button: 0, timeStamp: 1005 });
+    poll(r, raw);
+    expect(raw.controls.get('mouse:0')).toBe(1);
+    expect(raw.lastActiveDevice).toBe('kbm');
+    const r2 = makeRig();
+    const raw2 = createRawInputState('touch');
+    r2.win.emit('touchstart', { timeStamp: 1000 });
+    r2.win.emit('mousedown', { button: 2 });
+    poll(r2, raw2);
+    expect(raw2.controls.get('mouse:2')).toBe(1);
+  });
+
+  it('a fresh raw state starts on the device it is given (a phone starts on touch)', () => {
+    expect(createRawInputState().lastActiveDevice).toBe('kbm');
+    expect(createRawInputState('touch').lastActiveDevice).toBe('touch');
   });
 });

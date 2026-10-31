@@ -4,7 +4,9 @@ import { SimButton, type InputFrame } from '@dv/shared';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_MAPS } from '../src/client/input/defaults.ts';
 import { InputRouterImpl } from '../src/client/input/router.ts';
-import { TouchBinder, TOUCH_MIN_HOLD_MS, type TouchLayout, type TouchVisual } from '../src/client/input/touch.ts';
+import {
+  stickHintAnchor, TouchBinder, TOUCH_MIN_HOLD_MS, TOUCH_RESERVE_GAP_PX, TOUCH_STICK_HINT_PX, touchReserves, type TouchLayout, type TouchVisual,
+} from '../src/client/input/touch.ts';
 import { CAM, FakeTarget } from './input-helpers.ts';
 
 const layoutPath = fileURLToPath(new URL('../../../config/input/touch/default-right.json', import.meta.url));
@@ -251,5 +253,45 @@ describe('TouchBinder with the default touch map (AC-2)', () => {
     r.sample();
     expect(seen).toContain('1:pressed'); // ClientAction.Camera
     expect(seen).toContain('5:pressed'); // ClientAction.Pause
+  });
+});
+
+describe('touch layer corners (BD-FIX-MOBILE-HUD-01)', () => {
+  const shipped = (id: string): TouchLayout =>
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../config/input/touch/${id}.json`, import.meta.url)), 'utf8')) as TouchLayout;
+
+  it('the stick ring rests in the bottom corner on the side its zone reaches, and nowhere for a centre zone', () => {
+    expect(stickHintAnchor(shipped('default-right'))?.at).toEqual({ corner: 'bl', dx: TOUCH_STICK_HINT_PX.dx, dy: TOUCH_STICK_HINT_PX.dy });
+    expect(stickHintAnchor(shipped('compact'))?.at.corner).toBe('bl');
+    expect(stickHintAnchor(shipped('default-left'))?.at.corner).toBe('br');
+    expect(stickHintAnchor(shipped('vehicle-racing'))?.at.corner).toBe('bl');
+    expect(stickHintAnchor(shipped('one-handed'))).toBeNull();
+    expect(stickHintAnchor(shipped('default-right'))?.sizePx).toBe(116);
+  });
+
+  it('each corner holds the extent of its anchored widgets plus the 8 px spacing; default-right: Phone and Pause top right, the thumb cluster bottom right, the ring bottom left', () => {
+    const g = TOUCH_RESERVE_GAP_PX;
+    expect(touchReserves(shipped('default-right'))).toEqual({
+      tl: { w: 0, h: 0 },
+      tr: { w: 80 + 48 + g, h: 16 + 48 + g },
+      bl: { w: 56 + 116 + g, h: 48 + 116 + g },
+      br: { w: 196 + 52 + g, h: 112 + 60 + g },
+    });
+    // the mirror: buttons bottom left, Phone and Pause top left, the ring bottom right
+    const left = touchReserves(shipped('default-left'));
+    expect(left.tl).toEqual({ w: 128 + g, h: 64 + g });
+    expect(left.bl).toEqual({ w: 248 + g, h: 172 + g });
+    expect(left.br).toEqual({ w: 172 + g, h: 164 + g });
+    expect(left.tr).toEqual({ w: 0, h: 0 });
+    // every button of every shipped layout lies inside its corner's block
+    for (const id of ['default-right', 'default-left', 'compact', 'one-handed', 'vehicle-racing', 'fighter-simple']) {
+      const l = shipped(id);
+      const r = touchReserves(l);
+      for (const w of l.widgets) {
+        if (w.kind !== 'button') continue;
+        expect(w.at.dx + w.sizePx, `${id}/${w.id}`).toBeLessThanOrEqual(r[w.at.corner].w - g);
+        expect(w.at.dy + w.sizePx, `${id}/${w.id}`).toBeLessThanOrEqual(r[w.at.corner].h - g);
+      }
+    }
   });
 });

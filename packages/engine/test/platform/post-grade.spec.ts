@@ -111,12 +111,13 @@ describe('where the grade runs (once per path)', () => {
     expect(owner('desktop-ultra')).toBe('tonemap');
   });
 
-  it('the XR tiers have no stack, so no path: the legacy look adds nothing', () => {
+  it('the XR tiers have no stack, so no path: the legacy look adds only the flat paint (M02h1)', () => {
     for (const tier of ['xr-quest', 'xr-visionpro'] as const) {
       expect(postNodes(TIERS[tier].features, 2, 2)).toEqual([]);
       expect(look.tierProfile[tier]).toBe('legacy');
     }
-    expect(look.layers.legacy).toEqual([]);
+    // M02h1: `markings` is the one layer of the legacy profile; it adds no post node.
+    expect(look.layers.legacy).toEqual(['markings']);
   });
 
   it('gradeOwner: a pipeline owns it when it runs tonemap, a direct list hands it to the fog nodes', () => {

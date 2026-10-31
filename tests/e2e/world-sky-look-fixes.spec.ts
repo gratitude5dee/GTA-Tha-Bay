@@ -14,7 +14,7 @@ import { BASELINE_MODE, bootWorld, frames, MESHER, read, readBaseline, registerF
  *  - @fixes-ledger  AC-9  the render-object ledger of `docs/look/M02g2-render-ledger.json` per tier, the `mobile-low` triangle delta, and
  *                   (`@xr`, `xr-quest3`) the Quest tier's count
  *
- * The two `desktop` pairs are `street-look-fixes-junction.spec.ts` and `look-fixes-civic.spec.ts` (BD-REPAIR-M02g2-03: each is the longest case of
+ * The two `desktop` pairs are `street-look-fixes-junction.spec.ts` and `vehicle-look-fixes-civic.spec.ts` (BD-REPAIR-M02g2-03: each is the longest case of
  * the suite, and a shard is cut out of the sorted file names by test count, so the two files sit in different shards); the code the three
  * files share is `look-fixes-helpers.ts`. `DV_LOOK_WRITE=1` writes the ledger. `DV_FIXES_BASELINE=1` measures instead of asserting (see
  * the helpers).

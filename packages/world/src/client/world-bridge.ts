@@ -91,16 +91,21 @@ export interface WorldBridge {
    * M02e: applies a shot of `config/world/look-shots.json`: pauses the sim, locks the hour and weather with a zero-second blend,
    * freezes the look clock, holds the camera, waits for `settle()` and the fade, and resolves once a frame with all of it has been
    * presented (the spec then screenshots the canvas; no extra offscreen render). `clearShot` releases the camera and the clock.
+   * `held` (BD-REPAIR-M02h1-01) runs both waits for `settle()` with the world's draw held (`WorldView.settleHeld`): the stream reaches the
+   * shot's plan in about a minute at `desktop` on software GL instead of running out the ten-minute waits at one unit per slow frame;
+   * the fade, the frames and the environment bake after it are drawn as before.
    */
-  shot(id: string): Promise<{ id: string; hour: number; weather: string }>;
+  shot(id: string, opts?: { held?: boolean }): Promise<{ id: string; hour: number; weather: string }>;
   /**
    * M02g2 QA (BD-REPAIR-M02g2-03): moves the held shot camera to another shot of the same hour and weather, standing next to the
    * current one (the `-b` shot of a flicker pair, 0.05 m away), and resolves two presented frames later. It does not move the
    * stream focus, wait for `settle()` or bake the environment again: the streamer, the sky and the environment map are the ones of the
    * `shot` before it, so the two pictures of a pair differ by the camera alone. Throws without a look, without a held shot, or when the
-   * sky is not at the new shot's hour and weather.
+   * sky is not at the new shot's hour and weather. `keepHeight` (M02h1) moves the camera over the ground without standing it on the ground
+   * again: its height is the one of the first shot, so the pair is a sideways or forward step and nothing else (the ground under a
+   * terrain cell edge can differ by centimetres between two points 5 cm apart, which is 2 % of a 1.6 m eye height).
    */
-  shotMove(id: string): Promise<{ id: string; hour: number; weather: string }>;
+  shotMove(id: string, opts?: { keepHeight?: boolean }): Promise<{ id: string; hour: number; weather: string }>;
   clearShot(): void;
   /** M02e QA: stops or restarts the render loop; the canvas keeps its last frame while stopped (for captures on a slow renderer). */
   hold(on: boolean): void;
@@ -255,8 +260,9 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
     internals: () => ({ view, look: view.lookView }),
     setLook: (on) => view.setLook(on),
     setLookLayer: (id, on) => view.setLookLayer(id, on),
-    shot: async (id) => {
-      const lv = view.lookView;
+    shot: async (id, opts) => {
+      const settle = (t: number): Promise<unknown> => (opts?.held === true ? view.settleHeld(t) : view.settle(t));
+      const lv = view.shotRig();
       if (!lv) throw new Error('look shot: this view has no look');
       const s = lv.holdShot(id);
       view.setFocus({ x: s.x, z: s.z, vx: 0, vz: 0 });
@@ -269,45 +275,49 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
         return !!k && Math.abs(k.hour - s.hour) < 0.05 && k.weather === s.weather && k.next === s.weather;
       }, 120_000, `the sky at ${s.hour}:00 ${s.weather}`);
       lv.freezeClock(true);
-      await view.settle(600_000);
+      await settle(600_000);
       // The camera stands on the ground now that the chunk under it is resident.
       const gy = view.groundY(s.x, s.z);
       if (gy !== null) lv.placeShot(id, gy);
       // The camera moved to its height: whatever that asks the streamer for (the plan, finer levels in view) must be resident too.
       await nextFrames(2);
-      await view.settle(600_000);
+      await settle(600_000);
       // The dither fade (0.5 s) and a few frames with everything in place, then one more presented frame.
       const t0 = performance.now();
       await until(() => performance.now() - t0 > 900, 30_000, 'the fade');
       await nextFrames(4);
       // One environment bake from the settled sky (see `PhysicalSky.refreshEnvironment`): without it the map was whatever the last bake of the
       // transition left, and a golden at `desktop` on Chromium differed from boot to boot.
-      const bakes = lv.report().envBakes;
+      const bakes = lv.envBakes();
       if (lv.refreshEnvironment()) {
-        await until(() => lv.report().envBakes > bakes, 120_000, 'the environment bake');
+        await until(() => lv.envBakes() > bakes, 120_000, 'the environment bake');
         await nextFrames(2);
       }
       return { id: s.id, hour: s.hour, weather: s.weather };
     },
-    shotMove: async (id) => {
-      const lv = view.lookView;
+    shotMove: async (id, opts) => {
+      const lv = view.shotRig();
       if (!lv) throw new Error('look shot: this view has no look');
-      if (lv.shotCamera === null) throw new Error('look shot: no shot is held; call shot() first');
+      if (!lv.held()) throw new Error('look shot: no shot is held; call shot() first');
       const s = lookShot(id);
       const k = view.skyInfo();
       if (!k || Math.abs(k.hour - s.hour) >= 0.05 || k.weather !== s.weather || k.next !== s.weather) {
         throw new Error(`look shot: the sky is not at ${s.hour}:00 ${s.weather} for ${id}`);
       }
-      lv.holdShot(id);
-      const gy = view.groundY(s.x, s.z);
-      if (gy !== null) lv.placeShot(id, gy);
+      if (opts?.keepHeight === true) {
+        lv.shiftShot(id);
+      } else {
+        lv.holdShot(id);
+        const gy = view.groundY(s.x, s.z);
+        if (gy !== null) lv.placeShot(id, gy);
+      }
       await nextFrames(2);
       return { id: s.id, hour: s.hour, weather: s.weather };
     },
     hold: (on) => view.holdRender(on),
     clearShot: () => {
-      view.lookView?.releaseShot();
-      view.lookView?.freezeClock(false);
+      view.shotRig()?.releaseShot();
+      view.shotRig()?.freezeClock(false);
       view.setFocus(null);
     },
     call: (op, args, timeoutMs = 30_000) => call(op, args, timeoutMs),

@@ -3,6 +3,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import { decodePng, diffImages, encodePng, goldenFailures, identical, type Rgba } from '../support/image-diff.ts';
 import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, type Json, type W } from './world-look-helpers.ts';
+import { MARKINGS_GOLDEN_SHOTS, PAINT_TIERS } from './markings-helpers.ts';
 
 /**
  * M02e AC-6 (@look-golden, `chromium-webgl2` only): ten 256 x 144 captures against the committed goldens, each repeated byte-identical.
@@ -84,7 +85,8 @@ test.describe('look goldens @look-golden', () => {
           source: 'synth',
           viewport: GOLDEN_VIEWPORT,
           tolerance: { channel: 6, minFraction: 0.99, meanAbs: 2 },
-          shots: GOLDEN_SHOTS.map((s) => `${s.tier}.${s.shot}.png`),
+          // M02h1: the six markings goldens are written by markings-golden.spec.ts (@markings-golden) and listed here with the others
+          shots: [...GOLDEN_SHOTS.map((s) => `${s.tier}.${s.shot}.png`), ...PAINT_TIERS.flatMap((t) => MARKINGS_GOLDEN_SHOTS.map((s) => `${t}.${s}.png`))],
         } satisfies Json,
         null,
         2,

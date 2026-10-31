@@ -210,10 +210,11 @@ body {
 
 .dv-cutscene-sub {
   position: absolute;
-  inset-inline: 0;
+  /* 5 % each side, or the safe area where it is wider (a phone's notch side); the line is centred in what is left (BD-FIX-MOBILE-HUD-01). */
+  inset-inline: max(5%, env(safe-area-inset-left, 0px)) max(5%, env(safe-area-inset-right, 0px));
   inset-block-end: max(env(safe-area-inset-bottom), var(--dv-space-6));
   margin: 0 auto;
-  max-inline-size: min(48rem, 90%);
+  max-inline-size: 48rem;
   padding: var(--dv-space-2) var(--dv-space-3);
   text-align: center;
   background: rgb(0 0 0 / 0.65);

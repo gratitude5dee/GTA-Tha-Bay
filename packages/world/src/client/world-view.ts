@@ -32,7 +32,8 @@ import { MESHER, profileOf, wantNearStride } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
 import { LOOK, LOOK_LAYERS, lookProfileFor, type LookLayer } from './look/config.ts';
-import { LookView, type LookReport } from './look/look-view.ts';
+import { LookView, markingsReportOf, type LookReport, type ShotCamera } from './look/look-view.ts';
+import { lookShot, shotQuaternion, type LookShot } from './look/shots.ts';
 // art-hook:textures begin (M10d0)
 import { TEXTURES_FLAG } from './textures/config.ts';
 import { SurfaceTextures, installSurfaceTextures, installedSurfaceTextures } from './textures/surface-textures.ts';
@@ -145,6 +146,19 @@ export interface ChunksReport {
   frame: number;
 }
 
+/** The held-camera rig of a look shot (`WorldView.shotRig`). */
+export interface ShotRig {
+  holdShot(id: string): LookShot;
+  placeShot(id: string, groundY: number): void;
+  /** Moves the held camera to another shot's x and z, keeping its height (M02h1). */
+  shiftShot(id: string): void;
+  releaseShot(): void;
+  freezeClock(on: boolean): void;
+  refreshEnvironment(): boolean;
+  envBakes(): number;
+  held(): boolean;
+}
+
 export interface BootReport {
   revealed: boolean;
   revealMs: number | null;
@@ -223,6 +237,11 @@ export class WorldView implements WorldLayer {
       isOn: () => this.lookView?.on ?? false,
       setOn: (on) => this.setLook(on),
       nodes: () => this.lookView?.report().postNodes ?? [],
+      markings: {
+        available: () => this.materials?.markings.base != null,
+        aaOn: () => this.materials?.markings.aaOn() ?? true,
+        setAA: (on) => this.materials?.markings.setAA(on),
+      },
     },
   };
 
@@ -289,7 +308,9 @@ export class WorldView implements WorldLayer {
       });
     }
     // art-hook:textures end
-    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK }, depthPolicy: host.depthPolicy });
+    // M02h1: an XR tier (the look profile `legacy` in look.json) keeps the legacy materials and draws the flat street paint on its roads
+    const xrMarkings = this.o.look?.enabled === true && lookProfileFor(this.o.tier, true) === 'legacy';
+    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK }, depthPolicy: host.depthPolicy, xrMarkings });
     // The world pass draws over the backdrop pass: no scene background of its own.
     host.scene.background = null;
     const hemi = new HemisphereLight(0xdbe9ff, 0x6a6f64, 3.4);
@@ -461,7 +482,7 @@ export class WorldView implements WorldLayer {
     if (this.disposed) return;
     this.frames++;
     let f = frameIn;
-    const held = this.lookView?.shotCamera;
+    const held = this.lookView?.shotCamera ?? this.legacyHeld;
     if (held && this.host) {
       // A look shot holds the camera: the host's camera, the culling and the sky all see the shot's pose.
       const cam = this.host.camera as PerspectiveCamera;
@@ -1039,6 +1060,52 @@ export class WorldView implements WorldLayer {
     else this.host.startLoop();
   }
 
+  /** M02h1 QA: the camera a shot holds on a tier without a look view (the XR tiers on the flat canvas). */
+  private legacyHeld: ShotCamera | null = null;
+
+  /**
+   * The rig the bridge's `shot()` drives: the look view's when there is one; on a tier without a look view (the XR tiers, which still draw
+   * the flat street paint) a held camera and the frozen sky clock, with no look clock and no environment bake. Null without a look config.
+   */
+  shotRig(): ShotRig | null {
+    const lv = this.lookView;
+    if (lv) {
+      return {
+        holdShot: (id) => lv.holdShot(id),
+        placeShot: (id, gy) => lv.placeShot(id, gy),
+        shiftShot: (id) => lv.shiftShot(id),
+        releaseShot: () => lv.releaseShot(),
+        freezeClock: (on) => lv.freezeClock(on),
+        refreshEnvironment: () => lv.refreshEnvironment(),
+        envBakes: () => lv.report().envBakes,
+        held: () => lv.shotCamera !== null,
+      };
+    }
+    if (!this.o.look || !this.host) return null;
+    return {
+      holdShot: (id) => {
+        const s = lookShot(id);
+        this.legacyHeld = { x: s.x, y: 40 + s.y, z: s.z, quat: shotQuaternion(s.yawDeg, s.pitchDeg), fovDeg: s.fovDeg };
+        return s;
+      },
+      placeShot: (id, gy) => {
+        if (this.legacyHeld) this.legacyHeld.y = gy + lookShot(id).y;
+      },
+      shiftShot: (id) => {
+        const s = lookShot(id);
+        if (this.legacyHeld) {
+          this.legacyHeld.x = s.x;
+          this.legacyHeld.z = s.z;
+        }
+      },
+      releaseShot: () => void (this.legacyHeld = null),
+      freezeClock: (on) => this.sky?.freezeTime(on),
+      refreshEnvironment: () => false,
+      envBakes: () => 0,
+      held: () => this.legacyHeld !== null,
+    };
+  }
+
   lookReport(): LookReport | null {
     if (this.lookView) return this.lookView.report();
     if (!this.o.look || !this.host) return null;
@@ -1050,6 +1117,7 @@ export class WorldView implements WorldLayer {
       pipeline: this.host.tier?.features.pipeline ?? 'direct', sun: null,
       layers: [], blobs: 0, dynamicCasters: [], skyReflect: false, gradeOn: null, windowLit: [0.55, 0.85],
       vegetation: this.renderer.vegetationReport(),
+      markings: markingsReportOf(this.materials, this.renderer),
     };
   }
 
@@ -1063,6 +1131,13 @@ export class WorldView implements WorldLayer {
     // art-hook:textures begin (M10d0): the surface textures are a layer of the look that has no entry in look.json
     if (id === 'textures') return this.textures?.setOn(on) ?? false;
     // art-hook:textures end
+    // M02h1: the debug toggle of the street paint's antialiasing, and the paint layer of a tier without a look view (the XR tiers)
+    if (id === 'markings.aa') {
+      if (this.materials.markings.base === null) return false;
+      this.materials.markings.setAA(on);
+      return true;
+    }
+    if (id === 'markings' && !this.lookView) return this.materials.markings.setLayer(on);
     if (!this.lookView || !(LOOK_LAYERS as readonly string[]).includes(id)) return false;
     return this.lookView.setLayer(id as LookLayer, on);
   }
@@ -1104,6 +1179,21 @@ export class WorldView implements WorldLayer {
   setFocus(f: Focus | null): void {
     this.focusOverride = f;
     if (f) this.lastFocus = f;
+  }
+
+  /**
+   * QA (BD-REPAIR-M02h1-01): `settle()` with the world's draw held (`RendererHost.holdWorld('cover')`, the hold `streamAtPlan` of the e2e
+   * ledger helpers takes). The loop, the sim and the upload gate run as before and only the render call is skipped, so the gate's one unit
+   * per presented frame (C08 rule 13) is not paced by a draw that takes seconds on software GL. The draw resumes when it resolves. Without
+   * a host it is `settle()`.
+   */
+  async settleHeld(timeoutMs = 30_000): Promise<{ settled: boolean; pending: number; queued: number }> {
+    const release = this.host?.holdWorld('cover') ?? null;
+    try {
+      return await this.settle(timeoutMs);
+    } finally {
+      release?.();
+    }
   }
 
   /** Resolves when nothing is requested, queued or rebuilding for a few frames in a row, or the timeout passes. */
