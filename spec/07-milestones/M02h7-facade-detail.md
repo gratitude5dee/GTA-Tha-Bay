@@ -104,5 +104,5 @@ How to see it:
 - Read first: `02-world-bake.md` §4, §6; `02-world.md` §5.2–§5.4; `11-platform.md` §4.5; M02e, M02g1, M02g2, M10d0, M10d2; `_PLAN-3.md` Look program; DL-704; DL-OWN-07, DL-OWN-09.
 - Verify TSL `bumpMap` in `three@0.186.1` (the audit lists it); if absent, a `dFdx`/`dFdy` normal in TSL plus a spec/03 §7 row.
 - The mesher stays deterministic and `three`-free; sim, collision and C08 prisms are untouched. Rebase hotspot: M02h1–M02h6 also edit `mesher.ts` and `surfaces.ts`; M10d0's `art-hook` lines in `look-materials.ts` stay as they are.
-- Original content only: authored colours, no text or brand shape; the target image is never committed, sampled or fed to fal; no new licensed or fal asset.
+- Original content only: authored colours, no text or brand shape; the target image is never committed; since DL-OWN-10 the owner's look references may be used as look inputs (a fal reference input, a side-by-side comparison, a palette), read from outside the repository; no new licensed or fal asset.
 - Goldens: `DV_UPDATE_GOLDEN=1` outside CI under `golden-update`. Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for AC-9 and AC-10 (SKIP locally). Branch `m02h7-facade-detail`.

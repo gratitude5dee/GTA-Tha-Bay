@@ -107,6 +107,6 @@ How to see it:
 ## Notes for the Builder
 - Read first: `02-world-bake.md` §4, §6; `02-world-contracts.md` §2, §4; M02e, M02g1, M02g2, M02h2, M02c2 AC-14; DL-OWN-07.
 - OSM tag meanings here are UNVERIFIED in the ledger: record their wiki pages in spec/03 §7; the bake counts are the check. Gap to report: `landuseOfTags` maps `natural=beach|bare_rock`, which the `tagFilter` never fetches.
-- Original procedural code only; the target image is never committed, sampled or fed to fal.
+- Original procedural code only; the target image is never committed; since DL-OWN-10 the owner's look references may be used as look inputs (a fal reference input, a side-by-side comparison, a palette), read from outside the repository.
 - The sim is untouched (`@world-hash`); the mesher stays deterministic and `three`-free. Goldens: `DV_UPDATE_GOLDEN=1` outside CI.
 - Secrets: Cloudflare (AC-11, AC-12), `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (AC-12); absent: SKIP, AC-12 under "Blocked on". Branch `m02h3-ground-cover`.

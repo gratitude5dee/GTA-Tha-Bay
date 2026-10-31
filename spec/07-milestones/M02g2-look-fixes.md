@@ -151,7 +151,7 @@ How to see it:
 ## Notes for the Builder
 - Read first: `02-world-bake.md` §6, `02-world.md` §5.2–§5.4, `02-world-living.md` §6, `11-platform.md` §4.5 and §5.2, M02e, M02d2, M02g1, DL-704 and DL-OWN-07.
 - Evidence: the capture study's frames (Lombard roof gap, slab, `mobile-low` sparkle, City Hall moiré in `docs/look/M02e-before-after-sf.png`, horizon cones), render audit items 6 and 12, and the plan's "Fix session B".
-- The target image is never committed, sampled or fed to fal. All fixes are original code.
+- The target image is never committed; since DL-OWN-10 the owner's look references may be used as look inputs (a fal reference input, a side-by-side comparison, a palette), read from outside the repository. All fixes are original code.
 - The mesher stays deterministic and free of `three` (it runs in `asset.worker`). Sim and collision (the C08 heightfield) are untouched.
 - Goldens: `DV_UPDATE_GOLDEN=1` outside CI, under the `golden-update` label. Commit the Chromium goldens together with the classifier fix.
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for AC-11 and AC-12 (SKIP locally). Branch: `m02g2-look-fixes`.
