@@ -112,6 +112,20 @@ export interface LookReport {
   markings: MarkingsReport;
   /** M02h2: the curbs and sidewalk ribbons of the resident chunks. */
   curbs: CurbsReport;
+  /**
+   * M02h3: the ground cover: whether the `cover` layer is on, and the cells per class of the resident L0 chunks that were meshed with it
+   * (`none`, `yard`, `dirt`, `mixed`, `driveway`, `vacant`, `scrub`, `park`). Filled by the world view.
+   */
+  cover?: CoverReport;
+}
+
+/** M02h3: `look().cover`. */
+export interface CoverReport {
+  enabled: boolean;
+  cells: Record<string, number>;
+  /** Resident L0 chunks with cover whose mesh does not follow the layer yet (a toggle re-meshes them nearest first), and those within 400 m. */
+  pending: number;
+  pendingNear: number;
 }
 
 export interface LookViewOptions {

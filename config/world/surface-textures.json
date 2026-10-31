@@ -29,7 +29,14 @@
     "plaza": "pavers",
     "ground.Grass": "grass-dirt",
     "ground.Park": "grass-dirt",
-    "ground.Dirt": "grass-dirt"
+    "ground.Dirt": "grass-dirt",
+    "cover.yard": "grass-dirt",
+    "cover.dirt": "grass-dirt",
+    "cover.mixed": "grass-dirt",
+    "cover.driveway": "concrete",
+    "cover.vacant": "grass-dirt",
+    "cover.scrub": "grass-dirt",
+    "cover.park": "grass-dirt"
   },
   "procedural": [
     "ground.Sand",

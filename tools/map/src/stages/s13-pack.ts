@@ -92,7 +92,7 @@ export interface PackInputs {
   /** Extra files named under packs/ (far-bay-*). */
   far: readonly { name: string; bytes: Uint8Array }[];
   /** M02h3: the ground cover rules and the OSM features they read; absent or `enabled: false` bakes no cover. */
-  cover?: { cfg: CoverConfig; osm: readonly OsmFeature[] } | null;
+  cover?: { cfg: CoverConfig; osm: readonly OsmFeature[] } | null | undefined;
 }
 
 const q1 = (v: number): number => Math.round(v * 10) / 10;

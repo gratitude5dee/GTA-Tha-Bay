@@ -51,6 +51,7 @@
     "footAoM": 0.35, "footAo": 0.3,
     "curb": "#aeaea6", "gutterColor": "#707274", "paint": "#c9c7bb"
   },
+  "cover": { "$comment": "M02h3: vertex colours (sRGB) of the ground cover classes on the terrain posts (every profile; `min` and `legacy` draw them as they are)", "yard": "#7fa65a", "dirt": "#8a7353", "mixed": "#86905a", "driveway": "#a6a49d", "vacant": "#9d8d6b", "scrub": "#9f9b5f", "park": "#62a04e" },
   "lotPlaza": { "plazaM": 8, "lot": "#8b8d90", "plaza": "#b3a798" },
   "macro": { "octavesM": [200, 50], "weights": [0.6, 0.4], "albedo": 0.08, "roughness": 0.04 }
 }

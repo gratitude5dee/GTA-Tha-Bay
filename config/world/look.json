@@ -77,7 +77,14 @@
     "Curb": { "albedo": "#b4b3ab", "roughness": 0.88, "noise": 0.08 },
     "Gutter": { "albedo": "#74767a", "roughness": 0.8, "noise": 0.12 },
     "Lot": { "albedo": "#8e9093", "roughness": 0.9, "noise": 0.12 },
-    "Plaza": { "albedo": "#b8ab9b", "roughness": 0.86, "noise": 0.1 }
+    "Plaza": { "albedo": "#b8ab9b", "roughness": 0.86, "noise": 0.1 },
+    "cover.yard": { "albedo": "#7fa65a", "roughness": 0.95, "noise": 0.06 },
+    "cover.dirt": { "albedo": "#8a7353", "roughness": 0.96, "noise": 0.2 },
+    "cover.mixed": { "albedo": "#86905a", "roughness": 0.95, "noise": 0.45 },
+    "cover.driveway": { "albedo": "#a6a49d", "roughness": 0.88, "noise": 0.1 },
+    "cover.vacant": { "albedo": "#9d8d6b", "roughness": 0.97, "noise": 0.2 },
+    "cover.scrub": { "albedo": "#9f9b5f", "roughness": 0.96, "noise": 0.3 },
+    "cover.park": { "albedo": "#62a04e", "roughness": 0.95, "noise": 0.22 }
   },
   "water": {
     "deep": "#12456d",

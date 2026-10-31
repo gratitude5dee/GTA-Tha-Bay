@@ -102,7 +102,7 @@ describe('the mode of a tier', () => {
   });
 
   it('knows the ids each set is bound to', () => {
-    expect(idsOfSet('concrete').map((i) => SURFACE_NAMES[i])).toEqual(['ground.Sidewalk', 'sidewalk', 'curb', 'gutter', 'lot']);
+    expect(idsOfSet('concrete').map((i) => SURFACE_NAMES[i])).toEqual(['ground.Sidewalk', 'sidewalk', 'curb', 'gutter', 'lot', 'cover.driveway']);
     expect(idsOfSet('pavers').map((i) => SURFACE_NAMES[i])).toEqual(['ground.Paved', 'plaza']);
     expect(idsOfSet('brick')).toEqual([]);
   });

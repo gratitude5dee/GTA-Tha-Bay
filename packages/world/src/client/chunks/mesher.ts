@@ -28,7 +28,7 @@ import {
 import mesherJson from '../../../../../config/world/mesher.json';
 import { LOOK, LOOK_FLAG, facadeClassOf, lookProfileFor } from '../look/config.ts';
 import { packRoad, roadFields, roadVertex, wrapAlong, type RoadFields } from '../look/road-layout.ts';
-import { FLAG_PARAPET, Surf, facadeDm, facadeSignedDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
+import { COVER_SURFACE_NAMES, FLAG_PARAPET, Surf, coverSurf, facadeDm, facadeSignedDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
 import {
   approachesOf, clipKey, clippedPolyline, armsOf, crosswalkQuad, planRoads, ribbonSides, roadsContext, simplifyPoints, stopBarQuad, tileOf, type DecalQuad, type PlannedJunction,
   type RibbonPoint, type RoadsContext, type RoadsPlan,
@@ -92,6 +92,8 @@ export interface MesherConfig {
   lotPlaza: { plazaM: number; lot: string; plaza: string };
   /** M02h2: the macro variation (chunks/macro.ts reads the block). */
   macro: unknown;
+  /** M02h3: the vertex colours of the ground cover classes. */
+  cover: Record<(typeof COVER_SURFACE_NAMES)[number], string>;
 }
 export const MESHER: MesherConfig = mesherJson as unknown as MesherConfig;
 
@@ -117,6 +119,8 @@ const ROAD_COLORS = {
 };
 export const LOT_COLOR: Rgb = hexToLinear(MESHER.lotPlaza.lot);
 export const PLAZA_COLOR: Rgb = hexToLinear(MESHER.lotPlaza.plaza);
+/** M02h3: the vertex colour of each `CoverClass` (index 0, `None`, is unused). */
+export const COVER_COLORS: readonly Rgb[] = [GROUND[3] as Rgb, ...COVER_SURFACE_NAMES.map((n) => hexToLinear(MESHER.cover[n]))];
 export const roadColor = (cls: number): Rgb =>
   cls === 0 ? ROAD_COLORS.freeway : cls === 1 ? ROAD_COLORS.ramp : cls === 2 ? ROAD_COLORS.arterial : cls === 5 ? ROAD_COLORS.service : ROAD_COLORS.local;
 
@@ -341,6 +345,12 @@ export interface TerrainOptions {
    * with that colour; absent: `Paved` as before.
    */
   plaza?: Uint8Array | null | undefined;
+  /**
+   * M02h3: the ground cover of the chunk's 64 x 64 cells (`CoverClass`, C08 1.1 section 21). A post reads the cell its ground class comes
+   * from; a post with cover gets surface `cover.<class>` and the colour `mesher.json` `cover.<class>`, and the M02h2 lot and plaza rule
+   * applies to the posts without cover only. Absent: as before M02h3 (the same vertices and triangles either way).
+   */
+  cover?: Uint8Array | null | undefined;
 }
 
 /**
@@ -355,9 +365,15 @@ export function terrainMesh(heights: Int16Array, ground: Uint8Array, cellM: numb
     for (let i = 0; i < verts; i++) {
       const col = i * stride;
       const row = j * stride;
-      const cls = ground[Math.min(63, row + (stride >> 1)) * 64 + Math.min(63, col + (stride >> 1))] ?? 3;
+      const cell = Math.min(63, row + (stride >> 1)) * 64 + Math.min(63, col + (stride >> 1));
+      const cls = ground[cell] ?? 3;
       let color = GROUND[cls] ?? (GROUND[3] as Rgb);
-      if (cls === 3 && o.plaza) {
+      const cv = o.cover ? (o.cover[cell] as number) : 0;
+      if (cv > 0 && cv < COVER_COLORS.length) {
+        // M02h3: a post with ground cover
+        color = COVER_COLORS[cv] as Rgb;
+        b.setSurf(coverSurf(cv));
+      } else if (cls === 3 && o.plaza) {
         // M02h2: a paved post is a plaza near a plaza ped edge or node, else a lot
         const plaza = o.plaza[row * n + col] === 1;
         color = plaza ? PLAZA_COLOR : LOT_COLOR;
@@ -973,6 +989,11 @@ export interface MeshChunkOptions {
   curbs?: boolean | undefined;
   /** M02h2, tests: keep the curb samples (`UnitMesh.curbSamples`). */
   curbDebug?: boolean | undefined;
+  /**
+   * M02h3: the chunk's ground cover (4,096 `CoverClass` cells, `decodeCover`), or null / absent for none: the terrain posts then mesh as
+   * before M02h3. The caller passes it only with the `cover` layer on (`platform-flags.json` `world.cover`, `setLookLayer('cover', on)`).
+   */
+  cover?: Uint8Array | null | undefined;
 }
 
 /**
@@ -1025,7 +1046,17 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
   const cellM = sim.height.cellM;
   const ao = terrainAo(candidates.map((c) => c.ring), cellM);
   const plaza = curbsOn ? plazaPosts(sim, tileOf(sim, o.tile)) : null;
-  const terrain = terrainMesh(sim.height.dm, sim.ground, cellM, stride, { ao, skirtM: mixedStrides ? MESHER.terrain.skirtM : 0, plaza });
+  const cover = o.cover && o.cover.length === 64 * 64 ? o.cover : null;
+  const terrain = terrainMesh(sim.height.dm, sim.ground, cellM, stride, { ao, skirtM: mixedStrides ? MESHER.terrain.skirtM : 0, plaza, cover });
+  if (cover) {
+    // M02h3: cells per class for the QA bridge (`look().cover.cells`)
+    const n = [0, 0, 0, 0, 0, 0, 0, 0];
+    for (let k = 0; k < cover.length; k++) {
+      const c = cover[k] as number;
+      if (c < n.length) n[c] = (n[c] as number) + 1;
+    }
+    stats.cover = n;
+  }
   objects.push(terrain);
 
   // M02e: the facade record rides on the building vertices unless the tier's look is `legacy`.
