@@ -153,7 +153,7 @@ export function groundNodes(look: LookFile, n: LookNodes, id: L, vertexColor: L,
   const aggregate = vnoiseAA(p, 7.3, fp).sub(0.5).mul(0.0025);
   // the wear of a used surface: dips and humps of 0.4 to 1 m (their shading exaggerated, the way a low sun shows a worn street) that stay
   // resolved into the middle distance, so they carry the bump where the joints and the aggregate have faded (no sparkle at any range)
-  const wear = vnoiseAA(p, 2.3, fp).sub(0.5).mul(0.16).add(detail === 'full' ? vnoiseAA(p, 0.9, fp).sub(0.5).mul(0.26) : float(0));
+  const wear = vnoiseAA(p, 2.3, fp).sub(0.5).mul(0.16).add(detail === 'full' ? vnoiseAA(p, 0.9, fp).sub(0.5).mul(0.32) : float(0));
   const fine = detail === 'full' ? vnoiseAA(p, 23.1, fp).sub(0.5).mul(0.0015) : float(0);
   const crackH = detail === 'full' ? crack.sub(0.975).mul(0.08) : float(0);
   const clumpH = clump.sub(0.5).mul(0.012).add(detail === 'full' ? blade.sub(0.5).mul(0.006) : float(0));
