@@ -465,12 +465,12 @@ export class LookView {
     return true;
   }
 
-  /** M02g1: the pose loop for the blob shadows, once a frame after the traffic and the pedestrians drew. */
-  feedBlobs(f: Pick<WorldFrame, 'poses' | 'poseCount' | 'poseKeys' | 'camera'>): void {
+  /** M02g1: the pose loop for the blob shadows, once a frame after the traffic and the pedestrians drew (`ambientShown`: `BlobShadows.feed`). */
+  feedBlobs(f: Pick<WorldFrame, 'poses' | 'poseCount' | 'poseKeys' | 'camera'>, ambientShown?: (key: string) => boolean): void {
     const b = this.blobs;
     if (!b || !this.on || !b.enabled) return;
     b.begin();
-    b.feed(f);
+    b.feed(f, ambientShown);
     b.commit();
   }
 

@@ -75,7 +75,7 @@
     "local": { "albedo": "#65676c", "roughness": 0.86, "noise": 0.15 },
     "service": { "albedo": "#6b6d72", "roughness": 0.88, "noise": 0.15 },
     "Curb": { "albedo": "#b4b3ab", "roughness": 0.88, "noise": 0.08 },
-    "Gutter": { "albedo": "#7e7f80", "roughness": 0.8, "noise": 0.12 },
+    "Gutter": { "albedo": "#74767a", "roughness": 0.8, "noise": 0.12 },
     "Lot": { "albedo": "#8e9093", "roughness": 0.9, "noise": 0.12 },
     "Plaza": { "albedo": "#b8ab9b", "roughness": 0.86, "noise": 0.1 }
   },

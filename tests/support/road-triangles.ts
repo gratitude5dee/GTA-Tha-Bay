@@ -4,7 +4,7 @@
  * `{"baseline": n, "after": m}` on one line (the curbs of M02h2 off on both sides, so the count is the markings' alone). A separate process
  * because the mesher reads JSON config by import, which the Playwright loader does not accept; `tsx` does.
  *
- * M02h2 (`tests/e2e/world-curbs.spec.ts`, @curbs-ledger): `tsx tests/support/road-triangles.ts --curbs <packs dir> <tier> <chunk key>...` prints
+ * M02h2 (`tests/e2e/ledger-curbs.spec.ts`, @curbs-ledger): `tsx tests/support/road-triangles.ts --curbs <packs dir> <tier> <chunk key>...` prints
  * `{"maxDelta": n, "sumOff": a, "sumOn": b}`: the triangles of each whole L0 chunk (render records included) with the curbs, gutters and
  * sidewalk ribbons off and on, their sums, and the largest per-chunk difference.
  */

@@ -5,7 +5,7 @@
  * between two classes stays soft, with the class's pattern on top. Wetness and its per-tier form (albedo, or albedo and roughness)
  * come from M02b2's nodes (`uWet`, `uWetRough`), never redefined here.
  */
-import { clamp, float, mix, positionWorld, select, smoothstep, step, vec2, vec3, type L } from '../sky/tsl.ts';
+import { clamp, float, fwidth, mix, positionWorld, select, smoothstep, step, vec2, vec3, type L } from '../sky/tsl.ts';
 import type { LookNodes } from './common.ts';
 import { srgbHexToLinear, type LookFile } from './config.ts';
 import { MACRO } from '../chunks/macro.ts';
@@ -155,7 +155,13 @@ export function groundNodes(look: LookFile, n: LookNodes, id: L, vertexColor: L,
   // resolved into the middle distance, so they carry the bump where the joints and the aggregate have faded (no sparkle at any range)
   const wear = vnoiseAA(p, 2.3, fp).sub(0.5).mul(0.16).add(detail === 'full' ? vnoiseAA(p, 0.9, fp).sub(0.5).mul(0.32) : float(0));
   const fine = detail === 'full' ? vnoiseAA(p, 23.1, fp).sub(0.5).mul(0.0015) : float(0);
-  const crackH = detail === 'full' ? crack.sub(0.975).mul(0.08) : float(0);
+  // The crack of the bump (M02h2 repair): the same line as `crack`, drawn the way `edgeLineAA` draws a joint, at least a pixel wide (the
+  // width of a pixel in noise units is `fwidth`) and faded once a cycle of the noise (0.6 m) shrinks under about seven pixels. The line of `crack` is 3 cm
+  // wide whatever the distance, so beyond a few metres it fell between the pixels, and its bump lit or missed single pixels from one
+  // camera position to the next: the dots that lifted the webkit-webgl2 `civic-hall-graze` pair over its flicker floor.
+  const crackD = vnoise(p.mul(1.7)).sub(0.5).abs();
+  const crackLine = float(1).sub(smoothstep(0, fwidth(crackD).max(0.04), crackD)).mul(float(1).sub(smoothstep(0.15, 0.4, fp.mul(1.7))));
+  const crackH = detail === 'full' ? crackLine.mul(-0.02) : float(0);
   const clumpH = clump.sub(0.5).mul(0.012).add(detail === 'full' ? blade.sub(0.5).mul(0.006) : float(0));
   const height = asphalt.mul(aggregate.add(fine).add(wear))
     .add(walk.mul(joint.mul(-0.006).add(fine).add(wear.mul(0.5))))

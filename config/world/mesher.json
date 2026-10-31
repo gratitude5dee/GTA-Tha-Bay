@@ -49,7 +49,7 @@
     "gutter": { "desktop": true, "visionpro": true, "mobile": true, "low": false },
     "miterLimit": 2.5,
     "footAoM": 0.35, "footAo": 0.3,
-    "curb": "#aeaea6", "gutterColor": "#77787a", "paint": "#c9c7bb"
+    "curb": "#aeaea6", "gutterColor": "#707274", "paint": "#c9c7bb"
   },
   "lotPlaza": { "plazaM": 8, "lot": "#8b8d90", "plaza": "#b3a798" },
   "macro": { "octavesM": [200, 50], "weights": [0.6, 0.4], "albedo": 0.08, "roughness": 0.04 }

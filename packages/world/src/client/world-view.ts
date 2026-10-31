@@ -49,8 +49,9 @@ import { artMaterialFactory } from './traffic/materials.ts';
 import { artVariantOf, type VehicleJobArgs, type VehicleJobResult } from './vehicles/vehicle-job.ts';
 // art-hook:vehicles end
 import { NEAR_PED_CAP, pedCap } from '../sim/peds/density.ts';
+import { PED_ASSETS } from '../sim/peds/components.ts';
 import { PedRenderer, type PedInfo } from './peds/instances.ts';
-import { TransitRenderer, type TransitInfo } from './transit/render.ts';
+import { TransitRenderer, isTransitKey, type TransitInfo } from './transit/render.ts';
 import { MapLayer } from './map/layer.ts';
 import type { AreaBannerPatch } from './map/banner.ts';
 
@@ -146,6 +147,9 @@ export interface ChunksReport {
   frame: number;
 }
 
+/** The pedestrian bodies' render keys (the blob shadows ask which group draws an ambient actor). */
+const PED_KEYS: ReadonlySet<string> = new Set<string>(PED_ASSETS);
+
 /** The held-camera rig of a look shot (`WorldView.shotRig`). */
 export interface ShotRig {
   holdShot(id: string): LookShot;
@@ -218,6 +222,14 @@ export class WorldView implements WorldLayer {
   peds: PedRenderer | null = null;
   /** Buses, trains, cable cars, ferries, airliners and station entrances (M03b2); set in `attach`. */
   transit: TransitRenderer | null = null;
+  /**
+   * M02h2 repair: whether the renderer group that draws an ambient record of this render key is shown (pedestrian bodies: `peds`; transit
+   * assets: `transit`; every other ambient record: `traffic`). The blob shadows skip an actor whose group is hidden.
+   */
+  private readonly ambientShown = (key: string): boolean => {
+    const r = PED_KEYS.has(key) ? this.peds : isTransitKey(key) ? this.transit : this.traffic;
+    return r?.group.visible !== false;
+  };
   /** The teleport fade (M02c1): the veil the sim's `world.teleport` events drive. */
   readonly fade: TeleportFade;
   /** The maps of the world (M02c2): the HUD minimap, the banner and the full map; null when the view was built with `map: false`. */
@@ -533,7 +545,8 @@ export class WorldView implements WorldLayer {
     if (this.lookView && this.host) this.lookView.frame(f.dtSec, this.host.camera as PerspectiveCamera);
     this.peds?.update(f, tSec);
     // M02g1: the blob shadows follow the poses the traffic, the pedestrians and the object pool just drew.
-    this.lookView?.feedBlobs(f);
+    // M02h2 repair: an ambient actor whose renderer group is hidden (the goldens hide traffic, pedestrians and transit) casts no blob.
+    this.lookView?.feedBlobs(f, this.ambientShown);
     this.transit?.update(f);
     this.updateOverlays();
     this.map?.frame(f);
