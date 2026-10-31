@@ -43,8 +43,11 @@ export const GRID = { x: 3100, z: 440 } as const;
  * the car and the field, presses ready and starts the sampler. `waitPolice` also waits for police units (the pursuit).
  */
 export async function startRacePage(page: Page, raceId: string, o: { rivals: number; waitPolice: boolean }): Promise<void> {
+  const t0 = Date.now();
+  const step = (what: string): void => console.log(`race page ${raceId}: ${what} at ${((Date.now() - t0) / 1000).toFixed(1)} s`);
   await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.racing !== undefined, undefined, { timeout: 120_000 });
   await page.waitForFunction(() => (window as unknown as W).__dvBridge.world?.boot().revealed === true, undefined, { timeout: 240_000 });
+  step('world revealed');
   // The colliders under the grid stream in around the player, so the player goes first (the race loads at the grid whatever the tier's physics radius is).
   // `teleport` is a call into the sim worker too and answers null when it is late (a loaded software-GL page at desktop-ultra or desktop): ask again.
   let moved: { ok: boolean; reason?: string } | null = null;
@@ -60,6 +63,7 @@ export async function startRacePage(page: Page, raceId: string, o: { rivals: num
     );
   }
   if (!moved?.ok) throw new Error(`race scenario: the teleport to the grid failed: ${JSON.stringify(moved)}`);
+  step('at the grid');
   await page.waitForTimeout(1500);
   // `racing.start` is a call into the sim worker that answers null when it is late (a software-GL page at desktop-ultra is slow): ask
   // again until it answers ok, or until a race is there already.
@@ -74,6 +78,7 @@ export async function startRacePage(page: Page, raceId: string, o: { rivals: num
         ]),
       [raceId, o.rivals] as const,
     );
+    step(`racing.start attempt ${attempt} answered ${JSON.stringify(started)}`);
     if (started?.ok) break;
     const there = await page.evaluate(() =>
       Promise.race([(window as unknown as W).__dvBridge.racing.state(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 45_000))]),
@@ -85,6 +90,7 @@ export async function startRacePage(page: Page, raceId: string, o: { rivals: num
     await page.waitForTimeout(5000);
   }
   if (!started?.ok) throw new Error(`race scenario: racing.start(${raceId}) was refused: ${JSON.stringify(started)}`);
+  step('race started');
   // the car stands on the grid and the field is there
   await page.waitForFunction(
     async (want) => {
@@ -94,6 +100,7 @@ export async function startRacePage(page: Page, raceId: string, o: { rivals: num
     o.rivals,
     { timeout: 240_000, polling: 500 },
   );
+  step('the field is on the grid');
   // `ready` is a message to the sim worker and is lost when the worker restarts under load; it is idempotent, so it is sent again on every
   // poll until the director has left the grid (Countdown or later). The wait is on that event; 240 s is only its ceiling.
   await page.waitForFunction(
@@ -107,6 +114,7 @@ export async function startRacePage(page: Page, raceId: string, o: { rivals: num
     undefined,
     { timeout: 240_000, polling: 2000 },
   );
+  step('the director left the grid');
   if (o.waitPolice) {
     // GO starts the pursuit; the units spawn out of view and close in. The window opens once some are there (or after 240 s: the sim of a software-GL desktop page runs slower than real time).
     await page

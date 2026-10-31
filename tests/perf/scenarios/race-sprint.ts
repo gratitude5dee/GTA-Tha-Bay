@@ -12,6 +12,8 @@ export const raceSprint = {
   query: 'racing=1&unlockAll=1',
   /** Longest a test with this setup may take, ms (the world boots, the player moves, the race loads, then the run). */
   timeoutMs: 600_000,
+  /** The race starts on the default sky; the night rain is set after it, before the window (BD-M11a1-18). */
+  lookAfterSetup: true,
   async setup(page: Page, ctx: { tier: QualityTierId }): Promise<void> {
     await startRacePage(page, 'qa.perf.sprint', { rivals: tierCaps(ctx.tier).rivals, waitPolice: false });
   },
