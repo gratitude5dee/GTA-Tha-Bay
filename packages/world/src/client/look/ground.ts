@@ -151,15 +151,17 @@ export function groundNodes(look: LookFile, n: LookNodes, id: L, vertexColor: L,
   // M02h2: the detail height for the bump, metres. `lite` keeps one octave (the aggregate and the joints); every term is already faded
   // by the pixel footprint where it was built.
   const aggregate = vnoiseAA(p, 7.3, fp).sub(0.5).mul(0.0025);
+  // the wear of a used surface: shallow dips and humps of 0.4 to 1 m that stay resolved to the middle distance (no sparkle at any range)
+  const wear = vnoiseAA(p, 2.3, fp).sub(0.5).mul(0.012).add(detail === 'full' ? vnoiseAA(p, 0.9, fp).sub(0.5).mul(0.02) : float(0));
   const fine = detail === 'full' ? vnoiseAA(p, 23.1, fp).sub(0.5).mul(0.0015) : float(0);
   const crackH = detail === 'full' ? crack.sub(0.975).mul(0.08) : float(0);
   const clumpH = clump.sub(0.5).mul(0.012).add(detail === 'full' ? blade.sub(0.5).mul(0.006) : float(0));
-  const height = asphalt.mul(aggregate.add(fine))
-    .add(walk.mul(joint.mul(-0.004).add(fine)))
+  const height = asphalt.mul(aggregate.add(fine).add(wear))
+    .add(walk.mul(joint.mul(-0.006).add(fine).add(wear.mul(0.5))))
     .add(curb.mul(fine.add(aggregate.mul(0.5))))
-    .add(gutter.mul(aggregate.mul(0.6)))
-    .add(lot.mul(seam.mul(-0.004).add(aggregate).add(crackH)))
-    .add(plaza.mul(paverJoint.mul(-0.006).add(fine)))
+    .add(gutter.mul(aggregate.mul(0.6).add(wear.mul(0.5))))
+    .add(lot.mul(seam.mul(-0.006).add(aggregate).add(crackH).add(wear)))
+    .add(plaza.mul(paverJoint.mul(-0.008).add(fine).add(wear.mul(0.5))))
     .add(rock.mul(crackH.add(aggregate)))
     .add(grass.mul(clumpH));
   return { color, roughness, metalness: float(0), water, deep, height };

@@ -115,7 +115,7 @@
     "min": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs"],
     "legacy": ["markings"]
   },
-  "bump": { "full": 1.5, "lite": 1.0, "min": 0, "legacy": 0 },
+  "bump": { "full": 2, "lite": 1.5, "min": 0, "legacy": 0 },
   "markings": {
     "classes": ["none", "freeway", "arterial", "collector", "local"],
     "byClass": { "freeway": "freeway", "ramp": "freeway", "arterial": "arterial", "collector": "collector", "local": "local", "service": "none" },
