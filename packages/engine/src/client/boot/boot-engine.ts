@@ -21,7 +21,7 @@ import { CONTROL_OWNER } from '../../sim/control/states.ts';
 import type { PursuitSide } from '../snapshot/reader.ts';
 import { headingOf, horizonFromTop, VehicleCamera, type VehiclePose } from '../vehicle/vehicle-camera.ts';
 import {
-  GamepadBinder, InputRouterImpl, KbmBinder, pitchToI16, TouchBinder, writeInputFrame, yawToU16,
+  createRawInputState, GamepadBinder, InputRouterImpl, KbmBinder, pitchToI16, TouchBinder, writeInputFrame, yawToU16,
   type GamepadLike, type PointerLockTarget, type TouchLayout,
 } from '../input/index.ts';
 import touchLayoutJson from '../../../../../config/input/touch/default-right.json';
@@ -806,7 +806,10 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       visibility: () => document.visibilityState,
       onVisual: overlay.draw,
     });
-    router = new InputRouterImpl({ binders: [kbm, pad, touchBinder] });
+    // A phone (a coarse primary pointer, or `?touch=1`) starts on touch: until a key, mouse button or pad is used, `hud.device` and so the
+    // tips and prompt glyphs read touch, not keyboard and mouse (BD-FIX-MOBILE-HUD-01).
+    const touchFirst = opts.forceTouch === true || (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
+    router = new InputRouterImpl({ binders: [kbm, pad, touchBinder], raw: createRawInputState(touchFirst ? 'touch' : 'kbm') });
     // Remapped controls come from the sim's settings slice as the view model `sys.controls` (also on load; R-ENG-04).
     const applyControls = (v: unknown): void => {
       if (v && typeof v === 'object') router?.setOverrides(v as ControlsSettings);

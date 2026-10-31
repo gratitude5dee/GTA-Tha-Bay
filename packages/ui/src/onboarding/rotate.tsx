@@ -2,7 +2,7 @@
  * The rotate overlay (10-ui-hud-xr.md 2.11 rule 4): on touch devices in portrait while a mode is playing, a card covers the HUD, the sim
  * pauses and the overlay clears on the orientation change. Menus work in portrait (2.13 rule 15), so it never shows in the menu.
  */
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
 import { t } from '../i18n/index.ts';
 import { useShell } from '../shell/context.tsx';
 
@@ -37,6 +37,13 @@ export function RotateOverlay() {
     if (!on) return undefined;
     ctx.props.hooks.setPaused(true);
     return () => ctx.props.hooks.setPaused(false);
+  }, [on]);
+  // `data-dv-rotate` lifts the shell over the touch and cutscene layers so the card covers them too (m04b2-hud.css,
+  // BD-FIX-MOBILE-HUD-01); a layout effect, so no frame shows the card under them.
+  useLayoutEffect(() => {
+    if (!on) return undefined;
+    document.documentElement.setAttribute('data-dv-rotate', 'on');
+    return () => document.documentElement.removeAttribute('data-dv-rotate');
   }, [on]);
   if (!on) return null;
   return (
