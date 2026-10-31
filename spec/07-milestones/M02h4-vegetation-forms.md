@@ -56,7 +56,7 @@ Baseline: the newest ledger on the default branch at rebase (`baselineFrom`); `x
 ## Scope out
 - M02h5: park scatter, shrubs, far impostors, and EZ-Tree, whose MIT code enters only after `pnpm license:scan` and a licence check or replacement of its bundled textures.
 - Licensed models (DL-OWN-06): M10d0 on. Tree pits: M02h2. `xr` profile: M02h8 (inherits `low`).
-- No fal, scan or licensed asset; the target image is never committed, sampled or fed to fal.
+- No fal, scan or licensed asset; the target image is never committed; since DL-OWN-10 the owner's look references may be used as look inputs (a fal reference input, a side-by-side comparison, a palette), read from outside the repository.
 
 ## Deliverables
 - `packages/shared/src/world/tree-form.ts`, `packages/shared/test/tree-form.spec.ts`; `tools/map/src/{stages/s3-water.ts, config.ts, sources/synth.ts, bake.ts}`, `tools/map/test/tree-forms.bake.spec.ts`; `packages/engine/src/platform/tier-config.ts`.
