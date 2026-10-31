@@ -6,7 +6,7 @@
 import {
   DIR_ENTRY_BYTES, FAMILY_CODE, HEADER_BYTES, HEIGHT_POSTS, GROUND_CELLS, NO_STRING, PACK_MAGIC, PACK_VERSION,
   SECTION_ENTRY_BYTES, SEC, TAG_LAYOUT, TAG_TYPES, TREE_SCALE_UNIT, TURNS, YAW_UNIT,
-  chunkBounds, parseChunkKey,
+  chunkBounds, encodeCoverRects, parseChunkKey,
   type BuildingRecord, type ChunkKey, type RenderChunk, type SimChunk, type TagType,
 } from '../../../../packages/shared/src/index.ts';
 
@@ -281,7 +281,7 @@ function encodeBuilding(w: Bytes, b: BuildingRecord): void {
   for (const v of b.ring) w.i16(v);
 }
 
-function encodeChunkL0(c: RenderChunk): SectionOut[] {
+function encodeChunkL0(c: RenderChunk, cover: ArrayLike<number> | undefined): SectionOut[] {
   const b = chunkBounds(c.key);
   const ox = b.minX;
   const oz = b.minZ;
@@ -289,6 +289,12 @@ function encodeChunkL0(c: RenderChunk): SectionOut[] {
   let w = new Bytes();
   for (const bd of c.buildings) encodeBuilding(w, bd);
   out.push({ id: SEC.BUILDING, count: c.buildings.length, data: w.bytes() });
+
+  // M02h3 (C08 1.1): section 21 LANDUSE with the cover rectangles, only when the bake wrote cover
+  if (cover) {
+    const s = encodeCoverRects(cover);
+    out.push({ id: SEC.LANDUSE, count: s.count, data: s.data });
+  }
 
   w = new Bytes();
   for (let i = 0; i < c.trees.length; i += 4) {
@@ -317,10 +323,11 @@ function encodeChunkL0(c: RenderChunk): SectionOut[] {
   return out;
 }
 
-export function encodeL0(chunks: readonly RenderChunk[], header: PackHeaderInput): Uint8Array {
+/** `covers` (M02h3): the 4,096 cover cells per chunk; a chunk without an entry (or no map at all) gets no section 21. */
+export function encodeL0(chunks: readonly RenderChunk[], header: PackHeaderInput, covers?: ReadonlyMap<ChunkKey, ArrayLike<number>>): Uint8Array {
   const outs = chunks.map((c) => {
     if (c.bakeId !== header.bakeId) throw new RangeError(`encode: ${c.key} has a different bakeId`);
-    return { ...cellOf(c.key, header), sections: encodeChunkL0(c) };
+    return { ...cellOf(c.key, header), sections: encodeChunkL0(c, covers?.get(c.key)) };
   });
   return assemble(FAMILY_CODE.l0, header, outs);
 }
