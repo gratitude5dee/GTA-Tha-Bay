@@ -65,13 +65,18 @@ export async function setSky(page: Page, hour: number, weather: string): Promise
  * The canvas after the shot has presented its frame, with the crowds and the animated characters out of the picture. `how` is `shot`
  * for the first picture of a pair (the full QA shot: the sky, the streamer's settle, the fade, one environment bake) and `move` for the
  * second (`shotMove`: the same sky and the same environment map, the camera 0.05 m along).
+ *
+ * The first shot settles with the world's draw held (`shot(id, { held: true })`, BD-REPAIR-M02h1-01): the pair is taken once the stream
+ * holds the shot's plan, which at `desktop` on software GL took the two ten-minute waits of `shot()` and still ran out (the upload gate
+ * lets one unit up per presented frame and a frame took 5 to 10 s); held, the gate drains in about a minute and the shot is the same
+ * picture of a finished stream.
  */
 export async function captureShot(page: Page, shot: string, how: 'shot' | 'move' | 'slide' = 'shot'): Promise<Rgba> {
   // `slide` (M02h1) is `move` with the first shot's height kept: a pair that differs by the sideways step alone
   await page.evaluate(
     ([id, h]) => {
       const w = (window as unknown as W).__dvBridge.world;
-      return h === 'shot' ? w.shot(id as string) : w.shotMove(id as string, h === 'slide' ? { keepHeight: true } : undefined);
+      return h === 'shot' ? w.shot(id as string, { held: true }) : w.shotMove(id as string, h === 'slide' ? { keepHeight: true } : undefined);
     },
     [shot, how] as const,
   );
@@ -129,7 +134,9 @@ export function writeBaseline(patch: (b: BaselineFile) => void): void {
  * The first shot is the full QA `shot()`, which waits twice for the streamer to settle (10 minutes each at most). At `desktop` the
  * streamer releases one chunk per presented frame (C08 rule 13) and a frame takes 5 to 10 s on software GL, so the wait always runs out its
  * ten minutes, and the second shot used to pay another 20 minutes for the same chunks: a `desktop` pair took 41 and 46 minutes in CI
- * (run 40903387571). The second shot is `shotMove`, the camera 0.05 m along under the sky and the environment map of the first.
+ * (run 40903387571). The second shot is `shotMove`, the camera 0.05 m along under the sky and the environment map of the first. Since
+ * BD-REPAIR-M02h1-01 the first shot's waits run with the world's draw held (see `captureShot`), so they end when the plan is resident
+ * instead of at their timeout (the `desktop` pairs took 22 and 28 minutes for the first shot alone in run 41150362555).
  */
 export function registerFlickerPair(pairId: FlickerPairId): void {
   const pair = FLICKER_PAIRS.find((p) => p.id === pairId);

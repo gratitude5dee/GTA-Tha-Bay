@@ -1162,6 +1162,21 @@ export class WorldView implements WorldLayer {
     if (f) this.lastFocus = f;
   }
 
+  /**
+   * QA (BD-REPAIR-M02h1-01): `settle()` with the world's draw held (`RendererHost.holdWorld('cover')`, the hold `streamAtPlan` of the e2e
+   * ledger helpers takes). The loop, the sim and the upload gate run as before and only the render call is skipped, so the gate's one unit
+   * per presented frame (C08 rule 13) is not paced by a draw that takes seconds on software GL. The draw resumes when it resolves. Without
+   * a host it is `settle()`.
+   */
+  async settleHeld(timeoutMs = 30_000): Promise<{ settled: boolean; pending: number; queued: number }> {
+    const release = this.host?.holdWorld('cover') ?? null;
+    try {
+      return await this.settle(timeoutMs);
+    } finally {
+      release?.();
+    }
+  }
+
   /** Resolves when nothing is requested, queued or rebuilding for a few frames in a row, or the timeout passes. */
   settle(timeoutMs = 30_000): Promise<{ settled: boolean; pending: number; queued: number }> {
     return new Promise((resolve) => {

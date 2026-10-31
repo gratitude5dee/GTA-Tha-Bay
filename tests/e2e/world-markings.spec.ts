@@ -10,7 +10,8 @@ import { FLAT_TIERS, bootWorld, frames, read, setSky, world, type W } from './ma
  *                     report `off`, the second with `layers: []`; no page error (a shader that does not compile shows as one)
  *  - @xr @world-markings  AC-8  the Quest tier on `xr-quest3` reports `flat`, and the layer switch works without a look view
  *
- * The goldens, the shot pair and the ledger are `markings-golden.spec.ts`, `markings-flicker-*.spec.ts` and `markings-ledger.spec.ts`.
+ * The goldens, the shot pair and the ledger are `markings-golden.spec.ts` with `markings-shots-desktop.spec.ts`, `*markings-flicker-*.spec.ts`
+ * and `markings-ledger.spec.ts`.
  */
 const LOOK = read<{ tierProfile: Record<string, string>; layers: Record<string, string[]> }>('config/world/look.json');
 const MODE: Record<(typeof FLAT_TIERS)[number], 'worn' | 'flat'> = { desktop: 'worn', mobile: 'worn', 'mobile-low': 'flat' };
@@ -25,7 +26,7 @@ test.describe('world markings @world-markings', () => {
       page.on('console', (m) => {
         if (m.type() === 'error' && !/Failed to load resource|favicon/.test(m.text())) errors.push(m.text());
       });
-      // BD-FIX-CI-SHARD3-01: on chromium-webgpu the desktop tier's surface textures (M10d0, `stochastic`) need more than the 16 sampled
+      // BD-REPAIR-M02h1-03: on chromium-webgpu the desktop tier's surface textures (M10d0, `stochastic`) need more than the 16 sampled
       // textures a fragment stage may bind (WebGPU's default limit), so the renderer logs "Render pipeline creation failed" for the ground
       // materials and "The number of sampled textures (17) ... exceeds the maximum per-stage limit (16)" for the sky's background material,
       // with or without the paint (the same errors at boot with `markings` removed from the profile). This case is about the paint's shader
@@ -38,8 +39,13 @@ test.describe('world markings @world-markings', () => {
       expect(first?.layers).toEqual(LOOK.layers[LOOK.tierProfile[tier] as string]);
 
       await setSky(page, 13, 'clear');
-      await world(page, (w) => w.shot('markings-near'));
+      // BD-REPAIR-M02h1-01: the shot's waits for the stream run with the world's draw held, so they end when the shot's plan is resident (at
+      // `desktop` on software GL the gate lets one unit up per presented frame and a frame takes seconds: this case took 13 to 26 minutes)
+      await world(page, (w) => w.shot('markings-near', { held: true }));
       await frames(page, 3);
+      // the counts are read on a held frame (the render loop stopped): nothing is uploaded, dropped or re-recorded between the reads that
+      // are compared (at `desktop` the stream still changed units between them: 434 patches, then 421, in run 41150362555)
+      await world(page, (w) => w.hold(true));
       const near = (await world(page, (w) => w.look()))?.markings;
       expect(near?.mode).toBe(MODE[tier]);
       expect(near?.roadVerts ?? 0).toBeGreaterThan(0);
@@ -54,6 +60,7 @@ test.describe('world markings @world-markings', () => {
       expect(off?.markings.mode).toBe('off');
       expect(off?.layers).not.toContain('markings');
       expect(off?.markings.patches).toBe(near?.patches);
+      await world(page, (w) => w.hold(false));
       await frames(page, 2);
       expect(await page.evaluate(() => (window as unknown as W).__dvBridge.world.setLookLayer('markings', true))).toBe(true);
       expect((await world(page, (w) => w.look()))?.markings.mode).toBe(MODE[tier]);
