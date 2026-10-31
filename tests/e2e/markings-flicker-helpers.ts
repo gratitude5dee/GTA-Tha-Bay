@@ -21,7 +21,7 @@ import { HIDE_ALL, captureShot, setSky } from './look-fixes-helpers.ts';
  * a hard line that hops to the next pixel, which is the sparkle. The height is the one of the first shot (`slide`): the ground under two points
  * 5 cm apart can differ by centimetres at a terrain cell edge, which scales every line of the picture by 2 %.
  *
- * One case per tier in a file of its own (`markings-flicker-desktop.spec.ts`, `markings-flicker-low.spec.ts`): a `desktop` pair is the longest
+ * One case per tier in a file of its own (`art-markings-flicker-desktop.spec.ts`, `markings-flicker-low.spec.ts`): a `desktop` pair is the longest
  * single case of the suite on software GL, and a shard is cut out of the sorted file names by test count (BD-REPAIR-M02g2-03).
  */
 export const MARKINGS_FLICKER_LIMIT = 0.002;

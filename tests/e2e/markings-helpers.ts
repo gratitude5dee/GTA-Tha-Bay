@@ -8,7 +8,7 @@ import { SMALL_VIEWPORT } from './engine-helpers.ts';
 
 /**
  * What the M02h1 street-markings specs share: `world-markings.spec.ts` (@world-markings), `markings-golden.spec.ts` (@markings-golden),
- * `markings-flicker-desktop.spec.ts` and `markings-flicker-low.spec.ts` (@markings-golden, the shot pair), `markings-ledger.spec.ts`
+ * `art-markings-flicker-desktop.spec.ts` and `markings-flicker-low.spec.ts` (@markings-golden, the shot pair), `markings-ledger.spec.ts`
  * (@markings-ledger). The files are separate because Playwright cuts a shard out of the sorted list of tests by count and a `desktop` boot
  * is the longest single case of the suite on software GL (BD-REPAIR-M02g2-03, BD-FIX-CI-TEXGOLD-01).
  */

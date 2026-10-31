@@ -7,7 +7,7 @@ import { GOLDEN_VIEWPORT, HIDE, MARKINGS_GOLDEN_SHOTS, PAINT_TIERS, bakeIdOf, bo
  * M02h1 AC-5 (@markings-golden, `chromium-webgl2` only): the shots `markings-near` and `markings-graze` at `desktop`, `mobile-low` and
  * `xr-quest` (the Quest tier forced on the flat canvas, no immersive session) against the committed goldens, each repeated byte-identical.
  * The goldens sit in `tests/e2e/golden/look/` with the other look goldens and are listed in its manifest. The flicker of the `markings-graze`
- * pair is `markings-flicker-desktop.spec.ts` and `markings-flicker-low.spec.ts`.
+ * pair is `art-markings-flicker-desktop.spec.ts` and `markings-flicker-low.spec.ts`.
  *
  * `DV_UPDATE_GOLDEN=1` (outside CI, under the golden-update label) writes the goldens and the manifest.
  */
