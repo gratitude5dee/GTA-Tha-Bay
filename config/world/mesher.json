@@ -37,5 +37,20 @@
     "drawM": { "desktop": 900, "visionpro": 900, "mobile": 500, "low": 300 }, "drawHysteresis": 0.1
   },
   "depth": { "roadFactor": -1, "roadUnits": -4, "ribbonStepM": 0.01 },
-  "lod": { "skirtM": 8, "roadWidthM": { "0": 22, "1": 12, "2": 14, "3": 10, "4": 8 }, "roadLiftM": 0.4, "waterLevelM": -0.4, "massingRoof": "#6e6a66" }
+  "lod": { "skirtM": 8, "roadWidthM": { "0": 22, "1": 12, "2": 14, "3": 10, "4": 8 }, "roadLiftM": 0.4, "waterLevelM": -0.4, "massingRoof": "#6e6a66" },
+  "curbs": {
+    "$comment": "M02h2: curbs, gutters and sidewalk ribbons from the C08 PedEdge graph (02-world-living.md section 4.1: sidewalk centrelines at carriageway/2 + 1.6 m). Design values, tuned here.",
+    "attachM": 1.6, "attachTolM": 0.8,
+    "heightM": 0.11, "topM": 0.3, "bevelM": 0.02, "gutterM": 0.35, "rampM": 1.5, "rampRunM": 1.0,
+    "lowLiftM": 0.02, "skirtM": 0.05, "buryM": 0.05,
+    "resampleM": { "desktop": 4, "visionpro": 4, "mobile": 4, "low": 8 },
+    "faces": { "desktop": true, "visionpro": true, "mobile": true, "low": false },
+    "bevel": { "desktop": true, "visionpro": false, "mobile": false, "low": false },
+    "gutter": { "desktop": true, "visionpro": true, "mobile": true, "low": false },
+    "miterLimit": 2.5,
+    "footAoM": 0.35, "footAo": 0.3,
+    "curb": "#aeaea6", "gutterColor": "#77787a", "paint": "#c9c7bb"
+  },
+  "lotPlaza": { "plazaM": 8, "lot": "#8b8d90", "plaza": "#b3a798" },
+  "macro": { "octavesM": [200, 50], "weights": [0.6, 0.4], "albedo": 0.08, "roughness": 0.04 }
 }

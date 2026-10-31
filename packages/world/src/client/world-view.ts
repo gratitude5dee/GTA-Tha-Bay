@@ -454,7 +454,10 @@ export class WorldView implements WorldLayer {
       parent: host.scene, sky: this.skyNodes, cap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier), profile: artProfile, ...(artLoader ? { load: artLoader } : {}),
     });
     // art-hook:vehicles end
-    this.peds = new PedRenderer({ parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier] });
+    this.peds = new PedRenderer({
+      parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier],
+      lift: (x, z) => this.renderer.walkLiftAt(x, z),
+    });
     this.transit = new TransitRenderer({
       parent: host.scene,
       trafficCap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier),
@@ -1099,7 +1102,16 @@ export class WorldView implements WorldLayer {
       layers: [], blobs: 0, dynamicCasters: [], skyReflect: false, gradeOn: null, windowLit: [0.55, 0.85],
       vegetation: this.renderer.vegetationReport(),
       markings: markingsReportOf(this.materials, this.renderer),
+      curbs: this.renderer.curbsCounts(),
     };
+  }
+
+  /**
+   * M02h2: the render lift of a foot at world (x, z): the curb height on a curbed sidewalk of a resident L0 chunk, else 0 (chunks/sidewalks.ts
+   * walk masks). The pedestrians and the on-foot player figure add it to their drawn height; the sim never sees it.
+   */
+  walkLiftAt(x: number, z: number): number {
+    return this.renderer.walkLiftAt(x, z);
   }
 
   /** M02e QA: the look on or off at runtime; false when the tier has none. */

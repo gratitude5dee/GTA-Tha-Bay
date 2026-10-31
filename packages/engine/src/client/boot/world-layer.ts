@@ -44,6 +44,11 @@ export interface WorldLayer {
    * QA bridge call them.
    */
   debug?: WorldLayerDebug;
+  /**
+   * M02h2: the render lift of a foot at world (x, z) (the curb height on a curbed sidewalk); the on-foot player figure draws that much higher.
+   * Render only: the sim and the collision keep their heights. Absent: 0.
+   */
+  walkLiftAt?(x: number, z: number): number;
   dispose(): void;
 }
 

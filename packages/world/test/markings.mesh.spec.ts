@@ -92,7 +92,8 @@ describe('the roads object (AC-3)', () => {
     const t = ALL[0] as Tile;
     let checked = 0;
     for (const sim of t.sims) {
-      const a = meshChunk(sim, null, { tier: 'desktop', distM: 0, tile: t.sims });
+      // M02h2: without the curbs (a curbed side's gutter strip has its own edge row at half the width less the gutter, curbs.mesher.spec.ts)
+      const a = meshChunk(sim, null, { tier: 'desktop', distM: 0, tile: t.sims, curbs: false });
       const roads = roadsOf(a);
       if (!roads) continue;
       const road = roads.road as Int16Array;
@@ -253,7 +254,8 @@ describe('the roads object (AC-3)', () => {
     if (!bake) return;
     const t = ALL[0] as Tile;
     for (const sim of t.sims) {
-      const m = meshChunk(sim, null, { tier: 'desktop', distM: 0, tile: t.sims, markings: false });
+      // M02h2: the curbs off too (they add the sidewalk ribbons and their ids 38 and up to the roads object)
+      const m = meshChunk(sim, null, { tier: 'desktop', distM: 0, tile: t.sims, markings: false, curbs: false });
       const roads = roadsOf(m);
       if (!roads) continue;
       expect(roads.road).toBeUndefined();

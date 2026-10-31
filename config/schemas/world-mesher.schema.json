@@ -21,7 +21,10 @@
     "lod",
     "ao",
     "terrain",
-    "depth"
+    "depth",
+    "curbs",
+    "lotPlaza",
+    "macro"
   ],
   "$defs": {
     "hex": {
@@ -416,6 +419,276 @@
         "ribbonStepM": {
           "type": "number",
           "minimum": 0
+        }
+      }
+    },
+    "curbs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attachM",
+        "attachTolM",
+        "heightM",
+        "topM",
+        "bevelM",
+        "gutterM",
+        "rampM",
+        "rampRunM",
+        "lowLiftM",
+        "skirtM",
+        "buryM",
+        "resampleM",
+        "faces",
+        "bevel",
+        "gutter",
+        "miterLimit",
+        "footAoM",
+        "footAo",
+        "curb",
+        "gutterColor",
+        "paint"
+      ],
+      "properties": {
+        "$comment": {
+          "type": "string"
+        },
+        "attachM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "attachTolM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "heightM": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 0.12
+        },
+        "topM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "bevelM": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.05
+        },
+        "gutterM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "rampM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "rampRunM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "lowLiftM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "skirtM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "buryM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "resampleM": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "desktop",
+            "visionpro",
+            "mobile",
+            "low"
+          ],
+          "properties": {
+            "desktop": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 8
+            },
+            "visionpro": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 8
+            },
+            "mobile": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 8
+            },
+            "low": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 8
+            }
+          }
+        },
+        "faces": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "desktop",
+            "visionpro",
+            "mobile",
+            "low"
+          ],
+          "properties": {
+            "desktop": {
+              "type": "boolean"
+            },
+            "visionpro": {
+              "type": "boolean"
+            },
+            "mobile": {
+              "type": "boolean"
+            },
+            "low": {
+              "type": "boolean"
+            }
+          }
+        },
+        "bevel": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "desktop",
+            "visionpro",
+            "mobile",
+            "low"
+          ],
+          "properties": {
+            "desktop": {
+              "type": "boolean"
+            },
+            "visionpro": {
+              "type": "boolean"
+            },
+            "mobile": {
+              "type": "boolean"
+            },
+            "low": {
+              "type": "boolean"
+            }
+          }
+        },
+        "gutter": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "desktop",
+            "visionpro",
+            "mobile",
+            "low"
+          ],
+          "properties": {
+            "desktop": {
+              "type": "boolean"
+            },
+            "visionpro": {
+              "type": "boolean"
+            },
+            "mobile": {
+              "type": "boolean"
+            },
+            "low": {
+              "type": "boolean"
+            }
+          }
+        },
+        "miterLimit": {
+          "type": "number",
+          "minimum": 1
+        },
+        "footAoM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "footAo": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "curb": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "gutterColor": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "paint": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        }
+      }
+    },
+    "lotPlaza": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plazaM",
+        "lot",
+        "plaza"
+      ],
+      "properties": {
+        "plazaM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "lot": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "plaza": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        }
+      }
+    },
+    "macro": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "octavesM",
+        "weights",
+        "albedo",
+        "roughness"
+      ],
+      "properties": {
+        "octavesM": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "weights": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "albedo": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.08
+        },
+        "roughness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.04
         }
       }
     }

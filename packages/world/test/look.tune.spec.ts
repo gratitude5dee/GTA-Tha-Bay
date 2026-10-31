@@ -65,14 +65,14 @@ describe('config/world/look.json (M02g1)', () => {
     }
   });
 
-  it('gates every layer per profile: legacy only the markings (M02h1), the casters on full only, the rest on every flat profile', () => {
+  it('gates every layer per profile: legacy only the markings (M02h1), the casters on full only, bump and macro off min (M02h2), the rest on every flat profile', () => {
     expect(LOOK.layers.legacy).toEqual(['markings']);
     expect(layersOf('legacy')).toEqual(['markings']);
     expect([...LOOK.layers.full].sort()).toEqual([...LOOK_LAYERS].sort());
-    for (const p of ['lite', 'min'] as const) {
-      expect(LOOK.layers[p]).not.toContain('casters');
-      expect([...LOOK.layers[p]].sort()).toEqual(LOOK_LAYERS.filter((l) => l !== 'casters').sort());
-    }
+    expect([...LOOK.layers.lite].sort()).toEqual(LOOK_LAYERS.filter((l) => l !== 'casters').sort());
+    // M02h2: `min` bakes the macro tone into the vertex colours and has no bump
+    expect([...LOOK.layers.min].sort()).toEqual(LOOK_LAYERS.filter((l) => l !== 'casters' && l !== 'bump' && l !== 'macro').sort());
+    for (const p of ['lite', 'min'] as const) expect(LOOK.layers[p]).not.toContain('casters');
     // every tier's profile resolves to a layer list; the XR tiers' holds the flat street paint and nothing else
     for (const t of TIER_IDS) {
       const profile = LOOK.tierProfile[t];

@@ -22,7 +22,8 @@ import { MESHER, hexToLinear } from './mesher.ts';
 import type { MeshBuffers, UnitMesh } from './mesh-types.ts';
 import type { WorldMaterials } from './materials.ts';
 import { ChunkUploadGate } from './upload-gate.ts';
-import { CHUNK_EDGE_M, type ChunkKey } from '@dv/shared';
+import { walkLiftAt } from './sidewalks.ts';
+import { CHUNK_EDGE_M, chunkKeyAt, type ChunkKey } from '@dv/shared';
 
 export type RenderLevel = 'l0' | 'l1' | 'l2';
 
@@ -633,6 +634,32 @@ export class ChunkRenderer {
       out.stopBars += m.stopBars;
     }
     return out;
+  }
+
+  /** M02h2: what the resident L0 roads objects hold of the sidewalks (the QA bridge's `look().curbs`). */
+  curbsCounts(): { ribbons: number; curbedM: number; rampCount: number } {
+    const out = { ribbons: 0, curbedM: 0, rampCount: 0 };
+    for (const u of this.units.values()) {
+      const c = u.level === 'l0' ? u.mesh.stats.curbs : undefined;
+      if (!c) continue;
+      out.ribbons += c.ribbons;
+      out.curbedM += c.curbedM;
+      out.rampCount += c.rampCount;
+    }
+    out.curbedM = Math.round(out.curbedM * 10) / 10;
+    return out;
+  }
+
+  /**
+   * M02h2: the render lift of a foot at world (x, z): the walk mask of the resident L0 chunk there (`UnitMesh.walk`), `walkLiftM` on a curbed
+   * sidewalk, else 0 (and 0 where no L0 chunk is resident). Render only.
+   */
+  walkLiftAt(x: number, z: number): number {
+    const key = chunkKeyAt(9, x, z);
+    const u = this.units.get(idOf('l0', key));
+    const m = u?.mesh;
+    if (!m || !m.walk || !m.walkLiftM) return 0;
+    return walkLiftAt(m.walk, m.walkLiftM, x - m.originX, z - m.originZ);
   }
 
   // ---- GPU loss ------------------------------------------------------------------------------------------------------------

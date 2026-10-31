@@ -52,8 +52,8 @@ describe('config/world/surface-textures.json', () => {
 
   it('every surface name is bound or procedural, exactly once, and a fixture with one unlisted name fails naming it', () => {
     for (const name of SURFACE_NAMES) expect(name in SURFACE_TEXTURES.bindings || SURFACE_TEXTURES.procedural.includes(name)).toBe(true);
-    const errors = textureConfigErrors(SURFACE_TEXTURES, [...SURFACE_NAMES, 'curb'], maxTextureMB());
-    expect(errors).toEqual(['surface curb is in neither bindings nor procedural']);
+    const errors = textureConfigErrors(SURFACE_TEXTURES, [...SURFACE_NAMES, 'kerb'], maxTextureMB());
+    expect(errors).toEqual(['surface kerb is in neither bindings nor procedural']);
     const both = clone();
     both.procedural = [...both.procedural, 'sidewalk'];
     expect(textureConfigErrors(both, SURFACE_NAMES, maxTextureMB())).toEqual(['surface sidewalk is both bound and listed as procedural']);
@@ -102,7 +102,8 @@ describe('the mode of a tier', () => {
   });
 
   it('knows the ids each set is bound to', () => {
-    expect(idsOfSet('concrete').map((i) => SURFACE_NAMES[i])).toEqual(['ground.Sidewalk', 'sidewalk']);
+    expect(idsOfSet('concrete').map((i) => SURFACE_NAMES[i])).toEqual(['ground.Sidewalk', 'sidewalk', 'curb', 'gutter', 'lot']);
+    expect(idsOfSet('pavers').map((i) => SURFACE_NAMES[i])).toEqual(['ground.Paved', 'plaza']);
     expect(idsOfSet('brick')).toEqual([]);
   });
 

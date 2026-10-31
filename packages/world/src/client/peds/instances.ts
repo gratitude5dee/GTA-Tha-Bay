@@ -45,6 +45,11 @@ export interface PedRendererOptions {
   cap: number;
   /** Skinned near-LOD cap of the tier. */
   nearCap: number;
+  /**
+   * M02h2: the render lift of a foot at world (x, z) (the curb height on a curbed sidewalk, chunks/sidewalks.ts); the figures draw that much
+   * higher. Absent: 0. Render only: the sim keeps its heights.
+   */
+  lift?: (x: number, z: number) => number;
 }
 
 const COLORS = PED_PALETTE.map((hex) => [((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255] as const);
@@ -180,6 +185,11 @@ export class PedRenderer {
     return this.info0;
   }
 
+  /** M02h2: the render lift at a foot (0 without a lift source). */
+  private liftAt(x: number, z: number): number {
+    return this.o.lift ? this.o.lift(x, z) : 0;
+  }
+
   /** Draws the ambient pedestrian poses of a frame; returns the instances drawn (far and near). */
   update(f: Pick<WorldFrame, 'poses' | 'poseCount' | 'poseKeys' | 'camera'>, timeSec: number): number {
     const dt = this.lastT > 0 ? Math.min(0.1, Math.max(0, timeSec - this.lastT)) : 0;
@@ -284,7 +294,7 @@ export class PedRenderer {
     m[o + 10] = (1 - (xx + yy)) * scale;
     m[o + 11] = 0;
     m[o + 12] = p.px;
-    m[o + 13] = p.py;
+    m[o + 13] = p.py + this.liftAt(p.px, p.pz);
     m[o + 14] = p.pz;
     m[o + 15] = 1;
   }
@@ -303,7 +313,7 @@ export class PedRenderer {
       s.outfit = Math.round(p.animP1);
       s.fig.setTint(PED_PALETTE[s.outfit % PED_PALETTE.length] as number);
     }
-    s.fig.root.position.set(p.px, p.py, p.pz);
+    s.fig.root.position.set(p.px, p.py + this.liftAt(p.px, p.pz), p.pz);
     s.fig.root.quaternion.set(p.qx, p.qy, p.qz, p.qw);
     s.pending += dt;
     // states the mannequin graph knows (0 to 3); everything else stands

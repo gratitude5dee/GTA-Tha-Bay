@@ -60,6 +60,14 @@ export function markingsReportOf(materials: WorldMaterials, chunks: ChunkRendere
   return { mode: materials.markings.mode(), ...chunks.markingsCounts(), aa: materials.markings.aaOn() };
 }
 
+/** M02h2: the sidewalks as the QA bridge reports them (`look().curbs`): what the resident L0 roads objects hold. */
+export interface CurbsReport {
+  ribbons: number;
+  /** Metres of curb line with a curb (or the painted band on `mobile-low`). */
+  curbedM: number;
+  rampCount: number;
+}
+
 export interface LookReport {
   /** `legacy` while the look is off. */
   profile: LookProfile;
@@ -102,6 +110,8 @@ export interface LookReport {
   vegetation: VegetationReport;
   /** M02h1: the street paint, its mode and counts. */
   markings: MarkingsReport;
+  /** M02h2: the curbs and sidewalk ribbons of the resident chunks. */
+  curbs: CurbsReport;
 }
 
 export interface LookViewOptions {
@@ -442,6 +452,12 @@ export class LookView {
     else this.layerSet.delete(id);
     if (id === 'blob') this.blobs?.setEnabled(on);
     if (id === 'markings') this.o.materials.markings.setLayer(on);
+    // M02h2: the curbs, the bump, the macro variation and the lots are shader switches (look/common.ts)
+    const ln = this.o.materials.lookNodes;
+    if (id === 'curbs') ln.uCurbs.value = on ? 1 : 0;
+    if (id === 'bump') ln.uBump.value = on ? 1 : 0;
+    if (id === 'macro') ln.uMacro.value = on ? 1 : 0;
+    if (id === 'lots') ln.uLots.value = on ? 1 : 0;
     if (id === 'casters') {
       this.applyDynamicCasters(true);
       this.o.chunks.refreshTreeCasters();
@@ -550,6 +566,7 @@ export class LookView {
       windowLit: [this.lastLitRange[0], this.lastLitRange[1]],
       vegetation: this.o.chunks.vegetationReport(),
       markings: markingsReportOf(this.o.materials, this.o.chunks),
+      curbs: this.o.chunks.curbsCounts(),
     };
   }
 
