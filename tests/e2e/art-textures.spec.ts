@@ -116,7 +116,10 @@ test.describe('surface textures @art-textures', () => {
     await texturesSettled(page);
     const t = (await world(page, (w) => w.look()))?.textures;
     expect(t).toMatchObject({ mode: 'off', refs: [], sets: [], gpuBytes: 0, downloadBytes: 0 });
-    await frames(page, 30);
+    // Thirty frames after the boot, with the stream still uploading at `desktop` (settle(90 s) ends unsettled on software GL): 96 to 141 s
+    // locally, past 180 s on a slow CI runner, where the first try failed at the old bound (runs 41275283470, 41286285044). The count is
+    // unchanged; the bound is the test's to spend (BD-REPAIR-M02h3-03).
+    await frames(page, 30, 480_000);
     expect([...requested]).toEqual([]);
   });
 
