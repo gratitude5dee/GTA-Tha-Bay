@@ -146,7 +146,7 @@ test.describe('cover goldens @look-golden', () => {
         await bootWorld(page, tier, '', GOLDEN_VIEWPORT);
         await page.addStyleTag({ content: HIDE });
         await clearActors(page);
-        await world(page, (w) => w.shot(shot));
+        await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id), shot);
         await frames(page, 2);
         const first: Rgba = decodePng(await page.locator('#dv-engine-canvas').screenshot());
         await frames(page, 2);
