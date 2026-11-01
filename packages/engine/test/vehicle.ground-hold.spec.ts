@@ -13,12 +13,18 @@ import { describe, expect, it } from 'vitest';
 import type { EntityHandle, StableKey } from '@dv/shared';
 import { BodyRef, Transform } from '../src/sim/ecs/components.ts';
 import type { StaticShapeSet } from '../src/sim/physics/backend.ts';
+import { GROUP_BIT } from '../src/sim/physics/groups.ts';
 import { groundHeld } from '../src/sim/vehicle/components.ts';
 import { createVehicleWorld, drive, launch, view, type VehicleWorld } from './vehicle-sim.ts';
 
 /** A flat 200 m square at y 0 around (cx, cz): one chunk's ground. */
 function square(cx: number, cz: number): StaticShapeSet {
   return { heightfield: { nx: 2, nz: 2, cell: 200, heights: new Float32Array(4), at: [cx - 100, 0, cz - 100] }, prisms: new Float32Array(0) };
+}
+
+/** A packed prism (C08 `PrismPack`): a 20 m tall box over [x0, x1] x [z0, z1], counter-clockwise. */
+function box(x0: number, z0: number, x1: number, z1: number): number[] {
+  return [4, 0, 20, x0, z0, x1, z0, x1, z1, x0, z1];
 }
 
 const PAD = 'chunk.pad';
@@ -188,6 +194,66 @@ describe('the ground hold of a vehicle whose ground collider is not resident (BD
     expect(top).toBeGreaterThan(1.5);
     expect(view(w).x).toBeGreaterThan(5);
     expect(view(w).contacts).toBeGreaterThan(0);
+    w.sim.dispose();
+  }, 60_000);
+
+  it('a moving car with nobody aboard is not stopped when its loaded chunk\'s colliders are rebuilt in place (a portal refresh)', async () => {
+    // the chunk is ground plus two buildings off the lane (every real chunk has prisms; a heightfield alone gets its old collider slot
+    // back, and the stale query structure still finds it), the car is driven by a brain (`external`, full throttle, nobody aboard)
+    const pad = (): StaticShapeSet => ({ ...square(0, 0), prisms: Float32Array.from([...box(-50, 30, 50, 40), ...box(-50, -40, 50, -30)]) });
+    const w = await createVehicleWorld({
+      noTrack: true, seated: false, pos: [-80, 0, 0], playerAt: [400, 0, 0],
+      setup: ({ sim }) => {
+        sim.backend.addChunkStatics(PAD, pad());
+        sim.backend.addChunkStatics(FAR, square(400, 0));
+      },
+    });
+    drive(w, SETTLE);
+    const id = w.sim.ecs.resolve(w.vehicle) as number;
+    const rt = w.mod.store.rt.get(id);
+    if (!rt) throw new Error('no runtime');
+    rt.external = true;
+    rt.input.throttle = 127;
+    rt.input.handbrake = false;
+    let n = 0;
+    while (view(w).horiz < 6 && n++ < 600) drive(w, 1);
+    const before = view(w);
+    expect(before.horiz).toBeGreaterThan(6);
+    expect(before.x).toBeLessThan(0);
+
+    // the portal changed state: StaticsFeeder.refresh removes and adds the chunk's colliders in one call (in the AI stage, before the hold)
+    const b = w.sim.backend;
+    b.removeChunkStatics(PAD);
+    b.addChunkStatics(PAD, pad());
+    // the queries do not see the rebuilt colliders before the next step: the case this guards
+    expect(b.castRay([before.x, 500, before.z], [0, -1, 0], 1000, GROUP_BIT.static)).toBeNull();
+    let wasHeld = false;
+    let slowest = before.horiz;
+    drive(w, 10, {}, () => {
+      wasHeld ||= held(w) || b.bodyKind(bodyOf(w)) !== 'dynamic';
+      slowest = Math.min(slowest, view(w).horiz);
+    });
+    expect(wasHeld, 'held on resident ground').toBe(false);
+    expect(slowest, 'stopped on resident ground').toBeGreaterThan(before.horiz - 0.2);
+    expect(view(w).horiz).toBeGreaterThan(before.horiz);
+    expect(view(w).contacts).toBe(4);
+    w.sim.dispose();
+  }, 60_000);
+
+  it('a parked car is not held across a rebase of the physics frame (every static collider is rebuilt)', async () => {
+    const w = await parked();
+    const rest = view(w);
+    const b = w.sim.backend;
+    // the QA rebase op runs between ticks; the player stays within the rebase distance of the new origin, so nothing moves it back
+    b.rebase([500, 0, 0]);
+    let wasHeld = false;
+    drive(w, 30, {}, () => {
+      wasHeld ||= held(w) || b.bodyKind(bodyOf(w)) !== 'dynamic';
+    });
+    expect(b.origin[0]).toBe(500);
+    expect(wasHeld, 'held on resident ground').toBe(false);
+    expect(view(w).contacts).toBe(4);
+    expect(Math.abs(view(w).y - rest.y)).toBeLessThan(0.02);
     w.sim.dispose();
   }, 60_000);
 

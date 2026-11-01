@@ -37,9 +37,9 @@ export const VEHICLE_GROUND_HOLD_ID = 'engine.vehicle.ground-hold';
 export const VEHICLE_POST_ID = 'engine.vehicle.post';
 
 /**
- * The ground hold's probe is one ray down the whole column at a vehicle's (x, z): from this far above its centre to as far below it,
- * metres. Taller and deeper than anything in the city (terrain tops near 280 m, the play floor at -80 m), so any resident static there,
- * over the car or under it, is found.
+ * The ground hold's release probe is one ray down the whole column at a held vehicle's (x, z): from this far above its centre to as far
+ * below it, metres. Taller and deeper than anything in the city (terrain tops near 280 m, the play floor at -80 m), so any static the
+ * queries see there, over the car or under it, is found.
  */
 export const GROUND_HOLD_PROBE_M = 1000;
 /** A ray that hits within this distance started inside the collider, metres (a car's centre stands at least 0.4 m clear of the ground). */
@@ -138,15 +138,21 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
    * static collider at all is held: its body turns kinematic where it stands, with no velocity, and it is not simulated (no handling
    * substep, no flight, impact or water bookkeeping) while its `Transform` stays (the generic PhysicsPre hands that to Rapier as the
    * kinematic target, so a rebase does not move it). It is let go, dynamic and at rest, on the first tick a static collider is in its
-   * column again (one tick after the chunk's statics are added: Rapier's queries see a new collider only after a step) or as soon as
-   * anybody is aboard; while the car is inside a static (the wall box over a chunk that failed to load, which would shove a released
-   * car out) it stays held. A car with any static in its column, one under the ground included, is never held, so the below-the-world
-   * rules (02-world-maps.md 4.1 d) see it fall as before; one with the player aboard is the vehicle net's; one stalled in the water is
-   * the water rule's. Ground that never unloads (the gray-box scenes) holds nothing, so those scenes hash as before.
+   * column again and the queries see it (one tick after the chunk's statics are added: Rapier's queries see a new collider only after a
+   * step, and the wheels' rays and the inside test below use them) or as soon as anybody is aboard; while the car is inside a static (the
+   * wall box over a chunk that failed to load, which would shove a released car out) it stays held. A car with any static in its column,
+   * one under the ground included, is never held, so the below-the-world rules (02-world-maps.md 4.1 d) see it fall as before; one with
+   * the player aboard is the vehicle net's; one stalled in the water is the water rule's. Ground that never unloads (the gray-box scenes)
+   * holds nothing, so those scenes hash as before.
+   *
+   * Whether a column holds a static is the backend's statics table (`staticColumn`), not a ray: right after a chunk's colliders are
+   * rebuilt in place (`StaticsFeeder.refresh` removes and adds them in one call when a portal changes state, in the AI stage, before
+   * this system) or after a rebase, Rapier's queries do not see the new colliders until the next step, and a ray there would hold, and
+   * so stop dead, a moving car whose ground never left.
    */
   const probeFrom: Vec3 = [0, 0, 0];
-  /** Any static collider in the column at (x, z), over or under height y. */
-  const resident = (x: number, y: number, z: number): boolean => {
+  /** Rapier's queries see a static collider in the column at (x, z), over or under height y. */
+  const seen = (x: number, y: number, z: number): boolean => {
     probeFrom[0] = x; probeFrom[1] = y + GROUND_HOLD_PROBE_M; probeFrom[2] = z;
     return backend.castRay(probeFrom, DOWN, 2 * GROUND_HOLD_PROBE_M, GROUP_BIT.static) !== null;
   };
@@ -177,7 +183,7 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
         if (!groundHeld(rt, body)) {
           // the runtime of a despawned held car whose dense id this car took over: the hold was that car's body, not this one
           if (rt.heldBody !== 0) rt.heldBody = 0;
-          if (aboard || rt.wet.stalled || backend.bodyKind(body) !== 'dynamic' || resident(x, y, z)) continue;
+          if (aboard || rt.wet.stalled || backend.bodyKind(body) !== 'dynamic' || backend.staticColumn(x, z)) continue;
           // the pose it is held at is the body's own: a car held on its first tick still has its spawn `Transform` (its base, not its centre)
           backend.readBody(body, pose);
           tr.px[id] = pose[0] as number; tr.py[id] = pose[1] as number; tr.pz[id] = pose[2] as number;
@@ -194,7 +200,7 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
           rt.lastVz = 0;
           rt.impactAcc = 0;
           rt.heldBody = body;
-        } else if (aboard || (resident(x, y, z) && !insideStatic(x, y, z))) {
+        } else if (aboard || (backend.staticColumn(x, z) && seen(x, y, z) && !insideStatic(x, y, z))) {
           backend.setBodyKind(body, 'dynamic');
           backend.setBodyVelocity(body, still, still);
           rt.heldBody = 0;
