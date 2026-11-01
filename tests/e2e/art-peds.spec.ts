@@ -29,7 +29,7 @@ type PedArt = {
   state: 'off' | 'loading' | 'ready' | 'failed';
   refs: string[];
 };
-type Peds = { near: number; far: number; objects: number; perBody: number[]; cap: number; nearCap: number; art: PedArt };
+type Peds = { instances: number; near: number; far: number; objects: number; perBody: number[]; cap: number; nearCap: number; art: PedArt };
 
 const peds = (page: Page): Promise<Peds | null> => world(page, (w) => w.peds() as unknown as Peds | null);
 
@@ -42,8 +42,16 @@ async function crowd(page: Page): Promise<void> {
   await expect
     .poll(async () => ((await world(page, (w) => w.call('state'))) as { topology?: boolean } | null)?.topology === true, { timeout: 180_000, intervals: [500, 1000, 2000] })
     .toBe(true);
-  const placed = (await world(page, (w) => w.call('crowd', { n: 12 }))) as { placed: number } | null;
-  expect(placed?.placed ?? 0, 'the QA crowd stands').toBeGreaterThan(3);
+  // the first fill: the pedestrian graph around the player is resident (the scatter places nobody before it is)
+  await expect.poll(async () => (await peds(page))?.instances ?? 0, { timeout: 180_000, intervals: [500, 1000, 2000] }).toBeGreaterThan(3);
+  // the scatter answers 0 until the sidewalks within 40 m are resident; once it places the crowd, it is not asked again
+  let placed = 0;
+  await expect
+    .poll(async () => {
+      if (placed <= 3) placed = ((await world(page, (w) => w.call('crowd', { n: 12 }))) as { placed: number } | null)?.placed ?? 0;
+      return placed;
+    }, { message: 'the QA crowd stands', timeout: 180_000, intervals: [1000, 2000, 4000] })
+    .toBeGreaterThan(3);
   await expect.poll(async () => (await peds(page))?.art.state ?? 'loading', { timeout: 300_000, intervals: [500, 1000] }).not.toBe('loading');
   await expect.poll(async () => (await peds(page))?.near ?? 0, { timeout: 180_000, intervals: [500, 1000, 2000] }).toBeGreaterThan(0);
 }
@@ -95,8 +103,9 @@ test.describe('art peds @art-peds', () => {
       expect(p.near).toBeLessThanOrEqual(p.nearCap);
       // the kit came through the pack store: every body, far figure and outfit of the config, and the atlas
       for (const ref of ['character/ped.body.h', 'prop/ped.far.h', 'character/ped.outfit.20', 'texture/ped.atlas']) expect([...requested], ref).toContain(ref);
-      const s = await sceneObjects(page);
-      expect(s.skinned, 'one skinned mesh per near pedestrian').toBe((await peds(page))?.near);
+      // the report and the scene of one held frame (the crowd moves between two reads)
+      const { p: held, s } = await crowdFrame(page);
+      expect(s.skinned, 'one skinned mesh per near pedestrian').toBe(held.near);
       expect(s.materials.every((m) => m === 1), 'one material per near pedestrian').toBe(true);
       expect(s.nearTriangles.every((t) => t > 1000), `near figures are the kit's bodies (${s.nearTriangles.join(', ')} triangles)`).toBe(true);
       expect(errors).toEqual([]);
