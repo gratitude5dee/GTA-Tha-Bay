@@ -10,7 +10,7 @@
 import { readFileSync } from 'node:fs';
 import { type EntityHandle, type HeatState, type InfractionKind, type InputFrame, type StableKey } from '@dv/shared';
 import {
-  Transform, Velocity, createPursuitModule, driveToward, pathTarget, seatDriver, yawOf, MemoryWallet, pursuitWorldFrom,
+  BodyRef, Transform, Velocity, createPursuitModule, driveToward, groundHeld, pathTarget, seatDriver, yawOf, MemoryWallet, pursuitWorldFrom,
   type PursuitModule, type UnitView,
 } from '@dv/engine/sim';
 import type { BakeData } from './bake.ts';
@@ -66,6 +66,13 @@ export interface PursuitRunResult {
   trace: PursuitTrace[];
   rngStreams: string[];
   events: Record<string, number>;
+  /**
+   * Unit-ticks a pursuit unit spent under the vehicles' ground hold (BD-FIX-PARKED-FALL-01): 0, since the director drives its units and its
+   * own 30-tick rule removes one over unloaded ground (third round).
+   */
+  heldUnitTicks: number;
+  /** The QA parked cars (`veh:sw.*`) the ground hold holds at the end of the line (their chunks unload once the bot is far enough away). */
+  heldParkedAtEnd: number;
 }
 
 export interface PursuitRun {
@@ -219,7 +226,15 @@ export async function playPursuit(o: { bake: BakeData; order?: 'in-order' | 'shu
   let maxLevel = 0;
   let peakUnits = 0;
   let driven = 0;
+  let heldUnitTicks = 0;
   let last = r.pos();
+  const ctx = sim.services.vehicleCtx;
+  /** The ground hold holds the vehicle with handle `h`. */
+  const isHeld = (h: number): boolean => {
+    const id = sim.ecs.resolve(h as EntityHandle);
+    const rt = id === null ? undefined : ctx?.store.rt.get(id);
+    return id !== null && rt !== undefined && groundHeld(rt, sim.ecs.store(BodyRef).body[id] as number);
+  };
   const startTick = sim.core.tick;
   const total = startTick + line.ticks;
   while (sim.core.tick < total) {
@@ -231,6 +246,7 @@ export async function playPursuit(o: { bake: BakeData; order?: 'in-order' | 'shu
     const p = r.pos();
     driven += Math.hypot(p.x - last.x, p.z - last.z);
     last = p;
+    for (const u of r.pursuit.director()?.dispatch.units ?? []) if (isHeld(u.id)) heldUnitTicks++;
     if (st) {
       if (st.level > maxLevel) maxLevel = st.level;
       peakUnits = Math.max(peakUnits, st.units.length);
@@ -239,9 +255,11 @@ export async function playPursuit(o: { bake: BakeData; order?: 'in-order' | 'shu
     }
   }
   const final = sim.hash();
+  let heldParkedAtEnd = 0;
+  for (let k = 0; k < 6; k++) if (isHeld(sim.ecs.byKey(`veh:sw.${k}` as StableKey))) heldParkedAtEnd++;
   const out: PursuitRunResult = {
     bakeId: o.bake.bakeId, seed: line.seed, ticks: line.ticks, checkpoints, final, stallTicks: r.run.stallTicks, preload: r.run.preload, escapedAt, maxLevel, peakUnits,
-    driven: Math.round(driven), trace, rngStreams: [...sim.services.rng.streamNames()], events,
+    driven: Math.round(driven), trace, rngStreams: [...sim.services.rng.streamNames()], events, heldUnitTicks, heldParkedAtEnd,
   };
   r.dispose();
   return out;

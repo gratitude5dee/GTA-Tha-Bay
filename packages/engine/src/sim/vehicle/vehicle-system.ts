@@ -2,8 +2,8 @@
  * The vehicle systems (M03a1): control input, the handling substep, and the bookkeeping after the physics step.
  *
  *  - `engine.vehicle.input` (PhysicsPre): the driver's quantized input becomes the vehicle's input; a parked car holds the handbrake.
- *  - `engine.vehicle.ground-hold` (PhysicsPre): a vehicle with nobody aboard and no static collider resident in its column is held
- *    where it stands until one is (BD-FIX-PARKED-FALL-01).
+ *  - `engine.vehicle.ground-hold` (PhysicsPre): a vehicle that nobody drives (nobody aboard, no script or brain at its input) and that
+ *    has no static collider resident in its column is held where it stands until one is (BD-FIX-PARKED-FALL-01).
  *  - `beforeSubstep` (called by the physics step system, once per substep): ray casts, `stepHandling`, impulses. The step
  *    system runs two substeps while a player vehicle is faster than 100 km/h, and handling then steps at SIM_DT / 2.
  *  - `engine.vehicle.post` (PhysicsPost): the `Vehicle` component, damage from impacts, flight bookkeeping and the water wall.
@@ -12,7 +12,7 @@
  */
 import {
   applyImpact, DEFAULT_ASSIST, datan2, dcos, dsin, dsqrt, SimButton, SimStage, SIM_DT, waterWall,
-  type EntityId, type HandlingInput, type Impact, type SystemDef,
+  type EcsApi, type EntityId, type HandlingInput, type Impact, type SystemDef,
 } from '@dv/shared';
 import { Control, PlayerControlled, Transform, Vehicle, VehicleDamage, Velocity, BodyRef } from '../ecs/components.ts';
 import type { EcsWorld } from '../ecs/world.ts';
@@ -134,16 +134,25 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
    * player (01-engine.md 2.4), so a car left behind loses its ground once the player is far enough away, and a dynamic body with nothing
    * under it falls for as long as that lasts (the QA parked cars at City Hall were found at y -1294 and -1602 m after the story moved the
    * stream to the Yard). The spec freezes ambient agents on unloaded edges (02-world-living.md 2.2); this does the same for a vehicle
-   * body. A vehicle with nobody aboard (no driver, no player at the wheel, as a passenger, entering or leaving) whose column holds no
-   * static collider at all is held: its body turns kinematic where it stands, with no velocity, and it is not simulated (no handling
-   * substep, no flight, impact or water bookkeeping) while its `Transform` stays (the generic PhysicsPre hands that to Rapier as the
-   * kinematic target, so a rebase does not move it). It is let go, dynamic and at rest, on the first tick a static collider is in its
-   * column again and the queries see it (one tick after the chunk's statics are added: Rapier's queries see a new collider only after a
-   * step, and the wheels' rays and the inside test below use them) or as soon as anybody is aboard; while the car is inside a static (the
-   * wall box over a chunk that failed to load, which would shove a released car out) it stays held. A car with any static in its column,
+   * body. A vehicle that nobody drives (`undriven` below) whose column holds no static collider at all is held: its body turns
+   * kinematic where it stands, with no velocity, and it is not simulated (no handling substep, no flight, impact or water bookkeeping)
+   * while its `Transform` stays (the generic PhysicsPre hands that to Rapier as the kinematic target, so a rebase does not move it). It
+   * is let go, dynamic and at rest, on the first tick a static collider is in its column again and the queries see it (one tick after the
+   * chunk's statics are added: Rapier's queries see a new collider only after a step, and the wheels' rays and the inside test below use
+   * them) or as soon as anybody drives it; while the car is inside a static (the wall box over a chunk that failed to load, which would
+   * shove a released car out) it stays held. A car with any static in its column,
    * one under the ground included, is never held, so the below-the-world rules (02-world-maps.md 4.1 d) see it fall as before; one with
    * the player aboard is the vehicle net's; one stalled in the water is the water rule's. Ground that never unloads (the gray-box scenes)
    * holds nothing, so those scenes hash as before.
+   *
+   * A driven vehicle is never held (third round): whoever drives it owns what happens when its ground leaves, as before the hold. The
+   * pursuit director's units are `external` from their first AI step (`EcsPursuitHost.drive`), and the dispatcher removes a unit that has
+   * been over unloaded ground for 30 ticks and calls a new one in (`dispatch.ts`, UNGROUNDED_TICKS); the traffic's kicked cars are
+   * `external` and its sweep despawns them under the world (DL-735 c); a story script's `vehicleAi` car and the race car are `external`,
+   * and the race car and every QA bot's car have the player aboard. Holding one of them stopped a moving car dead in the air, at zero
+   * speed, under somebody else's control. A unit is spawned only where a static stands (`Dispatcher.pickSpawn`), so it is held on its
+   * spawn tick only if its chunk leaves in that very tick, and is let go on the next, when the director first drives it. Not the `Police`
+   * tag: the QA parked set has a parked cruiser (`veh:sw.2`, `veh:gb.cruiser`), and nobody drives it.
    *
    * Whether a column holds a static is the backend's statics table (`staticColumn`), not a ray: right after a chunk's colliders are
    * rebuilt in place (`StaticsFeeder.refresh` removes and adds them in one call when a portal changes state, in the AI stage, before
@@ -164,6 +173,12 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
   };
   const still: Vec3 = [0, 0, 0];
   const pose = new Float64Array(13);
+  /**
+   * Nobody drives vehicle `id` (runtime `rt`): no driver, no player aboard (at the wheel, as a passenger, entering or leaving), and no
+   * script or brain writing its input (`external`: the pursuit director, the traffic, the story's `vehicleAi`, the race). The QA parked
+   * cars and a car the player left are undriven.
+   */
+  const undriven = (w: EcsApi, id: number, rt: VehicleRuntime): boolean => rt.driver === 0 && !rt.external && !vehicleHasPlayer(w, id);
   const hold: SystemDef = {
     id: VEHICLE_GROUND_HOLD_ID, owner: 'S01', stage: SimStage.PhysicsPre, order: -20,
     run: ({ ecs: w }) => {
@@ -176,14 +191,14 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
         const body = bodies[id] as number;
         if (body === 0) continue;
         const rt = runtimeOf(id);
-        const aboard = rt.driver !== 0 || vehicleHasPlayer(w, id);
+        const free = undriven(w, id, rt);
         const x = tr.px[id] as number;
         const y = tr.py[id] as number;
         const z = tr.pz[id] as number;
         if (!groundHeld(rt, body)) {
           // the runtime of a despawned held car whose dense id this car took over: the hold was that car's body, not this one
           if (rt.heldBody !== 0) rt.heldBody = 0;
-          if (aboard || rt.wet.stalled || backend.bodyKind(body) !== 'dynamic' || backend.staticColumn(x, z)) continue;
+          if (!free || rt.wet.stalled || backend.bodyKind(body) !== 'dynamic' || backend.staticColumn(x, z)) continue;
           // the pose it is held at is the body's own: a car held on its first tick still has its spawn `Transform` (its base, not its centre)
           backend.readBody(body, pose);
           tr.px[id] = pose[0] as number; tr.py[id] = pose[1] as number; tr.pz[id] = pose[2] as number;
@@ -200,7 +215,7 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
           rt.lastVz = 0;
           rt.impactAcc = 0;
           rt.heldBody = body;
-        } else if (aboard || (backend.staticColumn(x, z) && seen(x, y, z) && !insideStatic(x, y, z))) {
+        } else if (!free || (backend.staticColumn(x, z) && seen(x, y, z) && !insideStatic(x, y, z))) {
           backend.setBodyKind(body, 'dynamic');
           backend.setBodyVelocity(body, still, still);
           rt.heldBody = 0;

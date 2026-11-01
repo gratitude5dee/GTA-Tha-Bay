@@ -7,7 +7,8 @@
  * A car with the player at the wheel, a car in the air over resident ground and a car under the ground are not held: they fall as before
  * (the first is the below-the-world net's, 02-world-maps.md 4.1 d; the last is under a resident surface, so its ground is resident).
  * A held car stays held inside a failed chunk's wall box, survives a snapshot restore, and its hold (a body id) is not inherited by the
- * next car that takes over its dense id.
+ * next car that takes over its dense id. A driven car (a police unit the pursuit director drives, a car a brain or a script drives:
+ * `external`) is never held, and a held car is let go once anybody drives it (third round).
  */
 import { describe, expect, it } from 'vitest';
 import type { EntityHandle, StableKey } from '@dv/shared';
@@ -254,6 +255,122 @@ describe('the ground hold of a vehicle whose ground collider is not resident (BD
     expect(wasHeld, 'held on resident ground').toBe(false);
     expect(view(w).contacts).toBe(4);
     expect(Math.abs(view(w).y - rest.y)).toBeLessThan(0.02);
+    w.sim.dispose();
+  }, 60_000);
+
+  it('a parked car is not held when its loaded chunk\'s colliders are rebuilt in place (a portal refresh)', async () => {
+    // the same refresh as above for the car the hold is for: nobody drives it, so only the statics table keeps it free
+    const pad = (): StaticShapeSet => ({ ...square(0, 0), prisms: Float32Array.from([...box(-50, 30, 50, 40), ...box(-50, -40, 50, -30)]) });
+    const w = await createVehicleWorld({
+      noTrack: true, seated: false, pos: [0, 0, 0], playerAt: [400, 0, 0],
+      setup: ({ sim }) => {
+        sim.backend.addChunkStatics(PAD, pad());
+        sim.backend.addChunkStatics(FAR, square(400, 0));
+      },
+    });
+    drive(w, SETTLE);
+    const rest = view(w);
+    const b = w.sim.backend;
+    b.removeChunkStatics(PAD);
+    b.addChunkStatics(PAD, pad());
+    expect(b.castRay([rest.x, 500, rest.z], [0, -1, 0], 1000, GROUP_BIT.static)).toBeNull();
+    let wasHeld = false;
+    drive(w, 30, {}, () => {
+      wasHeld ||= held(w) || b.bodyKind(bodyOf(w)) !== 'dynamic';
+    });
+    expect(wasHeld, 'held on resident ground').toBe(false);
+    expect(view(w).contacts).toBe(4);
+    w.sim.dispose();
+  }, 60_000);
+
+  /**
+   * Third round (the race-pursuit-heat4 regression): a driven vehicle is never held. The pursuit director drives its units (`external`)
+   * and owns what happens to one over unloaded ground (the dispatcher's 30-tick rule removes it and calls in another); a brain or a script
+   * drives an `external` car. On 17fca878 each of these was held, kinematic at zero speed in mid-air, while its driver kept steering it.
+   */
+  it('a police unit the director drives is not held when its ground leaves: it keeps its speed and falls, as before the hold', async () => {
+    const w = await createVehicleWorld({
+      noTrack: true, seated: false, prefab: 'police.cruiser', pos: [-80, 0, 0], playerAt: [400, 0, 0],
+      setup: ({ sim }) => {
+        sim.backend.addChunkStatics(PAD, square(0, 0));
+        sim.backend.addChunkStatics(FAR, square(400, 0));
+      },
+    });
+    drive(w, SETTLE);
+    const id = w.sim.ecs.resolve(w.vehicle) as number;
+    const rt = w.mod.store.rt.get(id);
+    if (!rt) throw new Error('no runtime');
+    // what EcsPursuitHost.drive writes every AI step
+    rt.external = true;
+    rt.input.throttle = 127;
+    rt.input.handbrake = false;
+    let n = 0;
+    while (view(w).horiz < 8 && n++ < 600) drive(w, 1);
+    const before = view(w);
+    expect(before.horiz).toBeGreaterThan(8);
+    // the unit drives on and its chunk leaves the collider ring
+    w.sim.backend.removeChunkStatics(PAD);
+    let wasHeld = false;
+    let slowest = before.horiz;
+    drive(w, 40, {}, () => {
+      wasHeld ||= held(w) || w.sim.backend.bodyKind(bodyOf(w)) !== 'dynamic';
+      slowest = Math.min(slowest, view(w).horiz);
+    });
+    expect(wasHeld, 'a driven police unit was held').toBe(false);
+    expect(slowest, 'stopped dead in the air').toBeGreaterThan(before.horiz - 1);
+    expect(view(w).y).toBeLessThan(before.y - 1);
+    w.sim.dispose();
+  }, 60_000);
+
+  it('a police unit spawned over an empty column is let go as soon as the director drives it, and falls for the dispatcher\'s rule', async () => {
+    const w = await createVehicleWorld({
+      noTrack: true, seated: false, pos: [0, 0, 0], playerAt: [400, 0, 0],
+      setup: ({ sim }) => {
+        sim.backend.addChunkStatics(PAD, square(0, 0));
+        sim.backend.addChunkStatics(FAR, square(400, 0));
+      },
+    });
+    drive(w, 30);
+    // a unit 2 m over a column whose chunk is not resident (east of the pad, west of the far chunk): the dispatcher picks resident ground,
+    // so this is a spawn whose chunk left in the tick it appeared; on that tick nobody drives it yet, and it is held like a parked car
+    const unit = w.prefabs.spawn('police.cruiser', { pos: [250, 2, 0], yaw: 0 }, 'veh:pol0' as StableKey);
+    drive(w, 1);
+    const id = w.sim.ecs.resolve(unit) as number;
+    const rt = w.mod.store.rt.get(id);
+    if (!rt) throw new Error('no runtime');
+    // the director's next AI step drives it (EcsPursuitHost.drive)
+    rt.external = true;
+    rt.input.throttle = 127;
+    rt.input.handbrake = false;
+    let wasHeld = false;
+    drive(w, 40, {}, () => {
+      wasHeld ||= held(w, unit) || w.sim.backend.bodyKind(bodyOf(w, unit)) !== 'dynamic';
+    });
+    expect(wasHeld, 'a driven police unit was held').toBe(false);
+    // it fell the way it did before the hold (2.2 m in the 40 ticks), for the dispatcher's 30-tick rule to take it
+    expect(w.sim.ecs.store(Transform).py[id]).toBeLessThan(1);
+    w.sim.dispose();
+  }, 60_000);
+
+  it('a car a brain or a script drives (external) is not held when its ground leaves, and a held car is let go once one drives it', async () => {
+    const w = await parked();
+    const id = w.sim.ecs.resolve(w.vehicle) as number;
+    const rt = w.mod.store.rt.get(id);
+    if (!rt) throw new Error('no runtime');
+    // held first: nobody drives it
+    w.sim.backend.removeChunkStatics(PAD);
+    drive(w, 30);
+    expect(held(w)).toBe(true);
+    // a script takes the wheel (`ctx.vehicleAi.drive`): the hold lets go at once, and the car is the script's (it falls, as before)
+    rt.external = true;
+    rt.input.handbrake = false;
+    drive(w, 1);
+    expect(held(w)).toBe(false);
+    expect(w.sim.backend.bodyKind(bodyOf(w))).toBe('dynamic');
+    const at = view(w).y;
+    drive(w, 30);
+    expect(held(w)).toBe(false);
+    expect(view(w).y).toBeLessThan(at - 1);
     w.sim.dispose();
   }, 60_000);
 
