@@ -34,9 +34,20 @@ const cover = async (page: Page): Promise<CoverReport> => {
   return r as CoverReport;
 };
 
+/** What makes up the frame's render objects: the world units by level and the traffic. */
+const parts = (page: Page): Promise<Record<string, unknown>> =>
+  world(page, (w) => {
+    const c = w.chunks();
+    return { objects: c.objects, triangles: c.triangles, l0: c.resident.l0.length, l1: c.resident.l1.length, l2: c.resident.l2.length, masks: c.masks, traffic: w.traffic()?.objects ?? null };
+  });
+
 const setCover = (page: Page, on: boolean): Promise<boolean> => page.evaluate((o) => (window as unknown as W).__dvBridge.world.setLookLayer('cover', o), on);
 
-/** After a toggle: the stream settles with the world's draw held until the chunks around the focus follow the layer, then six frames. */
+/**
+ * After a toggle: with the world's draw held (the hold of `streamAtPlan`), wait until every resident chunk with cover follows the layer
+ * (`look().cover.pending`) and the stream is quiet (`settle`), then six frames. The render objects of a desktop frame move while the
+ * stream fills (one unit a presented frame on software GL), so both counts are read at the plan.
+ */
 async function coverSettled(page: Page): Promise<void> {
   const r = await page.evaluate(async () => {
     const w = (window as unknown as W).__dvBridge.world;
@@ -46,15 +57,17 @@ async function coverSettled(page: Page): Promise<void> {
       const t0 = performance.now();
       for (;;) {
         const c = (w.look() as unknown as { cover: CoverReport }).cover;
-        if (c.pendingNear === 0) return { ok: true, c };
-        if (performance.now() - t0 > 600_000) return { ok: false, c };
+        if (c.pending === 0) break;
+        if (performance.now() - t0 > 600_000) return { ok: false, c, settled: false };
         await new Promise((res) => setTimeout(res, 250));
       }
+      const s = await w.settle(600_000);
+      return { ok: true, c: (w.look() as unknown as { cover: CoverReport }).cover, settled: s.settled };
     } finally {
       release();
     }
   });
-  expect(r.ok, `the chunks around the focus follow the cover layer (${JSON.stringify(r.c)})`).toBe(true);
+  expect(r.ok && r.settled, `every resident chunk follows the cover layer and the stream is quiet (${JSON.stringify(r)})`).toBe(true);
   await frames(page, 6);
 }
 
@@ -75,21 +88,29 @@ test.describe('world cover @world-cover', () => {
       await page.addStyleTag({ content: HIDE });
       await clearActors(page);
       await world(page, (w) => w.shot('yard-street', { held: true }));
+      await coverSettled(page);
       const atYard = await cover(page);
-      const onImg = decodePng(await page.locator('#dv-engine-canvas').screenshot());
-      await world(page, (w) => w.hold(true));
-      const onCount = await live(page);
-      await world(page, (w) => w.hold(false));
-
+      // Casters are decided when a unit is committed, relative to the focus then (`ChunkRenderer.castsShadows`): the toggle re-commits every
+      // resident chunk at the shot's focus, so the frame before it can hold casters of an earlier focus. The two frames compared are
+      // therefore both re-committed ones: off, then on again.
       expect(await setCover(page, false)).toBe(true);
       await coverSettled(page);
       const offImg = decodePng(await page.locator('#dv-engine-canvas').screenshot());
       await world(page, (w) => w.hold(true));
       const offCount = await live(page);
+      const offParts = await parts(page);
       const off = await cover(page);
       await world(page, (w) => w.hold(false));
       expect(off.enabled).toBe(false);
-      expect(off.pendingNear).toBe(0);
+      expect(off.pending).toBe(0);
+
+      expect(await setCover(page, true)).toBe(true);
+      await coverSettled(page);
+      const onImg = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+      await world(page, (w) => w.hold(true));
+      const onCount = await live(page);
+      const onParts = await parts(page);
+      await world(page, (w) => w.hold(false));
       const delta = meanAbsDifference(onImg, offImg);
       if (process.env['DV_COVER_DEBUG'] === '1') {
         mkdirSync('test-results/cover', { recursive: true });
@@ -98,10 +119,9 @@ test.describe('world cover @world-cover', () => {
       }
       console.log(`world-cover ${testInfo.project.name} ${tier}: yard-street mean |delta| ${delta.toFixed(4)}; render objects on ${onCount.renderObjects} off ${offCount.renderObjects}; cells ${JSON.stringify(atYard.cells)}`);
       expect(delta, `${tier}: the cover layer changes the yard-street frame`).toBeGreaterThanOrEqual(0.02);
-      expect(offCount.renderObjects, `${tier}: the cover adds no render object`).toBe(onCount.renderObjects);
+      expect(offCount.renderObjects, `${tier}: the cover adds no render object (on ${JSON.stringify(onParts)}, off ${JSON.stringify(offParts)})`).toBe(onCount.renderObjects);
+      expect(offCount.triangles, `${tier}: the cover adds no triangle`).toBe(onCount.triangles);
 
-      expect(await setCover(page, true)).toBe(true);
-      await coverSettled(page);
       await world(page, (w) => w.shot('hill-scrub', { held: true }));
       const atHill = await cover(page);
       if (process.env['DV_COVER_DEBUG'] === '1') writeFileSync(`test-results/cover/${testInfo.project.name}.${tier}.hill-scrub.png`, await page.locator('#dv-engine-canvas').screenshot());
@@ -155,7 +175,7 @@ interface TierRow {
   baseline: number;
   after: number;
   perLayer: { cover: number };
-  /** Triangles of the frame with the cover off and on (equal: the cover moves colours and surface ids, never geometry). */
+  /** Triangles of the frame with the cover off and on again, both re-committed at the focus (equal: the cover moves colours and surface ids, never geometry). */
   triangles: { off: number; on: number };
 }
 interface Ledger {
@@ -179,7 +199,9 @@ test.describe('cover ledger @cover-ledger', () => {
   test.beforeEach(({}, testInfo: TestInfo) => {
     test.skip(testInfo.project.name !== 'chromium-webgl2', 'the ledger is chromium-webgl2 only (the XR case runs on xr-quest3)');
   });
-  const measured: Record<string, { off: { renderObjects: number; triangles: number }; on: { renderObjects: number; triangles: number } }> = {};
+  type Count = { renderObjects: number; triangles: number };
+  /** `on`: the frame of the ledger protocol (DL-758); `off` and `again`: the layer off, then on, both re-committed at the same focus. */
+  const measured: Record<string, { on: Count; off: Count; again: Count }> = {};
 
   for (const tier of LEDGER_TIERS) {
     test(`${tier}: the cover adds no render object and no triangle @cover-ledger`, async ({ page }) => {
@@ -191,21 +213,24 @@ test.describe('cover ledger @cover-ledger', () => {
       await world(page, (w) => w.hold(true));
       const on = await live(page);
       await world(page, (w) => w.hold(false));
-      expect(await setCover(page, false)).toBe(true);
-      // every resident chunk follows the layer before the frame is read (the counts cover the whole plan)
-      await page.waitForFunction(() => ((window as unknown as W).__dvBridge.world.look() as unknown as { cover: CoverReport }).cover.pending === 0, undefined, { timeout: 900_000, polling: 500 });
-      await streamAtPlan(page);
-      await world(page, (w) => w.hold(true));
-      const off = await live(page);
-      await world(page, (w) => w.hold(false));
-      expect(await setCover(page, true)).toBe(true);
-      expect(on.renderObjects - off.renderObjects, `${tier}: render objects added by the cover`).toBe(0);
-      expect(on.triangles - off.triangles, `${tier}: triangles added by the cover`).toBe(0);
+      // the layer's own delta: off, then on again, both frames re-committed at this focus (casters are decided at commit, see @world-cover)
+      const toggled = async (o: boolean): Promise<{ renderObjects: number; triangles: number }> => {
+        expect(await setCover(page, o)).toBe(true);
+        await coverSettled(page);
+        await world(page, (w) => w.hold(true));
+        const r = await live(page);
+        await world(page, (w) => w.hold(false));
+        return r;
+      };
+      const off = await toggled(false);
+      const again = await toggled(true);
+      expect(again.renderObjects - off.renderObjects, `${tier}: render objects added by the cover`).toBe(0);
+      expect(again.triangles - off.triangles, `${tier}: triangles added by the cover`).toBe(0);
       if (tier === 'mobile-low') expect(on.renderObjects + crowdMax(tier), `mobile-low after ${on.renderObjects} + crowd max ${crowdMax(tier)}`).toBeLessThanOrEqual(100);
       const baseline = prior().ledger.tiers[tier]?.after;
       expect(baseline, `${prior().file} holds ${tier}`).toBeDefined();
       expect(on.renderObjects, `${tier}: render objects against the after (${baseline}) of ${prior().file}`).toBeLessThanOrEqual(baseline ?? 0);
-      measured[tier] = { off, on };
+      measured[tier] = { on, off, again };
       console.log(`cover ledger ${tier}: ${JSON.stringify(measured[tier])} (crowd max ${crowdMax(tier)})`);
     });
   }
@@ -220,7 +245,7 @@ test.describe('cover ledger @cover-ledger', () => {
         if (!m) continue;
         const baseline = base.ledger.tiers[tier]?.after ?? m.on.renderObjects;
         if (baseline !== m.on.renderObjects) driftOff[tier] = m.on.renderObjects;
-        tiers[tier] = { baseline, after: m.on.renderObjects, perLayer: { cover: m.on.renderObjects - m.off.renderObjects }, triangles: { off: m.off.triangles, on: m.on.triangles } };
+        tiers[tier] = { baseline, after: m.on.renderObjects, perLayer: { cover: m.again.renderObjects - m.off.renderObjects }, triangles: { off: m.off.triangles, on: m.again.triangles } };
       }
       const old = existsSync(LEDGER) ? read<Ledger>(LEDGER) : undefined;
       const out: Ledger = {
