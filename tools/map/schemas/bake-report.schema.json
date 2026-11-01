@@ -31,6 +31,7 @@
       }
     },
     "terrain": { "type": "object" },
+    "cover": { "type": "object", "$comment": "M02h3: cells per cover class, blocks per rule, driveways, section 21 bytes" },
     "water": { "type": "object" },
     "roads": { "type": "object" },
     "junctions": { "type": "object" },

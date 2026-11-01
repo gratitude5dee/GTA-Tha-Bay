@@ -14,7 +14,7 @@
 import { PackUnavailable, type PackRef as StorePackRef } from '@dv/engine/assets/types';
 import type { AssetJob, AssetService } from '@dv/engine/assets/service';
 import {
-  MapBuildings, MapData, ancestorKey, decodeFarDem, decodeFarMassing, decodeL0, decodeLod, decodeP0, packRefOf, parseChunkKey,
+  MapBuildings, MapData, ancestorKey, decodeCoverTile, decodeFarDem, decodeFarMassing, decodeL0, decodeLod, decodeP0, packRefOf, parseChunkKey,
   type ChunkKey, type FarDem, type LodUnit, type QualityTierId, type RenderChunk, type SimChunk,
 } from '@dv/shared';
 import { Geocoder, type GeocodeHit } from '../sim/map/geocoder.ts';
@@ -26,6 +26,7 @@ import { massingInstances, ringMesh } from './backdrop/far-mesh.ts';
 import { meshLod } from './chunks/lod-mesher.ts';
 import { landmarkTransferList, readLandmarkGlb, type LandmarkModelData } from './chunks/landmark-glb.ts';
 import { meshChunk } from './chunks/mesher.ts';
+import { COVER_FLAG } from './look/config.ts';
 import { transferListOf, type UnitMesh } from './chunks/mesh-types.ts';
 import { textureJob } from './textures/texture-job.ts';
 import { vehicleJob } from './vehicles/vehicle-job.ts';
@@ -104,6 +105,8 @@ class Lru<V> {
 interface L0Tile {
   sim: SimChunk[];
   render: RenderChunk[];
+  /** M02h3: the ground cover per chunk from section 21 (C08 1.1); empty for a bake without it. */
+  cover: Map<ChunkKey, Uint8Array>;
 }
 
 class WorldCache {
@@ -178,6 +181,8 @@ export interface MeshJobArgs {
   priority?: Prio;
   /** L0 only (M02d1): `proxyOf` values whose baked extrusions are left out of the mesh (a landmark model stands in their place). */
   maskProxies?: number[];
+  /** L0 only (M02h3): mesh the ground cover; default the `world.cover` flag. False is the `cover` layer off (`setLookLayer`). */
+  cover?: boolean;
 }
 export type MeshJobResult = { mesh: UnitMesh } | { empty: true };
 
@@ -200,8 +205,14 @@ async function l0Tile(svc: AssetService, tileX: number, tileY: number, tier: Qua
   if (!p) {
     p = (async () => {
       const sim = await readDecoded(svc, `world_pack/p0-${id}`, tier, priority, (b) => decodeP0(b), signal);
-      const render = await readDecoded(svc, `world_pack/l0-${id}`, tier, priority, (b) => decodeL0(b, sim), signal);
-      return { sim, render };
+      // M02h3: the cover rides in the same l0 pack (section 21); a pack without it decodes to no entries
+      const { render, cover } = await readDecoded(svc, `world_pack/l0-${id}`, tier, priority, (b) => {
+        const chunks = decodeL0(b, sim);
+        const all = decodeCoverTile(b);
+        for (const [k, c] of all) if (!c.some((v) => v !== 0)) all.delete(k);
+        return { render: chunks, cover: all };
+      }, signal);
+      return { sim, render, cover };
     })();
     forgetAfterFailure(p, () => cache.l0.get(id) === p && cache.l0.delete(id));
     cache.l0.set(id, p);
@@ -219,7 +230,9 @@ const mesh: AssetJob = async (svc, raw, signal) => {
     const tile = await l0Tile(svc, host.x, host.y, a.tier, priority, signal);
     const sim = tile.sim.find((c) => c.key === a.key);
     if (!sim) return { result: { empty: true } satisfies MeshJobResult };
-    m = meshChunk(sim, tile.render.find((c) => c.key === a.key) ?? null, { tier: a.tier, distM: a.distM, maxBytes: basePlan(a.tier).uploadBytes, maskProxies: a.maskProxies });
+    const available = tile.cover.get(a.key) ?? null;
+    m = meshChunk(sim, tile.render.find((c) => c.key === a.key) ?? null, { tier: a.tier, distM: a.distM, maxBytes: basePlan(a.tier).uploadBytes, maskProxies: a.maskProxies, tile: tile.sim, cover: (a.cover ?? COVER_FLAG) ? available : null });
+    if (available) m.stats.coverAvailable = true;
   } else {
     const packRef = packRefOf(a.key, a.level);
     const cache = cacheOf(svc);

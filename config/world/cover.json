@@ -1,0 +1,14 @@
+{
+  "schema": "world-cover/1",
+  "note": "M02h3 ground cover (tools/map/src/stages/s13-cover.ts): every 4 m land cell gets one of seven cover classes inside S13, later rules winning: park, yard, mixed, scrub, vacant, dirt, driveway. Design values; the OSM tag meanings are recorded in spec/03 section 7. `enabled` false bakes no cover (no section 21, GROUND as before M02h3).",
+  "enabled": true,
+  "blockMaxM2": 200000,
+  "residentialLanduseShare": 0.5,
+  "residentialBuildingShare": 0.5,
+  "mixed": { "slope": 0.18, "share": 0.2, "cellM": 16, "seed": 20261031 },
+  "scrub": { "slope": 0.3, "parkSlope": 0.35 },
+  "vacantLanduse": ["brownfield", "greenfield", "construction"],
+  "dirtLanduse": ["landfill", "quarry"],
+  "dirtSurface": ["dirt", "ground", "earth"],
+  "driveway": { "highway": "service", "service": "driveway" }
+}

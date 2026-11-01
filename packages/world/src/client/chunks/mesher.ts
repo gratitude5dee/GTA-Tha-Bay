@@ -23,12 +23,19 @@
  */
 import earcut from 'earcut';
 import {
-  TERRAIN_POSTS, chunkBounds, sampleHeight, type BuildingRecord, type ChunkKey, type QualityTierId, type RenderChunk, type SimChunk,
+  NodeControl, PedEdgeKind, PedNodeFlag, TERRAIN_POSTS, chunkBounds, sampleHeight, type BuildingRecord, type ChunkKey, type QualityTierId, type RenderChunk, type SimChunk,
 } from '@dv/shared';
 import mesherJson from '../../../../../config/world/mesher.json';
-import { facadeClassOf, lookProfileFor } from '../look/config.ts';
-import { FLAG_PARAPET, Surf, facadeDm, facadeSignedDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
+import { LOOK, LOOK_FLAG, facadeClassOf, lookProfileFor } from '../look/config.ts';
+import { packRoad, roadFields, roadVertex, wrapAlong, type RoadFields } from '../look/road-layout.ts';
+import { COVER_SURFACE_NAMES, FLAG_PARAPET, Surf, coverSurf, facadeDm, facadeSignedDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
+import {
+  approachesOf, clipKey, clippedPolyline, armsOf, crosswalkQuad, planRoads, ribbonSides, roadsContext, simplifyPoints, stopBarQuad, tileOf, type DecalQuad, type PlannedJunction,
+  type RibbonPoint, type RoadsContext, type RoadsPlan,
+} from './junction-patch.ts';
 import { meshBytes, type MeshBuffers, type MeshStats, type UnitMesh } from './mesh-types.ts';
+import { bakeMacro } from './macro.ts';
+import { CURBS, GUTTER_COLOR, buildSidewalks, curbedSides, type CurbSample, type CurbStats } from './sidewalks.ts';
 
 // ---- configuration -------------------------------------------------------------------------------------------------------
 
@@ -79,6 +86,14 @@ export interface MesherConfig {
     drawHysteresis: number;
   };
   lod: { skirtM: number; roadWidthM: Record<string, number>; roadLiftM: number; waterLevelM: number; massingRoof: string };
+  /** M02h2: curbs, gutters and sidewalk ribbons (chunks/sidewalks.ts reads the block). */
+  curbs: unknown;
+  /** M02h2: `Paved` posts within `plazaM` of a plaza ped edge or node are a plaza, the rest lots; their vertex colours on `min`. */
+  lotPlaza: { plazaM: number; lot: string; plaza: string };
+  /** M02h2: the macro variation (chunks/macro.ts reads the block). */
+  macro: unknown;
+  /** M02h3: the vertex colours of the ground cover classes. */
+  cover: Record<(typeof COVER_SURFACE_NAMES)[number], string>;
 }
 export const MESHER: MesherConfig = mesherJson as unknown as MesherConfig;
 
@@ -102,6 +117,10 @@ const ROAD_COLORS = {
   local: hexToLinear(MESHER.road['local'] as string),
   service: hexToLinear(MESHER.road['service'] as string),
 };
+export const LOT_COLOR: Rgb = hexToLinear(MESHER.lotPlaza.lot);
+export const PLAZA_COLOR: Rgb = hexToLinear(MESHER.lotPlaza.plaza);
+/** M02h3: the vertex colour of each `CoverClass` (index 0, `None`, is unused). */
+export const COVER_COLORS: readonly Rgb[] = [GROUND[3] as Rgb, ...COVER_SURFACE_NAMES.map((n) => hexToLinear(MESHER.cover[n]))];
 export const roadColor = (cls: number): Rgb =>
   cls === 0 ? ROAD_COLORS.freeway : cls === 1 ? ROAD_COLORS.ramp : cls === 2 ? ROAD_COLORS.arterial : cls === 5 ? ROAD_COLORS.service : ROAD_COLORS.local;
 
@@ -132,10 +151,13 @@ export class MeshBuilder {
   readonly surf: number[] = [];
   /** M02e: `Int16x4` per vertex (decimetres); only when the builder was made with `facade`. */
   readonly fac: number[] | null;
+  /** M02h1: `Int16x4` per vertex, the lane coordinates of the street markings (`look/road-layout.ts`); only when the builder was made with `road`. */
+  readonly roadAttr: number[] | null;
   private cur: [number, number, number, number] = [Surf.GroundBase + 3, 0, 0, 0];
 
-  constructor(o: { facade?: boolean } = {}) {
+  constructor(o: { facade?: boolean; road?: boolean } = {}) {
     this.fac = o.facade ? [] : null;
+    this.roadAttr = o.road ? [] : null;
   }
 
   /** The surface the next vertices belong to: id (look/surfaces.ts), palette index, kind/roof code, flags. */
@@ -146,12 +168,16 @@ export class MeshBuilder {
   get vertexCount(): number {
     return this.pos.length / 3;
   }
+  /** The surface id the next vertices get (`setSurf`). */
+  get currentSurf(): number {
+    return this.cur[0];
+  }
   get triangleCount(): number {
     return this.idx.length / 3;
   }
 
   /** `fac` is the building vertex's `facade` record in decimetres (u, v, wall height, seed); zeros when absent. */
-  vertex(x: number, y: number, z: number, n: Rgb, c: Rgb, ao = 1, fac?: readonly [number, number, number, number]): number {
+  vertex(x: number, y: number, z: number, n: Rgb, c: Rgb, ao = 1, fac?: readonly [number, number, number, number], road?: readonly [number, number, number, number]): number {
     this.pos.push(x, y, z);
     this.nor.push(n[0], n[1], n[2]);
     this.col.push(c[0], c[1], c[2]);
@@ -160,6 +186,10 @@ export class MeshBuilder {
     if (this.fac) {
       if (fac) this.fac.push(fac[0], fac[1], fac[2], fac[3]);
       else this.fac.push(0, 0, 0, 0);
+    }
+    if (this.roadAttr) {
+      if (road) this.roadAttr.push(road[0], road[1], road[2], road[3]);
+      else this.roadAttr.push(0, 0, 0, 0);
     }
     return this.pos.length / 3 - 1;
   }
@@ -214,6 +244,7 @@ export class MeshBuilder {
       indices: big ? new Uint32Array(this.idx) : new Uint16Array(this.idx),
       surf: new Uint8Array(this.surf),
       ...(this.fac ? { facade: new Int16Array(this.fac) } : {}),
+      ...(this.roadAttr ? { road: new Int16Array(this.roadAttr) } : {}),
       bounds: [minX, minY, minZ, maxX, maxY, maxZ],
     };
   }
@@ -309,6 +340,17 @@ export interface TerrainOptions {
   ao?: Float32Array | null | undefined;
   /** A skirt this deep hangs under every border segment: the cover of a stride seam. 0 or absent: none. */
   skirtM?: number | undefined;
+  /**
+   * M02h2: per post (65 x 65), 1 where a `Paved` post is a plaza (`plazaPosts`). With it, every `Paved` post is a `Lot` or a `Plaza` surface
+   * with that colour; absent: `Paved` as before.
+   */
+  plaza?: Uint8Array | null | undefined;
+  /**
+   * M02h3: the ground cover of the chunk's 64 x 64 cells (`CoverClass`, C08 1.1 section 21). A post reads the cell its ground class comes
+   * from; a post with cover gets surface `cover.<class>` and the colour `mesher.json` `cover.<class>`, and the M02h2 lot and plaza rule
+   * applies to the posts without cover only. Absent: as before M02h3 (the same vertices and triangles either way).
+   */
+  cover?: Uint8Array | null | undefined;
 }
 
 /**
@@ -323,9 +365,20 @@ export function terrainMesh(heights: Int16Array, ground: Uint8Array, cellM: numb
     for (let i = 0; i < verts; i++) {
       const col = i * stride;
       const row = j * stride;
-      const cls = ground[Math.min(63, row + (stride >> 1)) * 64 + Math.min(63, col + (stride >> 1))] ?? 3;
-      const color = GROUND[cls] ?? (GROUND[3] as Rgb);
-      b.setSurf(groundSurf(cls));
+      const cell = Math.min(63, row + (stride >> 1)) * 64 + Math.min(63, col + (stride >> 1));
+      const cls = ground[cell] ?? 3;
+      let color = GROUND[cls] ?? (GROUND[3] as Rgb);
+      const cv = o.cover ? (o.cover[cell] as number) : 0;
+      if (cv > 0 && cv < COVER_COLORS.length) {
+        // M02h3: a post with ground cover
+        color = COVER_COLORS[cv] as Rgb;
+        b.setSurf(coverSurf(cv));
+      } else if (cls === 3 && o.plaza) {
+        // M02h2: a paved post is a plaza near a plaza ped edge or node, else a lot
+        const plaza = o.plaza[row * n + col] === 1;
+        color = plaza ? PLAZA_COLOR : LOT_COLOR;
+        b.setSurf(plaza ? Surf.Plaza : Surf.Lot);
+      } else b.setSurf(groundSurf(cls));
       b.vertex(col * cellM, (heights[row * n + col] as number) / 10, row * cellM, terrainNormal(heights, col, row, cellM), color, o.ao ? (o.ao[row * n + col] as number) : 1);
     }
   }
@@ -370,6 +423,41 @@ export function terrainMesh(heights: Int16Array, ground: Uint8Array, cellM: numb
     }
   }
   return b.build('terrain') as MeshBuffers;
+}
+
+/**
+ * M02h2: which posts of a chunk's 65 x 65 grid lie within `lotPlaza.plazaM` of a `Plaza` ped edge or a ped node flagged `Plaza` (C08), in
+ * any chunk of `chunks` (the tile, so the border posts two chunks share agree). 1 = plaza, 0 = lot.
+ */
+export function plazaPosts(sim: SimChunk, chunks: readonly SimChunk[], plazaM: number = MESHER.lotPlaza.plazaM): Uint8Array {
+  const out = new Uint8Array(POSTS * POSTS);
+  const cellM = sim.height.cellM;
+  const ox = sim.height.originX, oz = sim.height.originZ;
+  const edge = (POSTS - 1) * cellM;
+  const segs: number[] = [];
+  for (const c of chunks) {
+    const nodes = new Map<number, { x: number; z: number; flags: number }>();
+    for (const nd of c.pedNodes) nodes.set(nd.id, nd);
+    for (const nd of c.pedNodes) if ((nd.flags & PedNodeFlag.Plaza) !== 0) segs.push(nd.x, nd.z, nd.x, nd.z);
+    for (const pe of c.pedEdges) {
+      if (pe.kind !== PedEdgeKind.Plaza) continue;
+      const a = nodes.get(pe.a), q = nodes.get(pe.b);
+      if (a && q) segs.push(a.x, a.z, q.x, q.z);
+    }
+  }
+  for (let i = 0; i < segs.length; i += 4) {
+    const ax = segs[i] as number, az = segs[i + 1] as number, bx = segs[i + 2] as number, bz = segs[i + 3] as number;
+    if (Math.max(ax, bx) < ox - plazaM || Math.min(ax, bx) > ox + edge + plazaM || Math.max(az, bz) < oz - plazaM || Math.min(az, bz) > oz + edge + plazaM) continue;
+    const c0 = Math.max(0, Math.floor((Math.min(ax, bx) - plazaM - ox) / cellM)), c1 = Math.min(POSTS - 1, Math.ceil((Math.max(ax, bx) + plazaM - ox) / cellM));
+    const r0 = Math.max(0, Math.floor((Math.min(az, bz) - plazaM - oz) / cellM)), r1 = Math.min(POSTS - 1, Math.ceil((Math.max(az, bz) + plazaM - oz) / cellM));
+    for (let r = r0; r <= r1; r++) {
+      for (let c = c0; c <= c1; c++) {
+        if (out[r * POSTS + c] === 1) continue;
+        if (distToSegment(ox + c * cellM, oz + r * cellM, ax, az, bx, bz) <= plazaM) out[r * POSTS + c] = 1;
+      }
+    }
+  }
+  return out;
 }
 
 // ---- footprints ----------------------------------------------------------------------------------------------------------
@@ -654,30 +742,221 @@ const ROAD_LIFT_M = 0.12;
 /** The importance of a road class (`RoadClass` 0 freeway .. 5 service): the busier road is lifted more and drawn after the lesser. */
 export const roadRank = (cls: number): number => 5 - Math.max(0, Math.min(5, cls));
 
-/** A ribbon of constant width along a polyline of (x, y, z) triples, local to (ox, oz). */
-export function addRibbon(b: MeshBuilder, pts: Float32Array, ox: number, oz: number, width: number, lift: number, color: Rgb): void {
-  const n = pts.length / 3;
-  if (n < 2) return;
-  const left: [number, number, number][] = [];
-  const right: [number, number, number][] = [];
-  for (let i = 0; i < n; i++) {
-    const i0 = Math.max(0, i - 1), i1 = Math.min(n - 1, i + 1);
-    let tx = (pts[i1 * 3] as number) - (pts[i0 * 3] as number);
-    let tz = (pts[i1 * 3 + 2] as number) - (pts[i0 * 3 + 2] as number);
-    const len = Math.sqrt(tx * tx + tz * tz) || 1;
-    tx /= len;
-    tz /= len;
-    const x = (pts[i * 3] as number) - ox, z = (pts[i * 3 + 2] as number) - oz, y = (pts[i * 3 + 1] as number) + lift;
-    left.push([x - tz * (width / 2), y, z + tx * (width / 2)]);
-    right.push([x + tz * (width / 2), y, z - tx * (width / 2)]);
+/** What `addRibbon` takes beyond the plain ribbon (M02h1). */
+export interface RibbonOptions {
+  /** Metres cut off the start and the end of the polyline: the ribbons end short of a junction patch. */
+  clipStart?: number;
+  clipEnd?: number;
+  /** The lane fields of the segment: every vertex then carries its `road` coordinates, and collinear vertices are dropped. */
+  road?: RoadFields;
+  /**
+   * M02h2: the gutters: bit 0 the `left` side of `ribbonSides`, bit 1 the `right` (`curbedSides`). Each curbed side's outer `widthM` is an
+   * edge strip of its own (`Surf.Gutter`) that shares its inner edge with the carriageway: the vertices on that edge are computed by the same
+   * interpolation, so the two strips meet without a gap and never overlap.
+   */
+  gutter?: { sides: number; widthM: number };
+}
+
+/**
+ * A ribbon of constant width along a polyline of (x, y, z) triples, local to (ox, oz). With `road`, each vertex also gets its position
+ * along the segment (`x`, wrapped; the far row of a quad adds the quad's length to its near row's, so the wrap never falls inside a quad)
+ * and across it (`y`: + on the left of the point order, which is the `right` side of `ribbonSides`).
+ */
+export function addRibbon(b: MeshBuilder, pts: Float32Array, ox: number, oz: number, width: number, lift: number, color: Rgb, o: RibbonOptions = {}): void {
+  const cut = clippedPolyline(pts, o.clipStart ?? 0, o.clipEnd ?? 0);
+  if (!cut) return;
+  const points: RibbonPoint[] = o.road ? simplifyPoints(cut) : cut;
+  const half = width / 2;
+  const sides = ribbonSides(points, half);
+  const at = (p: { x: number; y: number; z: number }): [number, number, number] => [p.x - ox, p.y + lift, p.z - oz];
+  const gw = o.gutter ? Math.min(o.gutter.widthM, half * 0.45) : 0;
+  if (o.gutter && o.gutter.sides !== 0 && gw > 0) {
+    addGutteredRibbon(b, points, sides, half, gw, o.gutter.sides, at, color, o.road);
+    return;
   }
-  for (let i = 0; i < n - 1; i++) {
-    const a = b.vertex(...(left[i] as [number, number, number]), UP, color);
-    const bb = b.vertex(...(right[i] as [number, number, number]), UP, color);
-    const c = b.vertex(...(right[i + 1] as [number, number, number]), UP, color);
-    const d = b.vertex(...(left[i + 1] as [number, number, number]), UP, color);
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i] as RibbonPoint, p1 = points[i + 1] as RibbonPoint;
+    let r0: [number, number, number, number] | undefined, r1: [number, number, number, number] | undefined, l0: [number, number, number, number] | undefined, l1: [number, number, number, number] | undefined;
+    if (o.road) {
+      const near = wrapAlong(p0.s), far = near + (p1.s - p0.s);
+      l0 = roadVertex(near, -half, o.road);
+      r0 = roadVertex(near, half, o.road);
+      l1 = roadVertex(far, -half, o.road);
+      r1 = roadVertex(far, half, o.road);
+    }
+    const a = b.vertex(...at(sides.left[i] as RibbonPoint), UP, color, 1, undefined, l0);
+    const bb = b.vertex(...at(sides.right[i] as RibbonPoint), UP, color, 1, undefined, r0);
+    const c = b.vertex(...at(sides.right[i + 1] as RibbonPoint), UP, color, 1, undefined, r1);
+    const d = b.vertex(...at(sides.left[i + 1] as RibbonPoint), UP, color, 1, undefined, l1);
     b.quadUp(a, bb, c, d);
   }
+}
+
+/**
+ * M02h2: a ribbon split across into the carriageway and one or two gutter strips. `u` runs from `-half` (the `left` of `ribbonSides`) to
+ * `+half`; a vertex at `u` is the interpolation of the two side points, so the strip edges two quads share are the same floats.
+ */
+function addGutteredRibbon(
+  b: MeshBuilder, points: readonly RibbonPoint[], sides: { left: { x: number; y: number; z: number }[]; right: { x: number; y: number; z: number }[] }, half: number, gw: number,
+  curbed: number, at: (p: { x: number; y: number; z: number }) => [number, number, number], color: Rgb, road: RoadFields | undefined,
+): void {
+  const cuts: number[] = [-half];
+  if (curbed & 1) cuts.push(-half + gw);
+  if (curbed & 2) cuts.push(half - gw);
+  cuts.push(half);
+  const surfId = b.currentSurf;
+  const pos = (i: number, u: number): [number, number, number] => {
+    const l = sides.left[i] as { x: number; y: number; z: number }, r = sides.right[i] as { x: number; y: number; z: number };
+    const t = (u + half) / (2 * half);
+    return at({ x: l.x + (r.x - l.x) * t, y: l.y + (r.y - l.y) * t, z: l.z + (r.z - l.z) * t });
+  };
+  const foot = 1 - CURBS.footAo;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i] as RibbonPoint, p1 = points[i + 1] as RibbonPoint;
+    const near = road ? wrapAlong(p0.s) : 0, far = near + (p1.s - p0.s);
+    for (let k = 0; k + 1 < cuts.length; k++) {
+      const u0 = cuts[k] as number, u1 = cuts[k + 1] as number;
+      const gutterL = (curbed & 1) !== 0 && k === 0;
+      const gutterR = (curbed & 2) !== 0 && k === cuts.length - 2;
+      const isGutter = gutterL || gutterR;
+      b.setSurf(isGutter ? Surf.Gutter : surfId);
+      const col = isGutter ? GUTTER_COLOR : color;
+      // the foot of the curb (the ribbon's outer edge on a curbed side) is darker
+      const ao = (u: number): number => ((gutterL && u === -half) || (gutterR && u === half) ? foot : 1);
+      const rv = (s: number, u: number): [number, number, number, number] | undefined => (road ? roadVertex(s, u, road) : undefined);
+      const a = b.vertex(...pos(i, u0), UP, col, ao(u0), undefined, rv(near, u0));
+      const bb = b.vertex(...pos(i, u1), UP, col, ao(u1), undefined, rv(near, u1));
+      const c = b.vertex(...pos(i + 1, u1), UP, col, ao(u1), undefined, rv(far, u1));
+      const d = b.vertex(...pos(i + 1, u0), UP, col, ao(u0), undefined, rv(far, u0));
+      b.quadUp(a, bb, c, d);
+    }
+  }
+  b.setSurf(surfId);
+}
+
+// ---- the roads object: ribbons, junction patches, crosswalks and stop bars (M02h1) ------------------------------------------------
+
+/** The height of a ribbon of road class `cls` over the road's own points: lifts by rank, the busier road higher (M02g2). */
+export const ribbonLift = (cls: number): number => ROAD_LIFT_M + MESHER.depth.ribbonStepM * roadRank(cls);
+
+/** What the roads object of a chunk holds, for the QA bridge and the ledger. */
+export interface RoadMarkStats {
+  /** Vertices of the `roads` object (each carries a `road` record). */
+  roadVerts: number;
+  /** Junction patches (junctions of three or more roads that lie in this chunk and got a convex patch). */
+  patches: number;
+  crosswalks: number;
+  stopBars: number;
+  /** Stop-bar approaches the junctions of this chunk name (`stopBars` plus those whose edge is not in the tile). */
+  approaches: number;
+  /** Junctions of this chunk with three or more roads that kept the overlapping ribbons of M02g2 (no patch). */
+  skipped: number;
+  /** Ribbon ends clipped short of a patch (counted for the segments of this chunk). */
+  clipped: number;
+}
+
+/**
+ * A junction patch: the convex outline of the clipped ribbon corners as a fan from its first corner (n - 2 triangles), each corner at the
+ * lift of its own road, so the patch meets every ribbon end at the ribbon's height.
+ */
+function addPatch(b: MeshBuilder, pj: PlannedJunction, ox: number, oz: number): void {
+  b.setSurf(Surf.Junction);
+  const ring = pj.hull.map((i) => {
+    const c = pj.corners[i] as PlannedJunction['corners'][number];
+    return b.vertex(c.x - ox, c.y + ribbonLift(c.cls), c.z - oz, UP, roadColor(c.cls));
+  });
+  for (let k = 1; k + 1 < ring.length; k++) b.triUp(ring[0] as number, ring[k] as number, ring[k + 1] as number, true);
+}
+
+const clampI = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, Math.round(v)));
+
+/** A crosswalk or stop-bar quad. A crosswalk's vertices carry the crossing coordinates in `road` (`look/road-layout.ts`); a stop bar's carry zeros. */
+function addDecal(b: MeshBuilder, q: DecalQuad, surf: number, ox: number, oz: number, crosswalk: boolean): void {
+  b.setSurf(surf);
+  const ids = q.corners.map((c) =>
+    b.vertex(
+      c.x - ox, c.y, c.z - oz, UP, roadColor(q.cls), 1, undefined,
+      crosswalk ? [clampI(c.u * 10, 0, 32767), clampI(c.v * 100, -32767, 32767), clampI(q.lengthM * 10, 0, 16000) * 2 + (q.ladder ? 1 : 0), 0] : undefined,
+    ),
+  );
+  b.quadUp(ids[0] as number, ids[1] as number, ids[2] as number, ids[3] as number);
+}
+
+/**
+ * The `roads` object of an L0 chunk. Ribbons lowest rank first, each rank a little higher (M02g2): where two ribbons cross, the busier road
+ * is the later and the higher. With `markings`, each vertex carries its lane coordinates, the ribbons of a junction of three or more roads
+ * end short of a convex patch (`junction-patch.ts`), and the crosswalk and stop-bar quads follow. `tile` is the chunks of the z7 tile the
+ * job decoded (the roads of a junction are often in the next chunk); without it only this chunk's roads are known.
+ */
+export function buildRoads(
+  sim: SimChunk, ox: number, oz: number, markings: boolean, tile?: readonly SimChunk[],
+  /** M02h2: the curbs, gutters and sidewalk ribbons for this mesher profile; absent: none (the roads object of M02h1). */
+  curbs?: { profile: ProfileId; debug?: boolean },
+): { mesh: MeshBuffers | null; stats: RoadMarkStats; curbs?: CurbStats; walk?: Uint8Array; walkLiftM?: number; samples?: CurbSample[] } {
+  const stats: RoadMarkStats = { roadVerts: 0, patches: 0, crosswalks: 0, stopBars: 0, approaches: 0, skipped: 0, clipped: 0 };
+  if (sim.segments.length === 0) return { mesh: null, stats };
+  const cfg = LOOK.markings;
+  const anyCtx: RoadsContext | null = markings || curbs ? roadsContext(tileOf(sim, tile)) : null;
+  const rctx: RoadsContext | null = markings ? anyCtx : null;
+  const plan: RoadsPlan | null = anyCtx ? planRoads(anyCtx, cfg.junctionExtraM) : null;
+  const curbed = curbs && anyCtx && CURBS.gutter[curbs.profile] ? curbedSides(anyCtx) : null;
+  const clsOf = new Map<number, number>();
+  for (const e of sim.edges) if (!clsOf.has(e.seg)) clsOf.set(e.seg, e.cls);
+  const rb = new MeshBuilder({ road: markings });
+  const ranked = sim.segments
+    .map((seg, i) => ({ seg, i, cls: clsOf.get(seg.id) ?? 4 }))
+    .sort((a, b) => roadRank(a.cls) - roadRank(b.cls) || a.i - b.i);
+  for (const { seg, cls } of ranked) {
+    rb.setSurf(roadSurf(cls));
+    const opts: RibbonOptions = {};
+    if (rctx && plan) {
+      const edges = rctx.edgesBySeg.get(seg.id) ?? sim.edges.filter((e) => e.seg === seg.id);
+      opts.road = roadFields(packRoad(seg, edges, cfg));
+      const c0 = plan.clip.get(clipKey(seg.id, 0)) ?? 0, c1 = plan.clip.get(clipKey(seg.id, 1)) ?? 0;
+      if (c0 > 0) opts.clipStart = c0;
+      if (c1 > 0) opts.clipEnd = c1;
+      stats.clipped += (c0 > 0 ? 1 : 0) + (c1 > 0 ? 1 : 0);
+    }
+    const sidesCurbed = curbed?.get(seg.id) ?? 0;
+    if (sidesCurbed !== 0) opts.gutter = { sides: sidesCurbed, widthM: CURBS.gutterM };
+    addRibbon(rb, seg.pts, ox, oz, seg.widthM, ribbonLift(cls), roadColor(cls), opts);
+  }
+  if (rctx && plan) {
+    for (const pj of plan.junctions.values()) {
+      if (pj.chunk !== sim.key) continue;
+      addPatch(rb, pj, ox, oz);
+      stats.patches++;
+    }
+    for (const j of sim.junctions) {
+      if (!plan.junctions.has(j.id)) {
+        const arms = armsOf(rctx, j);
+        if (arms === null || arms.length >= 3) stats.skipped++;
+      }
+    }
+    const raise = ribbonLift(0) + cfg.decalLiftM;
+    for (const rec of rctx.crosswalks.get(sim.key) ?? []) {
+      const j = rec.junction >= 0 ? rctx.junctionById.get(rec.junction) : undefined;
+      const q = crosswalkQuad(rctx, rec, j?.control === NodeControl.Signal, raise);
+      if (!q) continue;
+      addDecal(rb, q, Surf.Crosswalk, ox, oz, true);
+      stats.crosswalks++;
+    }
+    for (const j of sim.junctions) {
+      const planned = plan.junctions.get(j.id);
+      for (const edge of approachesOf(j)) {
+        stats.approaches++;
+        const q = stopBarQuad(rctx, j, planned, edge, { depthM: cfg.stopBar.depthM, behindCrosswalkM: cfg.stopBar.behindCrosswalkM, raiseM: raise, layout: cfg });
+        if (!q) continue;
+        addDecal(rb, q, Surf.StopBar, ox, oz, false);
+        stats.stopBars++;
+      }
+    }
+  }
+  // M02h2: the sidewalk ribbons, curbs and their walk mask, into the same object
+  const side = curbs && anyCtx ? buildSidewalks(rb, sim, anyCtx, ox, oz, { profile: curbs.profile, plan, lift: ribbonLift, ...(curbs.debug ? { debug: true } : {}) }) : null;
+  stats.roadVerts = rb.vertexCount;
+  if (!side) return { mesh: rb.build('roads'), stats };
+  return { mesh: rb.build('roads'), stats, curbs: side.stats, walk: side.walk, walkLiftM: side.liftM, ...(side.samples ? { samples: side.samples } : {}) };
 }
 
 // ---- the chunk -----------------------------------------------------------------------------------------------------------
@@ -696,13 +975,33 @@ export interface MeshChunkOptions {
    * place (`proxy-mask.ts`). Empty or absent: every proxy footprint is meshed as an ordinary building.
    */
   maskProxies?: readonly number[] | undefined;
+  /**
+   * M02h1: the sim chunks of the z7 tile the job decoded, `sim` among them. The roads of a junction are often in the next chunk of the
+   * tile; the street markings plan their junction patches over all of them. Absent (or without `sim`): this chunk's roads only.
+   */
+  tile?: readonly SimChunk[] | undefined;
+  /** M02h1: the street markings (the `road` attribute, junction patches, crosswalks, stop bars); defaults to the `world.look` flag. */
+  markings?: boolean | undefined;
+  /**
+   * M02h2: curbs, gutters, sidewalk ribbons, lots and plazas, and the `min` profile's baked macro tone; defaults to the `world.look` flag
+   * (off: the roads and the terrain of M02h1).
+   */
+  curbs?: boolean | undefined;
+  /** M02h2, tests: keep the curb samples (`UnitMesh.curbSamples`). */
+  curbDebug?: boolean | undefined;
+  /**
+   * M02h3: the chunk's ground cover (4,096 `CoverClass` cells, `decodeCover`), or null / absent for none: the terrain posts then mesh as
+   * before M02h3. The caller passes it only with the `cover` layer on (`platform-flags.json` `world.cover`, `setLookLayer('cover', on)`).
+   */
+  cover?: Uint8Array | null | undefined;
 }
 
 /**
  * Meshes one L0 chunk. `render` may be null for a chunk that has a `p0` record but no `l0` (terrain and roads only).
  */
 export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChunkOptions): UnitMesh {
-  const { profile } = profileOf(o.tier);
+  const { id: profileId, profile } = profileOf(o.tier);
+  const curbsOn = o.curbs ?? LOOK_FLAG;
   const bounds = chunkBounds(sim.key);
   const ox = bounds.minX;
   const oz = bounds.minZ;
@@ -746,7 +1045,18 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
   // The terrain, now that the footprints are known: the posts next to one carry the contact shading.
   const cellM = sim.height.cellM;
   const ao = terrainAo(candidates.map((c) => c.ring), cellM);
-  const terrain = terrainMesh(sim.height.dm, sim.ground, cellM, stride, { ao, skirtM: mixedStrides ? MESHER.terrain.skirtM : 0 });
+  const plaza = curbsOn ? plazaPosts(sim, tileOf(sim, o.tile)) : null;
+  const cover = o.cover && o.cover.length === 64 * 64 ? o.cover : null;
+  const terrain = terrainMesh(sim.height.dm, sim.ground, cellM, stride, { ao, skirtM: mixedStrides ? MESHER.terrain.skirtM : 0, plaza, cover });
+  if (cover) {
+    // M02h3: cells per class for the QA bridge (`look().cover.cells`)
+    const n = [0, 0, 0, 0, 0, 0, 0, 0];
+    for (let k = 0; k < cover.length; k++) {
+      const c = cover[k] as number;
+      if (c < n.length) n[c] = (n[c] as number) + 1;
+    }
+    stats.cover = n;
+  }
   objects.push(terrain);
 
   // M02e: the facade record rides on the building vertices unless the tier's look is `legacy`.
@@ -778,20 +1088,15 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
   stats.maxBuildingTris = b0.maxTris;
   if (b0.built) objects.push(b0.built);
 
-  if (sim.segments.length > 0) {
-    const clsOf = new Map<number, number>();
-    for (const e of sim.edges) if (!clsOf.has(e.seg)) clsOf.set(e.seg, e.cls);
-    const rb = new MeshBuilder();
-    // Lowest rank first, each rank a little higher (M02g2): where two ribbons cross, the busier road is the later and the higher.
-    const ranked = sim.segments
-      .map((seg, i) => ({ seg, i, cls: clsOf.get(seg.id) ?? 4 }))
-      .sort((a, b) => roadRank(a.cls) - roadRank(b.cls) || a.i - b.i);
-    for (const { seg, cls } of ranked) {
-      rb.setSurf(roadSurf(cls));
-      addRibbon(rb, seg.pts, ox, oz, seg.widthM, ROAD_LIFT_M + MESHER.depth.ribbonStepM * roadRank(cls), roadColor(cls));
-    }
-    const built = rb.build('roads');
-    if (built) objects.push(built);
+  const roads = buildRoads(sim, ox, oz, o.markings ?? LOOK_FLAG, o.tile, curbsOn ? { profile: profileId, ...(o.curbDebug ? { debug: true } : {}) } : undefined);
+  if (roads.mesh) {
+    objects.push(roads.mesh);
+    stats.markings = roads.stats;
+    if (roads.curbs) stats.curbs = roads.curbs;
+  }
+  // M02h2: the `min` look has no macro term in its shader: the tone is baked into the terrain's and the roads' vertex colours
+  if (curbsOn && lookProfileFor(o.tier) === 'min') {
+    for (const obj of objects) if (obj.kind === 'terrain' || obj.kind === 'roads') bakeMacro(obj.positions, obj.colors, obj.surf, ox, oz);
   }
 
   for (const obj of objects) {
@@ -803,6 +1108,8 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
   return {
     level: 'l0', key: sim.key as ChunkKey, originX: ox, originZ: oz, objects, trees, lamps: lampRecords(sim, render, ox, oz), stats,
     proxies: sorted(proxies), masked: sorted(masked),
+    ...(roads.walk ? { walk: roads.walk, walkLiftM: roads.walkLiftM ?? 0 } : {}),
+    ...(roads.samples ? { curbSamples: roads.samples } : {}),
   };
 }
 

@@ -22,7 +22,8 @@ import { MESHER, hexToLinear } from './mesher.ts';
 import type { MeshBuffers, UnitMesh } from './mesh-types.ts';
 import type { WorldMaterials } from './materials.ts';
 import { ChunkUploadGate } from './upload-gate.ts';
-import { CHUNK_EDGE_M, type ChunkKey } from '@dv/shared';
+import { walkLiftAt } from './sidewalks.ts';
+import { CHUNK_EDGE_M, COVER_NAMES as COVER_CLASS_NAMES, chunkKeyAt, type ChunkKey } from '@dv/shared';
 
 export type RenderLevel = 'l0' | 'l1' | 'l2';
 
@@ -347,6 +348,8 @@ export class ChunkRenderer {
     // M02e: the surface ids and the façade coordinates, uploaded normalised (unorm8, snorm16); the look materials read them.
     g.setAttribute('surf', new BufferAttribute(o.surf, 4, true));
     if (o.facade) g.setAttribute('facade', new BufferAttribute(o.facade, 4, true));
+    // M02h1: the lane coordinates of the street markings, on the L0 roads (normalised snorm16 like the façade)
+    if (o.road) g.setAttribute('road', new BufferAttribute(o.road, 4, true));
     if (cellM > 0) {
       g.setAttribute('aCover', new BufferAttribute(new Float32Array(n), 1));
       g.setAttribute('aCell', new BufferAttribute(new Float32Array(n).fill(cellM), 1));
@@ -617,6 +620,85 @@ export class ChunkRenderer {
       } else hidden++;
     }
     return { shown, hidden, farthestM: farthest, drawM: this.treeDrawM, crossings: this.treeCrossings };
+  }
+
+  /** M02h1: what the resident L0 roads objects hold (the QA bridge's `look().markings` counts). */
+  markingsCounts(): { roadVerts: number; patches: number; crosswalks: number; stopBars: number } {
+    const out = { roadVerts: 0, patches: 0, crosswalks: 0, stopBars: 0 };
+    for (const u of this.units.values()) {
+      const m = u.level === 'l0' ? u.mesh.stats.markings : undefined;
+      if (!m) continue;
+      out.roadVerts += m.roadVerts;
+      out.patches += m.patches;
+      out.crosswalks += m.crosswalks;
+      out.stopBars += m.stopBars;
+    }
+    return out;
+  }
+
+  /** M02h2: what the resident L0 roads objects hold of the sidewalks (the QA bridge's `look().curbs`). */
+  curbsCounts(): { ribbons: number; curbedM: number; rampCount: number } {
+    const out = { ribbons: 0, curbedM: 0, rampCount: 0 };
+    for (const u of this.units.values()) {
+      const c = u.level === 'l0' ? u.mesh.stats.curbs : undefined;
+      if (!c) continue;
+      out.ribbons += c.ribbons;
+      out.curbedM += c.curbedM;
+      out.rampCount += c.rampCount;
+    }
+    out.curbedM = Math.round(out.curbedM * 10) / 10;
+    return out;
+  }
+
+  /** M02h3: the cover cells per class of the resident L0 chunks meshed with cover (the QA bridge's `look().cover.cells`). */
+  coverCounts(): Record<string, number> {
+    const n = [0, 0, 0, 0, 0, 0, 0, 0];
+    for (const u of this.units.values()) {
+      const c = u.level === 'l0' ? u.mesh.stats.cover : undefined;
+      if (!c) continue;
+      for (let i = 0; i < n.length; i++) n[i] = (n[i] as number) + (c[i] ?? 0);
+    }
+    const out: Record<string, number> = {};
+    COVER_CLASS_NAMES.forEach((name, i) => { out[name] = n[i] as number; });
+    return out;
+  }
+
+  /**
+   * M02h2: the render lift of a foot at world (x, z): the walk mask of the resident L0 chunk there (`UnitMesh.walk`), `walkLiftM` on a curbed
+   * sidewalk, else 0 (and 0 where no L0 chunk is resident). Render only.
+   */
+  walkLiftAt(x: number, z: number): number {
+    const key = chunkKeyAt(9, x, z);
+    const u = this.units.get(idOf('l0', key));
+    const m = u?.mesh;
+    if (!m || !m.walk || !m.walkLiftM) return 0;
+    return walkLiftAt(m.walk, m.walkLiftM, x - m.originX, z - m.originZ);
+  }
+
+  /**
+   * M02h2 QA: the height of the top of the resident L0 sidewalk ribbon at world (x, z) (the highest `Sidewalk` or `Curb` triangle of the roads
+   * object that faces up and covers the point), or null where none does.
+   */
+  walkTopAt(x: number, z: number): number | null {
+    const u = this.units.get(idOf('l0', chunkKeyAt(9, x, z)));
+    const o = u?.mesh.objects.find((b) => b.kind === 'roads');
+    if (!u || !o) return null;
+    const lx = x - u.mesh.originX, lz = z - u.mesh.originZ;
+    const p = o.positions;
+    let best: number | null = null;
+    for (let t = 0; t < o.indices.length; t += 3) {
+      const a = o.indices[t] as number, b = o.indices[t + 1] as number, c = o.indices[t + 2] as number;
+      const id = o.surf[a * 4] as number;
+      if ((id !== 18 && id !== 38) || (o.normals[a * 3 + 1] as number) < 0.9) continue;
+      const ax = p[a * 3] as number, az = p[a * 3 + 2] as number, bx = p[b * 3] as number, bz = p[b * 3 + 2] as number, cx = p[c * 3] as number, cz = p[c * 3 + 2] as number;
+      const d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz);
+      if (Math.abs(d) < 1e-9) continue;
+      const w0 = ((bz - cz) * (lx - cx) + (cx - bx) * (lz - cz)) / d, w1 = ((cz - az) * (lx - cx) + (ax - cx) * (lz - cz)) / d, w2 = 1 - w0 - w1;
+      if (w0 < -1e-6 || w1 < -1e-6 || w2 < -1e-6) continue;
+      const y = w0 * (p[a * 3 + 1] as number) + w1 * (p[b * 3 + 1] as number) + w2 * (p[c * 3 + 1] as number);
+      if (best === null || y > best) best = y;
+    }
+    return best;
   }
 
   // ---- GPU loss ------------------------------------------------------------------------------------------------------------

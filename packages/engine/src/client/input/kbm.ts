@@ -2,7 +2,25 @@ import type { Binder, BinderTarget, ControlId, DeviceKind, RawInputState } from 
 
 /** The fields of the DOM events the binder reads. Structural, so tests pass plain objects and no DOM library is needed. */
 export interface KeyEventLike { type?: string; code: string; repeat?: boolean; preventDefault?: () => void }
-export interface MouseEventLike { type?: string; button?: number; movementX?: number; movementY?: number }
+export interface MouseEventLike {
+  type?: string;
+  button?: number;
+  movementX?: number;
+  movementY?: number;
+  /** `Event.timeStamp`, milliseconds on the page's clock. */
+  timeStamp?: number;
+  /** Chromium's `InputDeviceCapabilities`: true on the mouse events a tap is followed by. */
+  sourceCapabilities?: { firesTouchEvents?: boolean } | null;
+}
+/** The fields of a `pointerdown`/`pointerup`/`touchstart`/`touchend` the binder reads to recognise the mouse events a tap brings. */
+export interface TouchMarkLike { type?: string; pointerType?: string; timeStamp?: number }
+
+/**
+ * A browser follows a tap with compatibility mouse events (`mousedown`, `mouseup`, `click`) unless the page cancels the touch, as the touch
+ * layer does but a DOM button (Skip, the minimap) does not. Mouse buttons within this many milliseconds of a touch are those, not the
+ * mouse: they neither press a game control nor make keyboard and mouse the active device (BD-FIX-MOBILE-HUD-01).
+ */
+export const TOUCH_COMPAT_MOUSE_MS = 1000;
 export interface WheelEventLike { type?: string; deltaY: number; deltaMode: number; preventDefault?: () => void }
 
 /** The canvas the binder asks for Pointer Lock. */
@@ -54,6 +72,8 @@ export class KbmBinder implements Binder {
   private active = false;
   private wasLocked = false;
   private unadjustedRefused = false;
+  /** `timeStamp` of the last touch contact starting or ending anywhere on the page. */
+  private lastTouchMs: number | null = null;
   private readonly cleanups: (() => void)[] = [];
 
   constructor(private readonly opts: KbmOptions) {}
@@ -68,6 +88,8 @@ export class KbmBinder implements Binder {
     const doc = this.opts.doc ?? target;
     this.on(target, 'keydown', (e) => this.onKey(e as KeyEventLike, true));
     this.on(target, 'keyup', (e) => this.onKey(e as KeyEventLike, false));
+    // Capture phase: a control that stops its pointer events from bubbling (the cutscene's Skip) still marks the touch.
+    for (const type of ['pointerdown', 'pointerup', 'touchstart', 'touchend']) this.on(target, type, (e) => this.onTouchMark(e as TouchMarkLike), true);
     this.on(target, 'mousedown', (e) => this.onMouseButton(e as MouseEventLike, true));
     this.on(target, 'mouseup', (e) => this.onMouseButton(e as MouseEventLike, false));
     this.on(target, 'mousemove', (e) => this.onMouseMove(e as MouseEventLike));
@@ -168,10 +190,28 @@ export class KbmBinder implements Binder {
     return this.opts.isTextFocus();
   }
 
-  private on(target: BinderTarget, type: string, fn: (e: unknown) => void): void {
+  private on(target: BinderTarget, type: string, fn: (e: unknown) => void, capture = false): void {
     const listener = fn as (event: never) => void;
+    if (capture) {
+      target.addEventListener(type, listener, true);
+      this.cleanups.push(() => target.removeEventListener(type, listener, true));
+      return;
+    }
     target.addEventListener(type, listener);
     this.cleanups.push(() => target.removeEventListener(type, listener));
+  }
+
+  private onTouchMark(e: TouchMarkLike): void {
+    const touch = e.type === 'touchstart' || e.type === 'touchend' || e.pointerType === 'touch';
+    if (touch && e.timeStamp !== undefined) this.lastTouchMs = e.timeStamp;
+  }
+
+  /** A compatibility mouse event that follows a tap (`TOUCH_COMPAT_MOUSE_MS`). */
+  private fromTouch(e: MouseEventLike): boolean {
+    if (e.sourceCapabilities?.firesTouchEvents === true) return true;
+    if (this.lastTouchMs === null || e.timeStamp === undefined) return false;
+    const since = e.timeStamp - this.lastTouchMs;
+    return since >= 0 && since < TOUCH_COMPAT_MOUSE_MS;
   }
 
   private onKey(e: KeyEventLike, isDown: boolean): void {
@@ -192,7 +232,7 @@ export class KbmBinder implements Binder {
   }
 
   private onMouseButton(e: MouseEventLike, isDown: boolean): void {
-    if (this.suspended()) return;
+    if (this.suspended() || this.fromTouch(e)) return;
     const b = e.button ?? 0;
     if (b < 0 || b > 4) return;
     const id = `mouse:${b}` as ControlId;

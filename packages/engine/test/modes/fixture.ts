@@ -59,6 +59,8 @@ export interface RigOptions {
   sandboxBody?: SandboxBodyPort;
   /** What `ctx.assets.ready` answers (M04e3). The default keeps `() => true`. */
   assetsReady?: (refs: string[]) => boolean;
+  /** The dispatcher's profile loader (`save.profile select`, M04b1). Absent by default. */
+  selectProfile?: CommandDeps['selectProfile'];
 }
 
 /** A sim-free harness: the real ModeHost, registry, economy, bridge and policy on fake ports. */
@@ -128,6 +130,7 @@ export function makeRig(o: RigOptions = {}): Rig {
     ...(o.teleport ? { teleport: o.teleport } : {}),
     ...(o.sandboxWorld ? { sandboxWorld: o.sandboxWorld } : {}),
     ...(o.sandboxBody ? { body: () => o.sandboxBody as SandboxBodyPort } : {}),
+    ...(o.selectProfile ? { selectProfile: o.selectProfile } : {}),
   });
   return {
     host, slices, ui, unlocks, economy, events, posted, telemetry, restarts, game, clockT, tick, dispatch, capabilitySet, waypoint,

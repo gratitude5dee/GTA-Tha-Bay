@@ -211,7 +211,7 @@ Other rules:
 
 - OpenGameArt is treated like Sketchfab, with the page snapshotted;
 - SF scans and landmark models (Golden Gate, Transamerica) go through research/legal-ip-likeness.md: no storefront logos, people, murals or public art;
-- the target image is never committed (ip:signatures), never used to derive a palette, and never fed to fal, nor are photos of real cars;
+- the target image is never committed (ip:signatures); since DL-OWN-10 (2026-10-30) the owner's look references may be used as look inputs (fal reference inputs, side-by-side comparisons, palettes), read from outside the repository; photos of real cars are still never inputs;
 - SKETCHFAB_API_TOKEN access is UNVERIFIED, so the fallback is owner hand-download to content-incoming/.
 
 **Textures.**

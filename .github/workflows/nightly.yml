@@ -80,9 +80,23 @@ jobs:
           DV_BALANCE_RUNS: 10000
 
   # M01c: render-object and triangle budgets as failures (PRs only warn). Frame times are never asserted on SwiftShader.
+  # BD-FIX-CI-PERFSPLIT-01: one leg per scenario group, the same groups as ci.yml, so each leg fits the 30 minutes (the whole set took 88).
   perf:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # BD-FIX-CI-PERFSPLIT-01: five groups of the registered scenarios (config/perf/scenarios.json), cut by the measured time of
+        # each scenario on both engines in run 41021126822 (one job took 88 of 90 min): story-chase 18.5 min, npc-mission-crowd 19.0
+        # with fight-stage 1.5, downtown-rush 14.7, walk-civic-center 11.6 with route-ferry-ocean-beach 10.3, boot-cityhall 11.5.
+        # tools/ci/test/workflows.test.ts keeps the groups equal in ci.yml and nightly.yml and covering every registered id once.
+        scenarios:
+          - story-chase
+          - npc-mission-crowd,fight-stage
+          - downtown-rush
+          - walk-civic-center,route-ferry-ocean-beach
+          - boot-cityhall
     env:
       # BD-FIX-CI10-P01: this job launches both engines.
       DV_PW_BROWSERS: 'chromium webkit'
@@ -150,14 +164,15 @@ jobs:
           key: world-bakes-${{ hashFiles('tools/map/**', 'config/world/**', 'content/world/**') }}
       - if: steps.bake-cache.outputs.cache-hit != 'true'
         run: pnpm map:build -- --area synth && pnpm map:build -- --area civic-excerpt
-      - run: pnpm check:perf -- --fail
+      - run: pnpm check:perf -- --fail --scenario "$PERF_SCENARIO_SET"
         env:
+          PERF_SCENARIO_SET: ${{ matrix.scenarios }}
           DV_WORLD: synth
           DV_SKIP_BUILD: ''
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
-          name: perf-reports
+          name: perf-reports-${{ strategy.job-index }}
           path: test-results/perf.*.json
           if-no-files-found: ignore
           retention-days: 14

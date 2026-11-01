@@ -123,6 +123,6 @@ How to see it:
 
 ## Notes for the Builder
 - Read first: `02-world-living.md` §4.1, `02-world-bake.md` §6, `02-world.md` §5.2–§5.4, `11-platform.md` §4.5, M02e, M02g1, M02g2, M02h1, DL-704, DL-OWN-07.
-- The target image is never committed, sampled or fed to fal. Every pattern is original code.
+- The target image is never committed; since DL-OWN-10 the owner's look references may be used as look inputs (a fal reference input, a side-by-side comparison, a palette), read from outside the repository. Every pattern is original code.
 - The mesher stays deterministic and free of `three`. Collision, the sim and state hashes are untouched.
 - Goldens: `DV_UPDATE_GOLDEN=1` outside CI, `golden-update` label, `@look-owner` before/after frames in the PR. Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for AC-10 and AC-11 (SKIP locally). Branch `m02h2-curbs-sidewalks`.

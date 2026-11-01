@@ -90,6 +90,11 @@ export class ObjectPool {
   private artSeen = -1;
   /** The handle whose mesh stays hidden (the player in first person). */
   hiddenHandle: number | null = null;
+  /**
+   * M02h2: the render lift of a character's feet at world (x, z) (the world layer's `walkLiftAt`: the curb height on a curbed sidewalk). The
+   * on-foot figures (the placeholder rig) draw that much higher; vehicles and props do not. Render only.
+   */
+  footLift: ((x: number, z: number) => number) | null = null;
   /** The handle whose mesh fades with the camera distance (the followed player), and its opacity 0..1 (`CameraRig.playerOpacity`). */
   fadeHandle: number | null = null;
   fadeOpacity = 1;
@@ -204,10 +209,10 @@ export class ObjectPool {
         this.meshes.set(p.handle, mesh);
         this.scene.add(mesh);
       }
-      mesh.position.set(p.px, p.py, p.pz);
+      const avatar = this.avatars.get(p.handle);
+      mesh.position.set(p.px, p.py + (avatar && this.footLift ? this.footLift(p.px, p.pz) : 0), p.pz);
       mesh.quaternion.set(p.qx, p.qy, p.qz, p.qw);
       const shown = (p.flags & 1) !== 0 && p.handle !== this.hiddenHandle;
-      const avatar = this.avatars.get(p.handle);
       if (avatar) {
         const fade = p.handle === this.fadeHandle ? this.fadeOpacity : 1;
         avatar.rig.setOpacity(shown ? fade : 0);

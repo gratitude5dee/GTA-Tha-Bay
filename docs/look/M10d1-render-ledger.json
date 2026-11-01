@@ -2,71 +2,62 @@
   "commit": "local",
   "bakeId": "3537499f7cc5c17703cea67785128b51f3262dc2d693a344409c031cb9f33136",
   "baselineFrom": "docs/look/M10d0-render-ledger.json",
-  "drift": {
-    "reason": "docs/look/M10d0-render-ledger.json was measured before later milestones changed the scene; the baseline here is the same frame with the gray-box traffic mesh (one render object, one more per shadow pass) in place of the art's meshes, so the art is measured against what the scene draws now",
-    "previousAfter": {
-      "desktop-ultra": 278,
-      "desktop": 278,
-      "mobile": 157,
-      "mobile-low": 85
-    }
-  },
   "tiers": {
     "desktop-ultra": {
-      "baseline": 235,
-      "after": 251,
+      "baseline": 706,
+      "after": 722,
       "perLayer": {
         "art": 16
       },
       "triangles": {
-        "baseline": 1009598,
-        "after": 2878798,
-        "traffic": 1897712,
+        "baseline": 2651353,
+        "after": 4522457,
+        "traffic": 1899616,
         "instances": 792
       }
     },
     "desktop": {
-      "baseline": 241,
-      "after": 257,
+      "baseline": 538,
+      "after": 554,
       "perLayer": {
         "art": 16
       },
       "triangles": {
-        "baseline": 960586,
-        "after": 2235066,
-        "traffic": 1293920,
-        "instances": 540
+        "baseline": 2100029,
+        "after": 3368785,
+        "traffic": 1288088,
+        "instances": 537
       }
     },
     "mobile": {
-      "baseline": 157,
-      "after": 159,
+      "baseline": 144,
+      "after": 146,
       "perLayer": {
         "art": 2
       },
       "triangles": {
-        "baseline": 370730,
-        "after": 483986,
+        "baseline": 339354,
+        "after": 452610,
         "traffic": 120384,
         "instances": 198
       }
     },
     "mobile-low": {
-      "baseline": 85,
-      "after": 86,
+      "baseline": 73,
+      "after": 74,
       "perLayer": {
         "art": 1
       },
       "triangles": {
-        "baseline": 143271,
-        "after": 199327,
-        "traffic": 59584,
-        "instances": 98
+        "baseline": 131603,
+        "after": 188803,
+        "traffic": 60800,
+        "instances": 100
       }
     }
   },
   "xr": {
-    "baseline": 101,
-    "after": 101
+    "baseline": 100,
+    "after": 100
   }
 }

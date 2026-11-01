@@ -1,7 +1,7 @@
 {
   "$comment": "M02e look goldens: written by DV_UPDATE_GOLDEN=1 pnpm check:e2e -- --project=chromium-webgl2 --grep @look-golden (outside CI, under the golden-update label). 256 x 144 captures of the canvas on chromium-webgl2 at the shots of config/world/look-shots.json.",
   "schema": "look-golden/1",
-  "bakeId": "3537499f7cc5c17703cea67785128b51f3262dc2d693a344409c031cb9f33136",
+  "bakeId": "6e5d9a7fc0c8faa0ae8124ba55e8d6eb6438ca9b98c695d0c163c6828dc0af59",
   "source": "synth",
   "viewport": {
     "width": 256,
@@ -22,6 +22,20 @@
     "mobile-low.noon-street.png",
     "mobile-low.golden-water.png",
     "mobile-low.night-street.png",
-    "desktop.fog-west.png"
+    "desktop.fog-west.png",
+    "desktop.curb-corner.png",
+    "desktop.lot-plaza.png",
+    "mobile-low.curb-corner.png",
+    "mobile-low.lot-plaza.png",
+    "desktop.markings-near.png",
+    "desktop.markings-graze.png",
+    "mobile-low.markings-near.png",
+    "mobile-low.markings-graze.png",
+    "xr-quest.markings-near.png",
+    "xr-quest.markings-graze.png",
+    "desktop.yard-street.png",
+    "desktop.hill-scrub.png",
+    "mobile-low.yard-street.png",
+    "mobile-low.hill-scrub.png"
   ]
 }

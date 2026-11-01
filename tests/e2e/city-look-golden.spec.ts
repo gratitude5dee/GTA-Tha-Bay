@@ -3,9 +3,10 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import { decodePng, diffImages, encodePng, goldenFailures, identical, type Rgba } from '../support/image-diff.ts';
 import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, type Json, type W } from './world-look-helpers.ts';
+import { MARKINGS_GOLDEN_SHOTS, PAINT_TIERS } from './markings-helpers.ts';
 
 /**
- * M02e AC-6 (@look-golden, `chromium-webgl2` only): ten 256 x 144 captures against the committed goldens, each repeated byte-identical.
+ * M02e AC-6 (@look-golden, `chromium-webgl2` only): ten 256 x 144 captures (fourteen since M02h2's `curb-corner` and `lot-plaza`) against the committed goldens, each repeated byte-identical.
  * Split out of `world-look.spec.ts` (BD-FIX-CI-WORLDLOOK-01): Playwright shards by file and by test count over the sorted file names, so
  * the goldens and the other look cases (one desktop boot each, seconds per frame on software GL) shared chromium-webgl2 shard 8, 53 to
  * 56 of its 60 minutes; the `city-` name sorts this file into a light slice.
@@ -17,6 +18,8 @@ const GOLDEN_DIR = 'tests/e2e/golden/look';
 const GOLDEN_SHOTS: { tier: string; shot: string }[] = [
   ...(['desktop', 'mobile', 'mobile-low'] as const).flatMap((tier) => ['noon-street', 'golden-water', 'night-street'].map((shot) => ({ tier, shot }))),
   { tier: 'desktop', shot: 'fog-west' },
+  // M02h2: the curb, gutter and ramp at a corner, and a lot beside a plaza
+  ...(['desktop', 'mobile-low'] as const).flatMap((tier) => ['curb-corner', 'lot-plaza'].map((shot) => ({ tier, shot }))),
 ];
 
 /** The 256 x 144 canvas of the page after `shot(id)` has presented its frame. The debug panel is hidden so the picture is the canvas alone. */
@@ -84,7 +87,13 @@ test.describe('look goldens @look-golden', () => {
           source: 'synth',
           viewport: GOLDEN_VIEWPORT,
           tolerance: { channel: 6, minFraction: 0.99, meanAbs: 2 },
-          shots: GOLDEN_SHOTS.map((s) => `${s.tier}.${s.shot}.png`),
+          // M02h1: the six markings goldens are written by markings-golden.spec.ts (@markings-golden) and listed here with the others
+          // M02h3: the four cover goldens (`yard-street`, `hill-scrub` at desktop and mobile-low) are written by world-cover.spec.ts
+          shots: [
+            ...GOLDEN_SHOTS.map((s) => `${s.tier}.${s.shot}.png`),
+            ...PAINT_TIERS.flatMap((t) => MARKINGS_GOLDEN_SHOTS.map((s) => `${t}.${s}.png`)),
+            ...['desktop', 'mobile-low'].flatMap((t) => ['yard-street', 'hill-scrub'].map((s) => `${t}.${s}.png`)),
+          ],
         } satisfies Json,
         null,
         2,

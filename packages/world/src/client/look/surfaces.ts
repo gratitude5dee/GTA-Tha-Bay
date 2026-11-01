@@ -33,10 +33,35 @@ export const enum Surf {
   MassingL1 = 32,
   MassingL2 = 33,
   Sea = 34,
+  /** M02h1: the plain patch where the ribbons of a junction of three or more roads end. */
+  Junction = 35,
+  /** M02h1: a crosswalk quad (ladder or two transverse lines, painted in the shader). */
+  Crosswalk = 36,
+  /** M02h1: a stop bar quad. */
+  StopBar = 37,
+  /** M02h2: the curb face and its top band (concrete). */
+  Curb = 38,
+  /** M02h2: the gutter strip at the outer edge of a curbed road ribbon. */
+  Gutter = 39,
+  /** M02h2: a `Paved` terrain post away from a plaza: a lot (worn concrete). */
+  Lot = 40,
+  /** M02h2: a `Paved` terrain post within `lotPlaza.plazaM` of a plaza ped edge or node: pavers. */
+  Plaza = 41,
+  /** M02h3: 42..48, a terrain post with ground cover: `CoverYard - 1 + CoverClass` (yard, dirt, mixed, driveway, vacant, scrub, park). */
+  CoverYard = 42,
+  CoverDirt = 43,
+  CoverMixed = 44,
+  CoverDriveway = 45,
+  CoverVacant = 46,
+  CoverScrub = 47,
+  CoverPark = 48,
 }
 
+/** M02h3: the `CoverClass` (C08 1.1) names 1..7 in id order. */
+export const COVER_SURFACE_NAMES = ['yard', 'dirt', 'mixed', 'driveway', 'vacant', 'scrub', 'park'] as const;
+
 /** One past the largest id. */
-export const SURFACE_COUNT = 35;
+export const SURFACE_COUNT = 49;
 
 export const SURFACE_NAMES: readonly string[] = [
   ...GROUND_NAMES.map((n) => `ground.${n}`),
@@ -44,11 +69,15 @@ export const SURFACE_NAMES: readonly string[] = [
   'sidewalk',
   ...KIND_NAMES.map((n) => `wall.${n}`),
   'roof.flat', 'roof.gable', 'roof.hip', 'parapet', 'equipment', 'trunk', 'leaves', 'massing.l1', 'massing.l2', 'sea',
+  'junction', 'crosswalk', 'stopbar', 'curb', 'gutter', 'lot', 'plaza',
+  ...COVER_SURFACE_NAMES.map((n) => `cover.${n}`),
 ];
 
 export const isSurfaceId = (id: number): boolean => Number.isInteger(id) && id >= 0 && id < SURFACE_COUNT;
 
 export const groundSurf = (cls: number): number => (cls >= 0 && cls < GROUND_NAMES.length ? Surf.GroundBase + cls : Surf.GroundBase + 3);
+/** M02h3: the surface id of a post with cover class `c` (1..7). */
+export const coverSurf = (c: number): number => Surf.CoverYard - 1 + Math.max(1, Math.min(COVER_SURFACE_NAMES.length, c));
 export const roadSurf = (cls: number): number => Surf.RoadBase + Math.max(0, Math.min(ROAD_NAMES.length - 1, cls));
 export const wallSurf = (kind: number): number => Surf.WallBase + Math.max(0, Math.min(KIND_NAMES.length - 1, kind));
 export const roofSurf = (roof: number): number => (roof === 1 ? Surf.RoofGable : roof === 2 ? Surf.RoofHip : Surf.RoofFlat);

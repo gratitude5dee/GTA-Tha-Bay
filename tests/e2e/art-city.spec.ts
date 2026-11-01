@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
+import { crowdMax, streamAtPlan } from './ledger-helpers.ts';
 
 /**
  * M10d1 vehicles and props in a real browser, on a `DV_WORLD=synth` QA build (the world half of the e2e legs).
@@ -202,11 +203,8 @@ const live = (page: Page): Promise<{ renderObjects: number; triangles: number }>
 
 /** The `after` of the ledger of `docs/look` most recently merged: the baseline this row measures from (newest first, M10d1's own excluded). */
 function previousLedger(): { file: string; after: Record<string, number> } | null {
-  const candidates = [
-    'docs/look/M02h8-render-ledger.json', 'docs/look/M02h7-render-ledger.json', 'docs/look/M02h6-render-ledger.json', 'docs/look/M02h5-render-ledger.json',
-    'docs/look/M02h4-render-ledger.json', 'docs/look/M02h3-render-ledger.json', 'docs/look/M02h2-render-ledger.json', 'docs/look/M02h1-render-ledger.json',
-    'docs/look/M10d0-render-ledger.json', 'docs/look/M02g2-render-ledger.json', 'docs/look/M02g1-render-ledger.json',
-  ];
+  // the street rows (M02h1 on) merged after this row and measure from this ledger's after; this row never reads them (M02h1, BD-M02h1-07)
+  const candidates = ['docs/look/M10d0-render-ledger.json', 'docs/look/M02g2-render-ledger.json', 'docs/look/M02g1-render-ledger.json'];
   for (const file of candidates) {
     if (!existsSync(file)) continue;
     const l = read<{ tiers: Record<string, { after: number }> }>(file);
@@ -230,7 +228,8 @@ async function measure(page: Page, tier: QualityTierId): Promise<{
   if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));
   await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
   await artSettled(page);
-  await frames(page, 3);
+  // the frame of the whole plan, six frames after it (DL-758)
+  await streamAtPlan(page);
   await world(page, (w) => w.hold(true));
   const l = await live(page);
   const t = await world(page, (w) => w.traffic());
@@ -266,12 +265,13 @@ test.describe('art ledger @art-ledger', () => {
         triangles: { baseline: m.trianglesBaseline, after: m.trianglesAfter, traffic: m.traffic.triangles, instances: m.traffic.instances },
       };
       measured[tier] = row;
-      console.log(`art ledger ${tier}: ${JSON.stringify(row)}`);
+      console.log(`art ledger ${tier}: ${JSON.stringify(row)} (crowd max ${crowdMax(tier)})`);
       const bound = TABLE[tier] as NonNullable<(typeof TABLE)[string]>;
       expect(row.perLayer.art, `${tier}: render objects added by the art`).toBeLessThanOrEqual(bound.objects);
       expect(row.perLayer.art, `${tier}: the art cannot take objects away`).toBeGreaterThanOrEqual(0);
       expect(after.traffic.triangles, `${tier}: traffic triangles`).toBeLessThanOrEqual(after.traffic.cap * bound.trisPerInstance);
-      if (tier === 'mobile-low') expect(row.after).toBeLessThanOrEqual(100);
+      // the crowd is hidden in the count and added back at its most in the ceiling (BD-FIX-LEDGER-SETTLED-01)
+      if (tier === 'mobile-low') expect(row.after + crowdMax(tier), `mobile-low after ${row.after} + crowd max ${crowdMax(tier)}`).toBeLessThanOrEqual(100);
     });
   }
 
@@ -312,7 +312,7 @@ test.describe('art ledger @art-ledger', () => {
       const base = prev?.after[tier];
       if (base !== undefined && t.baseline !== base) expect(ledger.drift?.previousAfter[tier], `${tier} baseline ${t.baseline} is not the after ${base} of ${prev?.file}: the ledger says why`).toBe(base);
     }
-    expect(ledger.tiers['mobile-low']?.after ?? 0).toBeLessThanOrEqual(100);
+    expect((ledger.tiers['mobile-low']?.after ?? 0) + crowdMax('mobile-low'), 'mobile-low after + crowd max').toBeLessThanOrEqual(100);
     if (ledger.xr) expect(ledger.xr.after).toBe(ledger.xr.baseline);
   });
 });
@@ -325,7 +325,8 @@ test.describe('xr art ledger @xr @art-ledger', () => {
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
     await artSettled(page);
     await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
-    await frames(page, 3);
+    // the frame of the whole plan, six frames after it (DL-758)
+    await streamAtPlan(page);
     await world(page, (w) => w.hold(true));
     const after = (await live(page)).renderObjects;
     const t = await world(page, (w) => w.traffic());

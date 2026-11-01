@@ -52,8 +52,8 @@ describe('config/world/surface-textures.json', () => {
 
   it('every surface name is bound or procedural, exactly once, and a fixture with one unlisted name fails naming it', () => {
     for (const name of SURFACE_NAMES) expect(name in SURFACE_TEXTURES.bindings || SURFACE_TEXTURES.procedural.includes(name)).toBe(true);
-    const errors = textureConfigErrors(SURFACE_TEXTURES, [...SURFACE_NAMES, 'curb'], maxTextureMB());
-    expect(errors).toEqual(['surface curb is in neither bindings nor procedural']);
+    const errors = textureConfigErrors(SURFACE_TEXTURES, [...SURFACE_NAMES, 'kerb'], maxTextureMB());
+    expect(errors).toEqual(['surface kerb is in neither bindings nor procedural']);
     const both = clone();
     both.procedural = [...both.procedural, 'sidewalk'];
     expect(textureConfigErrors(both, SURFACE_NAMES, maxTextureMB())).toEqual(['surface sidewalk is both bound and listed as procedural']);
@@ -102,7 +102,8 @@ describe('the mode of a tier', () => {
   });
 
   it('knows the ids each set is bound to', () => {
-    expect(idsOfSet('concrete').map((i) => SURFACE_NAMES[i])).toEqual(['ground.Sidewalk', 'sidewalk']);
+    expect(idsOfSet('concrete').map((i) => SURFACE_NAMES[i])).toEqual(['ground.Sidewalk', 'sidewalk', 'curb', 'gutter', 'lot', 'cover.driveway']);
+    expect(idsOfSet('pavers').map((i) => SURFACE_NAMES[i])).toEqual(['ground.Paved', 'plaza']);
     expect(idsOfSet('brick')).toEqual([]);
   });
 
@@ -148,6 +149,17 @@ describe('SurfaceTextures and withSurfaceTextures', () => {
     const off = make('xr-quest');
     expect(off.setOn(false)).toBe(false);
     expect(off.setOn(true)).toBe(false);
+  });
+
+  it('reads the albedo maps alone with the QA albedoOnly option, and stays off where the tier has no textures (BD-REPAIR-M02h3-02)', () => {
+    const t = new SurfaceTextures({ tier: 'desktop', profile: lookProfileFor('desktop', true, LOOK), enabled: true, albedoOnly: true, backend: 'webgpu', browser: 'chromium' });
+    expect(t.report()).toMatchObject({ mode: 'albedo', configured: 'albedo', on: true });
+    expect(t.report().refs).toEqual(refsFor('albedo'));
+    t.dispose();
+    for (const o of [{ tier: 'xr-quest' as const, enabled: true }, { tier: 'desktop' as const, enabled: false }]) {
+      const off = new SurfaceTextures({ tier: o.tier, profile: lookProfileFor(o.tier, true, LOOK), enabled: o.enabled, albedoOnly: true, backend: 'webgl2', browser: 'chromium' });
+      expect(off.report().mode).toBe('off');
+    }
   });
 
   it('makes no request when off', async () => {
