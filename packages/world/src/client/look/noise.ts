@@ -3,7 +3,9 @@
  * and no texture download. The hashes work on integer cell coordinates (the sine-free form), so they hold their precision at the
  * distances of a 10 km city.
  */
-import { clamp, dot, float, floor, fract, fwidth, max, mix, select, smoothstep, vec2, vec3, type L } from '../sky/tsl.ts';
+import * as T from 'three/tsl';
+import { clamp, cross, dot, float, floor, fract, fwidth, max, mix, normalize, positionView, select, sign, smoothstep, vec2, vec3, type L } from '../sky/tsl.ts';
+import { MACRO, MACRO_OFFSET } from '../chunks/macro.ts';
 
 /** A hash of a 2D cell, in [0, 1). */
 export const hash21 = (p: L): L => {
@@ -113,5 +115,37 @@ export const pickColor = (index: L, values: readonly (readonly [number, number, 
 export const sat = (a: L): L => clamp(a, 0, 1);
 
 export const luma = (c: L): L => dot(c, vec3(0.2126, 0.7152, 0.0722));
+
+/**
+ * M02h2: the macro variation of chunks/macro.ts in TSL, at the world point `p` (x, z): the two-octave value-noise fbm in [0, 1). The CPU
+ * function is the same formula (`macroNoise`), so a `min` chunk (baked) and a `full` chunk (computed here) show the same patches.
+ */
+export const macroNoiseNode = (p: L): L => {
+  const [c0, c1] = MACRO.octavesM;
+  const [w0, w1] = MACRO.weights;
+  const a = vnoise(p.div(c0));
+  const b = vnoise(p.div(c1).add(vec2(MACRO_OFFSET[0], MACRO_OFFSET[1])));
+  return a.mul(w0).add(b.mul(w1)).div(w0 + w1);
+};
+
+const dFdx = (T as unknown as Record<string, (a: L) => L>)['dFdx'] as (a: L) => L;
+const dFdy = (T as unknown as Record<string, (a: L) => L>)['dFdy'] as (a: L) => L;
+
+/**
+ * M02h2: the view-space normal bent by a procedural height `h` (metres), the three-tap finite difference of the height across the pixel and
+ * its two screen neighbours (`dFdx`, `dFdy`) in Mikkelsen's surface-gradient form (the one `bumpMap` uses). `bumpMap` of three@0.186.1
+ * re-samples a texture node with offset UVs, which a computed height does not have, so its gradient there is 0 (spec/03 section 7). The
+ * height terms fade with the pixel footprint where they are built (`vnoiseAA`, `edgeLineAA`), so the bump adds no sparkle.
+ */
+export const bumpNormal = (h: L, strength: L, n: L): L => {
+  const sx = dFdx(positionView);
+  const sy = dFdy(positionView);
+  const r1 = cross(sy, n);
+  const r2 = cross(n, sx);
+  const det = dot(sx, r1);
+  const dh = vec2(dFdx(h), dFdy(h)).mul(strength);
+  const grad = sign(det).mul(r1.mul(dh.x).add(r2.mul(dh.y)));
+  return normalize(det.abs().mul(n).sub(grad));
+};
 
 export { max };

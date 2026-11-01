@@ -4,7 +4,7 @@
   "title": "config/world/look.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "tierProfile", "postLevelCap", "exposureBias", "casterRadiusM", "shadowsOff", "facade", "roof", "ground", "water", "sky", "bloom", "grade", "haze", "windows", "layers", "markings", "dynamicCasterRadiusM", "webgl2Unsupported", "webgl2AaFallback"],
+  "required": ["schema", "tierProfile", "postLevelCap", "exposureBias", "casterRadiusM", "shadowsOff", "facade", "roof", "ground", "water", "sky", "bloom", "grade", "haze", "windows", "layers", "bump", "markings", "dynamicCasterRadiusM", "webgl2Unsupported", "webgl2AaFallback"],
   "$defs": {
     "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
     "tier": { "enum": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"] },
@@ -45,7 +45,7 @@
         "ext": { "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
-    "layerList": { "type": "array", "uniqueItems": true, "items": { "enum": ["grade", "haze", "blob", "casters", "skyReflect", "windows", "markings"] } },
+    "layerList": { "type": "array", "uniqueItems": true, "items": { "enum": ["grade", "haze", "blob", "casters", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots"] } },
     "facadeClass": {
       "type": "object",
       "additionalProperties": false,
@@ -149,7 +149,7 @@
         "hip": { "$ref": "#/$defs/roofClass" }
       }
     },
-    "ground": { "type": "object", "minProperties": 18, "additionalProperties": { "$ref": "#/$defs/groundClass" } },
+    "ground": { "type": "object", "minProperties": 22, "additionalProperties": { "$ref": "#/$defs/groundClass" } },
     "water": {
       "type": "object",
       "additionalProperties": false,
@@ -232,6 +232,11 @@
           }
         }
       }
+    },
+    "bump": {
+      "$comment": "M02h2: the strength of the ground bump per look profile; off on min and legacy.",
+      "type": "object", "additionalProperties": false, "required": ["full", "lite", "min", "legacy"],
+      "properties": { "full": { "type": "number", "minimum": 0, "maximum": 2 }, "lite": { "type": "number", "minimum": 0, "maximum": 2 }, "min": { "const": 0 }, "legacy": { "const": 0 } }
     },
     "layers": {
       "type": "object",

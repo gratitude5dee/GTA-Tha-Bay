@@ -15,7 +15,11 @@
   "shots": [
     "desktop.noon-street.png",
     "desktop.night-street.png",
+    "desktop.curb-corner.png",
+    "desktop.lot-plaza.png",
     "mobile-low.noon-street.png",
-    "mobile-low.night-street.png"
+    "mobile-low.night-street.png",
+    "mobile-low.curb-corner.png",
+    "mobile-low.lot-plaza.png"
   ]
 }

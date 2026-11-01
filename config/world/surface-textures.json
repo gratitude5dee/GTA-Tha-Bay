@@ -23,6 +23,10 @@
     "sidewalk": "concrete",
     "ground.Sidewalk": "concrete",
     "ground.Paved": "pavers",
+    "curb": "concrete",
+    "gutter": "concrete",
+    "lot": "concrete",
+    "plaza": "pavers",
     "ground.Grass": "grass-dirt",
     "ground.Park": "grass-dirt",
     "ground.Dirt": "grass-dirt"
