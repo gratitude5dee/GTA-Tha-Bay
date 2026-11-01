@@ -59,6 +59,16 @@
     "landuse": { "type": "array", "items": { "type": "object", "required": ["cls", "minX", "minZ", "maxX", "maxZ"] } },
     "buildings": { "type": "object" },
     "trees": { "type": "object", "required": ["perChunk"] },
+    "driveways": {
+      "$comment": "M02h3: highway=service + service=driveway centrelines (ENU x, z pairs); S5 leaves them out of the graph, the cover stage draws them",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "pts"],
+        "properties": { "id": { "$ref": "#/$defs/id" }, "pts": { "type": "array", "minItems": 4, "items": { "type": "number" } } }
+      }
+    },
     "neighbourhoods": {
       "type": "object",
       "additionalProperties": false,

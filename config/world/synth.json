@@ -51,7 +51,11 @@
     { "cls": "grass", "minX": -4200, "minZ": -2900, "maxX": -3200, "maxZ": -2700 },
     { "cls": "beach", "minX": -8700, "minZ": -2900, "maxX": -8640, "maxZ": 8100 },
     { "cls": "plaza", "minX": -120, "minZ": -160, "maxX": 120, "maxZ": -40 },
-    { "cls": "cliff", "minX": -8300, "minZ": -300, "maxX": -8000, "maxZ": 100 }
+    { "cls": "cliff", "minX": -8300, "minZ": -300, "maxX": -8000, "maxZ": 100 },
+    { "cls": "brownfield", "minX": 1720, "minZ": 5000, "maxX": 1880, "maxZ": 5150 },
+    { "cls": "landfill", "minX": 2360, "minZ": 5000, "maxX": 2520, "maxZ": 5150 },
+    { "cls": "brownfield", "minX": -6000, "minZ": 1430, "maxX": -5880, "maxZ": 1560 },
+    { "cls": "landfill", "minX": -5840, "minZ": 1430, "maxX": -5720, "maxZ": 1560 }
   ],
   "buildings": {
     "downtown": { "chunkX": [264, 265], "chunkY": [250, 253], "perChunk": 1500 },
@@ -100,6 +104,18 @@
       { "kind": "only_straight_on", "i": -4, "j": 6, "from": "e" }
     ]
   },
+  "driveways": [
+    { "id": "dw-00", "pts": [-1678, 462, -1678, 490] },
+    { "id": "dw-01", "pts": [-1678, 610, -1678, 582] },
+    { "id": "dw-02", "pts": [-1650, 462, -1650, 490] },
+    { "id": "dw-03", "pts": [-1650, 610, -1650, 582] },
+    { "id": "dw-04", "pts": [-1622, 462, -1622, 490] },
+    { "id": "dw-05", "pts": [-1622, 610, -1622, 582] },
+    { "id": "dw-06", "pts": [-1594, 462, -1594, 490] },
+    { "id": "dw-07", "pts": [-1594, 610, -1594, 582] },
+    { "id": "dw-08", "pts": [-1566, 462, -1566, 490] },
+    { "id": "dw-09", "pts": [-1566, 610, -1566, 582] }
+  ],
   "trees": { "perChunk": 8 },
   "neighbourhoods": {
     "cols": 7,

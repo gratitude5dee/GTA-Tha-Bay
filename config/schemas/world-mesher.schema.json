@@ -24,7 +24,8 @@
     "depth",
     "curbs",
     "lotPlaza",
-    "macro"
+    "macro",
+    "cover"
   ],
   "$defs": {
     "hex": {
@@ -627,6 +628,22 @@
           "type": "string",
           "pattern": "^#[0-9a-fA-F]{6}$"
         }
+      }
+    },
+    "cover": {
+      "$comment": "M02h3: the vertex colour of each ground cover class (packages/world/src/client/chunks/mesher.ts)",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["yard", "dirt", "mixed", "driveway", "vacant", "scrub", "park"],
+      "properties": {
+        "$comment": { "type": "string" },
+        "yard": { "$ref": "#/$defs/hex" },
+        "dirt": { "$ref": "#/$defs/hex" },
+        "mixed": { "$ref": "#/$defs/hex" },
+        "driveway": { "$ref": "#/$defs/hex" },
+        "vacant": { "$ref": "#/$defs/hex" },
+        "scrub": { "$ref": "#/$defs/hex" },
+        "park": { "$ref": "#/$defs/hex" }
       }
     },
     "lotPlaza": {

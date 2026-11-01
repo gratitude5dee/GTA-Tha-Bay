@@ -45,6 +45,10 @@ export interface MeshStats {
   markings?: { roadVerts: number; patches: number; crosswalks: number; stopBars: number; approaches: number; skipped: number; clipped: number };
   /** L0, with the curbs on (M02h2): the sidewalk ribbons of the roads object, see `CurbStats` in sidewalks.ts. */
   curbs?: { ribbons: number; attached: number; unattached: number; chains: number; curbedM: number; rampCount: number; triangles: number };
+  /** L0, meshed with ground cover (M02h3): cells per `CoverClass` 0..7 of the chunk. */
+  cover?: number[];
+  /** L0 (M02h3): the chunk has cover in its pack (set by the mesh job), so the `cover` layer changes its mesh. */
+  coverAvailable?: boolean;
 }
 
 /** The result of meshing one unit (an L0 chunk, an L1 tile or an L2 block). */

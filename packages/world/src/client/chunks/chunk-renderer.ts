@@ -23,7 +23,7 @@ import type { MeshBuffers, UnitMesh } from './mesh-types.ts';
 import type { WorldMaterials } from './materials.ts';
 import { ChunkUploadGate } from './upload-gate.ts';
 import { walkLiftAt } from './sidewalks.ts';
-import { CHUNK_EDGE_M, chunkKeyAt, type ChunkKey } from '@dv/shared';
+import { CHUNK_EDGE_M, COVER_NAMES as COVER_CLASS_NAMES, chunkKeyAt, type ChunkKey } from '@dv/shared';
 
 export type RenderLevel = 'l0' | 'l1' | 'l2';
 
@@ -647,6 +647,19 @@ export class ChunkRenderer {
       out.rampCount += c.rampCount;
     }
     out.curbedM = Math.round(out.curbedM * 10) / 10;
+    return out;
+  }
+
+  /** M02h3: the cover cells per class of the resident L0 chunks meshed with cover (the QA bridge's `look().cover.cells`). */
+  coverCounts(): Record<string, number> {
+    const n = [0, 0, 0, 0, 0, 0, 0, 0];
+    for (const u of this.units.values()) {
+      const c = u.level === 'l0' ? u.mesh.stats.cover : undefined;
+      if (!c) continue;
+      for (let i = 0; i < n.length; i++) n[i] = (n[i] as number) + (c[i] ?? 0);
+    }
+    const out: Record<string, number> = {};
+    COVER_CLASS_NAMES.forEach((name, i) => { out[name] = n[i] as number; });
     return out;
   }
 

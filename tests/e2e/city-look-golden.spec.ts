@@ -88,7 +88,12 @@ test.describe('look goldens @look-golden', () => {
           viewport: GOLDEN_VIEWPORT,
           tolerance: { channel: 6, minFraction: 0.99, meanAbs: 2 },
           // M02h1: the six markings goldens are written by markings-golden.spec.ts (@markings-golden) and listed here with the others
-          shots: [...GOLDEN_SHOTS.map((s) => `${s.tier}.${s.shot}.png`), ...PAINT_TIERS.flatMap((t) => MARKINGS_GOLDEN_SHOTS.map((s) => `${t}.${s}.png`))],
+          // M02h3: the four cover goldens (`yard-street`, `hill-scrub` at desktop and mobile-low) are written by world-cover.spec.ts
+          shots: [
+            ...GOLDEN_SHOTS.map((s) => `${s.tier}.${s.shot}.png`),
+            ...PAINT_TIERS.flatMap((t) => MARKINGS_GOLDEN_SHOTS.map((s) => `${t}.${s}.png`)),
+            ...['desktop', 'mobile-low'].flatMap((t) => ['yard-street', 'hill-scrub'].map((s) => `${t}.${s}.png`)),
+          ],
         } satisfies Json,
         null,
         2,

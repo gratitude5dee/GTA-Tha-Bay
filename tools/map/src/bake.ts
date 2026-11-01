@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import path from 'node:path';
 import { canonicalize, chunkKeyAt, enuFromLatLng, sha256Hex, type ChunkKey, type SourceStamp } from '../../../packages/shared/src/index.ts';
 import {
-  CACHE_ROOT, DEFAULT_LAMP_PITCH_M, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadDensity, loadBounds, loadRoadClass, loadSources, loadSynth, mapSchema, rawDirOf,
+  CACHE_ROOT, DEFAULT_LAMP_PITCH_M, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadCover, loadDensity, loadBounds, loadRoadClass, loadSources, loadSynth, mapSchema, rawDirOf,
   type AreaGrid, type AreaId, type SourcesConfig, type SynthConfig,
 } from './config.ts';
 import { CONTENT_STAMP_AT, CONTENT_STAMP_ID, contentRows, contentStamp, loadContentWorld, type ContentWorld } from './content.ts';
@@ -406,7 +406,19 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       slabs: grading.product.slabs, hoods: grading.product.hoods, ped: ped.product, tags: tagStage.tags.tags, lamps: tagStage.tags.lamps, portals: tagStage.tags.portals, spawn: tagStage.spawn,
       places: placesStage.places, lod: lodStage.files,
       far: [{ name: 'far-bay-dem.pack', bytes: lodStage.far.dem }, { name: 'far-bay-massing.pack', bytes: lodStage.far.massing }, { name: 'far-bay-cards.png', bytes: lodStage.far.cards }],
+      cover: { cfg: loadCover(), osm: osmOf(c) },
     });
+    if (outputs.cover) {
+      // M02h3: cells per class; a class without a cell warns (the sf snapshot may lack a tag, the synth sources never do)
+      const empty = Object.entries(outputs.cover.cells).filter(([k, v]) => k !== 'none' && v === 0).map(([k]) => k);
+      const cells = Object.entries(outputs.cover.cells).map(([k, v]) => `${k} ${v}`).join(', ');
+      gates.push({
+        id: 's13.cover-classes', stage: 'S13', level: empty.length === 0 ? 'pass' : 'warn',
+        detail: `cover cells: ${cells}; ${outputs.cover.driveways.ways} driveways; section 21 ${outputs.cover.sectionBytes} B${empty.length ? `; no cell of ${empty.join(', ')}` : ''}`,
+        values: { ...outputs.cover.cells, sectionBytes: outputs.cover.sectionBytes },
+      });
+      log(`pack: cover ${cells}; blocks ${outputs.cover.blocks.total} (residential ${outputs.cover.blocks.residentialByLanduse} by landuse, ${outputs.cover.blocks.residentialByBuildings} by buildings, ${outputs.cover.blocks.tooLarge} too large); driveways ${outputs.cover.driveways.ways}; l0 section 21 ${outputs.cover.sectionBytes} B in ${outputs.cover.sectionRecords} rectangles`);
+    }
     outputs.files.push({
       name: 'sf-graph.v1.pack', family: 'graph', x: 0, y: 0, chunks: 1,
       bytes: graphBytes(bakeId, grading.product.nodes, grading.product.edges, grading.product.segs),
@@ -467,6 +479,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       map: mapStage.product.report,
       geocode: mapStage.geoReport,
       packs: outputs.files.map((f) => ({ name: f.name, bytes: f.bytes.length, chunks: f.chunks })),
+      ...(outputs.cover ? { cover: outputs.cover } : {}),
     };
     const writeReport = (g: GateResult[]): void => {
       const report = { ...baseReport, gates: g, ok: failed(g).length === 0 };
