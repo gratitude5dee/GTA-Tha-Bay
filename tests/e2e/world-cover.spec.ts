@@ -175,7 +175,7 @@ interface TierRow {
   baseline: number;
   after: number;
   perLayer: { cover: number };
-  /** Triangles of the frame with the cover off and on again, both re-committed at the focus (equal: the cover moves colours and surface ids, never geometry). */
+  /** Triangles of the world units with the cover off and on again, both re-committed at the focus (equal: the cover moves colours and surface ids, never geometry). */
   triangles: { off: number; on: number };
 }
 interface Ledger {
@@ -213,14 +213,16 @@ test.describe('cover ledger @cover-ledger', () => {
       await world(page, (w) => w.hold(true));
       const on = await live(page);
       await world(page, (w) => w.hold(false));
-      // the layer's own delta: off, then on again, both frames re-committed at this focus (casters are decided at commit, see @world-cover)
+      // the layer's own delta: off, then on again, both frames re-committed at this focus (casters are decided at commit, see @world-cover).
+      // The triangles compared are the world units' (`chunks().triangles`): the traffic stays in the ledger frame and its instances move.
       const toggled = async (o: boolean): Promise<{ renderObjects: number; triangles: number }> => {
         expect(await setCover(page, o)).toBe(true);
         await coverSettled(page);
         await world(page, (w) => w.hold(true));
         const r = await live(page);
+        const tris = await world(page, (w) => w.chunks().triangles);
         await world(page, (w) => w.hold(false));
-        return r;
+        return { renderObjects: r.renderObjects, triangles: tris };
       };
       const off = await toggled(false);
       const again = await toggled(true);
