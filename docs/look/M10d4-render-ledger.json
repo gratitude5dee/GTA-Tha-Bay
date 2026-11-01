@@ -1,0 +1,51 @@
+{
+  "commit": "local",
+  "bakeId": "6e5d9a7fc0c8faa0ae8124ba55e8d6eb6438ca9b98c695d0c163c6828dc0af59",
+  "baselineFrom": "docs/look/M02h3-render-ledger.json",
+  "tiers": {
+    "desktop": {
+      "baseline": 554,
+      "after": 554,
+      "perLayer": {
+        "peds": 0
+      },
+      "crowd": {
+        "near": 2,
+        "farMeshes": 8,
+        "objects": 10,
+        "textureBytes": 5592406
+      }
+    },
+    "mobile": {
+      "baseline": 146,
+      "after": 146,
+      "perLayer": {
+        "peds": 0
+      },
+      "crowd": {
+        "near": 2,
+        "farMeshes": 8,
+        "objects": 10,
+        "textureBytes": 1398102
+      }
+    },
+    "mobile-low": {
+      "baseline": 74,
+      "after": 74,
+      "perLayer": {
+        "peds": 0
+      },
+      "crowd": {
+        "near": 2,
+        "farMeshes": 8,
+        "objects": 10,
+        "textureBytes": 349526
+      }
+    }
+  },
+  "xr": {
+    "baseline": 100,
+    "after": 100,
+    "near": 2
+  }
+}
