@@ -37,11 +37,129 @@ export const FIXTURES = {
 } as const;
 export type FixtureName = keyof typeof FIXTURES;
 
-/** Time of the suites: virtual timers for the 4 s rule, the fixture pacing and the kill poll; `now` is the same virtual time. */
+const isThenable = (v: unknown): v is PromiseLike<unknown> =>
+  (typeof v === 'object' || typeof v === 'function') && v !== null && typeof (v as { then?: unknown }).then === 'function';
+const isObject = (v: unknown): v is object => typeof v === 'object' && v !== null;
+
+/**
+ * The Worker's real I/O in flight (BD-FIX-FLAKE-TTS-01). talkSetup hands the app its bindings through `counted`, so every call on them
+ * (Durable Object stubs, KV, R2 and the bodies R2 returns, Workers AI, queues) and on the Cache API of route 32 is counted until its promise
+ * settles, and ManualClock.advance waits for the count to reach zero before each step. Virtual time therefore passes only while the Worker
+ * waits on a virtual timer, never while it waits on workerd: every binding answers in zero virtual time, the model the suites' virtual
+ * times (the 4 s rule, the 250 ms kill poll, the fixture pacing, the 20 s read budget) are written in. Before, a step moved 100 virtual
+ * ms per 2 ms real turn whatever the Worker was doing, so a slow binding under load used up the budget (`the stream did not end within
+ * 20000 virtual ms`), let an intent drive stop before the fixture's pacing ran (a hung request), or let a kill poll fall behind the text.
+ */
+export class IoGate {
+  /** Every label counted so far (`QUOTA.reserve`, `PRIVATE.get`, `caches.default.match`, ...): a suite can check what was gated. */
+  readonly seen = new Set<string>();
+  private readonly calls = new Map<number, string>();
+  private seq = 0;
+  private idle: (() => void)[] = [];
+
+  get busy(): boolean {
+    return this.calls.size > 0;
+  }
+  /** Labels of the calls in flight. */
+  pending(): string[] {
+    return [...this.calls.values()];
+  }
+
+  track<T>(label: string, p: PromiseLike<T>): Promise<T> {
+    const id = ++this.seq;
+    this.calls.set(id, label);
+    this.seen.add(label);
+    const end = (): void => {
+      this.calls.delete(id);
+      if (this.calls.size === 0) for (const wake of this.idle.splice(0)) wake();
+    };
+    return Promise.resolve(p).then(
+      (v) => {
+        end();
+        return v;
+      },
+      (e: unknown) => {
+        end();
+        throw e;
+      },
+    );
+  }
+
+  /** Returns once no call is in flight and a real turn has let their continuations run without starting another one. */
+  async settled(): Promise<void> {
+    while (this.busy) {
+      await new Promise<void>((resolve) => this.idle.push(resolve));
+      await flush();
+    }
+  }
+
+  /**
+   * `env` with each binding (an object value) wrapped so its calls are counted; other values as they are. A Durable Object namespace hands
+   * out stubs whose calls are counted too, and an R2 bucket bodies whose reads are; any other result is the binding's own.
+   */
+  counted<T extends object>(env: T): T {
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(env)) {
+      if (!isObject(value)) {
+        out[key] = value;
+        continue;
+      }
+      const b = value as Record<string, unknown>;
+      const results =
+        typeof b['idFromName'] === 'function'
+          ? (method: string, r: unknown): unknown => ((method === 'get' || method === 'getByName') && isObject(r) ? this.wrap(key, r) : r)
+          : typeof b['createMultipartUpload'] === 'function'
+            ? (method: string, r: unknown): unknown => (method === 'get' && isObject(r) ? this.wrap(`${key}.get()`, r) : r)
+            : undefined;
+      out[key] = this.wrap(key, value, results);
+    }
+    return out as T;
+  }
+
+  /** Counts the Cache API calls of the Worker (`caches.default`, route 32) until the returned function restores it. */
+  countCache(): () => void {
+    const cache = (caches as unknown as { default: Cache }).default as unknown as Record<string, unknown>;
+    const proto = Object.getPrototypeOf(cache) as Record<string, unknown>;
+    const methods = ['match', 'put', 'delete'];
+    for (const m of methods) {
+      const fn = proto[m] as (...a: unknown[]) => Promise<unknown>;
+      Object.defineProperty(cache, m, { configurable: true, writable: true, value: (...a: unknown[]) => this.track(`caches.default.${m}`, Reflect.apply(fn, cache, a)) });
+    }
+    return () => {
+      for (const m of methods) delete cache[m];
+    };
+  }
+
+  /** A view of `target` whose method calls are counted while their promise is pending; `results` may replace what a call returns. */
+  private wrap<T extends object>(label: string, target: T, results?: (method: string, r: unknown) => unknown): T {
+    return new Proxy(target, {
+      get: (obj, prop) => {
+        const v: unknown = Reflect.get(obj, prop);
+        if (typeof prop === 'symbol' || prop === 'then' || typeof v !== 'function') return v;
+        const own = Reflect.getOwnPropertyDescriptor(obj, prop);
+        if (own !== undefined && own.configurable === false && own.writable === false) return v; // a Proxy may not change a frozen method
+        return (...args: unknown[]): unknown => {
+          const r: unknown = Reflect.apply(v as (...a: unknown[]) => unknown, obj, args);
+          if (isThenable(r)) {
+            const p = this.track(`${label}.${prop}`, r);
+            return results === undefined ? p : p.then((x) => results(prop, x));
+          }
+          return results === undefined ? r : results(prop, r);
+        };
+      },
+    });
+  }
+}
+
+/**
+ * Time of the suites: virtual timers for the 4 s rule, the fixture pacing and the kill poll; `now` is the same virtual time. With an
+ * IoGate (talkSetup gives it one), no virtual time passes while the Worker under test has a binding call in flight.
+ */
 export class ManualClock implements Timing {
   t = 0;
   private seq = 0;
   private timers = new Map<number, { at: number; fn: () => void }>();
+  constructor(readonly io: IoGate | null = null) {}
   setTimeout(fn: () => void, ms: number): unknown {
     const id = ++this.seq;
     this.timers.set(id, { at: this.t + ms, fn });
@@ -53,10 +171,14 @@ export class ManualClock implements Timing {
   now(): number {
     return this.t;
   }
-  /** Moves time forward in 100 ms steps, letting promise callbacks (and Durable Object calls) run between steps. */
+  /**
+   * Moves time forward in 100 ms steps, letting promise callbacks run between steps. Before each step it waits until the Worker's binding
+   * calls (Durable Object, KV, R2, AI, Cache API) have settled, so real I/O takes no virtual time however slow workerd is.
+   */
   async advance(ms: number): Promise<void> {
     const end = this.t + ms;
     while (this.t < end) {
+      if (this.io !== null) await this.io.settled();
       this.t = Math.min(this.t + 100, end);
       for (const [id, tm] of [...this.timers]) {
         if (tm.at <= this.t) {
@@ -110,6 +232,8 @@ export type RawBody = Record<string, unknown>;
 export interface Talk {
   h: Harness;
   clock: ManualClock;
+  /** The Worker's binding calls in flight; the clock stands still while there are any. */
+  io: IoGate;
   pid: string;
   dkt: string;
   /** Posts a talk request as this player (or as `pid` when given) and returns the response without reading the body. */
@@ -172,9 +296,14 @@ export async function resetFlags(): Promise<void> {
 /** Pre-built app, clock, souls and fixture choice. `dispose` restores every seam. */
 export async function talkSetup(opts: TalkOptions = {}): Promise<Talk> {
   await resetFlags();
+  // The app reaches the Worker's bindings (all but AI, which only a suite's stub may bind) and the suite's own through the IoGate, so the
+  // clock stands still while any of their calls is in flight (BD-FIX-FLAKE-TTS-01).
+  const io = new IoGate();
+  const own = Object.fromEntries(Object.entries(env).filter(([k, v]) => k !== 'AI' && !k.startsWith('__') && isObject(v)));
   // The Rate Limiting binding counts real time (4 per 10 s per player): off here, a suite that tests it passes its own stub.
-  const h = harness({ env: { RL_TALK: undefined, ...opts.env } });
-  const clock = new ManualClock();
+  const h = harness({ env: { ...io.counted(own), RL_TALK: undefined, ...io.counted(opts.env ?? {}) } });
+  const restoreCache = io.countCache();
+  const clock = new ManualClock(io);
   setTimingForTests(clock);
   const choose = opts.fixture ?? 'happy';
   setFixtureSourceForTests((req) => (typeof choose === 'function' ? choose(req) : FIXTURES[choose]));
@@ -187,6 +316,7 @@ export async function talkSetup(opts: TalkOptions = {}): Promise<Talk> {
   const talk: Talk = {
     h,
     clock,
+    io,
     pid,
     dkt,
     async post(body, init = {}) {
@@ -248,6 +378,7 @@ export async function talkSetup(opts: TalkOptions = {}): Promise<Talk> {
       return { res, frames: await talk.read(res) };
     },
     dispose() {
+      restoreCache();
       setTimingForTests(null);
       setFixtureSourceForTests(null);
       setUpstreamForTests(null);
