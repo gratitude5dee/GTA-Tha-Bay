@@ -50,6 +50,18 @@ export interface VehicleRuntime {
   lastVz: number;
   /** Horizontal speed lost over the run of ticks that is still counting as one impact, m/s. */
   impactAcc: number;
+  /**
+   * The body the ground hold keeps where it stands because no static collider is resident in its column (kinematic then, and not
+   * simulated; `engine.vehicle.ground-hold`, BD-FIX-PARKED-FALL-01), 0 when none: see `groundHeld`. A body, not a flag, because runtimes
+   * are keyed by the dense id and outlive a despawn, while body ids are never reused, so a car that takes over the id of a held one is
+   * never taken for held.
+   */
+  heldBody: number;
+}
+
+/** True while the ground hold holds the vehicle whose runtime is `rt` and whose body is `body`. */
+export function groundHeld(rt: VehicleRuntime, body: number): boolean {
+  return body !== 0 && rt.heldBody === body;
 }
 
 export function parkedInput(): VehicleInput {
@@ -80,6 +92,8 @@ export class VehicleStore {
       lastVx: 0,
       lastVz: 0,
       impactAcc: 0,
+      // a new handling profile on a held car keeps it held: its body is still kinematic
+      heldBody: have?.heldBody ?? 0,
     };
     this.rt.set(id, rt);
     return rt;
@@ -109,6 +123,8 @@ export function vehicleResource(store: VehicleStore): SimResource {
         h.u8(r.input.throttle).u8(r.input.brake).u8(r.input.steer & 0xff).u8(r.input.handbrake ? 1 : 0);
         // the race director's nitro (M07a1): hashed only while it is open, so a session that never races hashes as before
         if (s.nitroOn) h.u8(0xa5).f32(s.nitro);
+        // the ground hold (BD-FIX-PARKED-FALL-01): hashed only once it held a body, so a session where no car loses its ground hashes as before
+        if (r.heldBody !== 0) h.u8(0x68).u32(r.heldBody);
       }
     },
     save(w: ByteWriter) {
@@ -140,6 +156,7 @@ export function vehicleResource(store: VehicleStore): SimResource {
         w.f64(r.lastVx);
         w.f64(r.lastVz);
         w.f64(r.impactAcc);
+        w.u32(r.heldBody);
       }
     },
     load(r: ByteReader) {
@@ -168,6 +185,7 @@ export function vehicleResource(store: VehicleStore): SimResource {
         rt.lastVx = r.f64();
         rt.lastVz = r.f64();
         rt.impactAcc = r.f64();
+        rt.heldBody = r.u32();
       }
     },
   };

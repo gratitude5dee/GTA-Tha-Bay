@@ -2,7 +2,9 @@
  * Parked vehicles for the QA scenes (M03a1): a few cars standing next to the player's spawn, so that every QA build with
  * vehicles shows them at once. Each car is spawned on the first tick there is ground under its place (the chunk colliders arrive
  * one chunk per tick), at that ground height, with the handbrake on. The list comes from a `plan` function; for a streamed world it
- * waits for the road graph and lays the cars along the lanes nearest to the spawn.
+ * waits for the road graph and lays the cars along the lanes nearest to the spawn. Once spawned they are ordinary vehicles: when the
+ * player goes far enough away for their chunk's colliders to unload, the ground hold keeps them where they stand until the colliders
+ * are back (`engine.vehicle.ground-hold` in `vehicle-system.ts`, BD-FIX-PARKED-FALL-01).
  *
  * Sim code under the C02 lint.
  */

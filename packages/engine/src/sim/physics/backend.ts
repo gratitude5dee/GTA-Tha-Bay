@@ -103,6 +103,12 @@ export interface VehiclePhysics extends PhysicsSystemsBackend {
   setBodyGroups(id: number, groups: number): void;
   /** Switches a body between kinematic and dynamic (ragdoll-lite). */
   setBodyKind(id: number, kind: 'dynamic' | 'kinematic'): void;
+  /**
+   * A resident chunk's static colliders stand in the column at (x, z), ENU, at any height, read from the backend's statics table rather
+   * than Rapier's queries (which see a collider created since the last step only after the next one); the vehicles' ground hold asks it
+   * (BD-FIX-PARKED-FALL-01).
+   */
+  staticColumn(x: number, z: number): boolean;
   /** Suspension settings of a controller made by `vehicle.create` (M03a2 spike; see ADR-0031). */
   tuneVehicle(v: number, t: VehicleSuspensionTune): void;
 }
