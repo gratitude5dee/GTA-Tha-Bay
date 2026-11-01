@@ -2,11 +2,13 @@ import { expect, type Page } from '@playwright/test';
 import { frames, world, type W } from './markings-helpers.ts';
 
 /**
- * What the M02h3 ground-cover specs share: `world-cover.spec.ts` (@world-cover), `city-cover-golden.spec.ts` (the four cover goldens,
- * @look-golden) and `cover-ledger.spec.ts` (@cover-ledger). The cases live in three files because Playwright cuts a shard out of the sorted
- * list of tests by count, and a `desktop` boot is the longest single case of the suite on software GL (BD-REPAIR-M02h2-04): the
- * `city-` and `cover-` names sort the goldens and the ledger into chromium-webgl2 shard 2 of 9, away from the `world-` files of shard 8
- * and from shards 3, 5 and 6, which are the fullest.
+ * What the M02h3 ground-cover specs share: `world-cover.spec.ts` (@world-cover), `ground-cover-golden.spec.ts` (the four cover goldens,
+ * @look-golden) and `terrain-cover-ledger.spec.ts` (@cover-ledger). The cases live in three files because Playwright cuts a shard out of the
+ * sorted list of tests by count, and a `desktop` boot is the longest single case of the suite on software GL (BD-REPAIR-M02h2-04). The
+ * names place them in the light chromium-webgl2 shards of 9 (BD-REPAIR-M02h3-01): the goldens (`ground-`) in shard 3 beside the fighter and
+ * ledger-curbs cases, the serial ledger (`terrain-`) in shard 6 beside the story cases, `@world-cover` in shard 8. Shard 2 holds the
+ * desktop look goldens of `city-look-golden.spec.ts` (five desktop cases of 10 to 12 minutes each on software GL), and the cover cases
+ * beside them took it past its 60-minute limit (`playwright test --list --shard=n/9` shows the cut).
  *
  * A toggle of the layer re-meshes the resident L0 chunks nearest first (`WorldView.setCover`); the cases wait for the chunks to follow it
  * (`look().cover.pending`) with the world's draw held, the way the ledgers wait for their plan (`streamAtPlan`), never on a frame count.

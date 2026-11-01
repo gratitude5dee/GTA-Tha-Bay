@@ -88,6 +88,11 @@ export interface SurfaceTexturesOptions {
   profile: LookProfile;
   /** `world.textures` and the QA `?textures=0` switch. */
   enabled: boolean;
+  /**
+   * QA only (`?textures=albedo`, BD-REPAIR-M02h3-02): the albedo maps alone on a tier whose mode reads more (`single`, `stochastic`), so a
+   * `desktop` frame keeps the bound sets within WebGPU's 16 sampled textures per stage. Ignored when the tier's mode is `off`.
+   */
+  albedoOnly?: boolean;
   backend: RenderBackend;
   browser: string;
   config?: SurfaceTexturesFile;
@@ -138,7 +143,8 @@ export class SurfaceTextures {
     this.tier = o.tier;
     const names = o.surfaceNames ?? SURFACE_NAMES;
     this.unsupported = backendUnsupported(o.backend, o.browser, this.cfg);
-    const mode = textureModeFor(o.tier, o.profile, o.enabled, this.cfg);
+    const tierMode = textureModeFor(o.tier, o.profile, o.enabled, this.cfg);
+    const mode: TextureMode = o.albedoOnly === true && tierMode !== 'off' ? 'albedo' : tierMode;
     this.configured = this.unsupported ? 'off' : mode;
     this.refs = refsFor(this.configured, this.cfg);
     if (this.configured === 'off') return;

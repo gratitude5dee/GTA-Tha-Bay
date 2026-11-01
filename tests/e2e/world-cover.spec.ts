@@ -9,7 +9,7 @@ import { FLAT_TIERS, HIDE, bootWorld, clearActors, live, world } from './marking
  * M02h3 ground cover in a real browser, on a `DV_WORLD=synth` QA build: @world-cover (AC-6) per flat tier (desktop, mobile, mobile-low; both
  * browsers): `look().cover.cells` is above 0 for all seven classes across the `yard-street` and `hill-scrub` shots; the `cover` layer toggle
  * changes the `yard-street` frame by a mean |delta| of at least 0.02 and leaves the render objects and triangles as they were; no page error.
- * The cover goldens are `city-cover-golden.spec.ts`, the ledger `cover-ledger.spec.ts` (shared helpers: `cover-helpers.ts`).
+ * The cover goldens are `ground-cover-golden.spec.ts`, the ledger `terrain-cover-ledger.spec.ts` (shared helpers: `cover-helpers.ts`).
  */
 test.describe('world cover @world-cover', () => {
   test.describe.configure({ timeout: 1_800_000 });
@@ -21,8 +21,11 @@ test.describe('world cover @world-cover', () => {
       page.on('console', (m) => {
         if (m.type() === 'error' && !/Failed to load resource|favicon/.test(m.text())) errors.push(m.text());
       });
-      // as world-markings.spec.ts (BD-REPAIR-M02h1-03): chromium-webgpu's desktop textures pass the 16 sampled textures of a stage
-      const query = testInfo.project.name === 'chromium-webgpu' && tier === 'desktop' ? '&textures=0' : '';
+      // chromium-webgpu `desktop`: the albedo maps alone (BD-REPAIR-M02h3-02). Its full texture set passes WebGPU's 16 sampled textures of a
+      // stage (BD-REPAIR-M02h1-03), and with no textures at all the toggle measured something else: on every textured tier the layer swaps
+      // the bound `grass-dirt` set of the lawns for the procedural cover (BD-M02h3-05), which is the change the 0.02 bar was set on; with the
+      // textures off both frames are procedural and differ by 0.0194 on WebGPU. With the albedo maps the WebGPU frame keeps that swap.
+      const query = testInfo.project.name === 'chromium-webgpu' && tier === 'desktop' ? '&textures=albedo' : '';
       await bootWorld(page, tier, query, SMALL_VIEWPORT);
       expect((await cover(page)).enabled, 'world.cover is on by default').toBe(true);
       await page.addStyleTag({ content: HIDE });

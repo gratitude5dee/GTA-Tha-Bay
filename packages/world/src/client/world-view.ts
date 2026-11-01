@@ -311,8 +311,11 @@ export class WorldView implements WorldLayer {
     const profile = this.o.look ? lookProfileFor(this.o.tier, this.o.look.enabled) : 'legacy';
     // art-hook:textures begin (M10d0): built before the materials, which read it; the files load after the reveal (`startTextures`)
     if (this.o.look) {
-      const off = this.o.qa === true && new URLSearchParams(globalThis.location?.search ?? '').get('textures') === '0';
-      this.textures = new SurfaceTextures({ tier: this.o.tier, profile, enabled: TEXTURES_FLAG && !off, backend: this.o.look.backend, browser: this.o.look.browser });
+      const qaTextures = this.o.qa === true ? new URLSearchParams(globalThis.location?.search ?? '').get('textures') : null;
+      const off = qaTextures === '0';
+      // QA `?textures=albedo` (BD-REPAIR-M02h3-02): the albedo maps alone, whatever the tier's mode
+      const albedoOnly = qaTextures === 'albedo';
+      this.textures = new SurfaceTextures({ tier: this.o.tier, profile, enabled: TEXTURES_FLAG && !off, albedoOnly, backend: this.o.look.backend, browser: this.o.look.browser });
       installSurfaceTextures(this.textures);
       host.register({
         onRendererReplaced: () => {
