@@ -138,6 +138,11 @@ export const LOOK: LookFile = lookJson as unknown as LookFile;
 
 /** `config/platform-flags.json` `world.look` (default true): false is the full rollback to the M02b1/M02b2 look. */
 export const LOOK_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.look'] !== false;
+/**
+ * M02h3: `config/platform-flags.json` `world.cover` (default true), the rollback switch of the ground cover: false meshes every terrain
+ * post from its GROUND class alone, as before M02h3 (the cover in section 21 is not read).
+ */
+export const COVER_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.cover'] !== false;
 
 export const TIER_IDS: readonly QualityTierId[] = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low', 'xr-quest', 'xr-visionpro'];
 

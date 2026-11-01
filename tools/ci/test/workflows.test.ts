@@ -106,7 +106,16 @@ describe('ci.yml (AC-8)', () => {
     // Both halves run the shard's share; each shard writes its outcome even after a failure and uploads it under its own name.
     const runs = stepsOf(shard).filter((s) => s.includes('pnpm check:e2e'));
     expect(runs).toHaveLength(2);
-    for (const s of runs) expect(s).toContain(`--shard=\${{ matrix.shard }}/${n}`);
+    // BD-FIX-CI-DURSHARD-01: the shard's share is the test list tools/ci/e2e-plan.ts packs by measured minutes, planned before both runs.
+    const steps = stepsOf(shard);
+    const plan = steps.findIndex((s) => s.includes('tools/ci/e2e-plan.ts plan'));
+    expect(plan).toBeGreaterThanOrEqual(0);
+    expect(steps[plan]).toContain(`--project \${{ matrix.project }} --shards ${n} --shard \${{ matrix.shard }} --out "$RUNNER_TEMP/e2e-tests.txt"`);
+    for (const s of runs) {
+      expect(s).toContain('--test-list "$RUNNER_TEMP/e2e-tests.txt"');
+      expect(s).not.toContain('--shard=');
+      expect(steps.indexOf(s)).toBeGreaterThan(plan);
+    }
     const result = stepsOf(shard).find((s) => s.includes('name: Shard result')) ?? '';
     expect(result).toContain('if: always()');
     expect(result).toContain('echo "${{ job.status }}" > "e2e-result/${{ matrix.project }}-${{ matrix.shard }}.txt"');
@@ -143,9 +152,9 @@ describe('ci.yml (AC-8)', () => {
     expect(step).toContain('BUILD_RESULT: ${{ needs.build.result }}');
     expect(step).toContain('SHARDS_RESULT: ${{ needs.e2e-shard.result }}');
     const shards = Number(/E2E_SHARDS: '(\d+)'/.exec(step)?.[1] ?? 0);
-    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four, BD-INTEG-M02g1-01 to six, BD-FIX-CI-SHARD8-01 to eight, BD-REPAIR-M02g2-03 to nine).
+    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four, BD-INTEG-M02g1-01 to six, BD-FIX-CI-SHARD8-01 to eight, BD-REPAIR-M02g2-03 to nine, BD-FIX-CI-SHARD12-01 to twelve).
     const matrix = /^ {8}shard: \[([\d, ]+)\]$/m.exec(jobs['e2e-shard'] ?? '')?.[1]?.split(',').length ?? 0;
-    expect(shards).toBe(9);
+    expect(shards).toBe(12);
     expect(shards).toBe(matrix);
     const all = (r: string | null): (string | null)[] => Array.from({ length: shards }, () => r);
     const withAt = (i: number, r: string | null): (string | null)[] => all('success').map((v, j) => (j === i ? r : v));

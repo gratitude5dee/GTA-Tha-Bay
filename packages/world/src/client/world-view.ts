@@ -31,7 +31,7 @@ import { mountLandmark } from './chunks/landmark-view.ts';
 import { MESHER, profileOf, wantNearStride } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
-import { LOOK, LOOK_LAYERS, lookProfileFor, type LookLayer } from './look/config.ts';
+import { COVER_FLAG, LOOK, LOOK_LAYERS, lookProfileFor, type LookLayer } from './look/config.ts';
 import { LookView, markingsReportOf, type LookReport, type ShotCamera } from './look/look-view.ts';
 import { lookShot, shotQuaternion, type LookShot } from './look/shots.ts';
 // art-hook:textures begin (M10d0)
@@ -282,6 +282,8 @@ export class WorldView implements WorldLayer {
   private missAtTelemetry = 0;
   private disposed = false;
   private inflight = 0;
+  /** M02h3: the ground cover layer (`world.cover`, `setLookLayer('cover', on)`): every L0 mesh request carries it. */
+  private coverOn = COVER_FLAG;
 
   constructor(o: WorldViewOptions) {
     this.o = o;
@@ -309,8 +311,11 @@ export class WorldView implements WorldLayer {
     const profile = this.o.look ? lookProfileFor(this.o.tier, this.o.look.enabled) : 'legacy';
     // art-hook:textures begin (M10d0): built before the materials, which read it; the files load after the reveal (`startTextures`)
     if (this.o.look) {
-      const off = this.o.qa === true && new URLSearchParams(globalThis.location?.search ?? '').get('textures') === '0';
-      this.textures = new SurfaceTextures({ tier: this.o.tier, profile, enabled: TEXTURES_FLAG && !off, backend: this.o.look.backend, browser: this.o.look.browser });
+      const qaTextures = this.o.qa === true ? new URLSearchParams(globalThis.location?.search ?? '').get('textures') : null;
+      const off = qaTextures === '0';
+      // QA `?textures=albedo` (BD-REPAIR-M02h3-02): the albedo maps alone, whatever the tier's mode
+      const albedoOnly = qaTextures === 'albedo';
+      this.textures = new SurfaceTextures({ tier: this.o.tier, profile, enabled: TEXTURES_FLAG && !off, albedoOnly, backend: this.o.look.backend, browser: this.o.look.browser });
       installSurfaceTextures(this.textures);
       host.register({
         onRendererReplaced: () => {
@@ -679,6 +684,7 @@ export class WorldView implements WorldLayer {
       priority: r.priority,
       // A chunk that streams in while a landmark model stands in its proxies' place arrives without them (no second upload, no overlap).
       ...(level === 'l0' && this.landmarks && this.landmarks.maskList().length > 0 ? { maskProxies: this.landmarks.maskList() } : {}),
+      ...(level === 'l0' ? { cover: this.coverOn } : {}),
     };
     this.inflight++;
     void this.o.assets
@@ -719,7 +725,7 @@ export class WorldView implements WorldLayer {
       // Mark it handled first so one pass requests it once.
       mesh.stats.filtered = false;
       const mask = this.landmarks?.maskFor(mesh.proxies) ?? [];
-      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store.distanceTo(key), priority: 'soon', ...(mask.length > 0 ? { maskProxies: mask } : {}) };
+      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store.distanceTo(key), priority: 'soon', ...(mask.length > 0 ? { maskProxies: mask } : {}), cover: this.coverOn };
       void this.o.assets
         .job('world.mesh', args)
         .then((res) => {
@@ -752,7 +758,7 @@ export class WorldView implements WorldLayer {
       // Marked first: one pass requests a chunk once; the result below records what the new mesh really is.
       mesh.stats.near = want;
       const mask = this.landmarks?.maskFor(mesh.proxies) ?? [];
-      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store.distanceTo(key), priority: 'soon', ...(mask.length > 0 ? { maskProxies: mask } : {}) };
+      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store.distanceTo(key), priority: 'soon', ...(mask.length > 0 ? { maskProxies: mask } : {}), cover: this.coverOn };
       void this.o.assets
         .job('world.mesh', args)
         .then((res) => {
@@ -776,7 +782,7 @@ export class WorldView implements WorldLayer {
 
   /** Meshes an uploaded chunk again with `mask` (proxy ids) left out; the new mesh goes through the upload gate ahead of everything else. */
   private remeshChunk(key: ChunkKey, mask: number[]): void {
-    const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store ? this.store.distanceTo(key) : 0, priority: 'now', maskProxies: mask };
+    const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store ? this.store.distanceTo(key) : 0, priority: 'now', maskProxies: mask, cover: this.coverOn };
     this.inflight++;
     void this.o.assets
       .job('world.mesh', args)
@@ -793,7 +799,7 @@ export class WorldView implements WorldLayer {
    * not uploaded. The layer queues it through the upload gate after the model it belongs to has joined the scene.
    */
   private prepareChunk(key: ChunkKey, mask: number[]): Promise<PreparedRemesh | null> {
-    const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store ? this.store.distanceTo(key) : 0, priority: 'now', maskProxies: mask };
+    const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store ? this.store.distanceTo(key) : 0, priority: 'now', maskProxies: mask, cover: this.coverOn };
     this.inflight++;
     return this.o.assets
       .job('world.mesh', args)
@@ -1123,6 +1129,11 @@ export class WorldView implements WorldLayer {
   }
 
   lookReport(): LookReport | null {
+    const r = this.lookReportOf();
+    return r ? { ...r, cover: { enabled: this.coverOn, cells: this.renderer.coverCounts(), ...this.coverPending() } } : null;
+  }
+
+  private lookReportOf(): LookReport | null {
     if (this.lookView) return this.lookView.report();
     if (!this.o.look || !this.host) return null;
     // A tier without a look (the XR tiers, or `world.look` off): the legacy materials, the tier's own pipeline, nothing else.
@@ -1152,6 +1163,47 @@ export class WorldView implements WorldLayer {
     return feet.map((f) => ({ ...f, lift: this.renderer.walkLiftAt(f.x, f.z), top: this.renderer.walkTopAt(f.x, f.z) }));
   }
 
+  /**
+   * M02h3: the `cover` layer. Every resident L0 chunk is meshed again with or without its cover and goes through the upload gate (the
+   * same vertices and triangles either way, so render objects and budgets do not move); chunks that stream in later follow the flag.
+   */
+  private setCover(on: boolean): boolean {
+    if (on === this.coverOn) return true;
+    this.coverOn = on;
+    const due: { key: ChunkKey; masked: number[]; d: number }[] = [];
+    for (const u of this.renderer.units.values()) {
+      if (u.level !== 'l0' || !u.mesh.stats.coverAvailable) continue;
+      due.push({ key: u.key, masked: u.mesh.masked, d: this.store ? this.store.distanceTo(u.key) : 0 });
+    }
+    // nearest first through the upload gate, ahead of the streaming (one unit a frame)
+    due.sort((a, b) => a.d - b.d || (a.key < b.key ? -1 : 1));
+    for (const { key, masked, d } of due) {
+      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: d, priority: 'now', maskProxies: masked, cover: on };
+      this.inflight++;
+      void this.o.assets
+        .job('world.mesh', args)
+        .then((res) => {
+          const result = res as MeshJobResult;
+          if ('mesh' in result && this.store.ready(key, 'l0') && !this.disposed && this.coverOn === on) this.renderer.enqueue(result.mesh, -1000 + d / 100);
+        })
+        .catch(() => undefined)
+        .finally(() => void this.inflight--);
+    }
+    return true;
+  }
+
+  /** M02h3: resident L0 chunks with cover whose mesh does not yet follow the layer, all and within `nearM` of the focus. */
+  private coverPending(nearM = 400): { pending: number; pendingNear: number } {
+    let pending = 0, pendingNear = 0;
+    for (const u of this.renderer.units.values()) {
+      if (u.level !== 'l0' || !u.mesh.stats.coverAvailable) continue;
+      if ((u.mesh.stats.cover !== undefined) === this.coverOn) continue;
+      pending++;
+      if (this.store && this.store.distanceTo(u.key) <= nearM) pendingNear++;
+    }
+    return { pending, pendingNear };
+  }
+
   /** M02e QA: the look on or off at runtime; false when the tier has none. */
   setLook(on: boolean): boolean {
     return this.lookView ? this.lookView.setOn(on) : !on;
@@ -1159,6 +1211,9 @@ export class WorldView implements WorldLayer {
 
   /** M02g1 QA: one layer of the look's profile on or off; false when the profile has no such layer (or the look is off). */
   setLookLayer(id: string, on: boolean): boolean {
+    // M02h3: the ground cover lives in the terrain's vertices on every tier (the legacy look draws it as vertex colour), so the layer is
+    // a re-mesh of the resident L0 chunks, not a shader switch
+    if (id === 'cover') return this.setCover(on);
     // art-hook:textures begin (M10d0): the surface textures are a layer of the look that has no entry in look.json
     if (id === 'textures') return this.textures?.setOn(on) ?? false;
     // art-hook:textures end

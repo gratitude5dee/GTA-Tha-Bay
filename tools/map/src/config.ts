@@ -66,7 +66,8 @@ export const BOUNDS_PATH = path.join(toolsRoot, 'config', 'world.bounds.json');
 export const ROADCLASS_PATH = path.join(toolsRoot, 'config', 'world', 'roadclass.json');
 export const BRIDGES_PATH = path.join(toolsRoot, 'config', 'world', 'bridges.json');
 export const DENSITY_PATH = path.join(toolsRoot, 'config', 'world', 'density.json');
-export const SCHEMAS_DIR = path.join(toolsRoot, 'tools', 'map', 'schemas');
+export const COVER_PATH = path.join(toolsRoot, 'config', 'world', 'cover.json');
+export const SCHEMAS_DIR =path.join(toolsRoot, 'tools', 'map', 'schemas');
 
 const readJson = <T>(file: string): T => JSON.parse(readFileSync(file, 'utf8')) as T;
 
@@ -137,6 +138,25 @@ export const loadRoadClass = (file = ROADCLASS_PATH): RoadClassConfig => loadChe
 export const loadBridges = (file = BRIDGES_PATH): BridgesConfig => loadChecked<BridgesConfig>(file, 'bridges');
 export const loadDensity = (file = DENSITY_PATH): DensityConfig => loadChecked<DensityConfig>(file, 'density');
 
+/** M02h3: the ground cover rules of S13 (`config/world/cover.json`, `tools/map/schemas/cover.schema.json`). */
+export interface CoverConfig {
+  schema: 'world-cover/1';
+  enabled: boolean;
+  /** A block larger than this (m2) is never residential. */
+  blockMaxM2: number;
+  /** A block is residential when `residential` landuse covers this share of its cells ... */
+  residentialLanduseShare: number;
+  /** ... or ResLow plus ResMid footprints make this share of its building area. */
+  residentialBuildingShare: number;
+  mixed: { slope: number; share: number; cellM: number; seed: number };
+  scrub: { slope: number; parkSlope: number };
+  vacantLanduse: string[];
+  dirtLanduse: string[];
+  dirtSurface: string[];
+  driveway: { highway: string; service: string };
+}
+export const loadCover = (file = COVER_PATH): CoverConfig => loadChecked<CoverConfig>(file, 'cover');
+
 export function loadBounds(): WorldBounds {
   return readJson<WorldBounds>(BOUNDS_PATH);
 }
@@ -202,6 +222,8 @@ export interface SynthConfig {
     palette: number;
   };
   trees: { perChunk: number };
+  /** M02h3: driveway centrelines, emitted as `highway=service` + `service=driveway` ways. */
+  driveways?: { id: string; pts: number[] }[];
   neighbourhoods: { cols: number; rows: number; names: string[] };
   roads: SynthRoadsConfig;
 }
@@ -243,6 +265,7 @@ export function configHashesOf(cfg: SourcesConfig, area: AreaId): Record<string,
     roadclass: sha256Hex(canonicalize(loadRoadClass())),
     bridges: sha256Hex(canonicalize(loadBridges())),
     density: sha256Hex(canonicalize(loadDensity())),
+    cover: sha256Hex(canonicalize(loadCover())),
     contentWorld: contentWorldSha(),
     sourcesDatabase: sha256Hex(canonicalize(cfg.database)),
   };

@@ -5,10 +5,11 @@
  * `map_data/sf-graph.v1` topology and `data/world-index`. The codec is M01f's; this stage only fills C08 structures.
  *
  * Landuse classes land in the p0 GROUND grid (Grass, Park, Sand, Paved, Rock, Pier, shallow and deep Water; Asphalt and
- * Sidewalk where the road graph runs). The M01f l0 layout has no LANDUSE section, so none is written (BD note).
+ * Sidewalk where the road graph runs). M02h3: with `cover` the S13 cover stage (`s13-cover.ts`) sorts the land cells into cover
+ * classes first, rewrites GROUND on base-`Paved` cells, and l0 carries section 21 LANDUSE with the cover rectangles (C08 1.1).
  */
 import {
-  C08_VERSION, GroundClass, TERRAIN_POSTS, chunkBounds, chunkKeyAt, parseChunkKey, encodeGraph,
+  C08_VERSION, GroundClass, TERRAIN_POSTS, chunkBounds, chunkKeyAt, encodeCoverRects, parseChunkKey, encodeGraph,
   type BuildingRecord, type ChunkKey, type ChunkTags, type Junction, type PedEdge, type PedNode, type Portal, type RenderChunk, type RoadEdge,
   type RoadNode, type RoadSegment, type SimChunk, type SourceStamp, type SpawnTable, type WorldIndex,
 } from '../../../../packages/shared/src/index.ts';
@@ -17,6 +18,9 @@ import { encodeL0, encodeP0 } from '../pack/encode.ts';
 import type { Raster } from '../geom/raster.ts';
 import { cmp } from '../util.ts';
 import type { BuildingsProduct } from './s4-buildings.ts';
+import { applyCoverToGround, runCover, type CoverReport } from './s13-cover.ts';
+import type { CoverConfig } from '../config.ts';
+import type { OsmFeature } from '../sources/geo.ts';
 import { bufferLine, cellRaster, type LanduseClass, type WaterProduct } from './s3-water.ts';
 import { heightGridOf, type TerrainProduct } from './s2-terrain.ts';
 import type { NodeB, SegB } from './s5-roads.ts';
@@ -58,6 +62,9 @@ export interface PackOutput {
   index: WorldIndex;
   sims: Map<ChunkKey, SimChunk>;
   renders: Map<ChunkKey, RenderChunk>;
+  /** M02h3: the cover per chunk (absent without cover) and the stage report with the l0 bytes section 21 added. */
+  covers?: Map<ChunkKey, Uint8Array>;
+  cover?: CoverReport & { groundChanged: number; sectionBytes: number; sectionRecords: number };
 }
 
 export interface PackInputs {
@@ -84,6 +91,8 @@ export interface PackInputs {
   lod: readonly LodFile[];
   /** Extra files named under packs/ (far-bay-*). */
   far: readonly { name: string; bytes: Uint8Array }[];
+  /** M02h3: the ground cover rules and the OSM features they read; absent or `enabled: false` bakes no cover. */
+  cover?: { cfg: CoverConfig; osm: readonly OsmFeature[] } | null | undefined;
 }
 
 const q1 = (v: number): number => Math.round(v * 10) / 10;
@@ -101,6 +110,16 @@ export function graphBytes(bakeId: string, nodes: readonly NodeB[], edges: reado
 export function buildPacks(inp: PackInputs): PackOutput {
   const { bakeId, grid, water, terrain, buildings } = inp;
   const ground = groundRaster(grid, water, inp.segs);
+  // M02h3: the cover, from the base ground, then GROUND under it
+  let cover: ReturnType<typeof runCover> | null = null;
+  let groundChanged = 0;
+  if (inp.cover && inp.cover.cfg.enabled) {
+    const footprints: { prism: readonly number[]; kind: number }[] = [];
+    for (const list of buildings.byChunk.values()) for (const bd of list) footprints.push({ prism: bd.prism, kind: bd.kind });
+    cover = runCover({ grid, ground, landuse: water.landuse, footprints, grids: terrain.grids, osm: inp.cover.osm, cfg: inp.cover.cfg });
+    groundChanged = applyCoverToGround(ground, cover.cover);
+  }
+  const covers = cover ? new Map<ChunkKey, Uint8Array>() : null;
   const keys = [...terrain.grids.keys()].sort((a, b) => {
     const pa = parseChunkKey(a)!, pb = parseChunkKey(b)!;
     return pa.y - pb.y || pa.x - pb.x;
@@ -169,6 +188,11 @@ export function buildPacks(inp: PackInputs): PackOutput {
         g[j * 64 + i] = c;
       }
     }
+    if (cover && covers) {
+      const cv = new Uint8Array(64 * 64);
+      for (let j = 0; j < 64; j++) for (let i = 0; i < 64; i++) cv[j * 64 + i] = cover.cover.at(b.minX + i * 4 + 2, b.minZ + j * 4 + 2, 0);
+      covers.set(key, cv);
+    }
     const list = buildings.byChunk.get(key) ?? [];
     const prisms: number[] = [];
     const recs: BuildingRecord[] = [];
@@ -213,7 +237,7 @@ export function buildPacks(inp: PackInputs): PackOutput {
     const members = tiles.get(t)!;
     const header = { tileX: tx, tileY: ty, hostZ: 7, bakeId };
     files.push({ name: `p0-${t}.pack`, family: 'p0', x: tx, y: ty, chunks: members.length, bytes: encodeP0(members.map((k) => sims.get(k)!), header) });
-    files.push({ name: `l0-${t}.pack`, family: 'l0', x: tx, y: ty, chunks: members.length, bytes: encodeL0(members.map((k) => renders.get(k)!), header) });
+    files.push({ name: `l0-${t}.pack`, family: 'l0', x: tx, y: ty, chunks: members.length, bytes: encodeL0(members.map((k) => renders.get(k)!), header, covers ?? undefined) });
   }
   for (const f of inp.lod) files.push({ name: f.name, family: f.family, x: f.x, y: f.y, chunks: f.units, bytes: f.bytes });
   for (const f of inp.far) files.push({ name: f.name, family: 'far', x: 0, y: 0, chunks: 1, bytes: f.bytes });
@@ -241,5 +265,12 @@ export function buildPacks(inp: PackInputs): PackOutput {
     transit: inp.places.transit,
     sources: [...inp.stamps].sort((a, b) => cmp(a.id, b.id)),
   };
-  return { files, index, sims, renders };
+  if (!cover || !covers) return { files, index, sims, renders };
+  let sectionBytes = 0, sectionRecords = 0;
+  for (const cv of covers.values()) {
+    const s = encodeCoverRects(cv);
+    sectionBytes += s.data.length + 12;
+    sectionRecords += s.count;
+  }
+  return { files, index, sims, renders, covers, cover: { ...cover.report, groundChanged, sectionBytes, sectionRecords } };
 }

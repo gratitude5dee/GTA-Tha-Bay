@@ -443,6 +443,12 @@ export function generateSynth(cfg: SynthConfig, sources: SourcesConfig, area: Ar
     if (restricted && !(p.maxX > box.minX && p.minX < box.maxX && p.maxZ > box.minZ && p.minZ < box.maxZ)) continue;
     osm.push(osmPolygon(`w${wid++}`, [boxRing({ minX: p.minX + 10, minZ: p.minZ + 10, maxX: p.minX + 60, maxZ: p.minZ + 60 })], { leisure: 'pitch' }));
   }
+  // M02h3: driveways (S5 excludes service=driveway from the graph; the S13 cover stage walks their centrelines)
+  for (const d of cfg.driveways ?? []) {
+    const xs = d.pts.filter((_, i) => i % 2 === 0), zs = d.pts.filter((_, i) => i % 2 === 1);
+    if (restricted && !(Math.max(...xs) > box.minX && Math.min(...xs) < box.maxX && Math.max(...zs) > box.minZ && Math.min(...zs) < box.maxZ)) continue;
+    osm.push(osmLine(`w${wid++}`, d.pts, { highway: 'service', service: 'driveway' }));
+  }
   osm.push(...b.osm);
 
   // roads, rails, ferry, footways and the DataSF street / SFMTA rows that describe them (M02a2)
