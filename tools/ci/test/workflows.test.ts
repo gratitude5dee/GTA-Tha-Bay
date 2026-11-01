@@ -106,7 +106,16 @@ describe('ci.yml (AC-8)', () => {
     // Both halves run the shard's share; each shard writes its outcome even after a failure and uploads it under its own name.
     const runs = stepsOf(shard).filter((s) => s.includes('pnpm check:e2e'));
     expect(runs).toHaveLength(2);
-    for (const s of runs) expect(s).toContain(`--shard=\${{ matrix.shard }}/${n}`);
+    // BD-FIX-CI-DURSHARD-01: the shard's share is the test list tools/ci/e2e-plan.ts packs by measured minutes, planned before both runs.
+    const steps = stepsOf(shard);
+    const plan = steps.findIndex((s) => s.includes('tools/ci/e2e-plan.ts plan'));
+    expect(plan).toBeGreaterThanOrEqual(0);
+    expect(steps[plan]).toContain(`--project \${{ matrix.project }} --shards ${n} --shard \${{ matrix.shard }} --out "$RUNNER_TEMP/e2e-tests.txt"`);
+    for (const s of runs) {
+      expect(s).toContain('--test-list "$RUNNER_TEMP/e2e-tests.txt"');
+      expect(s).not.toContain('--shard=');
+      expect(steps.indexOf(s)).toBeGreaterThan(plan);
+    }
     const result = stepsOf(shard).find((s) => s.includes('name: Shard result')) ?? '';
     expect(result).toContain('if: always()');
     expect(result).toContain('echo "${{ job.status }}" > "e2e-result/${{ matrix.project }}-${{ matrix.shard }}.txt"');
