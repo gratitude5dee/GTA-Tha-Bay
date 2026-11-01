@@ -35,7 +35,7 @@ describe('route 4: browser reports (AC-11)', () => {
     const legacy = { 'csp-report': { 'document-uri': 'https://example.test/', 'effective-directive': 'img-src', 'blocked-uri': 'inline', disposition: 'report' } };
     const a = await call('/api/v1/reports/browser', { method: 'POST', body: JSON.stringify(legacy), env: { AE: ae.dataset } });
     expect(a.status).toBe(204);
-    const b = await call('/api/v1/reports/browser', { method: 'POST', body: JSON.stringify([{ type: 'crash', body: { reason: 'oom' } }]), env: { AE: ae.dataset } });
+    const b = await call('/api/v1/reports/browser', { method: 'POST', body: JSON.stringify([{ type: 'network-error', body: { type: 'dns.unreachable' } }]), env: { AE: ae.dataset } });
     expect(b.status).toBe(204);
     expect(ae.points).toHaveLength(1);
     expect(ae.points[0]?.blobs?.slice(0, 3)).toEqual(['img-src', 'inline', '/']);
@@ -51,7 +51,9 @@ describe('route 4: browser reports (AC-11)', () => {
     const res = await call('/api/v1/reports/browser', { method: 'POST', body: JSON.stringify([cspReport]) });
     for (const [h, v] of Object.entries(ISOLATION)) expect(res.headers.get(h)).toBe(v);
     expect(res.headers.get('content-security-policy-report-only')).toContain("default-src 'self'");
-    expect(res.headers.get('reporting-endpoints')).toBe('csp="/api/v1/reports/browser"');
+    expect(res.headers.get('reporting-endpoints')).toBe(
+      'csp="/api/v1/reports/browser", crash-reporting="/api/v1/reports/browser", default="/api/v1/reports/browser"',
+    );
     expect(res.headers.get('x-content-type-options')).toBe('nosniff');
     expect(res.headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin');
   });

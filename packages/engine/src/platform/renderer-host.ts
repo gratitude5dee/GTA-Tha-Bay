@@ -217,6 +217,10 @@ export class RendererHost {
   private recovering: Promise<void> | null = null;
   private lastCss = { w: 0, h: 0 };
   private lastRenderScale = 1;
+  /** The governor's `renderScale` (M11a1), multiplied onto the player's scale; 1 until it steps down. */
+  private dynScale = 1;
+  /** The frame pacer (M11a1): asked for each rAF callback outside XR; a callback it refuses draws nothing and runs no engine frame. */
+  private gate: ((time: number) => boolean) | null = null;
   private initTier: QualityTier | null = null;
   private readonly opts: RendererHostOptions;
 
@@ -410,7 +414,7 @@ export class RendererHost {
     const r = this.renderer;
     const tier = this.tier ?? this.initTier;
     const dpr = (globalThis as { devicePixelRatio?: number }).devicePixelRatio ?? 1;
-    r.setPixelRatio(tier ? pixelRatioFor(tier, cssWidth, cssHeight, dpr, renderScale) : Math.min(dpr, 2));
+    r.setPixelRatio(tier ? pixelRatioFor(tier, cssWidth, cssHeight, dpr, renderScale * this.dynScale) : Math.min(dpr, 2));
     r.setSize(Math.max(1, cssWidth), Math.max(1, cssHeight), false);
     // A new drawing-buffer size clears the canvas: a held `frame` is drawn once more.
     this.redrawHeld = true;
@@ -422,6 +426,26 @@ export class RendererHost {
       (mc as PerspectiveCamera).aspect = aspect;
       (mc as PerspectiveCamera).updateProjectionMatrix();
     }
+  }
+
+  /**
+   * The governor's `renderScale` (0.25 to 1, M11a1): the drawing buffer is resized under it at once. Not applied while an XR session
+   * presents (the framebuffer scale is fixed per session; the governor asks for the next entry instead).
+   */
+  setDynamicScale(scale: number): void {
+    const s = Math.min(1, Math.max(0.25, Number.isFinite(scale) ? scale : 1));
+    if (s === this.dynScale) return;
+    this.dynScale = s;
+    if (this._renderer && this.lastCss.w > 0 && !this.isPresenting) this.resize(this.lastCss.w, this.lastCss.h);
+  }
+
+  get dynamicScale(): number {
+    return this.dynScale;
+  }
+
+  /** Installs the frame pacer's gate (M11a1), or removes it with null. */
+  setFrameGate(gate: ((time: number) => boolean) | null): void {
+    this.gate = gate;
   }
 
   /** Rendered on the shared canvas only while ModeHost is Idle (C13 1.1). One canvas, never a second WebGL context on iPhone. */
@@ -512,6 +536,8 @@ export class RendererHost {
     // and three's own XR loop skips it the same way. Passed on, its NaN time gave the engine a NaN dt that made the camera rig NaN for
     // good, and every later frame drew from a NaN camera (BD-FIX-CI6-A01).
     if (time === undefined || !Number.isFinite(time)) return;
+    // The frame pacer (M11a1): a 30 fps tier on a 60 or 90 Hz display draws every 2nd or 3rd callback. XR frames are the headset's.
+    if (this.gate !== null && !r.xr.isPresenting && !this.gate(time)) return;
     // With `paceGpu` on WebGL2: no frame starts while the GPU still has GPU_PACE_DEPTH earlier frames to draw (BD-FIX-CI7-F03). XR frames are
     // paced by the headset's compositor (or, emulated, by `installIwer`), so the pacer stays out of them.
     const paced = this.pacer !== null && !r.xr.isPresenting;

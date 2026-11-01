@@ -186,6 +186,37 @@ describe('ChunkStore', () => {
     expect(store.density).toBe(1);
   });
 
+  it('the MemoryBudget hooks (M11a1): trimToRing keeps the ring, stepPressureDown steps one plan step at a time and restorePressure goes back', () => {
+    const { store, settleAll } = mockStore(['l0']);
+    const f = at(256, 256);
+    for (let i = 0; i < 300; i++) {
+      store.want(f);
+      settleAll();
+    }
+    const moved = { ...f, x: f.x + 450 };
+    store.want(moved);
+    settleAll();
+    const r0 = store.plan.r0M;
+    const outside = store.residentKeys('l0').filter((k) => !insideRing(k, moved, r0, 1));
+    expect(outside.length).toBeGreaterThan(0);
+    // soft: only what lies beyond 1.0 x the ring goes, the plan is untouched
+    expect(store.trimToRing(1)).toBe(outside.length);
+    expect(store.plan.r0M).toBe(r0);
+    for (const k of store.residentKeys('l0')) expect(insideRing(k, moved, r0, 1)).toBe(true);
+    expect(store.trimToRing(1)).toBe(0);
+    // hard: one step at a time down STREAMING.pressureSteps, false on the last
+    const last = STREAMING.pressureSteps.length - 1;
+    for (let i = 1; i <= last; i++) {
+      expect(store.stepPressureDown()).toBe(true);
+      expect(store.plan.r0M).toBeCloseTo(r0 * (STREAMING.pressureSteps[i] as number), 6);
+    }
+    expect(store.stepPressureDown()).toBe(false);
+    expect(store.density).toBeLessThan(1);
+    store.restorePressure();
+    expect(store.plan.r0M).toBe(r0);
+    expect(store.density).toBe(1);
+  });
+
   it('retries an unavailable unit with backoff and marks a corrupt one failed at once', () => {
     const { store, requests, tick } = mockStore(['l0']);
     store.want(at(256, 256));

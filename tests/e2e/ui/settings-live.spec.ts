@@ -6,7 +6,7 @@ import { hideQaPanels } from './helpers.ts';
 /**
  * M04b5: the Graphics rows do something (@ui-settings-live) and full screen (@ui-fullscreen). Neither needs the baked world, so they run
  * in the synth half of CI. To see it by hand: a QA build with `DV_WORLD=synth` (`pnpm dev`), open `/?play=sandbox`, press Escape, then
- * Settings (Graphics): the frame-cap row is greyed with its reason; pick 50 % and the picture softens at once, Auto sharpens it; turn on
+ * Settings (Graphics): the frame-cap row is live since M11a1 (30 caps the frame pacer, Auto lets it go); pick 50 % and the picture softens at once, Auto sharpens it; turn on
  * "Show frame rate" and a number appears at the top right and stays after Resume; in desktop Chrome, Pause has a Full screen button.
  * In the console, `new BroadcastChannel('dv-shell').onmessage = (e) => console.log(e.data)` logs one `{kind:'fps'}` line a second.
  */
@@ -22,9 +22,11 @@ interface Resolution {
   pixelRatio: number;
   budgetRatio: number;
 }
-type Bridge = { __dvBridge: { platform: { resolution(): Resolution } } };
+type Bridge = { __dvBridge: { platform: { resolution(): Resolution; governor: { pacer(): { targetFps: number } } } } };
 
 const resolution = (page: Page): Promise<Resolution> => page.evaluate(() => (window as unknown as Bridge).__dvBridge.platform.resolution());
+/** The frame pacer's target now (M11a1): `min(tier targetFps, device:fpsCap)`. */
+const pacerFps = (page: Page): Promise<number> => page.evaluate(() => (window as unknown as Bridge).__dvBridge.platform.governor.pacer().targetFps);
 
 async function boot(page: Page): Promise<void> {
   await hideQaPanels(page);
@@ -48,7 +50,7 @@ async function resume(page: Page): Promise<void> {
 }
 
 test.describe('settings that do something @ui-settings-live', () => {
-  test('render scale sizes the canvas inside the tier budget, the frame cap says why not, the FPS chip and the shell signals work @ui-settings-live', async ({ page }) => {
+  test('render scale sizes the canvas inside the tier budget, the frame cap caps the pacer, the FPS chip and the shell signals work @ui-settings-live', async ({ page }) => {
     test.setTimeout(300_000);
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
@@ -71,13 +73,20 @@ test.describe('settings that do something @ui-settings-live', () => {
     await expect(page.locator('#dv-engine')).toHaveAttribute('translate', 'no');
     await expect(page.getByTestId('fps-chip')).toHaveCount(0);
 
-    // AC-3 in the page: the frame-cap row is greyed and says why.
+    // M04b5 AC-3 inverted by M11a1 AC-11 (DL-727): with the FramePacer the frame-cap row is enabled, carries no "later" reason, and
+    // 30 caps the pacer's target at min(tier target, 30); Auto gives the tier's own target back.
     await openGraphics(page);
     const fps30 = page.getByTestId('choice-fps-1');
-    await expect(fps30).toHaveAttribute('aria-disabled', 'true');
-    await expect(page.getByTestId('reason-fps')).toHaveText(messages['settings.graphics.fps.later'] as string);
-    await fps30.click({ force: true });
+    await expect(fps30).not.toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByTestId('reason-fps')).toHaveCount(0);
+    await expect(page.getByText(messages['settings.graphics.fps.later'] as string)).toHaveCount(0);
+    const tierFps = await pacerFps(page);
+    await fps30.click();
+    await expect(fps30).toHaveAttribute('aria-checked', 'true');
+    await expect.poll(() => pacerFps(page)).toBe(Math.min(tierFps, 30));
+    await page.getByTestId('choice-fps-0').click();
     await expect(page.getByTestId('choice-fps-0')).toHaveAttribute('aria-checked', 'true');
+    await expect.poll(() => pacerFps(page)).toBe(tierFps);
 
     // AC-2: 50 % scales the drawing buffer inside the tier budget.
     const before = await resolution(page);
@@ -111,6 +120,7 @@ test.describe('settings that do something @ui-settings-live', () => {
     // The writes above were signalled: the scale twice, the counter once, and each carries the version.
     const refs = sig.filter((s) => s.msg.kind === 'setting').map((s) => s.msg.ref);
     expect(refs.filter((r) => r === 'device:renderScale')).toHaveLength(2);
+    expect(refs.filter((r) => r === 'device:fpsCap')).toHaveLength(2);
     expect(refs).toContain('ui:showFps');
     expect(sig.every((s) => s.msg.v === 1)).toBe(true);
 

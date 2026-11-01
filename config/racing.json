@@ -3,8 +3,8 @@
   "tierCaps": {
     "desktop-ultra": { "rivals": 7, "policeCars": 10, "cullM": 400, "skidSegments": 512, "envProbe": "grid", "wheelBlur": true, "sparkParticles": 256 },
     "desktop": { "rivals": 7, "policeCars": 10, "cullM": 350, "skidSegments": 384, "envProbe": "grid", "wheelBlur": true, "sparkParticles": 192 },
-    "mobile": { "rivals": 5, "policeCars": 6, "cullM": 200, "skidSegments": 128, "envProbe": "baked", "wheelBlur": false, "sparkParticles": 96 },
-    "mobile-low": { "rivals": 3, "policeCars": 4, "cullM": 150, "skidSegments": 0, "envProbe": "baked", "wheelBlur": false, "sparkParticles": 32 },
+    "mobile": { "rivals": 2, "policeCars": 6, "cullM": 200, "skidSegments": 128, "envProbe": "baked", "wheelBlur": false, "sparkParticles": 96 },
+    "mobile-low": { "rivals": 1, "policeCars": 4, "cullM": 150, "skidSegments": 0, "envProbe": "baked", "wheelBlur": false, "sparkParticles": 32 },
     "xr-quest": { "rivals": 3, "policeCars": 3, "cullM": 150, "skidSegments": 0, "envProbe": "baked", "wheelBlur": false, "sparkParticles": 0 },
     "xr-visionpro": { "rivals": 5, "policeCars": 6, "cullM": 250, "skidSegments": 128, "envProbe": "baked", "wheelBlur": false, "sparkParticles": 64 }
   },

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { REPORTING_ENDPOINTS } from '../../../packages/shared/src/index.ts';
 import { cspForBuild, PROD_CSP_HOSTS, STAGING_CSP_HOSTS } from '../../../config/csp-hosts.ts';
 import { stripJsonc } from '../deploy.ts';
 import { repoRoot } from '../run.ts';
@@ -65,5 +66,12 @@ describe('CSP hosts of the static _headers build', () => {
     const account = text.slice(text.indexOf('/account/*'));
     expect(account).toContain('! Content-Security-Policy-Report-Only');
     expect(account).not.toContain('%CSP_REPORT_ONLY%');
+  });
+
+  it('public/_headers names the same Reporting-Endpoints as the Worker (M11a1: csp, crash-reporting and default)', () => {
+    const text = readFileSync(path.join(repoRoot, 'apps/web/public/_headers'), 'utf8');
+    const lines = text.split('\n').filter((l) => l.trim().startsWith('Reporting-Endpoints:'));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]?.trim()).toBe(`Reporting-Endpoints: ${REPORTING_ENDPOINTS}`);
   });
 });
