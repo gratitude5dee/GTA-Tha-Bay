@@ -303,8 +303,10 @@ jobs:
         # Keep equal to E2E_SHARDS of the e2e job and to the `/9` of both check:e2e steps. BD-FIX-CI-SHARD8-01: six shards left
         # chromium-webgl2 shards 1 and 5 at 55 and 56 of 60 minutes on claude/build (world-look and world-landmarks share a shard; Playwright
         # shards by file), and the look rows each add desktop cost on software GL. BD-REPAIR-M02g2-03: nine, because eight still put
-        # world-look and the tail of world-landmarks (about 100 worker-minutes on two workers) in one shard.
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        # world-look and the tail of world-landmarks (about 100 worker-minutes on two workers) in one shard. BD-FIX-CI-SHARD12-01: twelve,
+        # because the look rows (M10d1, M02h1, M02h2) each add desktop cases that cost minutes on software GL: chromium-webgl2 shards 1 and 4
+        # ran 49 of 60 minutes on claude/build (run 41249627115) and shard 1 was cancelled at 60 on a slower runner (run 41294114576).
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     env:
       # BD-FIX-CI10-P01: the browser engines this leg launches (playwright.config.ts: webkit-webgl2 on WebKit, the other projects on
       # Chromium); chromium-webgl2 shard 1 also runs check:coi, which launches both.
@@ -380,7 +382,7 @@ jobs:
       # Two invocations (M02b1, DL-546): the gray-box tags on the build job's artifact (no world), then everything else on a fresh
       # DV_WORLD=synth build. DV_SKIP_BUILD belongs to the first step only: a job-level value would serve the world-less artifact twice.
       - name: e2e, gray-box tags (build without a world)
-        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep "$GRAYBOX_GREP" --shard=${{ matrix.shard }}/9 --pass-with-no-tests
+        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep "$GRAYBOX_GREP" --shard=${{ matrix.shard }}/12 --pass-with-no-tests
         env:
           DV_SKIP_BUILD: '1'
       - name: Header and isolation checks against the local Worker
@@ -391,7 +393,7 @@ jobs:
           pnpm check:headers -- --serve http://localhost:8790
           pnpm check:coi -- --serve http://localhost:8790
       - name: e2e, every other tag (DV_WORLD=synth build)
-        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep-invert "$GRAYBOX_GREP" --shard=${{ matrix.shard }}/9 --pass-with-no-tests
+        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep-invert "$GRAYBOX_GREP" --shard=${{ matrix.shard }}/12 --pass-with-no-tests
         env:
           DV_WORLD: synth
           DV_SKIP_BUILD: ''
@@ -447,7 +449,7 @@ jobs:
       - name: Every shard of the project passed
         env:
           PROJECT: ${{ matrix.project }}
-          E2E_SHARDS: '9'
+          E2E_SHARDS: '12'
           BUILD_RESULT: ${{ needs.build.result }}
           SHARDS_RESULT: ${{ needs.e2e-shard.result }}
         run: |
