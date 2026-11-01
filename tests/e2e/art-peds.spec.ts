@@ -77,8 +77,10 @@ test.describe('art peds @art-peds', () => {
       page.on('pageerror', (e) => errors.push(e.message));
       const requested = new Set<string>();
       page.on('request', (r) => {
-        const m = /\/assets\/((?:character|prop|texture)\/ped\.[a-z0-9._-]+)\//.exec(new URL(r.url()).pathname);
-        if (m) requested.add(m[1] as string);
+        // characters are stored under `characters/<id>/model/`, the other kinds under `assets/<kind>/<id>/` (C07 object keys)
+        const path = new URL(r.url()).pathname;
+        const m = /\/assets\/((?:prop|texture)\/ped\.[a-z0-9._-]+)\//.exec(path) ?? /\/characters\/(ped\.[a-z0-9._-]+)\//.exec(path);
+        if (m) requested.add(m[0].includes('/characters/') ? `character/${m[1] as string}` : (m[1] as string));
       });
       await bootWorld(page, tier);
       await crowd(page);
@@ -104,7 +106,7 @@ test.describe('art peds @art-peds', () => {
   test('a ?art=0 boot keeps the mannequin and requests no kit asset @art-peds', async ({ page }) => {
     const requested: string[] = [];
     page.on('request', (r) => {
-      if (/\/assets\/(?:character|prop|texture)\/ped\./.test(new URL(r.url()).pathname)) requested.push(r.url());
+      if (/\/(?:assets\/(?:prop|texture)|characters)\/ped\./.test(new URL(r.url()).pathname)) requested.push(r.url());
     });
     await bootWorld(page, 'mobile-low', '&art=0');
     await crowd(page);
