@@ -4,6 +4,8 @@ import type { PerfReport, QualityTierId } from '../../packages/shared/src/index.
 import { storyChase } from './scenarios/story-chase.ts';
 import { npcMissionCrowd } from './scenarios/npc-mission-crowd.ts';
 import { fightStage } from './scenarios/fight-stage.ts';
+import { raceSprint } from './scenarios/race-sprint.ts';
+import { racePursuitHeat4 } from './scenarios/race-pursuit-heat4.ts';
 
 /**
  * check:perf (11-platform-perf.md section 9, spec 8). For each flat tier, run the canned scenario on the QA build and write
@@ -17,7 +19,24 @@ const SCENARIO = process.env.DV_PERF_SCENARIO ?? 'graybox-walk';
 /** Scenarios that show the ambient traffic (M03b1): they also write a `.traffic.json` the counts check judges. */
 const TRAFFIC = new Set(['downtown-rush']);
 /** Scenarios whose page runs a part of the game (a URL suffix and a setup after the world is up; tests/perf/scenarios/*.ts). */
-const PAGE_SCENARIOS: Record<string, { query: string; timeoutMs: number; setup(page: Page): Promise<void>; collect?(page: Page, report: PerfReport): Promise<void> }> = { 'story-chase': storyChase, 'npc-mission-crowd': npcMissionCrowd, 'fight-stage': fightStage };
+const PAGE_SCENARIOS: Record<
+  string,
+  {
+    query: string;
+    timeoutMs: number;
+    /** BD-M11a1-18: the setup runs before the sky is set to its most expensive look (the window is measured at that look all the same). */
+    lookAfterSetup?: boolean;
+    setup(page: Page, ctx: { tier: QualityTierId }): Promise<void>;
+    collect?(page: Page, report: PerfReport): Promise<void>;
+  }
+> = {
+  'story-chase': storyChase,
+  'npc-mission-crowd': npcMissionCrowd,
+  'fight-stage': fightStage,
+  // M11a1: the racing scenarios put the player at a QA grid on the street and start the race (tests/perf/scenarios/race-common.ts)
+  'race-sprint': raceSprint,
+  'race-pursuit-heat4': racePursuitHeat4,
+};
 const PAGE = PAGE_SCENARIOS[SCENARIO];
 const DURATION_S = Number(process.env.DV_PERF_DURATION_S ?? 6);
 const WARMUP_S = Number(process.env.DV_PERF_WARMUP_S ?? 2);
@@ -52,6 +71,8 @@ for (const tier of TIERS) {
     } else if (SCENARIO !== 'graybox-walk') {
       // M02b2 (AC-7): the world scenarios run at the sky's most expensive look: 21:30 with rain (night lights, streaks, overlay, wet).
       await page.waitForFunction(() => (window as unknown as { __dvBridge?: { world?: unknown } }).__dvBridge?.world !== undefined, undefined, { timeout: 150_000 });
+      // M11a1 (BD-M11a1-18): the racing pages start their race first; a night-rain frame of the desktop tiers costs twice a default one on software GL
+      if (PAGE?.lookAfterSetup) await PAGE.setup(page, { tier });
       await page.evaluate(() => {
         const world = (window as unknown as { __dvBridge: { world: { setHour(h: number, freeze?: boolean): boolean; setWeather(w: string, blendSec?: number): boolean; rain(v: number | null): void } } }).__dvBridge.world;
         world.setHour(21.5, true);
@@ -59,7 +80,7 @@ for (const tier of TIERS) {
         world.rain(200);
       });
       // M05c2: a scenario that plays a part of the game starts it now, with the sky already at its most expensive look
-      if (PAGE) await PAGE.setup(page);
+      if (PAGE && !PAGE.lookAfterSetup) await PAGE.setup(page, { tier });
     }
 
     const report = (await page.evaluate(

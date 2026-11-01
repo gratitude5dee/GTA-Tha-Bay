@@ -219,6 +219,38 @@ export class ChunkStore<P = unknown> {
     this.evictBeyond('l0', 1);
   }
 
+  /**
+   * The MemoryBudget's soft response (M11a1): evicts the resident L0 units that lie outside `factor` x their ring, the units farthest
+   * from the focus first being whatever the ring test leaves. The focus' own ring (and so the current chunk) is never touched, which is
+   * the pinned set; pinned units stay. Returns how many units went.
+   */
+  trimToRing(factor = 1): number {
+    const before = this.stats.evictions;
+    this.evictBeyond('l0', factor);
+    return this.stats.evictions - before;
+  }
+
+  /**
+   * The MemoryBudget's hard response (M11a1): one step down the memory-pressure plan (`STREAMING.pressureSteps`), L0 outside the old ring
+   * going first and the density lowered as `setPressure` does. Returns false when already on the last step.
+   */
+  stepPressureDown(): boolean {
+    const last = STREAMING.pressureSteps.length - 1;
+    if (this.knobs.pressureStep >= last) return false;
+    this.evictBeyond('l0', 1);
+    this.density = Math.max(0.25, this.density * 0.75);
+    const step = this.knobs.pressureStep + 1;
+    this.pressure = step >= last ? 'hard' : 'soft';
+    this.setKnobs({ pressureStep: step });
+    this.evictBeyond('l0', 1);
+    return true;
+  }
+
+  /** Puts the memory-pressure plan back to nominal (after the MemoryBudget's re-admission delay). */
+  restorePressure(): void {
+    this.setPressure('none');
+  }
+
   private evictBeyond(level: Level, factor: number): void {
     if (!this.o.levels.includes(level)) return;
     const r = ringOf(level, this.plan);

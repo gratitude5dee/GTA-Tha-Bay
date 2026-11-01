@@ -347,6 +347,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   let paused = false;
   let playing = opts.play ?? true;
   let frames = 0;
+  /** Page frames whose `host.frame` drained the worker's events (`ask` counts its wait in them too). */
+  let drains = 0;
   let lastNow = -1;
   let disposed = false;
   let pool: ObjectPool | null = null;
@@ -561,14 +563,23 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   };
 
   /** Sends a debug command with a reply and waits for the reply (the same wait the world bridge uses). */
+  // A reply reaches `qaResults` only when a page frame drains the worker's events (`host.frame`), so the wait is counted in drains as
+  // well as in time (BD-REPAIR-M11a1-02): it gives up after `timeoutMs` once ASK_MIN_DRAINS frames have drained since the send, or
+  // after ASK_HARD_CAP times `timeoutMs` whatever the frames did (a hidden page draws none). Before, a software-GL page whose frame took
+  // longer than `timeoutMs` (Chromium at `desktop`, 5 to 11 s a frame) checked the clock before the result and answered null even when
+  // the frame that had just ended had drained the reply, so every call into the sim worker of such a page failed.
+  const ASK_MIN_DRAINS = 3;
+  const ASK_HARD_CAP = 8;
   const ask = async (cmd: DebugCommand, replyName: string, timeoutMs = 8000): Promise<unknown> => {
     if (!host.sendDebug(cmd)) return null;
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
+    const t0 = Date.now();
+    const drains0 = drains;
+    for (;;) {
       if (host.qaResults.has(replyName)) return host.qaResults.get(replyName);
+      const waited = Date.now() - t0;
+      if ((waited >= timeoutMs && drains - drains0 >= ASK_MIN_DRAINS) || waited >= timeoutMs * ASK_HARD_CAP) return null;
       await new Promise<void>((r) => setTimeout(r, 15));
     }
-    return null;
   };
   let askSerial = 0;
 
@@ -620,7 +631,10 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       }
     }
     const sig: FrameSignal = { frame: frames++, nowMs, dtSec, paused, timeScale: 1 };
-    if (!recovering) host.frame(sig);
+    if (!recovering) {
+      host.frame(sig);
+      drains++;
+    }
     const camPos = hostScene?.camera.position ?? null;
     if (!recovering && host.view && view.update(host.view)) {
       pool?.sync(view.poses, view.count, (k) => view.keys.get(k), dtSec, camPos);
