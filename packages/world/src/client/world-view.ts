@@ -51,6 +51,7 @@ import { artVariantOf, type VehicleJobArgs, type VehicleJobResult } from './vehi
 import { NEAR_PED_CAP, pedCap } from '../sim/peds/density.ts';
 import { PED_ASSETS } from '../sim/peds/components.ts';
 import { PedRenderer, type PedInfo } from './peds/instances.ts';
+import { pedKitAssets } from './peds/kit.ts'; // art-hook:peds (M10d4)
 import { TransitRenderer, isTransitKey, type TransitInfo } from './transit/render.ts';
 import { MapLayer } from './map/layer.ts';
 import type { AreaBannerPatch } from './map/banner.ts';
@@ -474,6 +475,7 @@ export class WorldView implements WorldLayer {
     this.peds = new PedRenderer({
       parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier],
       lift: (x, z) => this.renderer.walkLiftAt(x, z),
+      ...(artLoader ? { art: pedKitAssets(this.o.assets, artVariantOf(this.o.tier)) } : {}), // art-hook:peds (M10d4): the kit; `?art=0` keeps the mannequin
     });
     this.transit = new TransitRenderer({
       parent: host.scene,

@@ -20,6 +20,7 @@ import { classColor, type AssemblyColors, type AssemblySlot } from '@dv/engine/c
 import { parsePersonGlb, type PersonMesh } from '@dv/engine/client/avatar/person-glb';
 import pedArtJson from '../../../../../config/world/ped-art.json';
 import type { NearFigure } from './mannequin.ts';
+import type { PedJobArgs, PedJobResult } from './ped-job.ts';
 
 export interface PedArtConfig {
   schema: 'ped-art/1';
@@ -38,6 +39,30 @@ export interface PedKitAssets {
   bytes(ref: string): Promise<ArrayBuffer | Uint8Array>;
   /** The ped atlas page as a decoded image; null when it cannot be had (the ped draws untextured). */
   image?(ref: string): Promise<{ width: number; height: number; source: ImageBitmap | HTMLCanvasElement | OffscreenCanvas } | null>;
+}
+
+/**
+ * The kit's asset port backed by the asset worker (`world.ped`, `ped-job.ts`): the bytes of the tier's variant; the atlas page is decoded
+ * on this thread (`createImageBitmap`). A ref the catalog lacks rejects, so `loadPedKit` resolves `null` and the mannequin stays; an atlas
+ * that cannot be had draws the kit untextured.
+ */
+export function pedKitAssets(client: { job(name: string, args: unknown): Promise<unknown> }, variant: PedJobArgs['variant']): PedKitAssets {
+  const read = async (ref: string): Promise<ArrayBuffer> => {
+    const r = (await client.job('world.ped', { ref, variant } satisfies PedJobArgs)) as PedJobResult;
+    if ('missing' in r) throw new Error(`${ref}: not in the asset catalog`);
+    return r.bytes;
+  };
+  return {
+    bytes: read,
+    image: async (ref) => {
+      try {
+        const bitmap = await createImageBitmap(new Blob([await read(ref)], { type: 'image/png' }));
+        return { width: bitmap.width, height: bitmap.height, source: bitmap };
+      } catch {
+        return null;
+      }
+    },
+  };
 }
 
 /** What `world.peds().art` reports (the QA bridge block of the art-hook fence in world-bridge.ts). */
@@ -93,6 +118,8 @@ function merge(a: PersonMesh, b: PersonMesh): PersonMesh {
 }
 
 const SLOT_OF_CLASS: AssemblySlot = 'top';
+/** The far figure's hair shade: the tint times this (red and green channels of its vertex colour). */
+const FAR_HAIR = 0.22;
 
 /** Loads every asset of the kit; resolves `null` when any of them fails (the mannequin then stays, nothing half-built is kept). */
 export async function loadPedKit(assets: PedKitAssets, cfg: PedArtConfig = PED_ART): Promise<PedKit | null> {
@@ -213,12 +240,15 @@ function buildKit(
       const geo = new BufferGeometry();
       geo.setAttribute('position', new BufferAttribute(f.position, 3));
       geo.setAttribute('normal', new BufferAttribute(f.normal as Float32Array, 3));
-      // skin vertices carry blue 0 (the marker the far material reads), garments white
+      // skin vertices carry blue 0 (the marker the far material reads), garments white (they take the tint), hair a dark grey that
+      // the far material multiplies into the tint (red channel), so a far figure's hair is never the colour of its top
       const n = f.position.length / 3;
       const col = new Float32Array(n * 3);
       for (let i = 0; i < n; i++) {
-        const skin = ((f.part as Float32Array)[i] as number) === 0;
-        col.set([1, 1, skin ? 0 : 1], i * 3);
+        const cls = (f.part as Float32Array)[i] as number;
+        if (cls === 0 || cls === 5) col.set([1, 1, 0], i * 3);
+        else if (cls === 3) col.set([FAR_HAIR, FAR_HAIR, 1], i * 3);
+        else col.set([1, 1, 1], i * 3);
       }
       geo.setAttribute('color', new BufferAttribute(col, 3));
       geo.setAttribute('aSwing', new BufferAttribute(f.swing as Float32Array, 1));

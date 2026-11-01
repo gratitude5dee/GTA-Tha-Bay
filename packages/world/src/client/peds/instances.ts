@@ -6,7 +6,10 @@
  *  - far level: ONE `InstancedMesh` per body of a rigid low-poly figure (72 triangles) whose legs and arms swing in the vertex
  *    shader (TSL) with a phase per instance; the clothing colour (one of 20 outfits) is an instance attribute;
  *  - near level (within 25 m): the nearest pedestrians, up to the tier's skinned cap (24 desktop, 16 Vision Pro, 12 mobile, 8 Quest,
- *    6 mobile-low), are drawn as the skinned mannequin on `bay_rig_v1` driven by the engine anim states, and leave the far level;
+ *    6 mobile-low), are drawn as one skinned figure each on `bay_rig_v1` driven by the engine anim states, and leave the far level;
+ *  - M10d4: with an asset port (`art`) the figures are the pedestrian kit (`kit.ts`): a near ped is the body of its sim key merged with
+ *    its outfit into one `SkinnedMesh`, a far body draws the kit's far figure. Until the kit has loaded, and for good when it fails, the
+ *    mannequin of `mannequin.ts` draws (the fallback); the sim, the caps and `CrowdLimits` are the same either way;
  *  - the total drawn never exceeds the C13 `CrowdLimits.maxPedInstances` of the tier. Excess near pedestrians draw as far figures.
  *
  * Slots are stable per entity handle; a freed slot is a zero-scale matrix and the mesh `count` is the highest slot in use.
@@ -20,6 +23,7 @@ import { PED_ASSETS, PED_BODIES, PED_PALETTE } from '../../sim/peds/components.t
 import { NEAR_PED_M } from '../../sim/peds/density.ts';
 import { asNode, attribute, cos, float, sin, vec3, vertexColor, positionLocal, type L } from '../sky/tsl.ts';
 import { buildNearFigure, type NearFigure } from './mannequin.ts';
+import { loadPedKit, PED_ART, type PedArtInfo, type PedKit, type PedKitAssets } from './kit.ts';
 
 type Pose = NonNullable<WorldFrame['poses']>[number];
 
@@ -50,6 +54,16 @@ export interface PedRendererOptions {
    * higher. Absent: 0. Render only: the sim keeps its heights.
    */
   lift?: (x: number, z: number) => number;
+  /** M10d4: the asset port of the pedestrian kit; absent (the QA switch `?art=0`, or no asset client): the mannequin draws. */
+  art?: PedKitAssets;
+}
+
+/** `world.peds().art` (QA): the kit's report and where its load stands. */
+export interface PedArtReport extends PedArtInfo {
+  /** `off`: no asset port; `loading`; `ready`: the kit draws; `failed`: the kit did not load and the mannequin draws. */
+  state: 'off' | 'loading' | 'ready' | 'failed';
+  /** The asset refs the figures are drawn from (the kit's bodies, outfits, far figures and atlas; `mannequin` while it draws). */
+  refs: string[];
 }
 
 const COLORS = PED_PALETTE.map((hex) => [((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255] as const);
@@ -122,6 +136,8 @@ interface BodyMesh {
 
 interface NearSlot {
   fig: NearFigure;
+  /** The kit figure this slot holds (`<body>:<outfit>`), or '' for the mannequin. */
+  kind: string;
   anim: MannequinAnimator;
   handle: number;
   pending: number;
@@ -139,6 +155,9 @@ export class PedRenderer {
   private readonly geo: BufferGeometry;
   private info0: PedInfo;
   private lastT = 0;
+  private kit: PedKit | null = null;
+  private artState: PedArtReport['state'] = 'off';
+  private disposed = false;
 
   constructor(private readonly o: PedRendererOptions) {
     this.group.name = 'peds';
@@ -156,7 +175,8 @@ export class PedRenderer {
       const vc = vertexColor(0) as L;
       const isSkin = float(1).sub(vc.b);
       const tintA = attribute('aTint', 'vec3') as L;
-      m.colorNode = asNode(tintA.mul(float(1).sub(isSkin)).add(vec3(skin[0], skin[1], skin[2]).mul(isSkin)));
+      // M10d4: the red channel shades the tint (1 on the mannequin's figure and on garments, dark on the kit's hair)
+      m.colorNode = asNode(tintA.mul(vc.r).mul(float(1).sub(isSkin)).add(vec3(skin[0], skin[1], skin[2]).mul(isSkin)));
       const swingA = (attribute('aSwing', 'float') as L).mul((attribute('aGait', 'vec2') as L).y).mul(sin((attribute('aGait', 'vec2') as L).x));
       const pivotA = attribute('aPivot', 'float') as L;
       const p = positionLocal;
@@ -175,6 +195,49 @@ export class PedRenderer {
     }
     this.info0 = this.blank();
     o.parent.add(this.group);
+    if (o.art) {
+      this.artState = 'loading';
+      void loadPedKit(o.art).then((kit) => this.useKit(kit));
+    }
+  }
+
+  /** M10d4: the kit has loaded (or failed, `null`): the far bodies take its figures, the near slots are rebuilt on their next frame. */
+  private useKit(kit: PedKit | null): void {
+    if (this.disposed) {
+      kit?.dispose();
+      return;
+    }
+    if (!kit) {
+      this.artState = 'failed';
+      return;
+    }
+    this.kit = kit;
+    this.artState = 'ready';
+    this.bodies.forEach((body, b) => {
+      const g = kit.far(PED_ASSETS[b] as string).clone();
+      g.setAttribute('aTint', body.tint);
+      g.setAttribute('aGait', body.gait);
+      const old = body.mesh.geometry;
+      body.mesh.geometry = g;
+      old.dispose();
+    });
+    // the mannequins in use go; every near pedestrian takes a kit figure on its next frame
+    for (const s of this.near) {
+      this.group.remove(s.fig.root);
+      s.anim.dispose();
+      s.fig.dispose();
+    }
+    this.near.length = 0;
+    this.nearBy.clear();
+  }
+
+  /** `world.peds().art` (QA). */
+  art(): PedArtReport {
+    if (this.kit) {
+      const refs = [...new Set([...Object.values(PED_ART.bodies).flatMap((b) => [b.body, b.far]), ...PED_ART.outfits, PED_ART.atlas])];
+      return { ...this.kit.info(), state: this.artState, refs };
+    }
+    return { bodies: 0, near: 'mannequin', far: 'mannequin', clips: 'placeholder', textureBytes: 0, state: this.artState, refs: ['mannequin'] };
   }
 
   private blank(): PedInfo {
@@ -246,7 +309,7 @@ export class PedRenderer {
     for (const c of this.cand) {
       const p = c.p;
       this.seen.add(p.handle);
-      if (nearSet.has(p.handle)) this.drawNear(p, dt, info);
+      if (nearSet.has(p.handle)) this.drawNear(p, keys.get(p.renderKey) as string, dt, info);
       else this.drawFar(p, keys.get(p.renderKey) as string, dt, info);
     }
     this.sweep(nearSet);
@@ -316,18 +379,28 @@ export class PedRenderer {
     m[o + 15] = 1;
   }
 
-  private drawNear(p: Pose, dt: number, info: PedInfo): void {
+  private drawNear(p: Pose, key: string, dt: number, info: PedInfo): void {
+    const outfit = Math.round(p.animP1);
+    // the kit figure of this body and outfit ('' for the mannequin, which takes any outfit as a tint)
+    const kind = this.kit ? `${key}:${outfit % PED_PALETTE.length}` : '';
     let s = this.nearBy.get(p.handle);
+    if (s && s.kind !== kind) {
+      // the outfit changed under a kit figure: give the slot back and take one of the new kind
+      this.nearBy.delete(p.handle);
+      s.handle = 0;
+      s.fig.root.visible = false;
+      s = undefined;
+    }
     if (!s) {
-      s = this.near.find((n) => n.handle === 0) ?? this.makeNear();
+      s = this.near.find((n) => n.handle === 0 && n.kind === kind) ?? this.makeNear(key, outfit, kind);
       s.handle = p.handle;
       s.pending = 0;
       s.outfit = -1;
       this.nearBy.set(p.handle, s);
       s.fig.root.visible = true;
     }
-    if (s.outfit !== Math.round(p.animP1)) {
-      s.outfit = Math.round(p.animP1);
+    if (s.outfit !== outfit) {
+      s.outfit = outfit;
       s.fig.setTint(PED_PALETTE[s.outfit % PED_PALETTE.length] as number);
     }
     s.fig.root.position.set(p.px, p.py + this.liftAt(p.px, p.pz), p.pz);
@@ -341,9 +414,23 @@ export class PedRenderer {
     info.instances++;
   }
 
-  private makeNear(): NearSlot {
-    const fig = buildNearFigure();
-    const slot: NearSlot = { fig, anim: new MannequinAnimator(fig), handle: 0, pending: 0, outfit: -1 };
+  private makeNear(key: string, outfit: number, kind: string): NearSlot {
+    // never more figures than the near cap: past it, a free figure of another kind is rebuilt as this one
+    if (this.near.length >= Math.max(1, this.o.nearCap)) {
+      const at = this.near.findIndex((n) => n.handle === 0);
+      if (at >= 0) {
+        const old = this.near[at] as NearSlot;
+        this.group.remove(old.fig.root);
+        old.anim.dispose();
+        old.fig.dispose();
+        this.near.splice(at, 1);
+      }
+    }
+    const b = this.archByKey.get(key) ?? 0;
+    const fig = this.kit && kind !== ''
+      ? this.kit.near(key, outfit, PED_PALETTE[((outfit % PED_PALETTE.length) + PED_PALETTE.length) % PED_PALETTE.length] as number, b)
+      : buildNearFigure();
+    const slot: NearSlot = { fig, kind, anim: new MannequinAnimator(fig), handle: 0, pending: 0, outfit: -1 };
     this.group.add(fig.root);
     this.near.push(slot);
     return slot;
@@ -397,6 +484,7 @@ export class PedRenderer {
   }
 
   dispose(): void {
+    this.disposed = true;
     this.o.parent.remove(this.group);
     for (const b of this.bodies) {
       b.mesh.geometry.dispose();
@@ -408,5 +496,6 @@ export class PedRenderer {
       n.fig.dispose();
     }
     this.geo.dispose();
+    this.kit?.dispose();
   }
 }
