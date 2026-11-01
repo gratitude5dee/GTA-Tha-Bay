@@ -33,8 +33,11 @@ for (const tier of TIERS) {
       // the player's car and the tier's field stood on the grid
       expect(report.counts.raceRivals).toBe(tierCaps(tier).rivals);
     } else {
-      expect(report.counts.raceHeatMax).toBeGreaterThanOrEqual(4);
-      expect(report.counts.racePoliceMax).toBeGreaterThanOrEqual(1);
+      // what the sampler saw of sim.worker (race-common.ts `simLine`): a worker restart in the window takes the race and the pursuit with it
+      const side = file.replace(/\.json$/, '.race.json');
+      const sim = existsSync(side) ? `sim: ${(JSON.parse(readFileSync(side, 'utf8')) as { sim: string }).sim}` : `sim: ${side} was not written`;
+      expect(report.counts.raceHeatMax, sim).toBeGreaterThanOrEqual(4);
+      expect(report.counts.racePoliceMax, sim).toBeGreaterThanOrEqual(1);
     }
   });
 }
