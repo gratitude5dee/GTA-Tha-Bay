@@ -15,6 +15,7 @@ import type { QaFlags } from './qa-flags.ts';
 import type { PostStack } from './post/stack.ts';
 import { PLATFORM_FLAGS } from './tier-config.ts';
 import { GpuPacer, type FenceGl } from './gpu-pacer.ts';
+import { installSchedulerYield, type YieldScope } from './compile-yield.ts';
 
 /** `RendererHost.warm`: four turns of 90 degrees, each collected with a vertical field of view of 110 degrees. */
 const WARM_TURNS = 4;
@@ -63,8 +64,11 @@ export interface RendererFactoryOptions {
 export type CreateRenderer = (o: RendererFactoryOptions) => WebGPURenderer;
 
 /** Default factory: the real `WebGPURenderer` (11-platform.md section 5.1 step 4). */
-export const createWebGpuRenderer: CreateRenderer = (o) =>
-  new WebGPURenderer({
+export const createWebGpuRenderer: CreateRenderer = (o) => {
+  // `compileAsync` yields after every render object; without `scheduler.yield` (Safari) three waits a display frame there instead
+  // (BD-FIX-WEBKIT-ATTACH-01).
+  installSchedulerYield(globalThis as unknown as YieldScope);
+  return new WebGPURenderer({
     canvas: o.canvas,
     antialias: false,
     forceWebGL: o.forceWebGL,
@@ -76,6 +80,7 @@ export const createWebGpuRenderer: CreateRenderer = (o) =>
     trackTimestamp: o.trackTimestamp,
     ...(o.requiredLimits ? { requiredLimits: o.requiredLimits } : {}),
   });
+};
 
 export interface HostEvents {
   /** `err.gpu` source: init failure, device loss, uncaptured error. */

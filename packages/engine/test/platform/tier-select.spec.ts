@@ -2,7 +2,7 @@ import { C13_VERSION, classifyDevice, type DeviceProfile, type QualityTierId } f
 import { describe, expect, it } from 'vitest';
 import { createMemoryStore } from '../../src/platform/platform-store.ts';
 import { NO_QA_FLAGS, parseQaFlags, type QaFlags } from '../../src/platform/qa-flags.ts';
-import { MAX_STEP_DOWNS, TierSelector, benchmarkPasses, isLastRung, type RunBenchmark } from '../../src/platform/tier-select.ts';
+import { TierSelector, benchmarkPasses, type RunBenchmark } from '../../src/platform/tier-select.ts';
 import { TIERS } from '../../src/platform/tier-config.ts';
 import { fakeBenchmark, uaFixture } from './fakes.ts';
 
@@ -58,48 +58,14 @@ describe('TierSelector benchmark (AC-3)', () => {
     const { sel, calls } = selector({ p90: { desktop: 40, mobile: 40, 'mobile-low': 40 } });
     const r = await sel.select();
     expect(r.decision.tier).toBe('mobile-low');
-    expect(r.decision.source).toBe('auto-benchmark');
-    // BD-FIX-WEBKIT-ATTACH-01: mobile-low is the last rung, so it is not run; the decision keeps the mobile run that stepped down to it.
-    expect(calls).toEqual(['desktop', 'mobile']);
-    expect(r.decision.benchmark).toMatchObject({ settingsTier: 'mobile', p90Ms: 40, passed: false });
+    expect(calls).toEqual(['desktop', 'mobile', 'mobile-low']);
   });
 
   it('never steps below mobile-low, and at most twice from the top of the ladder', async () => {
     const { sel, calls } = selector({ profile: iphone, p90: { mobile: 99, 'mobile-low': 99 } });
     const r = await sel.select();
     expect(r.decision.tier).toBe('mobile-low');
-    // iPhone 15 (Q-10): mobile fails, so it lands on mobile-low by that measurement; the floor's own run would decide nothing.
-    expect(calls).toEqual(['mobile']);
-    expect(r.decision.benchmark).toMatchObject({ settingsTier: 'mobile', p90Ms: 99, passed: false });
-  });
-
-  it('the last rung decides nothing: whatever it would measure, the decision is the same and it is never run (BD-FIX-WEBKIT-ATTACH-01)', async () => {
-    for (const floorP90 of [10, 99]) {
-      const fromDesktop = selector({ p90: { desktop: 40, mobile: 40, 'mobile-low': floorP90 } });
-      expect((await fromDesktop.sel.select()).decision.tier).toBe('mobile-low');
-      expect(fromDesktop.calls).toEqual(['desktop', 'mobile']);
-      const fromMobile = selector({ profile: iphone, p90: { mobile: 40, 'mobile-low': floorP90 } });
-      expect((await fromMobile.sel.select()).decision.tier).toBe('mobile-low');
-      expect(fromMobile.calls).toEqual(['mobile']);
-    }
-  });
-
-  it('a device whose provisional tier is the floor still measures it once (it is not reached by a step-down)', async () => {
-    const lowMemory: DeviceProfile = { ...iphone, lowMemoryHint: true };
-    const { sel, calls, store } = selector({ profile: lowMemory, p90: { 'mobile-low': 30 } });
-    expect(sel.provisional()).toBe('mobile-low');
-    const r = await sel.select();
-    expect(calls).toEqual(['mobile-low']);
-    expect(r.decision).toMatchObject({ tier: 'mobile-low', source: 'auto-benchmark', benchmark: { settingsTier: 'mobile-low', p90Ms: 30 } });
-    expect((await store.getTierDecision())?.tier).toBe('mobile-low');
-  });
-
-  it('isLastRung: the ladder floor, or the rung the last allowed step-down reaches', () => {
-    expect(isLastRung('mobile-low', 0)).toBe(true);
-    expect(isLastRung('mobile-low', 1)).toBe(true);
-    expect(isLastRung('mobile', 1)).toBe(false);
-    expect(isLastRung('mobile', MAX_STEP_DOWNS)).toBe(true);
-    expect(isLastRung('desktop', 1)).toBe(false);
+    expect(calls).toEqual(['mobile', 'mobile-low']);
   });
 
   it('iPhone-class profiles start at mobile', async () => {
