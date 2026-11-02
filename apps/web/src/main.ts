@@ -1,6 +1,7 @@
 import { collectDiagnosticSignals, createPlatform, fetchBootRegion, formatDiagnostics, parseQaFlags } from '@dv/engine';
 import { storyBoot } from './story-content.ts';
 import { bootEngine, type EngineHandle } from '@dv/engine/client/boot';
+import { earlySimWorker, type EarlySimWorker } from '@dv/engine/client/boot/spawn-worker';
 import type { WorkerPort } from '@dv/engine/assets/client';
 import type { WorkerLike } from '@dv/engine/sim';
 import { bootChoice } from '@dv/world/sim/boot';
@@ -173,6 +174,12 @@ async function boot(): Promise<void> {
     await installIwer();
   }
 
+  // The composed sim worker: the engine sim plus the world streaming module (M02b1, DL-651); the literal form Vite bundles. It spawns right
+  // after asset.worker, before the tier benchmark (01-engine.md section 5 boot order: both workers before heavy work), and loads its script
+  // while the benchmark runs; its `init` still waits for the tier and the world (BD-FIX-WEBKIT-ATTACH-01).
+  const simWorker: EarlySimWorker = earlySimWorker(
+    () => new Worker(new URL('./workers/sim.worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike,
+  );
   let platform;
   try {
     platform = await createPlatform({
@@ -180,7 +187,11 @@ async function boot(): Promise<void> {
       flags,
       build: BUILD,
       // The composed asset worker: the engine's pack store plus the world jobs (M02b1).
-      spawnAssetWorker: () => new Worker(new URL('./workers/asset.worker.ts', import.meta.url), { type: 'module', name: 'asset' }) as unknown as WorkerPort,
+      spawnAssetWorker: () => {
+        const assetWorker = new Worker(new URL('./workers/asset.worker.ts', import.meta.url), { type: 'module', name: 'asset' }) as unknown as WorkerPort;
+        simWorker.start();
+        return assetWorker;
+      },
       // Before the Terms are accepted nothing is sent: consent starts off and the Terms card sets it (10-ui-pages.md 2.4 rule 6).
       ...(termsOk ? {} : { consent: { diagnostics: false, analytics: false } }),
       // The region probe (`GET /api/v1/boot`) waits for the age screen to pass; a device that is blocked never asks (BD-M04b1-04).
@@ -192,6 +203,7 @@ async function boot(): Promise<void> {
     });
   } catch (error) {
     console.error('platform failed to start', error);
+    simWorker.dispose();
     shell.core.fire('unsupported');
     return;
   }
@@ -355,8 +367,8 @@ async function boot(): Promise<void> {
     tier: platform.quality.tier.id,
     ...(flags.profile ? { profile: flags.profile } : {}),
     labels: { recovering: t('engine.recovering') },
-    // The composed sim worker: the engine sim plus the world streaming module (M02b1, DL-651); the literal form Vite bundles.
-    spawn: () => new Worker(new URL('./workers/sim.worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike,
+    // The sim worker spawned with asset.worker for the first start, a fresh one for every restart.
+    spawn: () => simWorker.spawn(),
     headless,
     ...(prepared
       ? { world: prepared.boot }
@@ -375,6 +387,7 @@ async function boot(): Promise<void> {
     onToast: (toast) => shell.onToast(toast),
   }).catch((error: unknown) => {
     console.error('engine failed to start', error);
+    simWorker.dispose();
     return null;
   });
   engineRef = engine;

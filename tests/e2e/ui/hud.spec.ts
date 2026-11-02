@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { qaStorageState } from '../../support/qa-storage.ts';
 import { act, observe, SMALL_VIEWPORT, terrainAt, waitForEngine } from '../engine-helpers.ts';
 import { hideQaPanels } from './helpers.ts';
+import { waitSandboxReady } from './sandbox-helpers.ts';
 
 /**
  * M04b2 AC-9 (@ui-hud), AC-7 (@ui-motion) and the HUD half of the demo. Free roam on the gray-box block (the QA play bypass starts the
@@ -181,13 +182,20 @@ test.describe('reduced motion @ui-motion', () => {
 
 type WorldW = { __dvBridge: { world: { boot(): { revealed: boolean }; teleport(p: { x: number; z: number }): Promise<{ ok: boolean; x: number; z: number }>; call(op: string, args?: Record<string, unknown>): Promise<unknown>; boundaryEvents(): number } } };
 
+/**
+ * Loads the synth world under the QA play bypass and waits until the player is placed and the sandbox is running. BD-FIX-WEBGPU-HUDSTARS-01:
+ * the reveal and a grounded snapshot did not mean the sandbox had entered. On chromium-webgpu in CI the page revealed the world while
+ * its view model still read `sys.mode` Idle and the player stood in the boot move (control 700, snapshot tick 0); the heat toggle's
+ * `sandbox.set` reached the sim before the bypass's `mode.start` had become a running sandbox, the command dispatcher dropped it (no
+ * running sandbox to reach), and the stars stayed at 0 for the whole 30 s. The phone's Sandbox app has the same precondition.
+ */
 async function bootSynth(page: Page): Promise<void> {
   await page.setViewportSize(SMALL_VIEWPORT);
   await page.goto('/?tier=mobile-low');
   await waitForEngine(page);
   await page.waitForFunction(() => (window as unknown as Partial<WorldW>).__dvBridge?.world !== undefined, undefined, { timeout: 120_000 });
   await page.waitForFunction(() => (window as unknown as WorldW).__dvBridge.world.boot().revealed, undefined, { timeout: 180_000 });
-  await expect.poll(async () => (await observe(page)).player?.grounded, { timeout: 120_000 }).toBe(true);
+  await waitSandboxReady(page);
 }
 
 test.describe('pause and phone on the synth world @ui-pause', () => {

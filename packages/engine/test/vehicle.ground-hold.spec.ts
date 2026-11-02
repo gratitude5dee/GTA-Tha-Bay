@@ -8,13 +8,15 @@
  * (the first is the below-the-world net's, 02-world-maps.md 4.1 d; the last is under a resident surface, so its ground is resident).
  * A held car stays held inside a failed chunk's wall box, survives a snapshot restore, and its hold (a body id) is not inherited by the
  * next car that takes over its dense id. A driven car (a police unit the pursuit director drives, a car a brain or a script drives:
- * `external`) is never held, and a held car is let go once anybody drives it (third round).
+ * `external`) is never held, and a held car is let go once anybody drives it (third round). A parked car that takes over the dense id of
+ * a despawned pursuit unit starts from a runtime of its own, so it is parked, not driven, and held (bug #120, BD-FIX-VEHICLE-SLOT-01).
  */
 import { describe, expect, it } from 'vitest';
 import type { EntityHandle, StableKey } from '@dv/shared';
 import { BodyRef, Transform } from '../src/sim/ecs/components.ts';
 import type { StaticShapeSet } from '../src/sim/physics/backend.ts';
 import { GROUP_BIT } from '../src/sim/physics/groups.ts';
+import { EcsPursuitHost } from '../src/sim/pursuit/host.ts';
 import { groundHeld } from '../src/sim/vehicle/components.ts';
 import { createVehicleWorld, drive, launch, view, type VehicleWorld } from './vehicle-sim.ts';
 
@@ -147,8 +149,8 @@ describe('the ground hold of a vehicle whose ground collider is not resident (BD
     expect(held(w)).toBe(true);
     const id = w.sim.ecs.resolve(w.vehicle) as number;
     const oldBody = bodyOf(w);
-    // the held car goes; a new one (the same handling, so the runtime keyed by the dense id is reused) appears over the empty chunk,
-    // 2 m above where the pad was
+    // the held car goes; a new one (the same handling: before BD-FIX-VEHICLE-SLOT-01 the runtime keyed by the dense id was reused)
+    // appears over the empty chunk, 2 m above where the pad was
     w.prefabs.despawn(w.vehicle);
     drive(w, 1);
     const next = w.prefabs.spawn('vehicle.sedan', { pos: [20, 2, 0], yaw: 0 }, 'veh:test1' as StableKey);
@@ -167,6 +169,75 @@ describe('the ground hold of a vehicle whose ground collider is not resident (BD
     expect(held(w, next)).toBe(false);
     expect(w.mod.store.rt.get(id)?.contacts).toBe(4);
     expect(Math.abs((w.sim.ecs.store(Transform).py[id] as number) - 0.54)).toBeLessThan(0.02);
+    w.sim.dispose();
+  }, 60_000);
+
+  /**
+   * Bug #120 (BD-FIX-VEHICLE-SLOT-01): the vehicle runtimes are keyed by the dense id, and a runtime used to outlive its vehicle, so the
+   * next vehicle with the same handling that took over the id inherited it: a parked cruiser that reused a despawned pursuit unit's id was
+   * `external` with the unit's last throttle and steer, drove off on them, counted as driven and was never held, and fell once its ground
+   * unloaded (bug #105 again for that car). The runtime now goes with its vehicle.
+   */
+  it('a parked car that takes over the dense id of a despawned pursuit unit is parked, not driven: no stale input, and it is held', async () => {
+    const w = await createVehicleWorld({
+      noTrack: true, seated: false, prefab: null, playerAt: [400, 0, 0],
+      setup: ({ sim }) => {
+        sim.backend.addChunkStatics(PAD, square(0, 0));
+        sim.backend.addChunkStatics(FAR, square(400, 0));
+      },
+    });
+    const host = new EcsPursuitHost({
+      ecs: w.sim.ecs, backend: w.sim.backend, services: w.sim.services, prefabs: w.prefabs, store: w.mod.store, tick: () => w.sim.tick,
+    });
+    // a cruiser unit on the pad, driven by the director (EcsPursuitHost.drive marks it `external` and writes its input every AI step)
+    const unit = host.spawnUnit('police.cruiser', 'cruiser', [-60, 0, 0], -Math.PI / 2, 'veh:pol0' as StableKey);
+    drive(w, 1);
+    const id = w.sim.ecs.resolve(unit as EntityHandle) as number;
+    expect(id).toBeGreaterThan(0);
+    drive(w, 60, {}, () => host.drive(unit, { throttle: 0.6, brake: 0, steer: 0.4, handbrake: false }));
+    const was = w.mod.store.rt.get(id);
+    expect(was?.external).toBe(true);
+    expect(was?.input.throttle).toBeGreaterThan(0);
+    expect(was?.input.steer).toBeGreaterThan(0);
+
+    // the dispatcher removes the unit; its runtime goes with it
+    host.despawnUnit(unit);
+    drive(w, 1);
+    expect(w.sim.ecs.resolve(unit as EntityHandle)).toBeNull();
+    expect(w.mod.store.rt.has(id), 'the runtime outlived its vehicle').toBe(false);
+
+    // the QA parked cruiser (veh:sw.2: the same prefab, so the same handling) appears on the pad and takes over the unit's dense id
+    const car = w.prefabs.spawn('police.cruiser', { pos: [0, 0, 0], yaw: 0 }, 'veh:sw.2' as StableKey);
+    drive(w, 1);
+    expect(w.sim.ecs.resolve(car), 'the dense id is reused').toBe(id);
+    const rt = w.mod.store.rt.get(id);
+    if (!rt) throw new Error('no runtime');
+    expect(rt, 'the unit\'s runtime was handed to the parked car').not.toBe(was);
+    expect(rt.external, 'the parked car counts as driven').toBe(false);
+    expect(rt.driver).toBe(0);
+    expect({ ...rt.input }, 'the parked car carries the unit\'s input').toEqual({ throttle: 0, brake: 0, steer: 0, handbrake: true });
+
+    // it stays where it was put, on its handbrake
+    drive(w, SETTLE);
+    const tr = w.sim.ecs.store(Transform);
+    const rest = { x: tr.px[id] as number, y: tr.py[id] as number, z: tr.pz[id] as number };
+    expect(Math.hypot(rest.x, rest.z), 'the parked car drove off').toBeLessThan(0.1);
+    expect(rt.contacts).toBe(4);
+
+    // a snapshot of the reused slot restores to the same run
+    const snap = w.sim.snapshot();
+    drive(w, 30);
+    const straight = w.sim.hash();
+    w.sim.restore(snap);
+    drive(w, 30);
+    expect(w.sim.hash()).toBe(straight);
+
+    // the stream moves away: the pad's colliders leave, and the parked car is held where it stands instead of falling
+    w.sim.backend.removeChunkStatics(PAD);
+    drive(w, 120);
+    expect(held(w, car), 'the parked car was not held').toBe(true);
+    expect(w.sim.backend.bodyKind(bodyOf(w, car))).toBe('kinematic');
+    expect(Math.abs((tr.py[id] as number) - rest.y), 'fell while its ground was unloaded').toBeLessThan(1e-3);
     w.sim.dispose();
   }, 60_000);
 
