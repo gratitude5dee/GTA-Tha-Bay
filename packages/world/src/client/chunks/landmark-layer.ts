@@ -86,6 +86,13 @@ export interface LandmarkChunkPort {
   remesh(key: ChunkKey, mask: number[]): void;
   /** Re-record requests of the chunk's bundle so far (for the QA report). */
   rerecords(key: ChunkKey): number;
+  /**
+   * Resolves (or rejects) once the worker has answered a request sent now, through the same channel as `prepare`. The worker takes
+   * requests in the order they were sent and its replies reach this thread in the order it posted them, so when this settles the
+   * worker has taken up every earlier prepare and every reply it posted before has been handled here: a prepare still pending then
+   * is one the worker has not answered, not one waiting in the worker's queue or behind this thread's own long frames.
+   */
+  roundTrip(): Promise<unknown>;
 }
 
 /** A unit of GPU work the `ChunkUploadGate` releases, at most one per frame together with the chunk uploads. */
@@ -146,6 +153,8 @@ interface Prep {
   pending: number;
   results: PreparedRemesh[];
   queued: boolean;
+  /** Past `PREPARE_TIMEOUT_MS`, a `roundTrip` to the worker goes out behind the prepares; it decides when it comes back. */
+  probe: 'none' | 'sent';
 }
 
 interface Entry {
@@ -243,7 +252,13 @@ export interface LandmarksReport {
 const LEAVE_TIMEOUT_MS = 2500;
 /** A remesh request is asked again after this long without an answer. */
 const REMESH_TIMEOUT_MS = 6000;
-/** A swap whose prepared meshes have not all come back after this long gives up (the load is tried again after `retryMs`). */
+/**
+ * A swap whose prepared meshes the worker has not answered this long after they were asked for gives up (the load is tried again
+ * after `retryMs`). The clock alone does not decide: a reply the worker has posted can wait on this thread behind long frames (a
+ * software renderer linking programs takes seconds per frame), and a request can wait in a busy worker's queue; so past this time a
+ * `roundTrip` goes out behind the prepares, and the swap gives up only if a prepare is still unanswered when it comes back
+ * (BD-FIX-LANDMARK-PREPARE-01).
+ */
 const PREPARE_TIMEOUT_MS = 8000;
 /** Remesh requests in flight at once. */
 const REMESH_IN_FLIGHT = 4;
@@ -458,7 +473,7 @@ export class LandmarkLayer {
       if (!st.proxies.includes(id) || st.masked.includes(id) || this.remeshing.get(st.key)?.mask.includes(id)) continue;
       todo.push({ key: st.key, mask: desiredMask(st.proxies, want) });
     }
-    const prep: Prep = { at: this.o.now(), keys: new Set(todo.map((t) => t.key)), pending: todo.length, results: [], queued: false };
+    const prep: Prep = { at: this.o.now(), keys: new Set(todo.map((t) => t.key)), pending: todo.length, results: [], queued: false, probe: 'none' };
     s.prep = prep;
     const gen = s.gen;
     for (const t of todo) {
@@ -479,7 +494,7 @@ export class LandmarkLayer {
     }
     if (s.phase !== 'preparing' || !s.prep || s.prep.queued || !s.model) return;
     if (s.prep.pending > 0) {
-      if (now - s.prep.at > PREPARE_TIMEOUT_MS) this.fail(s, new Error('the chunk meshes did not come back'));
+      if (now - s.prep.at > PREPARE_TIMEOUT_MS && s.prep.probe === 'none') this.probe(s, s.prep);
       return;
     }
     if (this.anchorY(s) === null) return;
@@ -487,6 +502,22 @@ export class LandmarkLayer {
     const gen = s.gen;
     const model = s.model;
     this.o.queue({ id: `${s.kind}:${s.spot.id}`, priority: -2, bytes: bytesOf(model), run: (info) => this.commit(s, gen, info.uploads) });
+  }
+
+  /**
+   * The prepare is past its time: ask the worker for a round trip behind it. The worker takes it up after the prepares, and its answer
+   * is handled after every reply the worker posted before it, so a prepare that is still pending then is one the worker has not
+   * answered (lost, or the job stuck): the swap gives up. A reply that only waited in the worker's queue or on this thread behind long
+   * frames has been handled by then, and the swap goes on with nothing reported failed.
+   */
+  private probe(s: Entry, prep: Prep): void {
+    prep.probe = 'sent';
+    const gen = s.gen;
+    const back = (): void => {
+      if (this.disposed || s.gen !== gen || s.prep !== prep) return;
+      if (prep.pending > 0) this.fail(s, new Error('the chunk meshes did not come back'));
+    };
+    this.o.chunks.roundTrip().then(back, back);
   }
 
   private anchorY(s: Entry): number | null {

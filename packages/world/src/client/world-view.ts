@@ -395,6 +395,8 @@ export class WorldView implements WorldLayer {
           apply: (p) => this.applyPrepared(p),
           remesh: (key, mask) => this.remeshChunk(key, mask),
           rerecords: (key) => this.renderer.rerecordsOf('l0', key),
+          // The cheapest answer asset.worker gives (read-only), on the channel the prepares use: its replies arrive in order.
+          roundTrip: () => this.o.assets.stats(),
         },
         // The commit takes one upload slot, like a chunk: the gate never lets two through in a frame.
         queue: (task) => this.renderer.enqueueTask(task.id, task.priority, task.bytes, { run: (info) => task.run(info) }),

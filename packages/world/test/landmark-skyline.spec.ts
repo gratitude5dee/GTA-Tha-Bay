@@ -137,6 +137,81 @@ describe('the staged swap commit', () => {
     expect(h.mounted).toEqual([]);
     expect(h.chunks.get('9/0/0' as ChunkKey)?.masked).toEqual([]);
   });
+
+  // BD-FIX-LANDMARK-PREPARE-01: the 8 s count what the worker did, not how long its replies waited on a page busy with long frames.
+  it('a prepared mesh the worker posted that waits on a busy page past the time is not a lost reply: it is taken, the swap commits, nothing is reported failed', async () => {
+    const h = harness('mobile', [0], { auto: false, qa: true });
+    // the page is busy with long frames: what the worker posts waits in the page's queue
+    h.inbox.on = true;
+    await h.step(0, 3);
+    expect(h.layer.report().resident.map((e) => [e.id, e.phase])).toEqual([['lm.s0', 'preparing']]);
+    expect(h.inbox.queue.length).toBe(1);
+    h.clock.ms += 9000;
+    await h.step(0, 3);
+    // past the time: one round trip goes out behind the reply, and nothing is given up while both wait
+    expect(h.trips).toBe(1);
+    expect(h.inbox.queue.length).toBe(2);
+    expect(h.layer.report().failed).toEqual([]);
+    expect(h.layer.report().resident.map((e) => [e.id, e.phase])).toEqual([['lm.s0', 'preparing']]);
+    // the page gets to its messages: the prepared mesh first, then the round trip's answer
+    h.drain();
+    await flush();
+    await h.step(0, 2);
+    expect(h.queued.map((t) => t.id)).toEqual(['full:lm.s0']);
+    h.runTasks();
+    h.layer.update({ x: 0, z: 0 }, h.clock.ms / 1000);
+    h.commit();
+    await h.step(0, 4);
+    const r = h.layer.report();
+    expect(r.failed).toEqual([]);
+    expect(r.resident.map((e) => [e.id, e.phase])).toEqual([['lm.s0', 'shown']]);
+    expect(h.mounted).toEqual(['lm.s0']);
+    // one load, one prepare: no retry was needed
+    expect(h.loads).toEqual(['lm.s0']);
+    expect(h.remeshes.filter((m) => m.staged).length).toBe(1);
+    expect(h.chunks.get('9/0/0' as ChunkKey)?.masked).toEqual([1]);
+    expect(r.frames.holes).toBe(0);
+  });
+
+  it('a prepare the worker never answers is still given up once the round trip behind it is back, even on a busy page; a reply after that is dropped and the load is tried again after retryMs', async () => {
+    const h = harness('mobile', [0], { auto: false });
+    h.hold.on = true; // the worker never answers the prepare
+    h.inbox.on = true; // and the page is busy
+    await h.step(0, 3);
+    h.clock.ms += 7000;
+    await h.step(0, 2);
+    // not yet past the time: no round trip
+    expect(h.trips).toBe(0);
+    h.clock.ms += 2000;
+    await h.step(0, 3);
+    // past the time: the round trip waits on the busy page, so nothing is decided yet
+    expect(h.trips).toBe(1);
+    expect(h.layer.report().failed).toEqual([]);
+    // the page handles its messages: the answer comes back with the prepare still unanswered, which is a lost reply
+    h.drain();
+    await flush();
+    await h.step(0, 1);
+    expect(h.layer.report().failed).toEqual([{ id: 'lm.s0', error: 'the chunk meshes did not come back' }]);
+    expect(h.mounted).toEqual([]);
+    expect(h.chunks.get('9/0/0' as ChunkKey)?.masked).toEqual([]);
+    // the late mesh is dropped: nothing mounts, nothing is masked
+    h.releasePrepared();
+    await flush();
+    await h.step(0, 3);
+    h.settle();
+    expect(h.mounted).toEqual([]);
+    expect(h.chunks.get('9/0/0' as ChunkKey)?.masked).toEqual([]);
+    // after retryMs the landmark is loaded and prepared again, and this time it comes up
+    h.clock.ms += LANDMARKS_RUNTIME.retryMs;
+    for (let i = 0; i < 8; i++) {
+      await h.step(0, 1);
+      h.settle();
+    }
+    expect(h.loads).toEqual(['lm.s0', 'lm.s0']);
+    expect(h.mounted).toEqual(['lm.s0']);
+    expect(h.layer.report().failed).toEqual([]);
+    expect(h.chunks.get('9/0/0' as ChunkKey)?.masked).toEqual([1]);
+  });
 });
 
 describe('terrain under a far landmark', () => {
