@@ -1,37 +1,37 @@
 {
   "commit": "local",
-  "bakeId": "6e5d9a7fc0c8faa0ae8124ba55e8d6eb6438ca9b98c695d0c163c6828dc0af59",
-  "baselineFrom": "docs/look/M02h3-render-ledger.json",
+  "bakeId": "f73a47b756ac5cb1358c40859d017811b1f556e5c28742df09da09107821ebe9",
+  "baselineFrom": "docs/look/M02h4-render-ledger.json",
   "tiers": {
     "desktop": {
-      "baseline": 554,
-      "after": 554,
+      "baseline": 551,
+      "after": 551,
       "perLayer": {
         "peds": 0
       },
       "crowd": {
-        "near": 2,
+        "near": 3,
         "farMeshes": 8,
-        "objects": 10,
+        "objects": 11,
         "textureBytes": 5592406
       }
     },
     "mobile": {
-      "baseline": 146,
-      "after": 146,
+      "baseline": 137,
+      "after": 137,
       "perLayer": {
         "peds": 0
       },
       "crowd": {
-        "near": 2,
+        "near": 3,
         "farMeshes": 8,
-        "objects": 10,
+        "objects": 11,
         "textureBytes": 1398102
       }
     },
     "mobile-low": {
-      "baseline": 74,
-      "after": 74,
+      "baseline": 68,
+      "after": 68,
       "perLayer": {
         "peds": 0
       },
@@ -44,8 +44,8 @@
     }
   },
   "xr": {
-    "baseline": 100,
-    "after": 100,
-    "near": 2
+    "baseline": 93,
+    "after": 93,
+    "near": 3
   }
 }
