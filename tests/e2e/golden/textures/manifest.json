@@ -1,7 +1,7 @@
 {
   "$comment": "M10d0 texture goldens: written by DV_UPDATE_GOLDEN=1 pnpm check:e2e -- --project=chromium-webgl2 --grep @textures-golden (outside CI, under the golden-update label). 256 x 144 captures of the canvas on chromium-webgl2 with the surface textures on.",
   "schema": "textures-golden/1",
-  "bakeId": "6e5d9a7fc0c8faa0ae8124ba55e8d6eb6438ca9b98c695d0c163c6828dc0af59",
+  "bakeId": "f73a47b756ac5cb1358c40859d017811b1f556e5c28742df09da09107821ebe9",
   "source": "synth",
   "viewport": {
     "width": 256,
