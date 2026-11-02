@@ -53,6 +53,7 @@ import { artVariantOf, type VehicleJobArgs, type VehicleJobResult } from './vehi
 import { NEAR_PED_CAP, pedCap } from '../sim/peds/density.ts';
 import { PED_ASSETS } from '../sim/peds/components.ts';
 import { PedRenderer, type PedInfo } from './peds/instances.ts';
+import { pedKitAssets, unsettledUnits } from './peds/kit.ts'; // art-hook:peds (M10d4)
 import { TransitRenderer, isTransitKey, type TransitInfo } from './transit/render.ts';
 import { MapLayer } from './map/layer.ts';
 import type { AreaBannerPatch } from './map/banner.ts';
@@ -275,6 +276,8 @@ export class WorldView implements WorldLayer {
   private offline: HTMLElement | null = null;
   private simStatus = { unavailable: 0, failed: 0, ready: 0, reason: 'ok' };
   private revealed = false;
+  /** M10d4 repair: the reveal and its boot figures are done, so the pedestrian kit may load (`PedRenderer.startArt`). */
+  private artAfterReveal = false;
   private revealMs: number | null = null;
   private readonly revealWaiters: (() => void)[] = [];
   private startMs = 0;
@@ -495,6 +498,7 @@ export class WorldView implements WorldLayer {
     this.peds = new PedRenderer({
       parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier],
       lift: (x, z) => this.renderer.walkLiftAt(x, z),
+      ...(artLoader ? { art: pedKitAssets(this.o.assets, artVariantOf(this.o.tier)), artWaits: !this.artAfterReveal, worldLoad: () => ({ held: host.worldHeld, unsettled: unsettledUnits(this.store.units.values()), requests: this.store.stats.requests, meshing: this.inflight, landmarksIdle: this.landmarks?.idle ?? true, artLoading: this.textures?.active === true && !this.textures.report().settled }) } : {}), // art-hook:peds (M10d4): the kit's gate reads what the world is doing once a frame (BD-REPAIR-M10d4-03); `?art=0` keeps the mannequin
     });
     this.transit = new TransitRenderer({
       parent: host.scene,
@@ -956,7 +960,12 @@ export class WorldView implements WorldLayer {
     document.documentElement.dataset.dvWorld = 'revealed';
     if (this.o.bootStartMs !== undefined) this.bootRevealMs = Math.max(1, Math.round(this.now() - this.o.bootStartMs));
     // art-hook:textures begin (M10d0): after the boot figures are read, so the textures add nothing to the boot's request counts
-    void this.readBootFigures().finally(() => this.startTextures());
+    // art-hook:peds (M10d4): the pedestrian kit loads at the same moment, for the same reason (BD-REPAIR-M10d4-02)
+    void this.readBootFigures().finally(() => {
+      this.startTextures();
+      this.artAfterReveal = true;
+      this.peds?.startArt();
+    });
     // art-hook:textures end
     for (const w of this.revealWaiters.splice(0)) w();
   }

@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "14c1d8e952ace7e953c21ea26d69494a97dcfb33601d5c10b9faddf824781cbf",
+  "paths": [
+    "assets/src/character/pc-acc-cap/desktop.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "b12632c50f73bede82f2f2befe536d25440924929759adb7386a1db9bfb2c448"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

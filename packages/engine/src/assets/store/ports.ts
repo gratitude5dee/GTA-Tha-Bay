@@ -28,7 +28,11 @@ export interface FileStore {
 export interface IndexStore {
   open(): Promise<void>;
   get(hash: string): Promise<PackRow | null>;
+  /** Rows for `hashes` in order (null where absent), read in one transaction. Optional: the store falls back to `get` per hash. */
+  getMany?(hashes: readonly string[]): Promise<Array<PackRow | null>>;
   put(row: PackRow): Promise<void>;
+  /** Writes every row in one transaction, all or none. Optional: the store falls back to `put` per row. */
+  putMany?(rows: readonly PackRow[]): Promise<void>;
   delete(hash: string): Promise<void>;
   all(): Promise<PackRow[]>;
   clear(): Promise<void>;

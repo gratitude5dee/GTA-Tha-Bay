@@ -1,0 +1,36 @@
+{
+  "kind": "prop",
+  "id": "ped.far.h",
+  "variants": {
+    "desktop": "assets/src/prop/ped.far.h/desktop.glb",
+    "mobile": "assets/src/prop/ped.far.h/mobile.glb",
+    "mobile-low": "assets/src/prop/ped.far.h/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 280,
+      "verts": 172,
+      "materials": 1,
+      "primitives": 1
+    },
+    "mobile": {
+      "tris": 240,
+      "verts": 152,
+      "materials": 1,
+      "primitives": 1
+    },
+    "mobile-low": {
+      "tris": 200,
+      "verts": 132,
+      "materials": 1,
+      "primitives": 1
+    }
+  },
+  "deps": [],
+  "tags": [
+    "prop:ped-far",
+    "art:m10d4"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

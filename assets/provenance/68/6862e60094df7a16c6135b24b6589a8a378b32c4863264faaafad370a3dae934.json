@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "6862e60094df7a16c6135b24b6589a8a378b32c4863264faaafad370a3dae934",
+  "paths": [
+    "assets/src/character/pc-body-wiry/mobile-low.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "03a748b70f49dd819f8cbebc706a48fb525e739158239b6bbb80a185208105d5"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

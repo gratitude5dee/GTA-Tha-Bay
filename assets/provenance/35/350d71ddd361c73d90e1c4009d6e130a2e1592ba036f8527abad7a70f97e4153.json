@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "350d71ddd361c73d90e1c4009d6e130a2e1592ba036f8527abad7a70f97e4153",
+  "paths": [
+    "assets/src/character/pc-hair-bald/mobile.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "5d2d6a648af45facb89192ff3e84b77e905b8c3a201e2d640391d809e06ee876"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

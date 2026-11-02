@@ -29,6 +29,7 @@ import { meshChunk } from './chunks/mesher.ts';
 import { COVER_FLAG } from './look/config.ts';
 import { transferListOf, type UnitMesh } from './chunks/mesh-types.ts';
 import { textureJob } from './textures/texture-job.ts';
+import { pedJob } from './peds/ped-job.ts'; // art-hook:peds (M10d4)
 import { vehicleJob } from './vehicles/vehicle-job.ts';
 
 // ---- plain pack reads ------------------------------------------------------------------------------------------------------
@@ -429,4 +430,6 @@ export const worldJobs: Readonly<Record<string, AssetJob>> = {
   'world.vehicle': vehicleJob,
   /** M10d0: one KTX2 surface texture, the tier's variant, through the pack store (the page transcodes it). */
   'world.texture': textureJob,
+  /** M10d4: the bytes of one pedestrian-kit asset (body, outfit, far figure, atlas page), the tier's variant (transferred). */
+  'world.ped': pedJob, // art-hook:peds (M10d4)
 };

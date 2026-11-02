@@ -1,8 +1,9 @@
 /**
- * pnpm assets:retarget -- --rig bay_rig_v1 --clips <glb> --to <slug> [--target <glb>] [--height <m>] [--out <file>] [--fps 30] (M10a1)
+ * pnpm assets:retarget -- --rig bay_rig_v1 --clips <glb> --to <slug> [--target <glb>] [--height <m>] [--out <file>] [--fps 30] [--map <json>] (M10a1, --map M10d4)
  *
  * Bakes the authored clips of `--clips` (keyed once on the mannequin) onto the skeleton of `--to` and writes the animation-only GLB
- * `anim/<slug>.moves` (clip name = move id, frame count in each clip's extras). `--target` defaults to the character's `desktop` file in
+ * `anim/<slug>.moves` (clip name = move id, frame count in each clip's extras). `--map <json>` (M10d4) bakes only the clips it names, each
+ * under the output name it gives (`{"Walk_Formal_Loop": "walk"}`). `--target` defaults to the character's `desktop` file in
  * `assets/src/character/<slug>/`; `--height` defaults to the `heightM` of its spec. Gate A5 judges every clip.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -16,9 +17,9 @@ import { writeMovesAsset, retargetReport, sortedJson } from './moves-asset.ts';
 import { RETARGET_FPS, retargetClips } from './retarget.ts';
 
 export async function retargetCommand(argv: readonly string[], root: string, log: (l: string) => void): Promise<number> {
-  const { values } = parseArgs({ args: [...argv], options: { rig: { type: 'string' }, clips: { type: 'string' }, to: { type: 'string' }, target: { type: 'string' }, height: { type: 'string' }, out: { type: 'string' }, fps: { type: 'string' }, spec: { type: 'boolean', default: false }, by: { type: 'string', default: 'art-lead' } } });
+  const { values } = parseArgs({ args: [...argv], options: { rig: { type: 'string' }, clips: { type: 'string' }, to: { type: 'string' }, target: { type: 'string' }, height: { type: 'string' }, out: { type: 'string' }, fps: { type: 'string' }, map: { type: 'string' }, spec: { type: 'boolean', default: false }, by: { type: 'string', default: 'art-lead' } } });
   if (values.rig !== 'bay_rig_v1' || !values.clips || !values.to) {
-    log('usage: pnpm assets:retarget -- --rig bay_rig_v1 --clips <glb> --to <slug> [--target <glb>] [--height <m>] [--out <file>] [--fps 30|60] [--spec [--by <profile>]]');
+    log('usage: pnpm assets:retarget -- --rig bay_rig_v1 --clips <glb> --to <slug> [--target <glb>] [--height <m>] [--out <file>] [--fps 30|60] [--map <json>] [--spec [--by <profile>]]');
     return 2;
   }
   const specFile = path.join(root, 'assets/src/character', values.to, 'asset.json');
@@ -31,9 +32,23 @@ export async function retargetCommand(argv: readonly string[], root: string, log
   }
   const clipsBytes = new Uint8Array(readFileSync(path.resolve(root, values.clips)));
   const fps = values.fps !== undefined ? Number(values.fps) : RETARGET_FPS;
+  let rename: Record<string, string> | undefined;
+  if (values.map !== undefined) {
+    const mapFile = path.resolve(root, values.map);
+    if (!existsSync(mapFile)) {
+      log(`assets:retarget: --map file ${path.relative(root, mapFile)} not found`);
+      return 1;
+    }
+    const raw = JSON.parse(readFileSync(mapFile, 'utf8')) as unknown;
+    if (raw === null || typeof raw !== 'object' || Array.isArray(raw) || Object.values(raw).some((v) => typeof v !== 'string' || v === '')) {
+      log('assets:retarget: --map must be a JSON object of source clip name to output clip name');
+      return 1;
+    }
+    rename = raw as Record<string, string>;
+  }
   const r = await retargetClips({
     clipsGlb: clipsBytes, targetGlb: new Uint8Array(readFileSync(target)), slug: values.to, heightM: height,
-    rig: rigJson as unknown as RigFamily, fps,
+    rig: rigJson as unknown as RigFamily, fps, ...(rename ? { rename } : {}),
   });
   const out = path.resolve(root, values.out ?? path.join('assets/src/anim', `${values.to}.moves`, 'default.glb'));
   mkdirSync(path.dirname(out), { recursive: true });

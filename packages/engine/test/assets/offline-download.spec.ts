@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { DOWNLOAD_ALL_CONCURRENCY, quotaFits, type PackFetcher } from '../../src/assets/store/store.ts';
+import { DOWNLOAD_ALL_BACKLOG, DOWNLOAD_ALL_CONCURRENCY, quotaFits, type PackFetcher } from '../../src/assets/store/store.ts';
 import { FetchFailure } from '../../src/assets/store/fetch-retry.ts';
-import { makePack, rig, KB, type TestPack } from './helpers.ts';
+import { FakeFetcher, makePack, rig, KB, type TestPack } from './helpers.ts';
 
 /** A fetcher whose requests wait until the test lets each one through. */
 class OnDemandFetcher implements PackFetcher {
@@ -162,5 +162,80 @@ describe('PackStore city download (M04b4)', () => {
 
     await f.r.store.clear();
     expect((await f.r.store.usage()).packs).toBe(0);
+  });
+  // BD-REPAIR-M10d4-01: M10d4 took the catalog from about 500 to 721 entries, and the WebKit city download outran the e2e's 60 s.
+  // Each pack paid an `index.all()` scan (quadratic) and two IndexedDB transactions inside the serial commit chain, and the four fetch
+  // slots waited for those commits.
+  it('commits a city download in groups: rows go in fewer writes than packs, and no commit below the soft cap reads every row', async () => {
+    const packs = await Promise.all(Array.from({ length: 40 }, (_, i) => makePack(400 + i, 4 * KB)));
+    const r = rig();
+    for (const p of packs) r.fetcher.add(p);
+    await r.store.open();
+    let puts = 0;
+    let scans = 0;
+    const putMany = r.index.putMany.bind(r.index);
+    r.index.putMany = (rows) => {
+      puts++;
+      return putMany(rows);
+    };
+    const all = r.index.all.bind(r.index);
+    r.index.all = () => {
+      scans++;
+      return all();
+    };
+    // Every file write takes a macrotask, so packs fetched meanwhile queue behind the running commit.
+    const write = r.files.write.bind(r.files);
+    r.files.write = async (h, b) => {
+      await new Promise((res) => setTimeout(res, 1));
+      return write(h, b);
+    };
+    const progress: number[] = [];
+    await r.store.downloadAll(packs.map((p) => p.ref), (d) => progress.push(d));
+    expect(progress.at(-1)).toBe(40);
+    expect((await Promise.all(packs.map((p) => r.store.has(p.ref.sha256)))).every(Boolean)).toBe(true);
+    expect(r.index.rows.size).toBe(40);
+    expect(puts).toBeLessThan(40);
+    expect(scans).toBeLessThanOrEqual(1);
+  });
+
+  it('frees a fetch slot once a pack is verified: fetches go on while a commit is held, up to the backlog bound', async () => {
+    const count = DOWNLOAD_ALL_BACKLOG + 2 * DOWNLOAD_ALL_CONCURRENCY + 4;
+    const packs = await Promise.all(Array.from({ length: count }, (_, i) => makePack(600 + i, 2 * KB)));
+    const fetcher = new FakeFetcher();
+    for (const p of packs) fetcher.add(p);
+    const r = rig({ fetcher });
+    await r.store.open();
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((res) => (release = res));
+    const write = r.files.write.bind(r.files);
+    r.files.write = async (h, b) => {
+      await held;
+      return write(h, b);
+    };
+    const run = r.store.downloadAll(packs.map((p) => p.ref), () => undefined);
+    await until(async () => fetcher.calls.length >= DOWNLOAD_ALL_BACKLOG + DOWNLOAD_ALL_CONCURRENCY, 2000);
+    // More than the four slots fetched although no commit has finished, and the backlog bounds the bytes held in memory.
+    expect(fetcher.calls.length).toBeGreaterThan(DOWNLOAD_ALL_CONCURRENCY);
+    expect(fetcher.calls.length).toBeLessThanOrEqual(DOWNLOAD_ALL_BACKLOG + DOWNLOAD_ALL_CONCURRENCY);
+    expect(r.index.rows.size).toBe(0);
+    release();
+    await run;
+    expect(fetcher.calls.length).toBe(count);
+    expect(r.index.rows.size).toBe(count);
+  });
+
+  it('a group whose rows fail to land serves the packs uncached and leaves only orphans for the next open()', async () => {
+    const packs = await Promise.all(Array.from({ length: 3 }, (_, i) => makePack(700 + i, 2 * KB)));
+    const events: string[] = [];
+    const r = rig({ onEvent: (e) => events.push(e.type) });
+    for (const p of packs) r.fetcher.add(p);
+    await r.store.open();
+    r.index.crashNextPut = true;
+    const got = await r.store.get(packs[0]!.ref);
+    expect(new Uint8Array(got)).toEqual(packs[0]!.bytes);
+    expect(events).toContain('commit-failed');
+    expect(await r.store.has(packs[0]!.ref.sha256)).toBe(false);
+    await r.store.open();
+    expect(r.files.files.size).toBe(0);
   });
 });

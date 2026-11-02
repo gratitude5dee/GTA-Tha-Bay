@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "116987441816b6bfcddd11716ca9de31131e908c14a34a1fb05cafa83820dd4a",
+  "paths": [
+    "assets/src/portrait/pc-acc-backpack/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "bffb21c3c1e1e470f860c2908e66bae4e104de3fb366156ed7dc6304b270c225"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "592f2cf3967e5e234f2da09a827afbb885fc96e6e7b028186c486a0ff0d5962e"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

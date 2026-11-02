@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "29b7821671176be69506e9698a8a88b9245f31dae5734a49f2bbd38542acc417",
+  "paths": [
+    "assets/src/character/pc-face-haight/mobile.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "69184615e5cfc6940569ed5c88dcd2a0eb0c8056683c1eeb1820e6f15e588dd8"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}
