@@ -16,7 +16,8 @@ import { TIERS } from './tier-config.ts';
 
 /**
  * Tier selection (11-platform.md section 5.3): provisional tier from the device profile, then a benchmark that steps down one
- * rung of FLAT_LADDER when p90 > frameBudgetMs x 1.1, at most twice. Promotion to `desktop-ultra` needs a non-fallback WebGPU
+ * rung of FLAT_LADDER when p90 > frameBudgetMs x 1.1, at most twice; the last rung reached by a step-down is not run, since it decides
+ * nothing (BD-FIX-WEBKIT-ATTACH-01). Promotion to `desktop-ultra` needs a non-fallback WebGPU
  * adapter and p90 <= 0.5 x 16.7 ms at `desktop` settings (DN-S11-05). The decision persists in IndexedDB
  * `dv-platform/tier-decision` and is re-used while `build`, `uaHash` and `adapterHash` match.
  */
@@ -125,6 +126,11 @@ export class TierSelector {
       const next = stepDownTier(tier);
       if (!next) break;
       tier = next;
+      // The last rung a step-down can reach (the ladder's floor, or the second step) decides nothing: pass or fail, the tier stays there.
+      // Its run is not made, and the decision keeps the run that stepped down to it (`benchmark.settingsTier` names that rung). That run
+      // was a 3 s window plus its compile on every first boot that steps down to mobile-low (the iPhone 15 path, Q-10), 3.7 to 3.9 s on
+      // a software renderer, and the engine boots only after the benchmark (BD-FIX-WEBKIT-ATTACH-01).
+      if (isLastRung(next, steps + 1)) break;
       result = await run(this.tiers[tier]);
     }
     if (tier === 'desktop' && result.passed && result.p90Ms <= ULTRA_P90_MS && this.ultraEligible()) {
@@ -149,6 +155,14 @@ export class TierSelector {
     await this.d.store.putTierDecision(decision);
     return decision;
   }
+}
+
+/**
+ * True when `tier`, reached after `steps` step-downs, is the last rung the benchmark can reach: the ladder has no rung below it, or the
+ * step budget (MAX_STEP_DOWNS) is spent. Nothing measured there can change the decision.
+ */
+export function isLastRung(tier: QualityTierId, steps: number): boolean {
+  return steps >= MAX_STEP_DOWNS || stepDownTier(tier) === null;
 }
 
 /** Whether a benchmark p90 passes a tier's frame budget (shared by the selector tests and the perf tooling). */
