@@ -17,8 +17,8 @@
  * `PoolLayout` is the range bookkeeping alone (no `three`), so the tests drive it through thousands of steps; `VegetationPools` owns the
  * meshes.
  */
-import { BufferAttribute, BufferGeometry, Group, InstancedBufferAttribute, InstancedMesh, type Material, Sphere, Vector3 } from 'three/webgpu';
-import { TreeForm, treeFormOfByte } from '@dv/shared';
+import { BufferAttribute, BufferGeometry, type Group, InstancedBufferAttribute, InstancedMesh, type Material, Sphere, Vector3 } from 'three/webgpu';
+import { type TreeForm, treeFormOfByte } from '@dv/shared';
 import { TREE_STRIDE } from './mesher.ts';
 import { SET_GEOMETRIES, buildTreeSet, geometryOfForm, instanceScaleOf, tintOf, type TreeGeometryData, type TreeGeometryId, type TreeSet } from './tree-forms.ts';
 

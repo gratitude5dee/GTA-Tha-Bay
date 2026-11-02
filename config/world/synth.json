@@ -116,7 +116,7 @@
     { "id": "dw-08", "pts": [-1566, 462, -1566, 490] },
     { "id": "dw-09", "pts": [-1566, 610, -1566, 582] }
   ],
-  "trees": { "perChunk": 8 },
+  "trees": { "perChunk": 16 },
   "neighbourhoods": {
     "cols": 7,
     "rows": 6,
