@@ -97,8 +97,11 @@ test.describe('NPC agency and barks @npc-barks', () => {
   test('a knocked-down pedestrian barks once with a subtitle, then the cooldown holds @npc-barks', async ({ page }) => {
     await boot(page);
     await agency(page, (a) => a.filler(2.2));
-    // let the watcher see the pedestrian standing before it goes down
-    await page.waitForTimeout(1500);
+    // The bark watcher hears a knock-down as an edge, standing then down, so it must have seen this pedestrian standing first (`fillerSeen` 0).
+    // No wall-clock wait is right (BD-FIX-WEBGPU-BARKS-01): the sim ticks only when the page renders a frame and handles page commands between
+    // ticks, and on the software WebGPU runner one frame after the reveal can last longer than the old 1.5 s wait, so `filler()` and the bump
+    // reached the sim before a single tick had run: the bump found no pedestrian yet and nothing went down.
+    await expect.poll(async () => (await agency(page, (a) => a.debug()))?.fillerSeen ?? -1, { timeout: 30_000, intervals: [250, 500] }).toBe(0);
     await agency(page, (a) => a.bump());
     await expect.poll(async () => (await agency(page, (a) => a.debug()))?.barks.played ?? 0, { timeout: 30_000, intervals: [250, 500] }).toBe(1);
     const sub = await agency(page, (a) => a.subtitle());
