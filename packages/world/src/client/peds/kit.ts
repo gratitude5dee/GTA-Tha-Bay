@@ -20,7 +20,11 @@ import { classColor, type AssemblyColors, type AssemblySlot } from '@dv/engine/c
 import { parsePersonGlb, type PersonMesh } from '@dv/engine/client/avatar/person-glb';
 import pedArtJson from '../../../../../config/world/ped-art.json';
 import type { NearFigure } from './mannequin.ts';
-import type { PedJobArgs, PedJobResult } from './ped-job.ts';
+import type { PedJobArgs, PedJobResult, PedStopArgs } from './ped-job.ts';
+import { OPEN_GATE, type KitGate } from './art-gate.ts';
+
+// for the world view's one `art-hook:peds` import line: it counts its unsettled streaming units with this for the kit's gate
+export { unsettledUnits } from './art-gate.ts';
 
 export interface PedArtConfig {
   schema: 'ped-art/1';
@@ -36,31 +40,56 @@ export const PED_ART: PedArtConfig = pedArtJson as unknown as PedArtConfig;
 
 /** The bytes and textures the kit needs; the app backs it with the asset client, the tests with fixtures. */
 export interface PedKitAssets {
-  bytes(ref: string): Promise<ArrayBuffer | Uint8Array>;
-  /** The bytes of a group of refs, in order, read one after another in one request; absent: `bytes` per ref, one after another. */
-  group?(refs: string[]): Promise<(ArrayBuffer | Uint8Array)[]>;
-  /** The ped atlas page as a decoded image; null when it cannot be had (the ped draws untextured). */
-  image?(ref: string): Promise<{ width: number; height: number; source: ImageBitmap | HTMLCanvasElement | OffscreenCanvas } | null>;
+  /** The bytes of one ref; rejects when `signal` aborts first. */
+  bytes(ref: string, signal?: AbortSignal): Promise<ArrayBuffer | Uint8Array>;
+  /**
+   * The bytes of a group of refs, in order, read one after another in one request. Once `signal` aborts the read stops before its next
+   * file and answers the files it has: a prefix of `refs`, possibly empty. Absent: `bytes` per ref, one after another.
+   */
+  group?(refs: string[], signal?: AbortSignal): Promise<(ArrayBuffer | Uint8Array)[]>;
+  /** The ped atlas page as a decoded image; null when it cannot be had (the ped draws untextured); rejects when `signal` aborts first. */
+  image?(ref: string, signal?: AbortSignal): Promise<{ width: number; height: number; source: ImageBitmap | HTMLCanvasElement | OffscreenCanvas } | null>;
 }
 
+const stopped = (): Error => Object.assign(new Error('the pedestrian kit step was stopped'), { name: 'AbortError' });
+
+/** Read tokens of `world.ped`, unique in the page (every kit shares the one asset worker). */
+let readSeq = 0;
+
 /**
- * The kit's asset port backed by the asset worker (`world.ped`, `ped-job.ts`): the bytes of the tier's variant, a group per job; the atlas
- * page is decoded on this thread (`createImageBitmap`). A ref the catalog lacks rejects, so `loadPedKit` resolves `null` and the mannequin
- * stays; an atlas that cannot be had draws the kit untextured.
+ * The kit's asset port backed by the asset worker (`world.ped`, `ped-job.ts`): the bytes of the tier's variant, a group per job. When the
+ * step's signal aborts (the world got busy) the port sends `{ stop: token }`, so the worker stops before its next file and answers what it
+ * has read. The atlas page is decoded on this thread (`createImageBitmap`). A ref the catalog lacks rejects, so `loadPedKit` resolves
+ * `null` and the mannequin stays; an atlas that cannot be had draws the kit untextured.
  */
 export function pedKitAssets(client: { job(name: string, args: unknown): Promise<unknown> }, variant: PedJobArgs['variant']): PedKitAssets {
-  const group = async (refs: string[]): Promise<ArrayBuffer[]> => {
-    const r = (await client.job('world.ped', { refs, variant } satisfies PedJobArgs)) as PedJobResult;
-    if ('missing' in r) throw new Error(`${refs.join(', ')}: not in the asset catalog`);
-    return r.files;
+  const group = async (refs: string[], signal?: AbortSignal): Promise<ArrayBuffer[]> => {
+    if (signal?.aborted) return [];
+    const token = `ped-${++readSeq}`;
+    const stop = (): void => void client.job('world.ped', { stop: token } satisfies PedStopArgs).catch(() => undefined);
+    signal?.addEventListener('abort', stop, { once: true });
+    try {
+      const r = (await client.job('world.ped', { refs, variant, token } satisfies PedJobArgs)) as PedJobResult;
+      if ('missing' in r) throw new Error(`${refs.join(', ')}: not in the asset catalog`);
+      if (!('files' in r)) throw new Error('world.ped: no files');
+      return r.files;
+    } finally {
+      signal?.removeEventListener('abort', stop);
+    }
   };
-  const read = async (ref: string): Promise<ArrayBuffer> => (await group([ref]))[0] as ArrayBuffer;
+  const read = async (ref: string, signal?: AbortSignal): Promise<ArrayBuffer> => {
+    const [b] = await group([ref], signal);
+    if (!b) throw stopped();
+    return b;
+  };
   return {
     bytes: read,
     group,
-    image: async (ref) => {
+    image: async (ref, signal) => {
+      // a stopped read rejects (the loader asks again after the next quiet window); a file that does not decode draws untextured
+      const bytes = await read(ref, signal);
       try {
-        const bitmap = await createImageBitmap(new Blob([await read(ref)], { type: 'image/png' }));
+        const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
         return { width: bitmap.width, height: bitmap.height, source: bitmap };
       } catch {
         return null;
@@ -125,31 +154,72 @@ const SLOT_OF_CLASS: AssemblySlot = 'top';
 /** The far figure's hair shade: the tint times this (red and green channels of its vertex colour). */
 const FAR_HAIR = 0.22;
 
-/**
- * Loads every asset of the kit in four steps (the bodies, the far figures, the outfits, the atlas), each after `step()` resolves; resolves
- * `null` when any file fails or a step rejects (the mannequin then stays, nothing half-built is kept). The files of a step are read one
- * after another (`PedKitAssets.group`, one asset-worker job), so the kit holds at most one of the two `idle` fetch slots and the world's
- * own `idle` reads (skyline models, L1/L2 tiles) never queue behind its 37 files; the renderer's `step` lets a group go only while the
- * world is quiet (BD-REPAIR-M10d4-03). The default step goes at once.
- */
-export async function loadPedKit(assets: PedKitAssets, cfg: PedArtConfig = PED_ART, step: () => Promise<void> = () => Promise.resolve()): Promise<PedKit | null> {
-  const keys = Object.keys(cfg.bodies);
-  const read = async (refs: string[]): Promise<PersonMesh[]> => {
-    await step();
-    let raw: (ArrayBuffer | Uint8Array)[];
-    if (assets.group) raw = await assets.group(refs);
-    else {
-      raw = [];
-      for (const ref of refs) raw.push(await assets.bytes(ref));
+/** The files of `refs` one after another, stopping before the next once `signal` aborts (the port without `group`). */
+async function oneByOne(assets: PedKitAssets, refs: string[], signal: AbortSignal): Promise<(ArrayBuffer | Uint8Array)[]> {
+  const out: (ArrayBuffer | Uint8Array)[] = [];
+  for (const ref of refs) {
+    if (signal.aborted) break;
+    try {
+      out.push(await assets.bytes(ref, signal));
+    } catch (e) {
+      if (signal.aborted) break;
+      throw e;
     }
-    return raw.map((b) => parsePersonGlb(toBytes(b)));
-  };
+  }
+  return out;
+}
+
+/**
+ * The files of one group, parsed. Each request starts only while the gate is open and carries its signal: when the world gets busy the
+ * worker stops before its next file and answers the files it has, and the rest is asked for after the next quiet window. Each file is
+ * parsed (main-thread work) only while the gate is open.
+ */
+async function readGroup(assets: PedKitAssets, refs: string[], gate: KitGate): Promise<PersonMesh[]> {
+  const out: PersonMesh[] = [];
+  while (out.length < refs.length) {
+    await gate.wait();
+    const rest = refs.slice(out.length);
+    const signal = gate.signal();
+    const got = assets.group ? await assets.group(rest, signal) : await oneByOne(assets, rest, signal);
+    if (got.length === 0 && !signal.aborted) throw new Error(`${rest[0] ?? ''}: no bytes`);
+    for (const b of got.slice(0, rest.length)) {
+      if (!gate.open) await gate.wait();
+      out.push(parsePersonGlb(toBytes(b)));
+    }
+  }
+  return out;
+}
+
+/** The atlas page, asked for while the gate is open and again after the next quiet window when the world stops it. */
+async function readImage(assets: PedKitAssets, ref: string, gate: KitGate): Promise<{ width: number; height: number; source: unknown } | null> {
+  if (!assets.image) return null;
+  for (;;) {
+    await gate.wait();
+    const signal = gate.signal();
+    try {
+      return await assets.image(ref, signal);
+    } catch (e) {
+      if (!signal.aborted) throw e;
+    }
+  }
+}
+
+/**
+ * Loads every asset of the kit in four steps (the bodies, the far figures, the outfits, the atlas) and builds it; resolves `null` when any
+ * file fails or the gate is disposed (the mannequin then stays, nothing half-built is kept). The files of a step are read one after
+ * another (`PedKitAssets.group`, one asset-worker job), so the kit holds at most one of the two `idle` fetch slots. Every request, every
+ * parse and the build wait for `gate` (`art-gate.ts`): with the renderer's gate the kit takes the asset worker, the fetch lanes and the
+ * main thread only while the world is quiet, and a request in flight stops at its next file when the world gets busy
+ * (BD-REPAIR-M10d4-03). The default gate is always open.
+ */
+export async function loadPedKit(assets: PedKitAssets, cfg: PedArtConfig = PED_ART, gate: KitGate = OPEN_GATE): Promise<PedKit | null> {
+  const keys = Object.keys(cfg.bodies);
   try {
-    const bodies = await read(keys.map((k) => (cfg.bodies[k] as { body: string }).body));
-    const fars = await read(keys.map((k) => (cfg.bodies[k] as { far: string }).far));
-    const outfits = await read(cfg.outfits);
-    await step();
-    const image = (await assets.image?.(cfg.atlas)) ?? null;
+    const bodies = await readGroup(assets, keys.map((k) => (cfg.bodies[k] as { body: string }).body), gate);
+    const fars = await readGroup(assets, keys.map((k) => (cfg.bodies[k] as { far: string }).far), gate);
+    const outfits = await readGroup(assets, cfg.outfits, gate);
+    const image = await readImage(assets, cfg.atlas, gate);
+    await gate.wait();
     return buildKit(cfg, keys, bodies, fars, outfits, image);
   } catch {
     return null;

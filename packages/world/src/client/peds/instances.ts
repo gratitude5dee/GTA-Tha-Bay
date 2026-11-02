@@ -24,6 +24,7 @@ import { NEAR_PED_M } from '../../sim/peds/density.ts';
 import { asNode, attribute, cos, float, sin, vec3, vertexColor, positionLocal, type L } from '../sky/tsl.ts';
 import { buildNearFigure, type NearFigure } from './mannequin.ts';
 import { loadPedKit, PED_ART, type PedArtInfo, type PedKit, type PedKitAssets } from './kit.ts';
+import { ART_QUIET_FRAMES, ArtGate, type WorldLoad } from './art-gate.ts';
 
 type Pose = NonNullable<WorldFrame['poses']>[number];
 
@@ -62,16 +63,16 @@ export interface PedRendererOptions {
    */
   artWaits?: boolean;
   /**
-   * BD-REPAIR-M10d4-03: whether the world can spare the kit a step now: no chunk or tile requested and unsettled, no mesh job in the asset
-   * worker, every landmark settled, and no cutscene holding the world (`RendererHost.worldHeld`). Sampled once a frame in `update`; each of
-   * the kit's files, and the swap from the mannequin, waits for `ART_QUIET_FRAMES` quiet frames in a row, so the kit never takes the asset
-   * worker, the fetch lanes or the main thread from the world's streaming or a clip's start. Absent: every step goes at once.
+   * BD-REPAIR-M10d4-03: what the world is doing, read once a frame in `update` while the kit loads (`art-gate.ts`). The kit's requests, its
+   * parses, its build and the swap from the mannequin go only after `ART_QUIET_FRAMES` quiet frames in a row (no cutscene holding the
+   * world, no streaming unit requested or retrying and no new request, no mesh job, every landmark and the surface textures settled), and
+   * a request in flight stops at its next file on the first frame that is not quiet. Absent: every step goes at once (dispose still stops
+   * a request in flight).
    */
-  artQuiet?: () => boolean;
+  worldLoad?: () => WorldLoad;
 }
 
-/** Quiet frames in a row before the kit takes its next step (`PedRendererOptions.artQuiet`). */
-export const ART_QUIET_FRAMES = 3;
+export { ART_QUIET_FRAMES };
 
 /** `world.peds().art` (QA): the kit's report and where its load stands. */
 export interface PedArtReport extends PedArtInfo {
@@ -179,14 +180,14 @@ export class PedRenderer {
   private kit: PedKit | null = null;
   private artState: PedArtReport['state'] = 'off';
   private artStarted = false;
-  /** Quiet frames in a row (`artQuiet`), and the kit step waiting for enough of them. */
-  private quietFrames = 0;
-  private artWaiter: { resolve: () => void; reject: (e: Error) => void } | null = null;
+  /** BD-REPAIR-M10d4-03: the gate every step of the kit's load waits for (always open without `worldLoad`; dispose stops it). */
+  private readonly gate: ArtGate;
   private disposed = false;
   /** The governor's `crowdDensity` (M11a1): the share of `cap` drawn, 0 to 1. */
   private densityScale = 1;
 
   constructor(private readonly o: PedRendererOptions) {
+    this.gate = new ArtGate(o.worldLoad ?? null);
     this.group.name = 'peds';
     this.geo = figureGeometry();
     const n = Math.max(1, o.cap);
@@ -230,40 +231,21 @@ export class PedRenderer {
   }
 
   /**
-   * M10d4: starts the kit load, once; nothing without an asset port or after `dispose`. The files come in four groups, one file at a time,
-   * and with `artQuiet` each group only on a quiet frame; the swap from the mannequin waits for one more (BD-REPAIR-M10d4-03).
+   * M10d4: starts the kit load, once; nothing without an asset port or after `dispose`. The files come in four groups, one file at a time;
+   * each request, each parse, the build and the swap from the mannequin wait for the gate, and a request in flight stops when the world
+   * gets busy (BD-REPAIR-M10d4-03).
    */
   startArt(): void {
     const assets = this.o.art;
     if (!assets || this.artStarted || this.disposed) return;
     this.artStarted = true;
-    const step = (): Promise<void> => this.artStep();
-    void loadPedKit(assets, PED_ART, step)
+    void loadPedKit(assets, PED_ART, this.gate)
       .then(async (kit) => {
-        if (kit) await step().catch(() => undefined);
+        // the swap (new geometry, the kit's material and its first draw) is main-thread and GPU work: only while the world is quiet too
+        if (kit) await this.gate.wait().catch(() => undefined);
         return kit;
       })
       .then((kit) => this.useKit(kit));
-  }
-
-  /** Resolves when the kit may take its next step: at once while the world is quiet (or without `artQuiet`), else on a later frame. */
-  private artStep(): Promise<void> {
-    if (this.disposed) return Promise.reject(new Error('the pedestrian renderer is disposed'));
-    if (!this.o.artQuiet || (this.quietFrames >= ART_QUIET_FRAMES && this.o.artQuiet())) return Promise.resolve();
-    return new Promise<void>((resolve, reject) => {
-      this.artWaiter = { resolve, reject };
-    });
-  }
-
-  /** Once a frame: counts the quiet frames and lets a waiting kit step go after `ART_QUIET_FRAMES` of them in a row. */
-  private artFrame(): void {
-    if (!this.o.artQuiet || !this.artStarted || this.artState !== 'loading') return;
-    this.quietFrames = this.o.artQuiet() ? this.quietFrames + 1 : 0;
-    const w = this.artWaiter;
-    if (w && this.quietFrames >= ART_QUIET_FRAMES) {
-      this.artWaiter = null;
-      w.resolve();
-    }
   }
 
   /** M10d4: the kit has loaded (or failed, `null`): the far bodies take its figures, the near slots are rebuilt on their next frame. */
@@ -339,7 +321,8 @@ export class PedRenderer {
   update(f: Pick<WorldFrame, 'poses' | 'poseCount' | 'poseKeys' | 'camera'>, timeSec: number): number {
     const dt = this.lastT > 0 ? Math.min(0.1, Math.max(0, timeSec - this.lastT)) : 0;
     this.lastT = timeSec;
-    this.artFrame();
+    // the kit's gate reads the world once a frame while the kit loads (BD-REPAIR-M10d4-03)
+    if (this.artStarted && this.artState === 'loading') this.gate.frame();
     const poses = f.poses;
     const keys = f.poseKeys;
     const count = f.poseCount ?? 0;
@@ -551,9 +534,8 @@ export class PedRenderer {
 
   dispose(): void {
     this.disposed = true;
-    // a kit step waiting for a quiet frame ends the load (the kit, if built, is disposed in `useKit`)
-    this.artWaiter?.reject(new Error('the pedestrian renderer is disposed'));
-    this.artWaiter = null;
+    // ends the load: a step waiting for the gate rejects and a request in flight stops at its next file (a built kit is disposed in `useKit`)
+    this.gate.dispose();
     this.o.parent.remove(this.group);
     for (const b of this.bodies) {
       b.mesh.geometry.dispose();

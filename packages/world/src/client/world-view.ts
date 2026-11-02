@@ -51,7 +51,7 @@ import { artVariantOf, type VehicleJobArgs, type VehicleJobResult } from './vehi
 import { NEAR_PED_CAP, pedCap } from '../sim/peds/density.ts';
 import { PED_ASSETS } from '../sim/peds/components.ts';
 import { PedRenderer, type PedInfo } from './peds/instances.ts';
-import { pedKitAssets } from './peds/kit.ts'; // art-hook:peds (M10d4)
+import { pedKitAssets, unsettledUnits } from './peds/kit.ts'; // art-hook:peds (M10d4)
 import { TransitRenderer, isTransitKey, type TransitInfo } from './transit/render.ts';
 import { MapLayer } from './map/layer.ts';
 import type { AreaBannerPatch } from './map/banner.ts';
@@ -477,7 +477,7 @@ export class WorldView implements WorldLayer {
     this.peds = new PedRenderer({
       parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier],
       lift: (x, z) => this.renderer.walkLiftAt(x, z),
-      ...(artLoader ? { art: pedKitAssets(this.o.assets, artVariantOf(this.o.tier)), artWaits: !this.artAfterReveal, artQuiet: () => !host.worldHeld && this.store.pending() === 0 && this.inflight === 0 && (this.landmarks?.idle ?? true) } : {}), // art-hook:peds (M10d4): the kit steps only while nothing streams, meshes or holds the world (BD-REPAIR-M10d4-03); `?art=0` keeps the mannequin
+      ...(artLoader ? { art: pedKitAssets(this.o.assets, artVariantOf(this.o.tier)), artWaits: !this.artAfterReveal, worldLoad: () => ({ held: host.worldHeld, unsettled: unsettledUnits(this.store.units.values()), requests: this.store.stats.requests, meshing: this.inflight, landmarksIdle: this.landmarks?.idle ?? true, artLoading: this.textures?.active === true && !this.textures.report().settled }) } : {}), // art-hook:peds (M10d4): the kit's gate reads what the world is doing once a frame (BD-REPAIR-M10d4-03); `?art=0` keeps the mannequin
     });
     this.transit = new TransitRenderer({
       parent: host.scene,
