@@ -8,7 +8,8 @@
  * pedestrian (or an NPC) for the Talk prompt; `?hour=` / `debug.hour` moves the clock so a block changes.
  *
  * The bridge: `debug()` the last published view, `filler(ahead)` stands a pedestrian in front of the player, `bump()` knocks it down (one
- * bark with a subtitle, then a cooldown; ignored while it is still down; `debug().fillerSeen` is 0 once the bark watcher has seen it up again), `bark(tag)` asks the nearest pedestrian for a bark, `subtitle()` reads `hud.subtitle`.
+ * bark with a subtitle, then a cooldown; ignored while it is still down and before the sim has spawned it; `debug().fillerSeen` is 0 once the
+ * bark watcher has seen it standing, so bump only then), `bark(tag)` asks the nearest pedestrian for a bark, `subtitle()` reads `hud.subtitle`.
  */
 import type { UiCommand } from '@dv/shared';
 
