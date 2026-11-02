@@ -250,7 +250,11 @@ export class WorldView implements WorldLayer {
       available: () => this.lookView?.available ?? false,
       isOn: () => this.lookView?.on ?? false,
       setOn: (on) => this.setLook(on),
-      nodes: () => this.lookView?.report().postNodes ?? [],
+      // M02h4: the debug look row ends with the tree set and its pools (`trees low x2`)
+      nodes: () => {
+        const post = this.lookView?.report().postNodes ?? [];
+        return this.renderer ? [...post, `trees ${this.treeSet} x${this.renderer.vegetation.poolCount}`] : post;
+      },
       markings: {
         available: () => this.materials?.markings.base != null,
         aaOn: () => this.materials?.markings.aaOn() ?? true,
