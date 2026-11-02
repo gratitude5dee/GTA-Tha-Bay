@@ -93,6 +93,8 @@ test.describe('look goldens @look-golden', () => {
             ...GOLDEN_SHOTS.map((s) => `${s.tier}.${s.shot}.png`),
             ...PAINT_TIERS.flatMap((t) => MARKINGS_GOLDEN_SHOTS.map((s) => `${t}.${s}.png`)),
             ...['desktop', 'mobile-low'].flatMap((t) => ['yard-street', 'hill-scrub'].map((s) => `${t}.${s}.png`)),
+            // M02h4: the two tree goldens (`trees-street` at desktop and mobile-low) are written by world-trees.spec.ts
+            ...['desktop', 'mobile-low'].map((t) => `${t}.trees-street.png`),
           ],
         } satisfies Json,
         null,

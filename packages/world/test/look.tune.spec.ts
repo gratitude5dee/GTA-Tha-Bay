@@ -160,12 +160,13 @@ describe('trees on the casters layer', () => {
 
   function committed(runtime: LookRuntime): ChunkRenderer {
     const scene = new Scene();
-    const cr = new ChunkRenderer({ parent: scene, materials: createWorldMaterials({ fadeSeconds: 0 }), uploadBytes: null, fadeSeconds: 0 });
+    // M02h4: the trees are in the global pools of the `full` set; the `near` pools (units within the dynamic radius) are the casters
+    const cr = new ChunkRenderer({ parent: scene, materials: createWorldMaterials({ fadeSeconds: 0 }), uploadBytes: null, fadeSeconds: 0, treeSet: 'full' });
     cr.look = runtime;
     for (const c of sim) {
       const mesh = meshChunk(c, render.find((r) => r.key === c.key) ?? null, { tier: 'desktop', distM: 0 });
       // two trees in every chunk: the fixture's own may be none
-      mesh.trees = new Float32Array([mesh.originX + 20, 0, mesh.originZ + 20, 1, 0, mesh.originX + 40, 0, mesh.originZ + 40, 1.2, 1]);
+      mesh.trees = new Float32Array([20, 0, 20, 8, 0, 0, 40, 0, 40, 10, 1, 1]);
       cr.enqueue(mesh, 0);
       for (let i = 0; i < 4; i++) cr.update(i, { pos: [0, 5, 0], dir: [0, 0, -1] });
     }
@@ -190,21 +191,21 @@ describe('trees on the casters layer', () => {
     expect(committed({ receive: true, casting: true, casterRadiusM: 10_000, focus: () => ({ x: 0, z: 0 }) }).treeCasterCount()).toBe(0);
   });
 
-  it('follow the focus: refreshTreeCasters flips the flags of the units and re-records only those', () => {
+  it('follow the focus: refreshTreeCasters moves the units between the near and far pools and re-records no bundle', () => {
     const focus = { x: 0, z: 0 };
     const rt = runtime({ dynamicCasterRadiusM: 5, focus });
     const cr = committed(rt);
-    const near = cr.treeCasterCount();
+    expect(cr.treeCasterCount()).toBeGreaterThan(0);
+    const units = [...cr.units.keys()].filter((id) => cr.vegetation.nearOf(id) === true).length;
+    expect(units).toBeGreaterThan(0);
     focus.x = 1e6;
     focus.z = 1e6;
     const before = cr.bundleRerecords();
     const changed = cr.refreshTreeCasters();
     expect(cr.treeCasterCount()).toBe(0);
-    expect(changed).toBe(near);
-    const after = cr.bundleRerecords();
-    let bumped = 0;
-    for (const [id, n] of Object.entries(after)) if (n !== (before[id] ?? 0)) bumped++;
-    expect(bumped).toBe(changed);
+    expect(changed).toBe(units);
+    // the pools are outside the bundles: a move between them records no bundle again
+    expect(cr.bundleRerecords()).toEqual(before);
     expect(cr.refreshTreeCasters()).toBe(0);
   });
 });

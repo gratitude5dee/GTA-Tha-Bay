@@ -20,6 +20,8 @@ export interface PlatformFlags {
   readonly 'world.look': boolean;
   /** M02h3: the ground cover (yards, lots, scrub, driveways from the bake's section 21). Default true; false meshes the GROUND classes alone. */
   readonly 'world.cover': boolean;
+  /** M02h4: the five street-tree forms in the vegetation pools. Default true; false draws M02b1's cone as one pool. */
+  readonly 'world.treeForms': boolean;
 }
 
 export const PLATFORM_FLAGS: PlatformFlags = {
@@ -28,6 +30,7 @@ export const PLATFORM_FLAGS: PlatformFlags = {
   'world.massing': (flagsJson as Record<string, unknown>)['world.massing'] !== false,
   'world.look': (flagsJson as Record<string, unknown>)['world.look'] !== false,
   'world.cover': (flagsJson as Record<string, unknown>)['world.cover'] !== false,
+  'world.treeForms': (flagsJson as Record<string, unknown>)['world.treeForms'] !== false,
 };
 
 const problems = validateTierConfig(budgetsJson);

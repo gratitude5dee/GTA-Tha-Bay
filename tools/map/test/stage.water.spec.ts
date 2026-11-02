@@ -108,7 +108,7 @@ describe('S3 coastline assembly', () => {
   it('keeps the last post row and column of an inland box on land', () => {
     const r = assembleLand({ coastWays: [], box, minRingKm2: 0, baseLandHint: () => true });
     const posts = new Raster(0, 0, 4, 251, 251, 0);
-    const w: WaterProduct = { landRings: r.rings, waterPolys: [], piers: [], landuse: [], trees: [], hoods: [], stats: r.stats };
+    const w: WaterProduct = { landRings: r.rings, waterPolys: [], piers: [], landuse: [], trees: [], treeReport: { forms: { plane: 0, ficus: 0, conifer: 0, eucalyptus: 0, palm: 0 }, unmatched: [] }, hoods: [], stats: r.stats };
     landMask(posts, w);
     expect(posts.at(1000, 1000)).toBe(1);
     expect(posts.at(0, 1000)).toBe(1);

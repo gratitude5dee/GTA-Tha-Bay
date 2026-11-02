@@ -32,6 +32,27 @@
     },
     "terrain": { "type": "object" },
     "cover": { "type": "object", "$comment": "M02h3: cells per cover class, blocks per rule, driveways, section 21 bytes" },
+    "treeForms": {
+      "type": "object",
+      "$comment": "M02h4: trees per form (config/world/tree-forms.json)",
+      "additionalProperties": false,
+      "required": ["plane", "ficus", "conifer", "eucalyptus", "palm"],
+      "properties": {
+        "plane": { "type": "integer", "minimum": 0 }, "ficus": { "type": "integer", "minimum": 0 }, "conifer": { "type": "integer", "minimum": 0 },
+        "eucalyptus": { "type": "integer", "minimum": 0 }, "palm": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "treeUnmatched": {
+      "type": "array",
+      "$comment": "M02h4: the most frequent tree names no table row matched (at most 20), most first",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "count"],
+        "properties": { "name": { "type": "string" }, "count": { "type": "integer", "minimum": 1 } }
+      }
+    },
     "water": { "type": "object" },
     "roads": { "type": "object" },
     "junctions": { "type": "object" },

@@ -106,18 +106,11 @@ test.describe('look tune @look-tune', () => {
           .poll(async () => (await world(page, (w) => w.look()))?.dynamicCasters ?? [], { timeout: 120_000, intervals: [250] })
           .toEqual(expect.arrayContaining(['player', 'traffic']));
         // trees: stand the stream on a resident tree and the trees within the radius cast
+        // M02h4: the trees are in the global vegetation pools; an instance matrix holds the tree's world position
         const tree = await page.evaluate(() => {
-          type U = { level: string; group: { position: { x: number; z: number }; children: { userData: Record<string, unknown>; count?: number; instanceMatrix?: { array: Float32Array } }[] } };
-          const units = (window as unknown as { __dvBridge: { world: { internals(): { view: { renderer: { units: Map<string, U> } } } } } }).__dvBridge.world.internals().view.renderer.units;
-          for (const u of units.values()) {
-            if (u.level !== 'l0') continue;
-            for (const c of u.group.children) {
-              if (c.userData['kind'] === 'vegetation' && (c.count ?? 0) > 0 && c.instanceMatrix) {
-                const m = c.instanceMatrix.array;
-                return { x: u.group.position.x + (m[12] as number), z: u.group.position.z + (m[14] as number) };
-              }
-            }
-          }
+          type P = { mesh: { count: number }; matrices: Float32Array };
+          const pools = (window as unknown as { __dvBridge: { world: { internals(): { view: { renderer: { vegetation: { pools: P[] } } } } } } }).__dvBridge.world.internals().view.renderer.vegetation.pools;
+          for (const p of pools) if (p.mesh.count > 0) return { x: p.matrices[12] as number, z: p.matrices[14] as number };
           return null;
         });
         expect(tree, 'a resident L0 unit with trees').not.toBeNull();

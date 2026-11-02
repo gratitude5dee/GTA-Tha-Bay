@@ -7,10 +7,10 @@
  * the proof: the distance to a footprint, the Sobel filter, the lowest ground under a trunk.
  */
 import { readFileSync, readdirSync } from 'node:fs';
-import { TERRAIN_POSTS, decodeL0, decodeP0, sampleHeight, type QualityTierId, type RenderChunk, type SimChunk } from '@dv/shared';
+import { TERRAIN_POSTS, decodeL0, decodeP0, sampleHeight, treeFormOfByte, type QualityTierId, type RenderChunk, type SimChunk } from '@dv/shared';
 import { describe, expect, it } from 'vitest';
 import {
-  MESHER, MeshBuilder, addBuilding, aoRing, meshChunk, meshSurfaceAt, profileOf, roadRank, terrainAo, treeHeightCap, wantNearStride, type MesherProfile,
+  MESHER, MeshBuilder, TREE_STRIDE, addBuilding, aoRing, formHeights, meshChunk, meshSurfaceAt, profileOf, roadRank, terrainAo, treeHeightCap, trunkRadiusOf, wantNearStride, type MesherProfile,
 } from '../src/client/chunks/mesher.ts';
 import type { MeshBuffers } from '../src/client/chunks/mesh-types.ts';
 import { Surf } from '../src/client/look/surfaces.ts';
@@ -383,6 +383,7 @@ describe('roofs (AC-3)', () => {
 // ---- AC-3: trees -----------------------------------------------------------------------------------------------------------
 
 describe('trees (AC-3)', () => {
+  // M02h4: the records are (x, y, z, height, yaw, form + 8 x tint); the trunk radius follows the height and the cap is the form's maximum
   it.each(TIERS)('%s: every tree stands at or below the ground under its trunk and within 0.15 m of the lowest, and its height is in [3.5, cap]', (tier) => {
     const T = MESHER.tree;
     let trees = 0;
@@ -390,12 +391,12 @@ describe('trees (AC-3)', () => {
       const m = meshChunk(s.sim, s.render, { tier, distM: 0 });
       const stride = m.stats.terrainStride as 1 | 2 | 4;
       const rings = s.render.buildings.map((b) => ({ ring: ringOf(b), height: b.heightDm / 10 })).filter((b) => b.ring.length >= 6);
-      const count = m.trees.length / 5;
+      const count = m.trees.length / TREE_STRIDE;
       expect(count).toBe(Math.floor(s.render.trees.length / 4));
       for (let i = 0; i < count; i++) {
         trees++;
-        const [x, y, z, scale] = [m.trees[i * 5], m.trees[i * 5 + 1], m.trees[i * 5 + 2], m.trees[i * 5 + 3]] as number[];
-        const r = (T.trunkRadiusM as number) * (scale as number);
+        const [x, y, z, height, , lane] = Array.from(m.trees.subarray(i * TREE_STRIDE, i * TREE_STRIDE + 6));
+        const r = trunkRadiusOf(height as number);
         // the lowest ground under the trunk disc: the heightfield on 32 points and the centre, and the mesh the player sees
         let fieldMin = sampleHeight(s.sim.height, m.originX + x!, m.originZ + z!);
         let meshMin = Infinity;
@@ -408,8 +409,8 @@ describe('trees (AC-3)', () => {
         expect(y!, `${s.sim.key} tree ${i}: at or below the heightfield`).toBeLessThanOrEqual(fieldMin + 1e-6);
         expect(y!, `${s.sim.key} tree ${i}: at or below the mesh`).toBeLessThanOrEqual(meshMin + 1e-6);
         expect(y!, `${s.sim.key} tree ${i}: within 0.15 m of the lowest ground`).toBeGreaterThanOrEqual(Math.min(fieldMin, meshMin) - 0.15);
-        // the height: the 6.2 m cone scaled between the minimum and the cap under the nearest eave within eaveRadiusM
-        const height = (T.heightM as number) * (scale as number);
+        // the height: the form's draw, between the minimum and the cap under the nearest eave within eaveRadiusM
+        const formMax = formHeights(treeFormOfByte((lane as number) & 7))[2];
         let eave = Infinity;
         let nearest = Infinity;
         for (const b of rings) {
@@ -419,10 +420,10 @@ describe('trees (AC-3)', () => {
             eave = b.height;
           }
         }
-        const cap = Math.max(T.minHeightM, Math.min(T.maxHeightM, eave - T.eaveClearM));
+        const cap = Math.max(T.minHeightM, Math.min(formMax, eave - T.eaveClearM));
         expect(height).toBeGreaterThanOrEqual(T.minHeightM - 1e-4);
         expect(height).toBeLessThanOrEqual(cap + 1e-4);
-        expect(treeHeightCap(x!, z!, rings)).toBeCloseTo(cap, 6);
+        expect(treeHeightCap(x!, z!, rings, formMax)).toBeCloseTo(cap, 6);
       }
     }
     if (process.env['DV_REQUIRE_BAKE'] === '1') expect(trees).toBeGreaterThan(0);

@@ -10,7 +10,7 @@
  * The fade is a screen-space dither over `uFadeSec` seconds (0 on the tiers that swap hard).
  */
 import {
-  attribute, clamp, dot, exp2, floor, fract, mod, positionLocal, positionWorld, normalLocal, screenCoordinate, select, sin, uniform, vec2, float, vertexColor,
+  attribute, clamp, dot, exp2, floor, fract, mix, mod, positionLocal, positionWorld, normalLocal, screenCoordinate, select, sin, uniform, vec2, vec3, float, vertexColor,
 } from 'three/tsl';
 import { DoubleSide, FrontSide, MeshStandardNodeMaterial, type Material } from 'three/webgpu';
 import { createLookNodes, surfNodes, type LookNodes } from '../look/common.ts';
@@ -18,6 +18,7 @@ import { LOOK, type LookFile } from '../look/config.ts';
 import { createLandmarkMaterial } from '../look/landmark.ts';
 import { paintNodes } from '../look/markings.ts';
 import { createLookMaterials, type LookMaterialSet, type MaterialProfile } from '../look/look-materials.ts';
+import { createWindNodes, type WindNodes } from '../look/wind.ts';
 import { windowEmissive } from '../sky/night.ts';
 import { createSkyNodes, type SkyNodes } from '../sky/nodes.ts';
 import { asNode, loose } from '../sky/tsl.ts';
@@ -44,6 +45,10 @@ export interface WorldMaterials {
   setDepthPolicy(policy: DepthPolicy): void;
   /** M02h1: the street paint of this tier: its base mode, the layer switch and the antialiasing toggle (QA). */
   markings: MarkingsControl;
+  /** M02h4: the legacy material of the tree pools (vertex colour times the crown tint, opaque, no fade). */
+  trees: MeshStandardNodeMaterial;
+  /** M02h4: the wind uniforms (the `full` look's trees sway with them; the world view sets the amplitude and the layer). */
+  wind: WindNodes;
   /** Whether the look materials are in use (QA `setLook` and the `world.look` flag switch it). */
   lookOn(): boolean;
   /** The material for an object kind of a level: the look's when it is on, else the legacy one. */
@@ -124,6 +129,16 @@ export function createWorldMaterials(o: {
 
   const chunk = base();
   chunk.opacityNode = shown;
+  // M02h4: the tree pools (the legacy look, the XR tiers): the vertex colour with the instance's crown tint (`aTint` on the crown, `aLeaf`),
+  // opaque, no alpha test and no fade (a pool spans many units, and a unit's trees appear with it)
+  const trees = new MeshStandardNodeMaterial({ roughness: 0.9, metalness: 0, side: FrontSide });
+  {
+    const leaf = attribute('aLeaf', 'float');
+    const tint = attribute('aTint', 'vec4').xyz;
+    trees.colorNode = vertexColor(0).mul(mix(vec3(1, 1, 1), tint, leaf)).mul(wetDark as never) as never;
+    trees.roughnessNode = float(0.9) as never;
+  }
+  const wind = createWindNodes((o.look?.config ?? LOOK).vegetation);
   // The road ribbons are the same material in an instance of their own: nearer than the terrain under them (M02g2).
   const roadOffset = roadBias(MESHER.depth.roadFactor, MESHER.depth.roadUnits);
   const chunkRoads = depth.set(base(), roadOffset);
@@ -160,7 +175,7 @@ export function createWorldMaterials(o: {
   const look: LookMaterialSet | null =
     profile === 'legacy'
       ? null
-      : createLookMaterials({ profile, look: o.look?.config ?? LOOK, nodes: lookNodes, foundationM: MESHER.foundationM, parapetM: MESHER.parapetM, depth });
+      : createLookMaterials({ profile, look: o.look?.config ?? LOOK, nodes: lookNodes, foundationM: MESHER.foundationM, parapetM: MESHER.parapetM, depth, wind });
   let lookOn = look !== null;
   const markingsBase: 'worn' | 'flat' | null = look !== null ? (profile === 'min' ? 'flat' : 'worn') : chunkRoadsPaint !== null ? 'flat' : null;
   let markingsLayer = true;
@@ -190,6 +205,8 @@ export function createWorldMaterials(o: {
     depth,
     setDepthPolicy: (policy) => depth.setPolicy(policy),
     markings,
+    trees,
+    wind,
     lookOn: () => lookOn,
     materialFor: (level, kind) => {
       if (lookOn && look) {
@@ -197,6 +214,7 @@ export function createWorldMaterials(o: {
         if (m) return m;
       }
       if (kind === 'roads') return level === 'l0' ? chunkRoadsPaint ?? chunkRoads : coarseRoads;
+      if (kind === 'vegetation') return trees;
       return level === 'l0' ? chunk : coarse;
     },
     setLook: (on) => {
@@ -217,6 +235,7 @@ export function createWorldMaterials(o: {
     dispose: () => {
       chunk.dispose();
       coarse.dispose();
+      trees.dispose();
       chunkRoads.dispose();
       chunkRoadsPaint?.dispose();
       coarseRoads.dispose();
