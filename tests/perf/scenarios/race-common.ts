@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import type { Page } from '@playwright/test';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { test, type Page } from '@playwright/test';
 import type { PerfReport, QualityTierId } from '../../../packages/shared/src/index.ts';
 
 /**
@@ -30,20 +30,58 @@ export function tierCaps(tier: QualityTierId): TierCaps {
 }
 
 type RaceState = { ok: boolean; state?: { phase: string; car: unknown | null; rivals: { driverId: string }[] } };
+/** What the page's engine observation says about the sim worker (`__dvBridge.engine.observe()`, a QA build). */
+type SimObservation = {
+  tick: number;
+  restarts: number;
+  stats: { tickMsP99: number; ticksLastFrame: number };
+  pursuit: { level: number; units: number } | null;
+  player: { pos: [number, number, number] } | null;
+};
+/**
+ * The sim side of the sampler (BD-FIX-PARKED-FALL-01, fourth round): whether sim.worker was restarted while the window ran (the
+ * engine's stall watchdog or a worker error; a restarted worker has no race and no pursuit), what the bridge calls answered, and where
+ * the player was. Diagnostics only: the counts the racing check judges are the sampler's `rivals`, `police` and `heat` as before.
+ */
+type SimDiag = {
+  t0: number;
+  restarts0: number;
+  restarts: number;
+  /** One line per restart seen: when (s after the sampler started) and the tick before and after. */
+  restartAt: string[];
+  tick0: number;
+  tick: number;
+  tickMsP99Max: number;
+  ticksLastFrameMax: number;
+  /** racing.state answers: a race, no race, no answer (null); when (s) the first answer without a race came. */
+  race: { ok: number; none: number; nul: number; goneAt: string };
+  /** pursuit.state answers: level 1 or more, level 0, no answer (null); when (s) the first level-0 answer came; the last answer. */
+  pursuit: { on: number; off: number; nul: number; offAt: string; last: string };
+  /** Highest pursuit level in the snapshot's side block (no worker call). */
+  sideHeatMax: number;
+  player: string;
+};
 type W = {
   __dvBridge: {
     racing: { start(id: string, o: object): Promise<{ ok?: boolean } | null>; state(): Promise<RaceState | null>; cmd(n: string): Promise<unknown> };
-    engine: { pursuit: { state(): Promise<{ level: number; units: number; phase: string } | null> } };
+    engine: { observe(): SimObservation; pursuit: { state(): Promise<{ level: number; units: number; phase: string } | null> } };
     world: {
       boot(): { revealed: boolean };
       internals(): { view: unknown };
       teleport(to: { x: number; z: number; yaw?: number }): Promise<{ ok: boolean; reason?: string } | null>;
     };
   };
-  __dvRace?: { rivals: number; police: number; heat: number; phases: string[]; timer: number };
+  __dvRace?: { rivals: number; police: number; heat: number; phases: string[]; timer: number; sim: SimDiag };
   /** The release of the setup's world hold (BD-REPAIR-M11a1-02). */
   __dvRaceHold?: () => void;
 };
+
+/**
+ * The page's console lines about sim.worker restarts (`boot-engine.ts`: `sim worker <reason>: <detail>` from the stall watchdog or a
+ * worker error, `sim worker restart failed`, `profile switch failed`), with the seconds since the race page started, per page.
+ */
+const simConsole = new WeakMap<Page, string[]>();
+const SIM_CONSOLE = /^(sim worker |profile switch failed)/;
 
 /** Holds the world's draw for the setup (BD-REPAIR-M11a1-02): `RendererHost.holdWorld('cover')` through the world view's host. */
 async function holdWorld(page: Page): Promise<void> {
@@ -75,6 +113,12 @@ export const GRID = { x: 3100, z: 440 } as const;
 export async function startRacePage(page: Page, raceId: string, o: { rivals: number; waitPolice: boolean }): Promise<void> {
   const t0 = Date.now();
   const step = (what: string): void => console.log(`race page ${raceId}: ${what} at ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  const lines: string[] = [];
+  simConsole.set(page, lines);
+  page.on('console', (m) => {
+    const text = m.text();
+    if (SIM_CONSOLE.test(text)) lines.push(`${text} (at ${((Date.now() - t0) / 1000).toFixed(1)} s)`);
+  });
   await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.racing !== undefined, undefined, { timeout: 120_000 });
   await page.waitForFunction(() => (window as unknown as W).__dvBridge.world?.boot().revealed === true, undefined, { timeout: 240_000 });
   step('world revealed');
@@ -87,20 +131,47 @@ export async function startRacePage(page: Page, raceId: string, o: { rivals: num
   step('world drawn again');
   await page.evaluate(() => {
     const w = window as unknown as W;
-    w.__dvRace = { rivals: 0, police: 0, heat: 0, phases: [], timer: 0 };
+    const o0 = w.__dvBridge.engine.observe();
+    const sim: SimDiag = {
+      t0: Date.now(), restarts0: o0.restarts, restarts: o0.restarts, restartAt: [], tick0: o0.tick, tick: o0.tick, tickMsP99Max: 0, ticksLastFrameMax: 0,
+      race: { ok: 0, none: 0, nul: 0, goneAt: 'never' }, pursuit: { on: 0, off: 0, nul: 0, offAt: 'never', last: 'none' }, sideHeatMax: 0, player: 'none',
+    };
+    w.__dvRace = { rivals: 0, police: 0, heat: 0, phases: [], timer: 0, sim };
+    // what the engine observation says about sim.worker, once per sample (no worker call): a restart, the ticks, the player
+    const observeSim = (d: SimDiag): void => {
+      const o = w.__dvBridge.engine.observe();
+      if (o.restarts !== d.restarts) {
+        d.restartAt.push(`${d.restarts} -> ${o.restarts} at ${((Date.now() - d.t0) / 1000).toFixed(1)} s (tick ${d.tick} -> ${o.tick})`);
+        d.restarts = o.restarts;
+      }
+      d.tick = o.tick;
+      d.tickMsP99Max = Math.max(d.tickMsP99Max, o.stats.tickMsP99);
+      d.ticksLastFrameMax = Math.max(d.ticksLastFrameMax, o.stats.ticksLastFrame);
+      d.sideHeatMax = Math.max(d.sideHeatMax, o.pursuit?.level ?? 0);
+      const at = o.player?.pos;
+      if (at) d.player = `(${at[0].toFixed(0)}, ${at[1].toFixed(0)}, ${at[2].toFixed(0)})`;
+    };
     w.__dvRace.timer = window.setInterval(async () => {
       const r = w.__dvRace;
       if (!r) return;
+      observeSim(r.sim);
       const s = await w.__dvBridge.racing.state();
       if (s?.ok && s.state) {
         r.rivals = Math.max(r.rivals, s.state.rivals.length);
         if (r.phases[r.phases.length - 1] !== s.state.phase) r.phases.push(s.state.phase);
       }
+      const since = (): string => `${((Date.now() - r.sim.t0) / 1000).toFixed(1)} s`;
+      r.sim.race[s === null ? 'nul' : s.ok && s.state ? 'ok' : 'none']++;
+      if (s !== null && !(s.ok && s.state) && r.sim.race.goneAt === 'never') r.sim.race.goneAt = since();
       const p = await w.__dvBridge.engine.pursuit.state();
       if (p) {
         r.police = Math.max(r.police, p.units);
         r.heat = Math.max(r.heat, p.level);
-      }
+        r.sim.pursuit[p.level >= 1 ? 'on' : 'off']++;
+        if (p.level < 1 && r.sim.pursuit.offAt === 'never') r.sim.pursuit.offAt = since();
+        r.sim.pursuit.last = `level ${p.level} units ${p.units} ${p.phase}`;
+      } else r.sim.pursuit.nul++;
+      observeSim(r.sim);
     }, 250);
   });
 }
@@ -188,7 +259,11 @@ async function setUpHeld(page: Page, raceId: string, o: { rivals: number; waitPo
     const now = await page.evaluate(async () => {
       const b = (window as unknown as W).__dvBridge;
       const p = await b.engine.pursuit.state();
-      return { race: (await b.racing.state())?.state?.phase ?? null, heat: p?.level ?? null, units: p?.units ?? null, phase: p?.phase ?? null };
+      const o = b.engine.observe();
+      return {
+        race: (await b.racing.state())?.state?.phase ?? null, heat: p?.level ?? null, units: p?.units ?? null, phase: p?.phase ?? null,
+        tick: o.tick, simRestarts: o.restarts,
+      };
     });
     step(`police there: ${JSON.stringify(now)}`);
   }
@@ -213,7 +288,27 @@ export async function collectRace(page: Page, report: PerfReport): Promise<void>
   });
   if (!r) throw new Error('race scenario: the sampler never ran');
   console.log(`race page sampler: rivals ${r.rivals}, police ${r.police}, heat ${r.heat}, phases ${r.phases.join(' > ')}`);
+  const sim = simLine(r.sim, simConsole.get(page) ?? []);
+  console.log(`race page sim: ${sim}`);
+  // beside the report (uploaded with it as perf-reports-*): race.perf.spec.ts quotes it when the racing check fails
+  const file = `test-results/perf.${report.scenario.id}.${test.info().project.name}.${report.tier}.race.json`;
+  mkdirSync('test-results', { recursive: true });
+  writeFileSync(file, `${JSON.stringify({ sim, diag: r.sim, console: simConsole.get(page) ?? [] }, null, 2)}\n`);
   report.counts.raceRivals = r.rivals;
   report.counts.racePoliceMax = r.police;
   report.counts.raceHeatMax = r.heat;
+}
+
+/** One line on sim.worker over the sampler's window: restarts (with the page's console lines on them), ticks, answers, the player. */
+export function simLine(d: SimDiag, lines: readonly string[]): string {
+  const restarts = d.restarts === d.restarts0 ? `restarts ${d.restarts} (none in the window)` : `restarts ${d.restarts0} -> ${d.restarts} [${d.restartAt.join('; ')}]`;
+  return [
+    restarts,
+    `ticks ${d.tick0} -> ${d.tick} (tickMs p99 max ${d.tickMsP99Max.toFixed(1)}, ticks a frame max ${d.ticksLastFrameMax})`,
+    `racing.state race ${d.race.ok}, no race ${d.race.none} (first at ${d.race.goneAt}), no answer ${d.race.nul}`,
+    `pursuit.state level>=1 ${d.pursuit.on}, level 0 ${d.pursuit.off} (first at ${d.pursuit.offAt}), no answer ${d.pursuit.nul}, last ${d.pursuit.last}`,
+    `snapshot heat max ${d.sideHeatMax}`,
+    `player at ${d.player}`,
+    `console: ${lines.length > 0 ? lines.join(' | ') : 'none'}`,
+  ].join('; ');
 }
