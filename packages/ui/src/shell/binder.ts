@@ -116,6 +116,9 @@ export class SettingsBinder implements SettingsBinderApi {
       if (top === undefined) return;
       const next: Dict = rest.length === 0 ? { [top]: value } : { [top]: { ...(isObj(cur[top]) ? (cur[top] as Dict) : {}), [rest.join('.')]: value } };
       void platform.update(next as Partial<PlatformSettings>);
+      // The port holds the new value from here on (`update` sets it before its first await); the page redraws now, so a device row
+      // (the frame cap, the render scale, the tier) shows the choice at once (BD-REPAIR-M11a1-03).
+      this.d.changed?.();
       return;
     }
     this.d.prefs.set({ [ref.path]: value } as Partial<UiPrefs>);

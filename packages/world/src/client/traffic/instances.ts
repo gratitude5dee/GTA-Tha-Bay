@@ -125,6 +125,8 @@ export class TrafficRenderer {
   private readonly seen = new Set<number>();
   private readonly uTime = uniformNode(0) as unknown as U<number>;
   private readonly materials: Material[] = [];
+  /** The governor's `crowdDensity` (M11a1): the share of `cap` drawn, 0 to 1. */
+  private densityScale = 1;
   private live = 0;
   private frame = 0;
   private written = 0;
@@ -259,6 +261,11 @@ export class TrafficRenderer {
     this.setScales(fam);
   }
 
+  /** The governor's `crowdDensity` (M11a1): at most `cap x scale` instances are drawn; the traffic itself still runs. */
+  setDensityScale(scale: number): void {
+    this.densityScale = Math.min(1, Math.max(0, Number.isFinite(scale) ? scale : 1));
+  }
+
   /** M02g1: the traffic meshes cast and receive sun shadows (the `casters` layer on the desktop tiers). The glass never casts. */
   setShadows(cast: boolean, receive: boolean): void {
     for (const fam of this.families) {
@@ -326,7 +333,7 @@ export class TrafficRenderer {
       const fi = this.famOfArch[ai];
       if (fi === undefined) continue;
       const fam = this.families[fi] as Family;
-      if (drawn >= this.cap) {
+      if (drawn >= Math.floor(this.cap * this.densityScale)) {
         this.dropped++;
         continue;
       }

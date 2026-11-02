@@ -15,7 +15,11 @@ export interface CspHosts {
 }
 
 export const CSP_REPORT_PATH = '/api/v1/reports/browser';
-export const REPORTING_ENDPOINTS = `csp="${CSP_REPORT_PATH}"`;
+/**
+ * The `Reporting-Endpoints` header: `csp` for the Report-Only policy, `crash-reporting` and `default` for Chromium's crash reports (M11a1,
+ * DL-224: `body.reason` `oom` or `unresponsive`; Safari sends none). All three name route 4, which ignores report types it does not know.
+ */
+export const REPORTING_ENDPOINTS = `csp="${CSP_REPORT_PATH}", crash-reporting="${CSP_REPORT_PATH}", default="${CSP_REPORT_PATH}"`;
 
 /** Fixed response headers that go with the policy on every app document and Worker response. */
 export const BASELINE_HEADERS: Readonly<Record<string, string>> = {

@@ -1,0 +1,22 @@
+{
+  "$comment": "M11a1 camera path for the scenario 'race-pursuit-heat4' (06-racing.md 8, M11a row; DL-656 part 4): the same slow walk as 'race-sprint' beside the grid of the QA pursuit 'qa.perf.pursuit' (races.ts: the same street, police on, start heat 4, the pursuit director's heat-4 force of 9 units), where the player's car stands and then drives under the pursuit bot. The real pursuit 'sf.pursuit.bayview-escape' needs the baked streets of the sf bake (BD-M11a1-05). 120 s with 10 s of warm-up on a device (check:perf runs 6 s after 2 s). ENU metres: +X east, -Z north. Needs the streamed city (DV_WORLD).",
+  "id": "race-pursuit-heat4",
+  "kind": "route",
+  "waypointsEnu": [
+    [
+      3100,
+      470
+    ],
+    [
+      3100,
+      380
+    ]
+  ],
+  "speedMps": 3,
+  "eyeHeightM": 2.6,
+  "lookAheadM": 40,
+  "durationS": 120,
+  "warmupS": 10,
+  "seed": 12648430,
+  "density": "nominal"
+}
