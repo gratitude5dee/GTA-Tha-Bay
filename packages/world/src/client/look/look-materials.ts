@@ -4,7 +4,8 @@
  *  - L0 `terrain` and `roads`: the ground material (asphalt, paving, grass and the rest by surface id; water cells swap in the water
  *    nodes);
  *  - L0 `buildings`: walls (façade), roofs and rooftop equipment in one material, branched on the surface id;
- *  - L0 `vegetation`: the shared tree, a little colour variation;
+ *  - L0 `vegetation`: the tree pools (M02h4): opaque, no alpha test and no fade, the vertex colour with the instance's crown tint
+ *    (`aTint`, crown vertices only by `aLeaf`), a little colour variation, and on `full` the wind sway (`look/wind.ts`);
  *  - L1/L2 `terrain`, `roads`: the ground material with the cover mask (and the dithered fade); `massing` keeps M02b1's world-space
  *    night mask (`windowEmissive`) with the new palettes.
  *
@@ -29,6 +30,7 @@ import { around1, bumpNormal, pickFloat, vnoise } from './noise.ts';
 import { roofNodes } from './roof.ts';
 import { SURF_SCALE, Surf } from './surfaces.ts';
 import { waterNodes } from './water.ts';
+import { windOffset, type WindNodes } from './wind.ts';
 // art-hook:textures begin (M10d0): the one import of the surface textures
 import { withSurfaceTextures } from '../textures/surface-textures.ts';
 // art-hook:textures end
@@ -49,6 +51,8 @@ export interface LookMaterialOptions {
   parapetM: number;
   /** The polygon offsets (M02g2): the coarse levels sit behind L0, a road ribbon in front of the terrain under it. */
   depth: DepthRules;
+  /** M02h4: the wind uniforms; the `full` profile's trees sway with them. */
+  wind?: WindNodes;
 }
 
 const set = <K extends string>(m: MeshStandardNodeMaterial, k: K, v: unknown): void => void ((m as unknown as Record<string, unknown>)[k] = v);
@@ -160,13 +164,21 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
   };
 
   // ---- vegetation ---------------------------------------------------------------------------------------------------------
+  // M02h4: the pools draw opaque geometry with no fade (a pool spans the city); the crown takes the instance tint, and on `full` the wind
   const trees = (): MeshStandardNodeMaterial => {
-    const m = make(FrontSide, false);
+    const m = new MeshStandardNodeMaterial({ roughness: 0.88, metalness: 0, side: FrontSide });
+    all.push(m);
     const vc = vertexColor(0);
+    const leaf = attribute('aLeaf', 'float');
+    const tint = attribute('aTint', 'vec4').xyz;
     const wp = vec2(positionWorld.x, positionWorld.z);
-    const leafVar = around1(vnoise(wp.mul(1.7).add(positionWorld.y.mul(0.6))), 0.16);
-    m.colorNode = asNode(vc.mul(leafVar).mul(shade));
-    m.roughnessNode = asNode(float(0.88)) as never;
+    const leafVar = mix(float(1), around1(vnoise(wp.mul(1.7).add(positionWorld.y.mul(0.6))), 0.16), leaf);
+    const crown = mix(vec3(1, 1, 1), tint, leaf);
+    // rain darkens the crowns a little, as it does the other surfaces
+    const wet = float(1).sub(n.sky.uWet.mul(0.12));
+    m.colorNode = asNode(vc.mul(crown).mul(leafVar).mul(wet));
+    m.roughnessNode = asNode(mix(float(0.88), float(0.6), n.sky.uWet.mul(leaf).mul(0.5))) as never;
+    if (profile === 'full' && o.wind) m.positionNode = asNode(positionLocal.add(windOffset(o.wind, n.uLook, look.vegetation)));
     return m;
   };
 

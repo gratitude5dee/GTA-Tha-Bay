@@ -31,7 +31,9 @@ import { mountLandmark } from './chunks/landmark-view.ts';
 import { MESHER, profileOf, wantNearStride } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
-import { COVER_FLAG, LOOK, LOOK_LAYERS, lookProfileFor, type LookLayer } from './look/config.ts';
+import { COVER_FLAG, LOOK, LOOK_LAYERS, TREE_FORMS_FLAG, lookProfileFor, type LookLayer } from './look/config.ts';
+import { windAmplitude } from './look/wind.ts';
+import type { TreeSet } from './chunks/tree-forms.ts';
 import { LookView, markingsReportOf, type LookReport, type ShotCamera } from './look/look-view.ts';
 import { lookShot, shotQuaternion, type LookShot } from './look/shots.ts';
 // art-hook:textures begin (M10d0)
@@ -284,6 +286,9 @@ export class WorldView implements WorldLayer {
   private inflight = 0;
   /** M02h3: the ground cover layer (`world.cover`, `setLookLayer('cover', on)`): every L0 mesh request carries it. */
   private coverOn = COVER_FLAG;
+  /** M02h4: the tree set of the vegetation pools, and the `wind` layer (`full` only). */
+  private treeSet: TreeSet = 'low';
+  private windOn = true;
 
   constructor(o: WorldViewOptions) {
     this.o = o;
@@ -337,6 +342,9 @@ export class WorldView implements WorldLayer {
     this.lights = [hemi, sun];
 
     const tierBudget = host.tier?.budget.world;
+    // M02h4: the trees' geometry set follows the look profile; `world.treeForms: false` (or QA `?treeForms=0`) draws M02b1's cone, one pool
+    const qaCone = this.o.qa === true && new URLSearchParams(globalThis.location?.search ?? '').get('treeForms') === '0';
+    this.treeSet = !TREE_FORMS_FLAG || qaCone ? 'cone' : profile === 'full' ? 'full' : profile === 'lite' ? 'lite' : 'low';
     this.renderer = new ChunkRenderer({
       parent: host.scene,
       materials: this.materials,
@@ -344,6 +352,7 @@ export class WorldView implements WorldLayer {
       fadeSeconds: fade,
       treeDrawM: MESHER.tree.drawM[profileOf(this.o.tier).id],
       treeHysteresis: MESHER.tree.drawHysteresis,
+      treeSet: this.treeSet,
     });
     host.register(this.renderer);
     // A renderer replaced after a device loss may have the other depth buffer: the polygon offsets follow it (M02g2).
@@ -443,7 +452,15 @@ export class WorldView implements WorldLayer {
         ? {
             look: {
               domeBlend: lookView.domeBlend,
-              after: (u, input, nowMs) => lookView.after(u, input, nowMs),
+              after: (u, input, nowMs) => {
+                lookView.after(u, input, nowMs);
+                // M02h4: the trees sway by the weather on `full` (the amplitude blends between presets like the sky)
+                if (this.treeSet === 'full') {
+                  const amp = windAmplitude(LOOK, input.weather, input.next, input.blend / 65535);
+                  this.materials.wind.uWindAmp.value = amp;
+                  this.renderer.windNow = this.windOn ? amp : 0;
+                }
+              },
               pinClouds: () => lookView.sky?.pinClouds() ?? (() => {}),
             },
           }
@@ -1195,6 +1212,14 @@ export class WorldView implements WorldLayer {
     // M02h3: the ground cover lives in the terrain's vertices on every tier (the legacy look draws it as vertex colour), so the layer is
     // a re-mesh of the resident L0 chunks, not a shader switch
     if (id === 'cover') return this.setCover(on);
+    // M02h4: the trees' wind sway, on the `full` set only (render only: a uniform of the trees' material)
+    if (id === 'wind') {
+      if (this.treeSet !== 'full') return false;
+      this.windOn = on;
+      this.materials.wind.uWindOn.value = on ? 1 : 0;
+      this.renderer.windNow = on ? this.materials.wind.uWindAmp.value : 0;
+      return true;
+    }
     // art-hook:textures begin (M10d0): the surface textures are a layer of the look that has no entry in look.json
     if (id === 'textures') return this.textures?.setOn(on) ?? false;
     // art-hook:textures end

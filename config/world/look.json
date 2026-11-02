@@ -154,6 +154,11 @@
     "stopBar": { "depthM": 0.4, "behindCrosswalkM": 1.2 },
     "crosswalk": { "barM": 0.3, "rungM": 0.5, "rungPeriodM": 1.2 }
   },
+  "vegetation": {
+    "$comment": "M02h4: the wind sway of the street trees on the `full` profile (look/wind.ts): the amplitude per weather preset is the sway of the crown top as a share of the tree height; freq is radians per second of the look clock, waveK radians per metre, dirDeg the bearing from east toward south. Design values.",
+    "wind": { "clear": 0.04, "karl-fog": 0.03, "overcast": 0.05, "rain": 0.12, "smoke": 0.03, "golden": 0.04 },
+    "freq": 1.4, "waveK": 0.12, "dirDeg": 60
+  },
   "dynamicCasterRadiusM": 70,
   "webgl2Unsupported": [],
   "webgl2AaFallback": {}

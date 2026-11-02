@@ -6,6 +6,7 @@ import type { PostNode, QualityTierId, ShadowMode, WeatherPreset } from '@dv/sha
 import lookJson from '../../../../../config/world/look.json';
 import flagsJson from '../../../../../config/platform-flags.json';
 import type { LayoutConfig } from './road-layout.ts';
+import type { VegetationLook } from './wind.ts';
 
 /** `legacy` is the M02b1/M02b2 material set, unchanged. */
 export type LookProfile = 'full' | 'lite' | 'min' | 'legacy';
@@ -126,6 +127,8 @@ export interface LookFile {
   bump: Record<LookProfile, number>;
   /** The street markings (M02h1). */
   markings: MarkingsFile;
+  /** M02h4: the wind sway of the street trees (`full` only, `look/wind.ts`). */
+  vegetation: VegetationLook;
   /** Trees and traffic within this many metres of the focus cast shadows on the `casters` layer (M02g1). */
   dynamicCasterRadiusM: number;
   /** `gtao-half`, `bloom` or `fsr1` when they fail on the WebGL2 backend (each with a spec/03 section 7 row). Never `tonemap` or an AA node. */
@@ -143,6 +146,8 @@ export const LOOK_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.
  * post from its GROUND class alone, as before M02h3 (the cover in section 21 is not read).
  */
 export const COVER_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.cover'] !== false;
+/** M02h4: `config/platform-flags.json` `world.treeForms` (default true): false draws M02b1's cone as one vegetation pool. */
+export const TREE_FORMS_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.treeForms'] !== false;
 
 export const TIER_IDS: readonly QualityTierId[] = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low', 'xr-quest', 'xr-visionpro'];
 

@@ -4,7 +4,7 @@
   "title": "config/world/look.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "tierProfile", "postLevelCap", "exposureBias", "casterRadiusM", "shadowsOff", "facade", "roof", "ground", "water", "sky", "bloom", "grade", "haze", "windows", "layers", "bump", "markings", "dynamicCasterRadiusM", "webgl2Unsupported", "webgl2AaFallback"],
+  "required": ["schema", "tierProfile", "postLevelCap", "exposureBias", "casterRadiusM", "shadowsOff", "facade", "roof", "ground", "water", "sky", "bloom", "grade", "haze", "windows", "layers", "bump", "markings", "vegetation", "dynamicCasterRadiusM", "webgl2Unsupported", "webgl2AaFallback"],
   "$defs": {
     "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
     "tier": { "enum": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"] },
@@ -340,6 +340,24 @@
             "rungPeriodM": { "type": "number", "minimum": 0.4, "maximum": 3 }
           }
         }
+      }
+    },
+    "vegetation": {
+      "type": "object", "additionalProperties": false, "required": ["wind", "freq", "waveK", "dirDeg"],
+      "$comment": "M02h4: the wind sway of the street trees (full profile only)",
+      "properties": {
+        "$comment": { "type": "string" },
+        "wind": {
+          "type": "object", "additionalProperties": false, "required": ["clear", "karl-fog", "overcast", "rain", "smoke", "golden"],
+          "properties": {
+            "clear": { "type": "number", "minimum": 0, "maximum": 0.3 }, "karl-fog": { "type": "number", "minimum": 0, "maximum": 0.3 },
+            "overcast": { "type": "number", "minimum": 0, "maximum": 0.3 }, "rain": { "type": "number", "minimum": 0, "maximum": 0.3 },
+            "smoke": { "type": "number", "minimum": 0, "maximum": 0.3 }, "golden": { "type": "number", "minimum": 0, "maximum": 0.3 }
+          }
+        },
+        "freq": { "type": "number", "minimum": 0, "maximum": 10 },
+        "waveK": { "type": "number", "minimum": 0, "maximum": 2 },
+        "dirDeg": { "type": "number", "minimum": -360, "maximum": 360 }
       }
     },
     "dynamicCasterRadiusM": { "type": "number", "minimum": 0, "maximum": 400 },
