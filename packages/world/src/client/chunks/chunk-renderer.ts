@@ -288,6 +288,7 @@ export class ChunkRenderer {
     this.crossQueue.delete(id);
     if (level === 'l0' && mesh.trees.length > 0) {
       u.hasTrees = true;
+      this.vegetation.setCasting(this.look?.dynamicCasting === true);
       u.vegShown = !(this.camPos && this.treeDistance(u, this.camPos) > this.treeDrawM);
       this.vegetation.addUnit(id, mesh.trees, mesh.originX, mesh.originZ, u.vegShown, this.treesNear(mesh));
     } else this.vegetation.removeUnit(id);

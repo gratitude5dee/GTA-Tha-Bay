@@ -25,6 +25,12 @@ describe('createLookMaterials', () => {
       expect(set.l0.terrain).not.toBe(set.l0.roads);
       expect(set.coarse.terrain).not.toBe(set.coarse.roads);
       for (const m of [...Object.values(set.l0), ...Object.values(set.coarse)]) {
+        // M02h4: the tree pools are opaque: no alpha test, no fade, no transparency
+        if (m === set.l0.vegetation) {
+          expect(m?.alphaTest).toBe(0);
+          expect(m?.transparent).toBe(false);
+          continue;
+        }
         expect(m?.alphaTest).toBe(0.5);
         expect(m?.opacityNode).toBeTruthy();
       }
