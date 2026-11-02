@@ -7,7 +7,7 @@ import type { QualityTierId } from '@dv/shared';
 import { PED_ASSETS, PED_BODIES, PED_PALETTE } from '../src/sim/peds/components.ts';
 import { NEAR_PED_CAP, pedCap } from '../src/sim/peds/density.ts';
 import { PED_ART, type PedKitAssets } from '../src/client/peds/kit.ts';
-import { PedRenderer } from '../src/client/peds/instances.ts';
+import { ART_QUIET_FRAMES, PedRenderer } from '../src/client/peds/instances.ts';
 
 const repo = path.resolve(import.meta.dirname, '../../..');
 const bytesOf = (ref: string, variant: string): Uint8Array => {
@@ -141,6 +141,135 @@ describe('PedRenderer with the pedestrian kit', () => {
       expect(skinned(r.group)).toHaveLength(6);
     }
     expect(r.group.children.filter((o) => o.name === 'ped.near').length).toBeLessThanOrEqual(12);
+    r.dispose();
+  });
+});
+
+describe('the kit load stays behind the world (BD-REPAIR-M10d4-03)', () => {
+  const flush = async (): Promise<void> => {
+    for (let i = 0; i < 5; i++) await new Promise((res) => setTimeout(res, 0));
+  };
+  /**
+   * An asset port shaped like the app's (`group`: one asset-worker job per group, its files read one after another) whose answers arrive
+   * when the test says so. It records each request and the most of them in flight at once.
+   */
+  function deferred(): { port: PedKitAssets; asked: string[][]; peak: () => number; release: () => Promise<void> } {
+    const base = mock('mobile-low');
+    const asked: string[][] = [];
+    const waiting: (() => void)[] = [];
+    let inFlight = 0;
+    let peak = 0;
+    const answer = <T>(make: () => Promise<T>): Promise<T> => {
+      peak = Math.max(peak, ++inFlight);
+      return new Promise((resolve) => waiting.push(() => void make().then((v) => (inFlight--, resolve(v)))));
+    };
+    const port: PedKitAssets = {
+      bytes: (ref) => (asked.push([ref]), answer(() => base.bytes(ref))),
+      group: (refs) => (asked.push(refs), answer(() => Promise.all(refs.map((r) => base.bytes(r))))),
+      image: (ref) => (asked.push([ref]), answer(() => (base.image as NonNullable<PedKitAssets['image']>)(ref))),
+    };
+    return { port, asked, peak: () => peak, release: async () => (waiting.splice(0).forEach((go) => go()), flush()) };
+  }
+  const f = frame(10, () => 5);
+  const bodies = Object.values(PED_ART.bodies).map((b) => b.body);
+  const fars = Object.values(PED_ART.bodies).map((b) => b.far);
+
+  it('asks for nothing while the world is busy, then one group at a time, each only after quiet frames in a row', async () => {
+    const d = deferred();
+    let quiet = false;
+    const r = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 6, art: d.port, artQuiet: () => quiet });
+    let t = 1;
+    const tick = async (n: number): Promise<void> => {
+      for (let i = 0; i < n; i++) r.update(f, (t += 0.05));
+      await flush();
+    };
+    await tick(10);
+    expect(d.asked).toEqual([]);
+    expect(r.art()).toMatchObject({ state: 'loading', near: 'mannequin' });
+    expect(r.info().near).toBe(6);
+    quiet = true;
+    await tick(ART_QUIET_FRAMES - 1);
+    expect(d.asked).toEqual([]);
+    await tick(1);
+    expect(d.asked).toEqual([bodies]);
+    // the world gets busy while the bodies are on their way: the far figures wait for quiet frames again
+    quiet = false;
+    await tick(1);
+    await d.release();
+    await tick(5);
+    expect(d.asked).toEqual([bodies]);
+    quiet = true;
+    await tick(ART_QUIET_FRAMES - 1);
+    expect(d.asked).toHaveLength(1);
+    await tick(1);
+    expect(d.asked).toEqual([bodies, fars]);
+    // quiet from here: each group follows the one before it, never two at once
+    for (let i = 0; i < 20 && r.art().state === 'loading'; i++) {
+      await d.release();
+      await tick(1);
+    }
+    expect(r.art()).toMatchObject({ state: 'ready', near: 'kit', far: 'kit' });
+    expect(d.asked).toEqual([bodies, fars, PED_ART.outfits, [PED_ART.atlas]]);
+    expect(d.peak()).toBe(1);
+    r.dispose();
+  });
+
+  it('the swap from the mannequin waits for quiet frames too (a cutscene holding the world); dispose ends a waiting load', async () => {
+    const d = deferred();
+    let quiet = true;
+    const r = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 6, art: d.port, artQuiet: () => quiet });
+    let t = 1;
+    const tick = async (n: number): Promise<void> => {
+      for (let i = 0; i < n; i++) r.update(f, (t += 0.05));
+      await flush();
+    };
+    await tick(ART_QUIET_FRAMES);
+    for (let i = 0; i < 20 && d.asked.length < 4; i++) {
+      await d.release();
+      await tick(1);
+    }
+    expect(d.asked).toHaveLength(4);
+    // the atlas, the last file, arrives while the world is held: the mannequin stays until quiet frames come back
+    quiet = false;
+    await tick(1);
+    await d.release();
+    await tick(5);
+    expect(r.art()).toMatchObject({ state: 'loading', near: 'mannequin', far: 'mannequin' });
+    expect(r.info().near).toBe(6);
+    quiet = true;
+    await tick(ART_QUIET_FRAMES - 1);
+    expect(r.art().state).toBe('loading');
+    await tick(1);
+    expect(r.art()).toMatchObject({ state: 'ready', near: 'kit', far: 'kit' });
+    r.dispose();
+
+    const d2 = deferred();
+    const r2 = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 6, art: d2.port, artQuiet: () => false });
+    r2.update(f, 1);
+    r2.dispose();
+    await flush();
+    await d2.release();
+    expect(d2.asked, 'a disposed renderer asks for nothing more').toEqual([]);
+    expect(r2.art().state).not.toBe('ready');
+  });
+
+  it('without a group port the files of a step still come one after another', async () => {
+    const base = mock('mobile-low');
+    let inFlight = 0;
+    let peak = 0;
+    const one: PedKitAssets = {
+      bytes: async (ref) => {
+        peak = Math.max(peak, ++inFlight);
+        await new Promise((res) => setTimeout(res, 1));
+        inFlight--;
+        return base.bytes(ref);
+      },
+      image: base.image as NonNullable<PedKitAssets['image']>,
+    };
+    const r = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 6, art: one });
+    await settle(r);
+    expect(r.art().state).toBe('ready');
+    expect(peak).toBe(1);
     r.dispose();
   });
 });

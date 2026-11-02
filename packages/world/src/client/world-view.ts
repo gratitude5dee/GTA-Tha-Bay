@@ -477,7 +477,7 @@ export class WorldView implements WorldLayer {
     this.peds = new PedRenderer({
       parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier],
       lift: (x, z) => this.renderer.walkLiftAt(x, z),
-      ...(artLoader ? { art: pedKitAssets(this.o.assets, artVariantOf(this.o.tier)), artWaits: !this.artAfterReveal } : {}), // art-hook:peds (M10d4): the kit; `?art=0` keeps the mannequin
+      ...(artLoader ? { art: pedKitAssets(this.o.assets, artVariantOf(this.o.tier)), artWaits: !this.artAfterReveal, artQuiet: () => !host.worldHeld && this.store.pending() === 0 && this.inflight === 0 && (this.landmarks?.idle ?? true) } : {}), // art-hook:peds (M10d4): the kit steps only while nothing streams, meshes or holds the world (BD-REPAIR-M10d4-03); `?art=0` keeps the mannequin
     });
     this.transit = new TransitRenderer({
       parent: host.scene,

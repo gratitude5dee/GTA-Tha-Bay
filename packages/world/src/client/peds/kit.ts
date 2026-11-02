@@ -37,23 +37,27 @@ export const PED_ART: PedArtConfig = pedArtJson as unknown as PedArtConfig;
 /** The bytes and textures the kit needs; the app backs it with the asset client, the tests with fixtures. */
 export interface PedKitAssets {
   bytes(ref: string): Promise<ArrayBuffer | Uint8Array>;
+  /** The bytes of a group of refs, in order, read one after another in one request; absent: `bytes` per ref, one after another. */
+  group?(refs: string[]): Promise<(ArrayBuffer | Uint8Array)[]>;
   /** The ped atlas page as a decoded image; null when it cannot be had (the ped draws untextured). */
   image?(ref: string): Promise<{ width: number; height: number; source: ImageBitmap | HTMLCanvasElement | OffscreenCanvas } | null>;
 }
 
 /**
- * The kit's asset port backed by the asset worker (`world.ped`, `ped-job.ts`): the bytes of the tier's variant; the atlas page is decoded
- * on this thread (`createImageBitmap`). A ref the catalog lacks rejects, so `loadPedKit` resolves `null` and the mannequin stays; an atlas
- * that cannot be had draws the kit untextured.
+ * The kit's asset port backed by the asset worker (`world.ped`, `ped-job.ts`): the bytes of the tier's variant, a group per job; the atlas
+ * page is decoded on this thread (`createImageBitmap`). A ref the catalog lacks rejects, so `loadPedKit` resolves `null` and the mannequin
+ * stays; an atlas that cannot be had draws the kit untextured.
  */
 export function pedKitAssets(client: { job(name: string, args: unknown): Promise<unknown> }, variant: PedJobArgs['variant']): PedKitAssets {
-  const read = async (ref: string): Promise<ArrayBuffer> => {
-    const r = (await client.job('world.ped', { ref, variant } satisfies PedJobArgs)) as PedJobResult;
-    if ('missing' in r) throw new Error(`${ref}: not in the asset catalog`);
-    return r.bytes;
+  const group = async (refs: string[]): Promise<ArrayBuffer[]> => {
+    const r = (await client.job('world.ped', { refs, variant } satisfies PedJobArgs)) as PedJobResult;
+    if ('missing' in r) throw new Error(`${refs.join(', ')}: not in the asset catalog`);
+    return r.files;
   };
+  const read = async (ref: string): Promise<ArrayBuffer> => (await group([ref]))[0] as ArrayBuffer;
   return {
     bytes: read,
+    group,
     image: async (ref) => {
       try {
         const bitmap = await createImageBitmap(new Blob([await read(ref)], { type: 'image/png' }));
@@ -121,13 +125,30 @@ const SLOT_OF_CLASS: AssemblySlot = 'top';
 /** The far figure's hair shade: the tint times this (red and green channels of its vertex colour). */
 const FAR_HAIR = 0.22;
 
-/** Loads every asset of the kit; resolves `null` when any of them fails (the mannequin then stays, nothing half-built is kept). */
-export async function loadPedKit(assets: PedKitAssets, cfg: PedArtConfig = PED_ART): Promise<PedKit | null> {
+/**
+ * Loads every asset of the kit in four steps (the bodies, the far figures, the outfits, the atlas), each after `step()` resolves; resolves
+ * `null` when any file fails or a step rejects (the mannequin then stays, nothing half-built is kept). The files of a step are read one
+ * after another (`PedKitAssets.group`, one asset-worker job), so the kit holds at most one of the two `idle` fetch slots and the world's
+ * own `idle` reads (skyline models, L1/L2 tiles) never queue behind its 37 files; the renderer's `step` lets a group go only while the
+ * world is quiet (BD-REPAIR-M10d4-03). The default step goes at once.
+ */
+export async function loadPedKit(assets: PedKitAssets, cfg: PedArtConfig = PED_ART, step: () => Promise<void> = () => Promise.resolve()): Promise<PedKit | null> {
   const keys = Object.keys(cfg.bodies);
+  const read = async (refs: string[]): Promise<PersonMesh[]> => {
+    await step();
+    let raw: (ArrayBuffer | Uint8Array)[];
+    if (assets.group) raw = await assets.group(refs);
+    else {
+      raw = [];
+      for (const ref of refs) raw.push(await assets.bytes(ref));
+    }
+    return raw.map((b) => parsePersonGlb(toBytes(b)));
+  };
   try {
-    const bodies = await Promise.all(keys.map(async (k) => parsePersonGlb(toBytes(await assets.bytes((cfg.bodies[k] as { body: string }).body)))));
-    const fars = await Promise.all(keys.map(async (k) => parsePersonGlb(toBytes(await assets.bytes((cfg.bodies[k] as { far: string }).far)))));
-    const outfits = await Promise.all(cfg.outfits.map(async (ref) => parsePersonGlb(toBytes(await assets.bytes(ref)))));
+    const bodies = await read(keys.map((k) => (cfg.bodies[k] as { body: string }).body));
+    const fars = await read(keys.map((k) => (cfg.bodies[k] as { far: string }).far));
+    const outfits = await read(cfg.outfits);
+    await step();
     const image = (await assets.image?.(cfg.atlas)) ?? null;
     return buildKit(cfg, keys, bodies, fars, outfits, image);
   } catch {
