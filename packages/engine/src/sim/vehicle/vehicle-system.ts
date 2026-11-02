@@ -85,6 +85,9 @@ function handlingInput(inp: VehicleInput, stalled: boolean, scratch: HandlingInp
 export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems {
   const { backend, services, ecs } = opts;
   const store = opts.store ?? new VehicleStore();
+  // A runtime goes with its vehicle (BD-FIX-VEHICLE-SLOT-01): the dense id it is keyed by is the next spawn's, and a vehicle with the same
+  // handling that took it over would inherit the runtime (`external`, the input, the driver, the handling state) and be driven by it.
+  ecs.onDespawn((id) => store.drop(id));
   const sim = new RaycastVehicleSim(backend, opts.wheelPath);
   const scratch: HandlingInput = {
     throttle: 0, brake: 0, steer: 0, handbrake: false, nitro: false, ability: false, assist: { ...DEFAULT_ASSIST },
@@ -196,7 +199,7 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
         const y = tr.py[id] as number;
         const z = tr.pz[id] as number;
         if (!groundHeld(rt, body)) {
-          // the runtime of a despawned held car whose dense id this car took over: the hold was that car's body, not this one
+          // a hold of another body is not this car's (a runtime goes with its vehicle, BD-FIX-VEHICLE-SLOT-01; this is the guard)
           if (rt.heldBody !== 0) rt.heldBody = 0;
           if (!free || rt.wet.stalled || backend.bodyKind(body) !== 'dynamic' || backend.staticColumn(x, z)) continue;
           // the pose it is held at is the body's own: a car held on its first tick still has its spawn `Transform` (its base, not its centre)

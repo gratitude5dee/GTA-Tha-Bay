@@ -52,9 +52,9 @@ export interface VehicleRuntime {
   impactAcc: number;
   /**
    * The body the ground hold keeps where it stands because no static collider is resident in its column (kinematic then, and not
-   * simulated; `engine.vehicle.ground-hold`, BD-FIX-PARKED-FALL-01), 0 when none: see `groundHeld`. A body, not a flag, because runtimes
-   * are keyed by the dense id and outlive a despawn, while body ids are never reused, so a car that takes over the id of a held one is
-   * never taken for held.
+   * simulated; `engine.vehicle.ground-hold`, BD-FIX-PARKED-FALL-01), 0 when none: see `groundHeld`. A body, not a flag: body ids are
+   * never reused, so the hold is of that body only, whatever else ends up with the runtime (a runtime goes with its vehicle since
+   * BD-FIX-VEHICLE-SLOT-01; before that it outlived a despawn and passed to the next car with the dense id).
    */
   heldBody: number;
 }
@@ -71,7 +71,11 @@ export function parkedInput(): VehicleInput {
 export class VehicleStore {
   readonly rt = new Map<number, VehicleRuntime>();
 
-  /** Creates the runtime of vehicle `id` for handling profile `handlingId`; replaces an existing one. */
+  /**
+   * The runtime of vehicle `id` for handling profile `handlingId`: the existing one when its profile is that, otherwise a new one (which
+   * replaces one of another profile). It belongs to the entity that holds `id` now: the vehicle systems drop a runtime when its vehicle
+   * despawns (`EcsWorld.onDespawn`, BD-FIX-VEHICLE-SLOT-01), so the next vehicle that takes over the dense id starts from a new one.
+   */
   ensure(id: number, handlingId: string): VehicleRuntime {
     const have = this.rt.get(id);
     if (have && have.profile.id === handlingId) return have;
