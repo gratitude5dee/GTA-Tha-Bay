@@ -116,11 +116,15 @@ export class NpcEntities {
     return { key, handle };
   }
 
-  /** QA: sets the anim state of an entity (the ragdoll of a knocked-down pedestrian is 12). */
-  setAnim(handle: number, state: number): void {
+  /**
+   * QA: sets the anim state of an entity (the ragdoll of a knocked-down pedestrian is 12). Returns false, and changes nothing, when the
+   * handle does not resolve (yet: a spawn exists only once the stage that issued it ends) or the entity has no `Anim`.
+   */
+  setAnim(handle: number, state: number): boolean {
     const id = this.ecs.resolve(H(handle));
-    if (id === null || !this.ecs.hasId(id, Anim)) return;
+    if (id === null || !this.ecs.hasId(id, Anim)) return false;
     this.ecs.store(Anim).state[id] = state;
+    return true;
   }
 
   /** The entity of an agent, 0 before it is spawned. */
