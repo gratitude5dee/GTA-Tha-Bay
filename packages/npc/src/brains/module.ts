@@ -403,9 +403,11 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
       case 'qa.bump': {
         // QA builds only: the standing filler is knocked down for two seconds (the pedestrian layer's ragdoll anim), which the bark watcher hears
         // A bump while the pedestrian is still down is ignored (it would only push the recovery later, and the watcher sees no new knock-down).
+        // So is a bump that reaches the sim before the filler's spawn applied (page commands are handled between ticks, so `qa.filler` and
+        // `qa.bump` can arrive before one tick runs): it knocks nothing down, so it must not hold the 120-tick window either
+        // (BD-FIX-WEBGPU-BARKS-01).
         if (!ctx?.runtime.env.qa || !qaFiller || qaFiller.bumpUntil > 0) return;
-        parts.entities.setAnim(qaFiller.handle, 12);
-        qaFiller.bumpUntil = env.tick + 120;
+        if (parts.entities.setAnim(qaFiller.handle, 12)) qaFiller.bumpUntil = env.tick + 120;
         return;
       }
       case 'event': {
