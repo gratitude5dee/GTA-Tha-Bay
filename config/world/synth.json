@@ -1,6 +1,6 @@
 {
   "schema": "world-synth/1",
-  "generator": "synth@1",
+  "generator": "synth@2",
   "seed": 20261018,
   "land": { "minX": -8700, "minZ": -3000, "maxX": 3200, "maxZ": 8200 },
   "landPads": [

@@ -241,6 +241,7 @@ describe('S13 cover: buildPacks with the cover on and off', () => {
     const water = {
       landRings: [[grid.minX - 8, grid.minZ - 8, grid.maxX + 8, grid.minZ - 8, grid.maxX + 8, grid.maxZ + 8, grid.minX - 8, grid.maxZ + 8]],
       waterPolys: [], piers: [], trees: [-100, -100, 1, 0, 50, 50, 1, 1], hoods: [],
+      treeReport: { forms: { plane: 1, ficus: 1, conifer: 0, eucalyptus: 0, palm: 0 }, unmatched: [] },
       landuse: [
         { cls: 'residential', rings: [cellRing(t.ground, 0, 0, 64, 64)] },
         { cls: 'park', rings: [cellRing(t.ground, 33, 33, 64, 64)] },

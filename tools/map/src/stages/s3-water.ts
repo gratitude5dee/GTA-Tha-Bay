@@ -6,7 +6,7 @@
  * fill of the rings. Lakes (`natural=water` polygons) are painted as water afterwards, so a polygon that overlaps the
  * sea cannot flip the parity.
  */
-import { enuFromLatLng, fnv32 } from '../../../../packages/shared/src/index.ts';
+import { TREE_FORM_NAMES, enuFromLatLng, fnv32, formOfOsmTags, formOfSpecies, speciesMatched, type TreeForm, type TreeFormTable } from '../../../../packages/shared/src/index.ts';
 import type { AreaGrid } from '../config.ts';
 import { simplifyRing } from '../geom/dp.ts';
 import { ccwArea, clipRingToBox, openRing, type Bbox } from '../geom/rings.ts';
@@ -30,8 +30,10 @@ export interface WaterProduct {
   /** Pier polygons (man_made=pier areas and buffered ways). */
   piers: number[][];
   landuse: LandusePoly[];
-  /** Street trees: x, z, scale, species per tree. */
+  /** Street trees: x, z, scale, form per tree (C08 1.1: the species lane holds a `TreeForm`, M02h4). */
   trees: number[];
+  /** M02h4: trees per form, and the most frequent names that matched no row of the table (at most 20). */
+  treeReport: TreeFormReport;
   hoods: HoodPoly[];
   stats: { coastChains: number; openPieces: number; ringsKept: number; ringsDropped: number; droppedKm2: number; baseLand: boolean };
 }
@@ -305,15 +307,46 @@ export interface WaterInputs {
   parks: readonly ParkRow[];
   hoods: readonly HoodRow[];
   trees: readonly TreeRow[];
+  /** M02h4: genus to form (`config/world/tree-forms.json`). */
+  treeForms: TreeFormTable;
   minRingKm2: number;
   baseLandHint: () => boolean;
 }
 
-export function treeRecord(lat: number, lng: number, speciesName: string): [number, number, number, number] {
+/** M02h4: the bake report's tree section: trees per form and the top unmatched names. */
+export interface TreeFormReport {
+  forms: Record<(typeof TREE_FORM_NAMES)[number], number>;
+  unmatched: { name: string; count: number }[];
+}
+
+/**
+ * One tree record: ENU x, z, the scale (0.75 .. 1.25 from the name and position hash, as before M02h4; the mesher reads it as the
+ * quantile of the form's height draw) and the form (M02h4; the species hash 0..7 before it).
+ */
+export function treeRecord(lat: number, lng: number, speciesName: string, form: TreeForm): [number, number, number, number] {
   const p = enuFromLatLng(lat, lng);
   const h = fnv32(`${speciesName}|${lat.toFixed(7)}|${lng.toFixed(7)}`);
   const scale = (24 + (h % 17)) / 32; // 0.75 .. 1.25
-  return [p.x, p.z, scale, fnv32(speciesName) % 8];
+  return [p.x, p.z, scale, form];
+}
+
+/** Counts the forms and the unmatched names of a tree list (the bake report's `treeForms` and `treeUnmatched`). */
+class TreeTally {
+  private readonly forms = [0, 0, 0, 0, 0];
+  private readonly unmatched = new Map<string, number>();
+  add(form: TreeForm, name: string, matched: boolean): void {
+    this.forms[form] = (this.forms[form] as number) + 1;
+    if (!matched) this.unmatched.set(name, (this.unmatched.get(name) ?? 0) + 1);
+  }
+  report(): TreeFormReport {
+    const forms = {} as TreeFormReport['forms'];
+    TREE_FORM_NAMES.forEach((n, i) => (forms[n] = this.forms[i] as number));
+    const unmatched = [...this.unmatched.entries()]
+      .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+      .slice(0, 20)
+      .map(([name, count]) => ({ name, count }));
+    return { forms, unmatched };
+  }
 }
 
 export function runWater(inp: WaterInputs): WaterProduct {
@@ -323,6 +356,7 @@ export function runWater(inp: WaterInputs): WaterProduct {
   const piers: number[][] = [];
   const landuse: LandusePoly[] = [];
   const treeOut: number[] = [];
+  const tally = new TreeTally();
 
   const sorted = [...inp.osm].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   for (const f of sorted) {
@@ -345,7 +379,9 @@ export function runWater(inp: WaterInputs): WaterProduct {
     }
     if (t['natural'] === 'tree' && f.geometry.type === 'Point') {
       const c = f.geometry.coordinates as number[];
-      treeOut.push(...treeRecord(c[1] as number, c[0] as number, t['species'] ?? 'osm'));
+      const k = formOfOsmTags(t, inp.treeForms, f.id);
+      tally.add(k.form, k.name, k.matched);
+      treeOut.push(...treeRecord(c[1] as number, c[0] as number, t['species'] ?? 'osm', k.form));
       continue;
     }
     const cls = landuseOfTags(t);
@@ -357,7 +393,10 @@ export function runWater(inp: WaterInputs): WaterProduct {
   for (const r of inp.trees) {
     const lat = Number(r.latitude), lng = Number(r.longitude);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-    treeOut.push(...treeRecord(lat, lng, String(r.species ?? 'unknown')));
+    const name = String(r.species ?? 'unknown');
+    const form = formOfSpecies(name, inp.treeForms);
+    tally.add(form, name, speciesMatched(name, inp.treeForms));
+    treeOut.push(...treeRecord(lat, lng, name, form));
   }
 
   const hoods: HoodPoly[] = [];
@@ -368,7 +407,7 @@ export function runWater(inp: WaterInputs): WaterProduct {
   hoods.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 
   const land = assembleLand({ coastWays, box, minRingKm2: inp.minRingKm2, baseLandHint: inp.baseLandHint });
-  return { landRings: land.rings, waterPolys, piers, landuse, trees: treeOut, hoods, stats: land.stats };
+  return { landRings: land.rings, waterPolys, piers, landuse, trees: treeOut, treeReport: tally.report(), hoods, stats: land.stats };
 }
 
 // ---- rasters ----------------------------------------------------------------------------------------------------------

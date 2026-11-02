@@ -38,6 +38,7 @@ export * from './assets/art-parts.ts';
 export * from './telemetry.ts';
 export * from './world/index.ts';
 export * from './world/cover-codec.ts';
+export * from './world/tree-form.ts';
 export * from './platform/xr-comfort.ts';
 export * from './vehicle/index.ts';
 export * from './racing/index.ts';

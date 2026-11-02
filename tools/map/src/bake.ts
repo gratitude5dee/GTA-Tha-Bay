@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import path from 'node:path';
 import { canonicalize, chunkKeyAt, enuFromLatLng, sha256Hex, type ChunkKey, type SourceStamp } from '../../../packages/shared/src/index.ts';
 import {
-  CACHE_ROOT, DEFAULT_LAMP_PITCH_M, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadCover, loadDensity, loadBounds, loadRoadClass, loadSources, loadSynth, mapSchema, rawDirOf,
+  CACHE_ROOT, DEFAULT_LAMP_PITCH_M, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadCover, loadDensity, loadBounds, loadTreeForms, loadRoadClass, loadSources, loadSynth, mapSchema, rawDirOf,
   type AreaGrid, type AreaId, type SourcesConfig, type SynthConfig,
 } from './config.ts';
 import { CONTENT_STAMP_AT, CONTENT_STAMP_ID, contentRows, contentStamp, loadContentWorld, type ContentWorld } from './content.ts';
@@ -222,7 +222,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     const hoods = jsonlOrEmpty<HoodRow>(path.join(rawDir, 'j2bu-swwd.jsonl'));
     const trees = jsonlOrEmpty<TreeRow>(path.join(rawDir, 'tkzw-k3nq.jsonl'));
     const product = runWater({
-      grid, osm: osmOf(c), parks, hoods, trees, minRingKm2: def.gates.s3.minRingKm2,
+      grid, osm: osmOf(c), parks, hoods, trees, treeForms: loadTreeForms(), minRingKm2: def.gates.s3.minRingKm2,
       // Only used when no coastline reaches the box: land when most box corners are above 0.5 m.
       baseLandHint: () => {
         const m = mosaicOf(c);
@@ -480,6 +480,9 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       geocode: mapStage.geoReport,
       packs: outputs.files.map((f) => ({ name: f.name, bytes: f.bytes.length, chunks: f.chunks })),
       ...(outputs.cover ? { cover: outputs.cover } : {}),
+      // M02h4: trees per form and the most frequent names no row of config/world/tree-forms.json matched
+      treeForms: water.product.treeReport.forms,
+      treeUnmatched: water.product.treeReport.unmatched,
     };
     const writeReport = (g: GateResult[]): void => {
       const report = { ...baseReport, gates: g, ok: failed(g).length === 0 };
