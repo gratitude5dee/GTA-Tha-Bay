@@ -113,6 +113,25 @@ describe('PedRenderer with the pedestrian kit', () => {
     r.dispose();
   });
 
+  it('with artWaits the kit requests nothing until startArt, and the mannequin draws meanwhile (BD-REPAIR-M10d4-02)', async () => {
+    const asked: string[] = [];
+    const base = mock('mobile-low');
+    const counting: PedKitAssets = { bytes: async (ref) => (asked.push(ref), base.bytes(ref)), image: base.image as NonNullable<PedKitAssets['image']> };
+    const r = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 6, art: counting, artWaits: true });
+    await new Promise((res) => setTimeout(res, 50));
+    expect(asked).toEqual([]);
+    expect(r.art()).toMatchObject({ state: 'loading', near: 'mannequin', far: 'mannequin' });
+    r.update(frame(10, () => 5), 1);
+    expect(r.info().near).toBe(6);
+    r.startArt();
+    r.startArt(); // once only
+    await settle(r);
+    expect(r.art()).toMatchObject({ state: 'ready', near: 'kit', far: 'kit' });
+    const files = Object.keys(PED_ART.bodies).length * 2 + PED_ART.outfits.length;
+    expect(asked).toHaveLength(files);
+    r.dispose();
+  });
+
   it('builds no more near figures than twice the cap as the near pedestrians change outfit', async () => {
     const r = new PedRenderer({ parent: new Group(), cap: 60, nearCap: 6, art: mock('mobile-low') });
     await settle(r);

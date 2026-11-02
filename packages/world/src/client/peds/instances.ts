@@ -56,6 +56,11 @@ export interface PedRendererOptions {
   lift?: (x: number, z: number) => number;
   /** M10d4: the asset port of the pedestrian kit; absent (the QA switch `?art=0`, or no asset client): the mannequin draws. */
   art?: PedKitAssets;
+  /**
+   * The kit load waits for `startArt()` (BD-REPAIR-M10d4-02): the world view starts it after the reveal and its boot figures, as it starts
+   * the surface textures, so the kit's 37 files are not on the boot's critical path. Default false: the load starts at construction.
+   */
+  artWaits?: boolean;
 }
 
 /** `world.peds().art` (QA): the kit's report and where its load stands. */
@@ -163,6 +168,7 @@ export class PedRenderer {
   private lastT = 0;
   private kit: PedKit | null = null;
   private artState: PedArtReport['state'] = 'off';
+  private artStarted = false;
   private disposed = false;
   /** The governor's `crowdDensity` (M11a1): the share of `cap` drawn, 0 to 1. */
   private densityScale = 1;
@@ -204,9 +210,18 @@ export class PedRenderer {
     this.info0 = this.blank();
     o.parent.add(this.group);
     if (o.art) {
+      // `loading` from here: the mannequin draws until the kit is ready, whether or not its load has started yet
       this.artState = 'loading';
-      void loadPedKit(o.art).then((kit) => this.useKit(kit));
+      if (o.artWaits !== true) this.startArt();
     }
+  }
+
+  /** M10d4: starts the kit load, once; nothing without an asset port or after `dispose`. */
+  startArt(): void {
+    const assets = this.o.art;
+    if (!assets || this.artStarted || this.disposed) return;
+    this.artStarted = true;
+    void loadPedKit(assets).then((kit) => this.useKit(kit));
   }
 
   /** M10d4: the kit has loaded (or failed, `null`): the far bodies take its figures, the near slots are rebuilt on their next frame. */
