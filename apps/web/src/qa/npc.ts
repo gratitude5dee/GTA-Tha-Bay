@@ -105,7 +105,7 @@ export async function installNpcQa(
   vm: NpcQaVm | null = null,
   emit: ((name: 'npc.turn.client' | 'npc.encounter.client', props: Record<string, string | number | boolean>) => void) | null = null,
 ): Promise<NpcBridge> {
-  const [{ createNpcRuntime }, { installNpcBridge, mountNpcOverlay }, { TtsPlayer, LipSyncDriver }] = await Promise.all([
+  const [{ createNpcRuntime }, { installNpcBridge, mountNpcOverlay, subtitleRecorder }, { TtsPlayer, LipSyncDriver }] = await Promise.all([
     import('@dv/npc/client'),
     import('@dv/npc/debug'),
     import('@dv/npc/voice'),
@@ -156,6 +156,9 @@ export async function installNpcQa(
   // through `sys.dialogue.open`, the session runs the turns, and `hud.subtitle` carries each line. Without a store the box talks to the runtime alone.
   const hooks: NpcBridgeHooks = { telemetry: () => seen, setAuthHeader: (h) => (override = h), onVoice: (on) => (on ? audio?.unlock() : player?.stop(NPC_ID)) };
   if (vm !== null) {
+    // Every `hud.subtitle` value as the view model receives it, for `__dvBridge.npc.subtitles()`: a cue is up for max(1.5 s, 60 ms per
+    // character) only, so the e2e reads this record instead of polling the key (BD-FIX-DIALOGUE-SUBTITLE-01).
+    hooks.subtitles = subtitleRecorder((cb) => vm.subscribe('hud.subtitle' as never, cb)).cues;
     const { debugContext } = await import('@dv/npc/debug');
     const key = DIALOGUE_OPEN_KEY as never;
     let seq = 0;
