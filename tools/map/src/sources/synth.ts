@@ -157,7 +157,8 @@ function roundFootprint(cx: number, cz: number, r: number): Ring {
 
 export interface SynthStats { rows: Record<string, number>; tiles: number }
 
-const SPECIES = ['Platanus x hispanica', 'Tristaniopsis laurina', 'Prunus cerasifera', 'Ficus microcarpa', 'Metrosideros excelsa', 'Pyrus calleryana'];
+// M02h4: a palm, a cypress and a eucalyptus join, so the synth bake holds all five tree forms (config/world/tree-forms.json)
+const SPECIES = ['Platanus x hispanica', 'Tristaniopsis laurina', 'Prunus cerasifera', 'Ficus microcarpa', 'Metrosideros excelsa', 'Pyrus calleryana', 'Phoenix canariensis', 'Cupressus macrocarpa', 'Eucalyptus globulus'];
 
 function chunkRng(seed: number, tag: string, cx: number, cy: number): Rng {
   return new Rng(splitmix32(seed ^ fnv32(`${tag}:${cx}:${cy}`)));

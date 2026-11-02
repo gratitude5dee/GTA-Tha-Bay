@@ -60,7 +60,7 @@ export interface UnitMesh {
   originZ: number;
   /** At most six objects (the terrain, buildings, roads and so on). */
   objects: MeshBuffers[];
-  /** L0 only: x, y, z (local), scale, species per tree. */
+  /** L0 only (M02h4): x, y, z (local), height in metres, yaw in radians and `form + 8 x tint` per tree (`TREE_STRIDE` floats). */
   trees: Float32Array;
   /** L0 only: x, y, z (local) per street lamp (the baked LAMP records on the terrain, M02b2). The night lights draw them. */
   lamps: Float32Array;

@@ -584,7 +584,19 @@
       "world-stream.spec.ts › world streaming @world › the backdrop at mobile: ring null km, cards 20 km, massing false, at most 3 objects, one upload @world-backdrop": 0.6,
       "world-teleport.spec.ts › world teleport and routes @world › 50 seeded routes: the page and Node compute the same edges and lengths @world-astar": 2.33,
       "world-teleport.spec.ts › world teleport and routes @world › ten landmarks: each teleport lands within 0.2 m of the ground or leaves the player unmoved, and at least eight land @world-teleport": 2.47,
-      "world-teleport.spec.ts › world teleport and routes @world › the debug panel lists the landmarks, Go teleports there, and Route sets a GPS route the sim plans @world-teleport": 1.07
+      "world-teleport.spec.ts › world teleport and routes @world › the debug panel lists the landmarks, Go teleports there, and Route sets a GPS route the sim plans @world-teleport": 1.07,
+      "world-trees.spec.ts › tree goldens @look-golden › desktop trees-street is within the tolerance of its golden and a second capture is byte-identical @look-golden": 9,
+      "world-trees.spec.ts › tree goldens @look-golden › mobile-low trees-street is within the tolerance of its golden and a second capture is byte-identical @look-golden": 1,
+      "trees-ledger.spec.ts › trees ledger @trees-ledger › desktop-ultra: the trees' render objects against the per-unit objects they replace @trees-ledger": 12,
+      "trees-ledger.spec.ts › trees ledger @trees-ledger › desktop: the trees' render objects against the per-unit objects they replace @trees-ledger": 9.5,
+      "trees-ledger.spec.ts › trees ledger @trees-ledger › legacy: the trees' render objects against the per-unit objects they replace @trees-ledger": 1.6,
+      "trees-ledger.spec.ts › trees ledger @trees-ledger › mobile-low: the trees' render objects against the per-unit objects they replace @trees-ledger": 1.6,
+      "trees-ledger.spec.ts › trees ledger @trees-ledger › mobile: the trees' render objects against the per-unit objects they replace @trees-ledger": 4,
+      "trees-ledger.spec.ts › trees ledger @trees-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @trees-ledger": 0,
+      "world-trees.spec.ts › world trees @world-trees › desktop: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 11,
+      "world-trees.spec.ts › world trees @world-trees › mobile-low: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 1.5,
+      "world-trees.spec.ts › world trees @world-trees › mobile-low: world.treeForms off (?treeForms=0) draws one cone pool @world-trees": 1,
+      "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 3
     },
     "webkit-webgl2": {
       "account-password.spec.ts › account island @account › an adult creates an account after reading the terms; no token is stored in the browser @account": 0.03,
@@ -836,7 +848,11 @@
       "world-stream.spec.ts › world streaming @world › the backdrop at mobile: ring null km, cards 20 km, massing false, at most 3 objects, one upload @world-backdrop": 0.19,
       "world-teleport.spec.ts › world teleport and routes @world › 50 seeded routes: the page and Node compute the same edges and lengths @world-astar": 0.28,
       "world-teleport.spec.ts › world teleport and routes @world › ten landmarks: each teleport lands within 0.2 m of the ground or leaves the player unmoved, and at least eight land @world-teleport": 0.52,
-      "world-teleport.spec.ts › world teleport and routes @world › the debug panel lists the landmarks, Go teleports there, and Route sets a GPS route the sim plans @world-teleport": 0.24
+      "world-teleport.spec.ts › world teleport and routes @world › the debug panel lists the landmarks, Go teleports there, and Route sets a GPS route the sim plans @world-teleport": 0.24,
+      "world-trees.spec.ts › world trees @world-trees › desktop: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 14,
+      "world-trees.spec.ts › world trees @world-trees › mobile-low: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 2,
+      "world-trees.spec.ts › world trees @world-trees › mobile-low: world.treeForms off (?treeForms=0) draws one cone pool @world-trees": 1.2,
+      "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 4
     },
     "xr-quest3": {
       "art-city.spec.ts › xr art @xr @art-city › the Quest tier is legacy with one family and standard paint @xr @art-city": 0.21,

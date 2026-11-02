@@ -15,17 +15,19 @@
  *    when the triangle budget has room, and the pitched eaves;
  *  - roads: ribbons along the `p0` segment centrelines, lifted 0.12 m plus 0.01 m per class rank (the busier road on top, drawn
  *    last), at the carriageway width;
- *  - trees: one instance record per tree (x, y, z, scale, species), drawn as one instanced mesh; the foot is the lowest terrain
- *    under the trunk and the height stays under the nearest eave.
+ *  - trees: one instance record per tree (x, y, z, height, yaw, form and tint; M02h4), drawn by the global vegetation pools; the
+ *    foot is the lowest terrain under the trunk and the height, drawn from the form's distribution, stays under the nearest eave.
  *
  * Positions are local to the chunk's north-west corner (`x`, `z`), with `y` absolute, so a float32 position keeps its precision
  * 10 km from the origin.
  */
 import earcut from 'earcut';
 import {
-  NodeControl, PedEdgeKind, PedNodeFlag, TERRAIN_POSTS, chunkBounds, sampleHeight, type BuildingRecord, type ChunkKey, type QualityTierId, type RenderChunk, type SimChunk,
+  NodeControl, PedEdgeKind, PedNodeFlag, TERRAIN_POSTS, TREE_FORM_NAMES, chunkBounds, sampleHeight, treeFormOfByte, triangularQuantile, type BuildingRecord, type ChunkKey,
+  type QualityTierId, type RenderChunk, type SimChunk, type TreeForm, type TreeFormName, type TreeFormTable,
 } from '@dv/shared';
 import mesherJson from '../../../../../config/world/mesher.json';
+import treeFormsJson from '../../../../../config/world/tree-forms.json';
 import { LOOK, LOOK_FLAG, facadeClassOf, lookProfileFor } from '../look/config.ts';
 import { packRoad, roadFields, roadVertex, wrapAlong, type RoadFields } from '../look/road-layout.ts';
 import { COVER_SURFACE_NAMES, FLAG_PARAPET, Surf, coverSurf, facadeDm, facadeSignedDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
@@ -96,6 +98,8 @@ export interface MesherConfig {
   cover: Record<(typeof COVER_SURFACE_NAMES)[number], string>;
 }
 export const MESHER: MesherConfig = mesherJson as unknown as MesherConfig;
+/** M02h4: the tree forms' table (`config/world/tree-forms.json`): the mesher reads the height draws. */
+export const TREE_FORM_TABLE: TreeFormTable = treeFormsJson as unknown as TreeFormTable;
 
 export type Rgb = readonly [number, number, number];
 const srgbToLinear = (c: number): number => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
@@ -1138,8 +1142,11 @@ export interface TreeContext {
   buildings: readonly { ring: readonly number[]; height: number }[];
 }
 
-/** The most a tree may be tall next to a building: its nearest eave within `tree.eaveRadiusM`, never under `minHeightM`. */
-export function treeHeightCap(x: number, z: number, buildings: readonly { ring: readonly number[]; height: number }[]): number {
+/**
+ * The most a tree may be tall next to a building: its nearest eave within `tree.eaveRadiusM` less `eaveClearM`, never over `max` (the
+ * form's tallest, M02h4; `tree.maxHeightM` for M02b1's cone) and never under `minHeightM`.
+ */
+export function treeHeightCap(x: number, z: number, buildings: readonly { ring: readonly number[]; height: number }[], max: number = MESHER.tree.maxHeightM): number {
   const T = MESHER.tree;
   let best = Infinity;
   let eave = Infinity;
@@ -1161,27 +1168,62 @@ export function treeHeightCap(x: number, z: number, buildings: readonly { ring: 
       eave = b.height;
     }
   }
-  return Math.max(T.minHeightM, Math.min(T.maxHeightM, eave - T.eaveClearM));
+  return Math.max(T.minHeightM, Math.min(max, eave - T.eaveClearM));
+}
+
+/** Floats per tree record (M02h4): local x, y, z, height in metres, yaw in radians, `form + 8 x tint`. */
+export const TREE_STRIDE = 6;
+/** Tints per form (the record's `tint`, 0..7; `chunks/tree-forms.ts` turns it into a crown colour). */
+export const TREE_TINTS = 8;
+
+/** The height draw of a form: the triangular `[min, mode, max]` of `config/world/tree-forms.json`. */
+export function formHeights(form: TreeForm): readonly [number, number, number] {
+  return TREE_FORM_TABLE.forms[TREE_FORM_NAMES[form] as TreeFormName].heightM;
 }
 
 /**
- * One record per tree: local x, y, z, scale, species. The foot is the lowest terrain under the trunk (the heightfield and the mesh
- * the player sees, nine points over the trunk disc) minus `tree.sinkM`, so no root hangs in the air on a slope; the scale puts the
- * 6.2 m cone between `minHeightM` and the cap under the nearest eave.
+ * The height of a tree of `form` before the eave cap: the form's triangular quantile of `u = (scale - 0.75) / 0.5` (the baked scale is
+ * one of 17 steps from 0.75 to 1.25) moved by `jitter` in [0, 1) times 1/17, so the steps do not show as height bands. `u` is clamped
+ * to [0, 1]: `min` at `u = 0`, `max` at `u = 1`, the mode at `(mode - min) / (max - min)`.
+ */
+export function treeHeightOf(form: TreeForm, scale: number, jitter: number): number {
+  const [min, mode, max] = formHeights(form);
+  const u = Math.min(1, Math.max(0, (scale - 0.75) / 0.5 + (jitter - 0.5) / 17));
+  return triangularQuantile(u, min, mode, max);
+}
+
+/** A hash of a float pair in [0, 1): the tree's own jitter, yaw and tint (deterministic, `three`-free). */
+function hash01(x: number, z: number, salt: number): number {
+  let h = (Math.imul(Math.round(x * 64) | 0, 73856093) ^ Math.imul(Math.round(z * 64) | 0, 19349663) ^ Math.imul(salt, 83492791)) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/** The trunk radius of a tree `heightM` tall (the cone's 0.22 m at its 6.2 m, within 0.6x .. 2.5x of it). */
+export const trunkRadiusOf = (heightM: number): number => MESHER.tree.trunkRadiusM * Math.min(2.5, Math.max(0.6, heightM / MESHER.tree.heightM));
+
+/**
+ * One record per tree (M02h4): local x, y, z, height in metres, yaw in radians and `form + 8 x tint`. The form is the TREE byte of a C08
+ * 1.1 index (`treeFormOfByte`: a reserved value draws as `Plane`; a 1.0 index's species hash is read the same way). The height is the
+ * form's draw (`treeHeightOf`) under M02g2's eave cap (`min(max, eave - 0.5)` within 8 m, never under 3.5 m). The foot is the lowest
+ * terrain under the trunk (the heightfield and the mesh the player sees, nine points over the trunk disc) minus `tree.sinkM`, so no root
+ * hangs in the air on a slope.
  */
 function treeRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: number, ctx: TreeContext): Float32Array {
   if (!render || render.trees.length < 4) return new Float32Array(0);
   const T = MESHER.tree;
   const count = Math.floor(render.trees.length / 4);
-  const trees = new Float32Array(count * 5);
+  const trees = new Float32Array(count * TREE_STRIDE);
   const cellM = sim.height.cellM;
   for (let i = 0; i < count; i++) {
     const x = render.trees[i * 4] as number, z = render.trees[i * 4 + 1] as number;
     const lx = Math.min(256, Math.max(0, x - ox)), lz = Math.min(256, Math.max(0, z - oz));
     const s0 = (render.trees[i * 4 + 2] as number) || 1;
-    const height = Math.max(T.minHeightM, Math.min(treeHeightCap(lx, lz, ctx.buildings), T.heightM * s0));
-    const s = height / T.heightM;
-    const r = T.trunkRadiusM * s;
+    const form = treeFormOfByte(render.trees[i * 4 + 3] as number);
+    const draw = treeHeightOf(form, s0, hash01(x, z, 1));
+    const height = Math.max(T.minHeightM, Math.min(treeHeightCap(lx, lz, ctx.buildings, formHeights(form)[2]), draw));
+    const r = trunkRadiusOf(height);
     let low = Infinity;
     for (let k = 0; k < 9; k++) {
       const a = (k / 8) * Math.PI * 2;
@@ -1189,11 +1231,13 @@ function treeRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: 
       const pz = Math.min(256, Math.max(0, lz + (k === 8 ? 0 : Math.sin(a) * r)));
       low = Math.min(low, sampleHeight(sim.height, ox + px, oz + pz), meshSurfaceAt(sim.height.dm, cellM, ctx.stride, px, pz));
     }
-    trees[i * 5] = lx;
-    trees[i * 5 + 1] = low - T.sinkM;
-    trees[i * 5 + 2] = lz;
-    trees[i * 5 + 3] = s;
-    trees[i * 5 + 4] = render.trees[i * 4 + 3] as number;
+    const o = i * TREE_STRIDE;
+    trees[o] = lx;
+    trees[o + 1] = low - T.sinkM;
+    trees[o + 2] = lz;
+    trees[o + 3] = height;
+    trees[o + 4] = hash01(x, z, 2) * Math.PI * 2;
+    trees[o + 5] = form + 8 * Math.floor(hash01(x, z, 3) * TREE_TINTS);
   }
   return trees;
 }
@@ -1212,5 +1256,8 @@ function lampRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: 
   return lamps;
 }
 
-/** Render objects of a chunk mesh as the renderer counts them: the mesh objects plus the instanced vegetation. */
-export const objectCountOf = (m: UnitMesh): number => m.objects.length + (m.trees.length > 0 ? 1 : 0);
+/**
+ * Render objects of a chunk mesh as the renderer counts them: the mesh objects. Since M02h4 the trees are drawn by a few global pools
+ * (`chunks/vegetation-pool.ts`, C08 1.1 rule 12) that the ledger counts once per profile, not per unit.
+ */
+export const objectCountOf = (m: UnitMesh): number => m.objects.length;

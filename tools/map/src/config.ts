@@ -5,7 +5,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
-import { CHUNK_EDGE_M, GRID_MIN_M, TERRAIN_POSTS, sha256Hex, canonicalize, type ChunkKey, type WorldBounds } from '../../../packages/shared/src/index.ts';
+import { CHUNK_EDGE_M, GRID_MIN_M, TERRAIN_POSTS, sha256Hex, canonicalize, type ChunkKey, type TreeFormTable, type WorldBounds } from '../../../packages/shared/src/index.ts';
 import { toolsRoot } from '../../ci/lib/common.ts';
 import { contentWorldSha } from './content.ts';
 import type { BridgesConfig } from './stages/s7-grading.ts';
@@ -13,7 +13,7 @@ import type { RoadClassConfig } from './stages/s5-roads.ts';
 
 export const TOOL_NAME = 'tools/map';
 /** Bumped by hand when a change alters baked bytes; part of the bakeId (C08 rule 16). */
-export const TOOL_VERSION = '0.3.1';
+export const TOOL_VERSION = '0.4.0';
 export const TOOL_ID = `${TOOL_NAME}@${TOOL_VERSION}`;
 
 export type AreaId = 'sf' | 'civic-excerpt' | 'synth';
@@ -67,6 +67,7 @@ export const ROADCLASS_PATH = path.join(toolsRoot, 'config', 'world', 'roadclass
 export const BRIDGES_PATH = path.join(toolsRoot, 'config', 'world', 'bridges.json');
 export const DENSITY_PATH = path.join(toolsRoot, 'config', 'world', 'density.json');
 export const COVER_PATH = path.join(toolsRoot, 'config', 'world', 'cover.json');
+export const TREE_FORMS_PATH = path.join(toolsRoot, 'config', 'world', 'tree-forms.json');
 export const SCHEMAS_DIR =path.join(toolsRoot, 'tools', 'map', 'schemas');
 
 const readJson = <T>(file: string): T => JSON.parse(readFileSync(file, 'utf8')) as T;
@@ -156,6 +157,8 @@ export interface CoverConfig {
   driveway: { highway: string; service: string };
 }
 export const loadCover = (file = COVER_PATH): CoverConfig => loadChecked<CoverConfig>(file, 'cover');
+/** M02h4: genus to tree form (`config/world/tree-forms.json`, `tools/map/schemas/tree-forms.schema.json`). */
+export const loadTreeForms = (file = TREE_FORMS_PATH): TreeFormTable => loadChecked<TreeFormTable>(file, 'tree-forms');
 
 export function loadBounds(): WorldBounds {
   return readJson<WorldBounds>(BOUNDS_PATH);
@@ -266,6 +269,7 @@ export function configHashesOf(cfg: SourcesConfig, area: AreaId): Record<string,
     bridges: sha256Hex(canonicalize(loadBridges())),
     density: sha256Hex(canonicalize(loadDensity())),
     cover: sha256Hex(canonicalize(loadCover())),
+    treeForms: sha256Hex(canonicalize(loadTreeForms())),
     contentWorld: contentWorldSha(),
     sourcesDatabase: sha256Hex(canonicalize(cfg.database)),
   };

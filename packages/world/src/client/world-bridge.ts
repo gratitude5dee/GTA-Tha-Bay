@@ -85,7 +85,11 @@ export interface WorldBridge {
   internals(): { view: WorldView; look: unknown };
   /** M02e: the look on or off at runtime (materials, post stack, shadows; one re-record per resident chunk). False when the tier has none. */
   setLook(on: boolean): boolean;
-  /** M02g1: one layer of the look's profile (`grade`, `haze`, `blob`, `casters`, `skyReflect`, `windows`) on or off; false when the profile has no such layer. */
+  /**
+   * M02g1: one layer of the look's profile (`grade`, `haze`, `blob`, `casters`, `skyReflect`, `windows`) on or off; false when the profile has no such layer.
+   * M02h4: `wind` sways the street trees on the `full` set (desktop tiers; false elsewhere); `look().vegetation` reports the tree set, the pools,
+   * the instances per form and the wind amplitude.
+   */
   setLookLayer(id: string, on: boolean): boolean;
   /**
    * M02e: applies a shot of `config/world/look-shots.json`: pauses the sim, locks the hour and weather with a zero-second blend,

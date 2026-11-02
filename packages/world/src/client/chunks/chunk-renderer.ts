@@ -1,9 +1,9 @@
 /**
  * ChunkRenderer (02-world.md section 5.2; C08 rule 12; M02b1): draws the meshed units of the three LOD levels on the host's scene.
  *
- *  - One static `BundleGroup` per unit, at most six objects in it (terrain, buildings, roads, vegetation, and the empty furniture and
- *    extras). A bundle is re-recorded (`needsUpdate`) only on a LOD swap (a cover mask changed) or a re-mesh, and each request
- *    increments the unit's `bundleRerecords`: a render bundle is recorded only on the WebGPU backend [research/stack-rendering-platform.md
+ *  - One static `BundleGroup` per unit, at most six objects in it (terrain, buildings, roads, and the empty furniture and extras); since
+ *    M02h4 the trees of every L0 unit are drawn by the global vegetation pools (`vegetation-pool.ts`, C08 1.1 rule 12) outside the bundles.
+ *    A bundle is re-recorded (`needsUpdate`) only on a LOD swap (a cover mask changed) or a re-mesh, and each request increments the unit's `bundleRerecords`: a render bundle is recorded only on the WebGPU backend [research/stack-rendering-platform.md
  *    1.5], so the tests count the requests, which every backend makes alike (DL-682).
  *  - `ChunkUploadGate`: at most one unit uploads per frame (<= 2 MB on `mobile-low` and `xr-quest`), highest priority first. A unit
  *    is "uploaded" the frame its objects join the scene; three uploads the buffers in that frame's render call.
@@ -16,9 +16,10 @@
  *    refetch.
  */
 import {
-  BufferAttribute, BufferGeometry, Color, type Frustum, Group, InstancedMesh, Matrix4, Mesh, type Object3D, BundleGroup, Sphere, Vector3, type WebGPURenderer,
+  BufferAttribute, BufferGeometry, type Frustum, Group, Mesh, type Object3D, BundleGroup, Sphere, Vector3, type WebGPURenderer,
 } from 'three/webgpu';
-import { MESHER, hexToLinear } from './mesher.ts';
+import type { TreeSet } from './tree-forms.ts';
+import { VegetationPools, type VegetationPoolReport } from './vegetation-pool.ts';
 import type { MeshBuffers, UnitMesh } from './mesh-types.ts';
 import type { WorldMaterials } from './materials.ts';
 import { ChunkUploadGate } from './upload-gate.ts';
@@ -67,11 +68,9 @@ export interface RenderedUnit {
   radius: number;
   geometries: BufferGeometry[];
   mesh: UnitMesh;
-  /** M02g2: the unit's instanced trees, or null; `vegShown` is false while they are beyond `tree.drawM` (one object and their triangles fewer). */
-  vegetation: InstancedMesh | null;
+  /** M02h4: the unit has trees in the vegetation pools; `vegShown` is false while they are beyond `tree.drawM` (out of the drawn prefix). */
+  hasTrees: boolean;
   vegShown: boolean;
-  /** Triangles of the instanced trees, taken off the unit's total while they are hidden. */
-  vegTriangles: number;
 }
 
 /**
@@ -107,6 +106,11 @@ export interface ChunkRendererOptions {
   treeDrawM?: number;
   /** M02g2: the hysteresis of the above; 0.1 when absent. */
   treeHysteresis?: number;
+  /**
+   * M02h4: the tree geometry set of the vegetation pools (`full` desktop, `lite` mobile, `low` mobile-low, the XR tiers and the legacy
+   * look, `cone` with `world.treeForms` off). `low` when absent.
+   */
+  treeSet?: TreeSet;
 }
 
 /** The trees of the resident L0 units as the camera sees them (QA, `look().vegetation`). */
@@ -117,55 +121,19 @@ export interface VegetationReport {
   /** The distance of the farthest drawn unit (its nearest edge) from the camera, metres; 0 with none. */
   farthestM: number;
   drawM: number;
-  /** Times a unit's trees changed between drawn and hidden (each one a bundle re-record). */
+  /** Times a unit's trees changed between drawn and hidden (each one moves the tail of the pools' drawn prefix; no bundle re-record). */
   crossings: number;
-}
-
-/** The shared tree: a four-sided trunk and a six-sided cone, vertex coloured, 20 triangles. */
-function treeGeometry(): BufferGeometry {
-  const pos: number[] = [];
-  const col: number[] = [];
-  const idx: number[] = [];
-  const trunk = hexToLinear(MESHER.tree.trunk);
-  const leaf = hexToLinear(MESHER.tree.leaves[0] as string);
-  const ring = (y: number, r: number, n: number, rot: number): number[] => {
-    const ids: number[] = [];
-    for (let i = 0; i < n; i++) {
-      const a = rot + (i / n) * Math.PI * 2;
-      ids.push(pos.length / 3);
-      pos.push(Math.cos(a) * r, y, Math.sin(a) * r);
-    }
-    return ids;
-  };
-  const addCols = (n: number, c: readonly [number, number, number]): void => {
-    for (let i = 0; i < n; i++) col.push(c[0], c[1], c[2]);
-  };
-  const b0 = ring(0, 0.22, 4, Math.PI / 4);
-  addCols(4, trunk);
-  const b1 = ring(2.2, 0.18, 4, Math.PI / 4);
-  addCols(4, trunk);
-  for (let i = 0; i < 4; i++) {
-    const j = (i + 1) % 4;
-    idx.push(b0[i] as number, b1[j] as number, b0[j] as number, b0[i] as number, b1[i] as number, b1[j] as number);
-  }
-  const c0 = ring(1.8, 1.7, 6, 0);
-  addCols(6, leaf);
-  const apex = pos.length / 3;
-  pos.push(0, 6.2, 0);
-  addCols(1, leaf);
-  for (let i = 0; i < 6; i++) {
-    const j = (i + 1) % 6;
-    idx.push(c0[i] as number, apex, c0[j] as number);
-  }
-  const n = pos.length / 3;
-  const g = new BufferGeometry();
-  g.setAttribute('position', new BufferAttribute(new Float32Array(pos), 3));
-  g.setAttribute('color', new BufferAttribute(new Float32Array(col), 3));
-  g.setAttribute('aAO', new BufferAttribute(new Float32Array(n).fill(1), 1));
-  g.setAttribute('aBirth', new BufferAttribute(new Float32Array(n), 1));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
+  /** M02h4: the geometry set, the pools (and how many draw now), and per form the instances resident, drawn and their triangles. */
+  set: TreeSet;
+  pools: number;
+  drawnPools: number;
+  forms: VegetationPoolReport['forms'];
+  /** M02h4: the wind sway amplitude now (0 off `full`, or with the `wind` layer off); set by the world view. */
+  wind: number;
+  /** M02h4: the drawn instances over all pools. */
+  drawnInstances: number;
+  /** M02h4: crossings waiting for upload room (the pools' writes count against the tier's upload cap). */
+  pendingCrossings: number;
 }
 
 export class ChunkRenderer {
@@ -185,8 +153,12 @@ export class ChunkRenderer {
   private readonly o: ChunkRendererOptions;
   private readonly treeDrawM: number;
   private readonly treeHysteresis: number;
-  private readonly trees = treeGeometry();
-  private readonly leafColors = MESHER.tree.leaves.map((h) => new Color().setRGB(...hexToLinear(h)));
+  /** M02h4: the global tree pools (C08 1.1 rule 12). */
+  readonly vegetation: VegetationPools;
+  /** M02h4: the wind amplitude the world view set (reported only). */
+  windNow = 0;
+  /** M02h4: drawM crossings whose pool writes wait for upload room (unit id to the wanted state), oldest first. */
+  private readonly crossQueue = new Map<string, boolean>();
   private readonly dirty = new Set<string>();
   private readonly pendingCover: { id: string; at: number }[] = [];
   private readonly rebuild: string[] = [];
@@ -207,6 +179,15 @@ export class ChunkRenderer {
     this.root.name = 'world.chunks';
     this.gate = new ChunkUploadGate<UnitMesh | GateTask>(o.uploadBytes);
     o.parent.add(this.root);
+    const pools = new Group();
+    pools.name = 'world.vegetation';
+    this.root.add(pools);
+    this.vegetation = new VegetationPools({
+      parent: pools,
+      set: o.treeSet ?? 'low',
+      material: () => this.o.materials.materialFor('l0', 'vegetation'),
+      receiveShadow: () => this.look?.receive ?? false,
+    });
   }
 
   // ---- uploads -------------------------------------------------------------------------------------------------------------
@@ -230,6 +211,8 @@ export class ChunkRenderer {
     this.units.delete(id);
     this.root.remove(u.group);
     for (const g of u.geometries) g.dispose();
+    this.vegetation.removeUnit(id);
+    this.crossQueue.delete(id);
     this.markParent(level, key);
   }
 
@@ -271,8 +254,6 @@ export class ChunkRenderer {
     const geometries: BufferGeometry[] = [];
     let triangles = 0;
     let objects = 0;
-    let vegetation: InstancedMesh | null = null;
-    let vegTriangles = 0;
     let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
     const cast = this.castsShadows(level, mesh);
     for (const o of mesh.objects) {
@@ -291,28 +272,6 @@ export class ChunkRenderer {
       minX = Math.min(minX, o.bounds[0]); minY = Math.min(minY, o.bounds[1]); minZ = Math.min(minZ, o.bounds[2]);
       maxX = Math.max(maxX, o.bounds[3]); maxY = Math.max(maxY, o.bounds[4]); maxZ = Math.max(maxZ, o.bounds[5]);
     }
-    if (mesh.trees.length > 0) {
-      const count = mesh.trees.length / 5;
-      const inst = new InstancedMesh(this.trees, this.o.materials.materialFor(level, 'vegetation'), count);
-      inst.userData['kind'] = 'vegetation';
-      inst.receiveShadow = this.look?.receive ?? false;
-      inst.castShadow = this.treesCast(level, mesh);
-      const mat = new Matrix4();
-      for (let i = 0; i < count; i++) {
-        const s = mesh.trees[i * 5 + 3] as number;
-        mat.makeScale(s, s, s).setPosition(mesh.trees[i * 5] as number, mesh.trees[i * 5 + 1] as number, mesh.trees[i * 5 + 2] as number);
-        inst.setMatrixAt(i, mat);
-        inst.setColorAt(i, this.leafColors[(mesh.trees[i * 5 + 4] as number) % this.leafColors.length] as Color);
-      }
-      inst.instanceMatrix.needsUpdate = true;
-      inst.name = `${id}:vegetation`;
-      inst.frustumCulled = false;
-      group.add(inst);
-      objects++;
-      vegTriangles = (this.trees.index?.count ?? 0) / 3 * count;
-      triangles += vegTriangles;
-      vegetation = inst;
-    }
     if (!Number.isFinite(minX)) { minX = minY = minZ = 0; maxX = maxY = maxZ = 0; }
     // The first upload records the bundle (count 0); every later commit of the unit is a swap, one more request.
     const prev = this.rerecords.get(id);
@@ -323,13 +282,16 @@ export class ChunkRenderer {
       coverFrom: now + this.o.fadeSeconds, mask: 0, rerecords: rr, geometries,
       centre: [mesh.originX + (minX + maxX) / 2, (minY + maxY) / 2, mesh.originZ + (minZ + maxZ) / 2],
       radius: Math.sqrt((maxX - minX) ** 2 + (maxY - minY) ** 2 + (maxZ - minZ) ** 2) / 2,
-      mesh, vegetation, vegShown: true, vegTriangles,
+      mesh, hasTrees: false, vegShown: true,
     };
-    // A unit that arrives beyond the draw distance never draws its trees (no re-record: the bundle is recorded after this).
-    if (vegetation && level === 'l0' && this.camPos && this.treeDistance(u, this.camPos) > this.treeDrawM) {
-      vegetation.visible = false;
-      u.vegShown = false;
-    }
+    // M02h4: the trees join the pools: drawn unless the unit arrives beyond the draw distance, in the `near` pools within the caster radius
+    this.crossQueue.delete(id);
+    if (level === 'l0' && mesh.trees.length > 0) {
+      u.hasTrees = true;
+      this.vegetation.setCasting(this.look?.dynamicCasting === true);
+      u.vegShown = !(this.camPos && this.treeDistance(u, this.camPos) > this.treeDrawM);
+      this.vegetation.addUnit(id, mesh.trees, mesh.originX, mesh.originZ, u.vegShown, this.treesNear(mesh));
+    } else this.vegetation.removeUnit(id);
     this.units.set(id, u);
     this.root.add(group);
     this.markParent(level, mesh.key);
@@ -370,47 +332,37 @@ export class ChunkRenderer {
     return Math.hypot(cx - f.x, cz - f.z) <= look.casterRadiusM + 128;
   }
 
-  /** M02g1: whether the trees of an L0 unit cast shadows: the `casters` layer is on and the unit lies within the dynamic caster radius of the focus. */
-  private treesCast(level: RenderLevel, mesh: UnitMesh): boolean {
+  /**
+   * M02h4: whether an L0 unit's trees go to the `near` pools (`full` set): the unit lies within the dynamic caster radius of the focus
+   * (M02g1's tree casters). Off `full`, and without a look or a radius, every unit is `far`.
+   */
+  private treesNear(mesh: UnitMesh): boolean {
     const look = this.look;
     const radius = look?.dynamicCasterRadiusM ?? 0;
-    if (!look || look.dynamicCasting !== true || level !== 'l0' || !(radius > 0)) return false;
+    if (!look || this.vegetation.set !== 'full' || !(radius > 0)) return false;
     const f = look.focus();
     const cx = mesh.originX + 128, cz = mesh.originZ + 128;
     return Math.hypot(cx - f.x, cz - f.z) <= radius + 128;
   }
 
   /**
-   * M02g1: the focus moved or the `casters` layer was switched: the trees of each resident L0 unit take the flag its distance gives.
-   * A unit whose flag changes is recorded again (one re-record). Returns how many units changed.
+   * M02g1, M02h4: the focus moved or the `casters` layer was switched: each resident L0 unit's trees move to the `near` or the `far` pools
+   * by its distance, and the `near` pools cast while the layer is on. No bundle is recorded again (the pools are outside them). Returns
+   * how many units moved.
    */
   refreshTreeCasters(): number {
     let changed = 0;
     for (const u of this.units.values()) {
-      if (u.level !== 'l0') continue;
-      const want = this.treesCast(u.level, u.mesh);
-      let flip = false;
-      for (const child of u.group.children) {
-        if (child.userData['kind'] !== 'vegetation') continue;
-        const m = child as Mesh;
-        if (m.castShadow !== want) {
-          m.castShadow = want;
-          flip = true;
-        }
-      }
-      if (flip) {
-        this.requestRerecord(u);
-        changed++;
-      }
+      if (u.level !== 'l0' || !u.hasTrees) continue;
+      if (this.vegetation.setNear(idOf(u.level, u.key), this.treesNear(u.mesh))) changed++;
     }
+    this.vegetation.setCasting(this.look?.dynamicCasting === true);
     return changed;
   }
 
-  /** Trees now flagged as shadow casters (the look reports `trees` among the dynamic casters when this is above 0). */
+  /** Tree pools now casting shadows with trees in them (the look reports `trees` among the dynamic casters when this is above 0). */
   treeCasterCount(): number {
-    let n = 0;
-    for (const u of this.units.values()) for (const child of u.group.children) if (child.userData['kind'] === 'vegetation' && (child as Mesh).castShadow) n++;
-    return n;
+    return this.vegetation.totals().casting;
   }
 
   /**
@@ -426,10 +378,12 @@ export class ChunkRenderer {
         const m = child as Mesh;
         m.material = this.o.materials.materialFor(u.level, kind);
         m.receiveShadow = this.look?.receive ?? false;
-        m.castShadow = kind === 'buildings' ? cast : kind === 'vegetation' ? this.treesCast(u.level, u.mesh) : false;
+        m.castShadow = kind === 'buildings' ? cast : false;
       }
       this.requestRerecord(u);
     }
+    this.vegetation.setMaterial(this.o.materials.materialFor('l0', 'vegetation'), this.look?.receive ?? false);
+    this.refreshTreeCasters();
   }
 
   /** The shadow casters now: how many objects, and the distinct `level:kind` pairs (the look reports them; only L0 `buildings` cast). */
@@ -501,6 +455,7 @@ export class ChunkRenderer {
     this.frame++;
     this.o.materials.setTime(nowSec);
     this.uploadsThisFrame = 0;
+    this.vegetation.startFrame();
     let uploaded: RenderedUnit | null = null;
 
     // A unit that came back after a GPU loss takes the frame's upload slot first.
@@ -555,6 +510,7 @@ export class ChunkRenderer {
       this.camPos = [cam.pos[0], cam.pos[1], cam.pos[2]];
       this.cullTrees(this.camPos);
     }
+    this.flushCrossings();
     return uploaded;
   }
 
@@ -592,19 +548,34 @@ export class ChunkRenderer {
 
   /**
    * The trees of the L0 units beyond `treeDrawM` are not drawn: they hide above `treeDrawM x (1 + hysteresis)` and show again within
-   * `treeDrawM`. A change is one re-record of the unit's bundle, counted like every other.
+   * `treeDrawM`. Since M02h4 a change moves the unit's ranges in or out of the pools' drawn prefixes (no bundle re-record); the writes
+   * wait in a queue that `flushCrossings` empties against the tier's upload cap.
    */
   private cullTrees(cam: readonly number[]): void {
     if (!(this.treeDrawM < Infinity)) return;
     for (const u of this.units.values()) {
-      if (!u.vegetation) continue;
+      if (!u.hasTrees) continue;
       const d = this.treeDistance(u, cam);
       const want = u.vegShown ? d <= this.treeDrawM * (1 + this.treeHysteresis) : d <= this.treeDrawM;
       if (want === u.vegShown) continue;
       u.vegShown = want;
-      u.vegetation.visible = want;
       this.treeCrossings++;
-      this.requestRerecord(u);
+      this.crossQueue.set(idOf(u.level, u.key), want);
+    }
+  }
+
+  /**
+   * M02h4: the queued crossings write their pool ranges, oldest first, while this frame's pool writes (a unit's upload included) stay within
+   * the tier's upload cap; the first one always goes, so the queue drains.
+   */
+  private flushCrossings(): void {
+    const cap = this.o.uploadBytes;
+    let first = true;
+    for (const [id, want] of [...this.crossQueue]) {
+      if (!first && cap !== null && this.vegetation.bytesThisFrame >= cap) break;
+      this.crossQueue.delete(id);
+      this.vegetation.setDrawn(id, want);
+      first = false;
     }
   }
 
@@ -613,13 +584,18 @@ export class ChunkRenderer {
     let shown = 0, hidden = 0, farthest = 0;
     const cam = this.camPos;
     for (const u of this.units.values()) {
-      if (!u.vegetation) continue;
+      if (!u.hasTrees) continue;
       if (u.vegShown) {
         shown++;
         if (cam) farthest = Math.max(farthest, this.treeDistance(u, cam));
       } else hidden++;
     }
-    return { shown, hidden, farthestM: farthest, drawM: this.treeDrawM, crossings: this.treeCrossings };
+    const pools = this.vegetation.report();
+    return {
+      shown, hidden, farthestM: farthest, drawM: this.treeDrawM, crossings: this.treeCrossings,
+      set: pools.set, pools: pools.pools, drawnPools: pools.drawnPools, forms: pools.forms, wind: this.windNow,
+      drawnInstances: this.vegetation.drawnInstances(), pendingCrossings: this.crossQueue.size,
+    };
   }
 
   /** M02h1: what the resident L0 roads objects hold (the QA bridge's `look().markings` counts). */
@@ -714,6 +690,8 @@ export class ChunkRenderer {
       u.group.visible = false;
       this.rebuild.push(idOf(u.level, u.key));
     }
+    // M02h4: the pools are built again from the instance data they hold (their buffers belonged to the lost device)
+    this.vegetation.rebuild();
     return Promise.resolve();
   }
 
@@ -728,19 +706,19 @@ export class ChunkRenderer {
     let objects = 0, triangles = 0, bytes = 0;
     for (const u of this.units.values()) {
       if (!u.group.visible) continue;
-      // trees beyond the draw distance are neither an object nor triangles (M02g2)
-      const veg = u.vegetation && !u.vegShown;
-      objects += u.objects - (veg ? 1 : 0);
-      triangles += u.triangles - (veg ? u.vegTriangles : 0);
+      objects += u.objects;
+      triangles += u.triangles;
       bytes += u.bytes;
     }
-    return { objects, triangles, bytes };
+    // M02h4: each pool drawing is one render object, its triangles the drawn instances' (C08 1.1 rule 12)
+    const v = this.vegetation.totals();
+    return { objects: objects + v.objects, triangles: triangles + v.triangles, bytes };
   }
 
   dispose(): void {
     for (const u of this.units.values()) for (const g of u.geometries) g.dispose();
     this.units.clear();
     this.o.parent.remove(this.root);
-    this.trees.dispose();
+    this.vegetation.dispose();
   }
 }
