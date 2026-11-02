@@ -533,6 +533,11 @@ async function bootPlatformAndEngine(simWorker: EarlySimWorker): Promise<void> {
     const npcAudio = !engine?.audioService ? null : { host: engine.audioService as unknown as TtsAudioHost, unlock: () => engine.audioUnlock() };
     void import('./qa/npc.ts').then((m) => m.installNpcQa(identity, npcAudio, attestedGate, engine ? (engine.vm as never) : null, (name, props) => platform.telemetry.emit(name, props))).catch((e: unknown) => console.warn('npc qa panel failed', e));
     if (assets) installAssetsBridge(assets);
+    // window.__dvBridge.uiHold: what the menus' hold has done (BD-FIX-MENU-BOOT-01); the in-play spec reads that play notes nothing.
+    {
+      const w = window as unknown as { __dvBridge?: Record<string, unknown> };
+      w.__dvBridge = { ...(w.__dvBridge ?? {}), uiHold: { notes: () => uiHold.notes, releases: () => uiHold.releases } };
+    }
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});
     if (prepared && qaChunks.world) (await qaChunks.world).installWorldBridge(prepared.view, platform.quality.tier.id, prepared.prefetch);

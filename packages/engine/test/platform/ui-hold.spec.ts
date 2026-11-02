@@ -28,6 +28,30 @@ describe('UiHold', () => {
     expect(hold.held(900)).toBe(true);
     expect(hold.notes).toBe(2);
   });
+
+  it('release ends a hold at once (play started); a release without a hold in force counts nothing (second round)', () => {
+    let now = 1000;
+    const hold = new UiHold(() => now);
+    hold.release();
+    expect(hold.releases).toBe(0);
+    hold.note();
+    now = 1100;
+    expect(hold.held(1100)).toBe(true);
+    hold.release();
+    expect(hold.held(1100)).toBe(false);
+    expect(hold.held(900)).toBe(false);
+    expect(hold.releases).toBe(1);
+    hold.release();
+    expect(hold.releases).toBe(1);
+    // an expired hold is not ended early
+    hold.note();
+    now = 1100 + UI_HOLD_MS;
+    hold.release();
+    expect(hold.releases).toBe(1);
+    // a later note holds again
+    hold.note();
+    expect(hold.held(now)).toBe(true);
+  });
 });
 
 /** A renderer whose animation loop the test drives with explicit timestamps. */
@@ -194,6 +218,28 @@ describe('createPlatform: the render loop gives way to the page, then resumes wi
     for (const t of [400, 500, 600, 700, 800, 900]) loop(t);
     // 400 to 700 lie inside the 400 ms hold from 320; 800 draws, after the clocks were reset once
     expect(drawn).toEqual([100, 200, 300, 800, 900]);
+    expect(resets).toBe(1);
+    platform.dispose();
+  });
+
+  it('a release draws the next callback (second round: play never waits for the rest of a menu hold)', async () => {
+    let now = 0;
+    const hold = new UiHold(() => now);
+    const { platform, renderer } = await bootPlatform({ hold, log: [] });
+    const drawn: number[] = [];
+    platform.host.addFrameListener({ before: (t) => void drawn.push(t) });
+    let resets = 0;
+    platform.bindEngine({ setPaused: () => undefined, resetClock: () => void (resets += 1) });
+    const loop = renderer.loop as (t: number) => void;
+    for (const t of [100, 200]) loop(t);
+    now = 220;
+    hold.note();
+    loop(300);
+    now = 350;
+    hold.release();
+    for (const t of [400, 500]) loop(t);
+    // 300 was held (the menu's time); 400, inside the 400 ms of the note, draws because play released it, and the clocks start fresh once
+    expect(drawn).toEqual([100, 200, 400, 500]);
     expect(resets).toBe(1);
     platform.dispose();
   });
