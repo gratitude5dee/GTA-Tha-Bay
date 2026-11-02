@@ -10,7 +10,10 @@ export function spawnSimWorker(): WorkerLike {
 
 /** A sim worker that can be spawned before `bootEngine` asks for one (`earlySimWorker`). */
 export interface EarlySimWorker {
-  /** Spawns the early worker now; only the first call spawns. */
+  /**
+   * Spawns the early worker now; only the first call spawns. Never throws: a worker that cannot be made leaves none waiting, and the
+   * engine's own `spawn` tries again and fails where it always did (BD-FIX-WEBKIT-ATTACH-02).
+   */
   start(): void;
   /** `BootEngineOptions.spawn`: the early worker if one is waiting, otherwise a fresh one (every restart takes a fresh one). */
   spawn(): WorkerLike;
@@ -32,7 +35,11 @@ export function earlySimWorker(spawn: () => WorkerLike): EarlySimWorker {
     start() {
       if (started) return;
       started = true;
-      early = spawn();
+      try {
+        early = spawn();
+      } catch (error) {
+        console.warn('sim worker could not be spawned early', error);
+      }
     },
     spawn() {
       started = true;
