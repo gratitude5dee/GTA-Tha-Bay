@@ -70,6 +70,8 @@ export interface FurnitureFile {
     dressShare: Record<'full' | 'lite' | 'min', number>;
     skipCarLengths: number;
     carLengthM: number;
+    /** A live car counts for `skipCarLengths` only within this distance across the slot's centre line (its parking lane). */
+    skipLateralM: number;
     rebandM: number;
     everyFrames: number;
   };

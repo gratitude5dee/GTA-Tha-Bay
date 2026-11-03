@@ -20,6 +20,8 @@ const GOLDEN_SHOTS: { tier: string; shot: string }[] = [
   { tier: 'desktop', shot: 'fog-west' },
   // M02h2: the curb, gutter and ramp at a corner, and a lot beside a plaza
   ...(['desktop', 'mobile-low'] as const).flatMap((tier) => ['curb-corner', 'lot-plaza'].map((shot) => ({ tier, shot }))),
+  // M02h6: the signalised junction at 13:00 with its masts, heads, signs, hydrants and meters (the parked dressing is hidden with the traffic)
+  ...(['desktop', 'mobile-low'] as const).map((tier) => ({ tier, shot: 'junction-noon' })),
 ];
 
 /** The 256 x 144 canvas of the page after `shot(id)` has presented its frame. The debug panel is hidden so the picture is the canvas alone. */

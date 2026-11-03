@@ -11,14 +11,16 @@
  *    the car family alone, every archetype on its body), on that family's model with its glass merged in (the opaque material shades the
  *    glass through the part id), lights off; the gray-box car until the model has arrived;
  *  - drawn only between `ghostM` and `dressFarM` from the player and the camera, with dithered fades of `fadeM` at both ends, so the player
- *    never reaches a bodiless car; a slot within `skipCarLengths` car lengths of a live car pose is left out; at most `caps[profile]`, nearest
- *    first;
+ *    never reaches a bodiless car; a slot is left out while a live car pose is within `skipCarLengths` car lengths of its body along the
+ *    curb and within `skipLateralM` of its centre line across it (`nearLive`: a car in its parking lane, a pulled-over or parking one; a car
+ *    passing in the next lane, 2.5 m away on narrow streets, does not hide it; BD-M02h6-03), checked every frame against the drawn cars;
+ *    at most `caps[profile]`, nearest first;
  *  - the dressed cars join M02g1's blob shadows (`blobs`), which adds no render object.
  */
 import { InstancedBufferAttribute, InstancedMesh, Group, type BufferGeometry, type Material, type Object3D } from 'three/webgpu';
 import type { WorldFrame } from '@dv/engine/client/boot/world-layer';
-import type { ArtLoader } from '@dv/engine/client/vehicle/art';
-import { ambientKey, ctrU32, worldSeedOf, type ChunkKey } from '@dv/shared';
+import type { ArtModelData } from '@dv/engine/client/vehicle/art';
+import { ambientKey, ctrU32, worldSeedOf, type ChunkKey, type FurnitureFile } from '@dv/shared';
 import { ARCHETYPES, PALETTE, pickArchetype } from '../../sim/traffic/components.ts';
 import { profileName } from '../../sim/traffic/density.ts';
 import { PARKED_STRIDE, FURNITURE } from '../chunks/mesher.ts';
@@ -64,6 +66,18 @@ export function dressFade(dPlayer: number, dCam: number, ghostM: number, farM: n
   return a * b;
 }
 
+/**
+ * Whether a live car at (lx, lz) stands by the dressing slot `s` (yaw `s.yaw`, facing (-sin, -cos)): within `skipCarLengths` car lengths of
+ * the slot's body along the curb (half a car length plus `skipCarLengths` car lengths from its centre) and within `skipLateralM` across.
+ */
+export function nearLive(s: Pick<DressSlot, 'x' | 'z' | 'yaw'>, lx: number, lz: number, cfg: Pick<FurnitureFile['parked'], 'skipCarLengths' | 'carLengthM' | 'skipLateralM'>): boolean {
+  const dx = lx - s.x, dz = lz - s.z;
+  const fx = -Math.sin(s.yaw), fz = -Math.cos(s.yaw);
+  const along = Math.abs(dx * fx + dz * fz);
+  const across = Math.abs(dx * fz - dz * fx);
+  return across < cfg.skipLateralM && along < cfg.carLengthM * (0.5 + cfg.skipCarLengths);
+}
+
 interface Family {
   name: string;
   mesh: InstancedMesh;
@@ -80,8 +94,8 @@ export interface ParkedDressingOptions {
   profile: DressingProfile;
   /** The bake id (the slots' draws are seeded with `worldSeedOf(bakeId)`, as the sim's are with `WorldIndex.worldSeed`). */
   bakeId: string;
-  /** Loads a family's model; without it every family keeps the gray-box car. */
-  load?: ArtLoader;
+  /** Loads a family's model (the M10d1 vehicle art loader, no fetch of its own); without it every family keeps the gray-box car. */
+  load?: (ref: string, variant: 'desktop' | 'mobile' | 'mobile-low') => Promise<ArtModelData | null>;
 }
 
 export interface ParkedDressingReport {
@@ -97,7 +111,7 @@ export interface ParkedDressingReport {
   loaded: number;
   layer: boolean;
   /** QA: the drawn slots with their fades (AC-4, AC-6). */
-  drawn?: { key: string; x: number; z: number; fade: number; arch: number }[];
+  drawn?: { key: string; x: number; z: number; yaw: number; fade: number; arch: number }[];
 }
 
 export class ParkedDressing {
@@ -119,6 +133,8 @@ export class ParkedDressing {
   private drawn: { key: string; x: number; y: number; z: number; yaw: number; fade: number; arch: number }[] = [];
   private loaded = 0;
   private disposed = false;
+  /** The live car poses of the last update (x, z pairs), reused. */
+  private readonly live: number[] = [];
 
   constructor(private readonly o: ParkedDressingOptions) {
     this.profile = o.profile;
@@ -181,7 +197,7 @@ export class ParkedDressing {
     }
   }
 
-  private loadModels(load: ArtLoader): void {
+  private loadModels(load: NonNullable<ParkedDressingOptions['load']>): void {
     const variant = TRAFFIC_ART.profiles[this.profile].variant;
     for (const fam of this.families) {
       const ref = TRAFFIC_ART.bases[fam.name];
@@ -254,23 +270,36 @@ export class ParkedDressing {
    */
   update(f: Pick<WorldFrame, 'camera' | 'player' | 'poses' | 'poseCount'>, liveCars = true): void {
     this.frame++;
+    // drawn only with the traffic: a picture without the live cars (the look goldens) has no dressing either
+    this.group.visible = liveCars;
     const cfg = FURNITURE.parked;
     const cx = f.camera.pos[0], cz = f.camera.pos[2];
-    const moved = Math.hypot(cx - this.lastAt[0], cz - this.lastAt[1]) > cfg.rebandM;
-    if (!this.dirty && !moved && this.frame % cfg.everyFrames !== 0 && liveCars === this.lastLive) return;
-    this.dirty = false;
-    this.lastLive = liveCars;
-    this.lastAt = [cx, cz];
-    const px = f.player ? f.player.pos[0] : cx, pz = f.player ? f.player.pos[2] : cz;
-    const ghost = cfg.ghostM[this.profile], far = cfg.dressFarM[this.profile], fadeM = cfg.fadeM;
-    const skip = cfg.skipCarLengths * cfg.carLengthM;
     // live car poses (traffic and the sim's parked cars): flagged ambient
-    const live: number[] = [];
+    const live = this.live;
+    live.length = 0;
     const n = liveCars ? (f.poseCount ?? 0) : 0;
     for (let i = 0; i < n; i++) {
       const pose = f.poses?.[i];
       if (pose && (pose.flags & 2) !== 0) live.push(pose.px, pose.pz);
     }
+    const moved = Math.hypot(cx - this.lastAt[0], cz - this.lastAt[1]) > cfg.rebandM;
+    // every frame: a drawn car a live car now stands by is chosen again at once (the other slots keep their places)
+    let blocked = false;
+    for (let i = 0; i < this.drawn.length && !blocked; i++) {
+      const d = this.drawn[i] as (typeof this.drawn)[number];
+      for (let k = 0; k + 1 < live.length; k += 2) {
+        if (nearLive(d, live[k] as number, live[k + 1] as number, cfg)) {
+          blocked = true;
+          break;
+        }
+      }
+    }
+    if (!this.dirty && !moved && !blocked && this.frame % cfg.everyFrames !== 0 && liveCars === this.lastLive) return;
+    this.dirty = false;
+    this.lastLive = liveCars;
+    this.lastAt = [cx, cz];
+    const px = f.player ? f.player.pos[0] : cx, pz = f.player ? f.player.pos[2] : cz;
+    const ghost = cfg.ghostM[this.profile], far = cfg.dressFarM[this.profile], fadeM = cfg.fadeM;
     const cand: { s: DressSlot; d: number; fade: number }[] = [];
     for (const list of this.units.values()) {
       for (const s of list) {
@@ -280,8 +309,7 @@ export class ParkedDressing {
         if (fade <= 0) continue;
         let near = false;
         for (let k = 0; k + 1 < live.length; k += 2) {
-          const dx = (live[k] as number) - s.x, dz = (live[k + 1] as number) - s.z;
-          if (dx * dx + dz * dz < skip * skip) {
+          if (nearLive(s, live[k] as number, live[k + 1] as number, cfg)) {
             near = true;
             break;
           }
@@ -337,7 +365,7 @@ export class ParkedDressing {
 
   /** The drawn cars' blobs (M02g1: one instanced blob object for every actor, so the dressing adds no render object). */
   feedBlobs(push: (x: number, groundY: number, z: number, yaw: number, halfW: number, halfL: number) => void): void {
-    if (!this.layerOn || !this.lookOn) return;
+    if (!this.layerOn || !this.lookOn || !this.group.visible) return;
     for (const d of this.drawn) {
       const a = ARCHETYPES[d.arch];
       if (a) push(d.x, d.y, d.z, d.yaw, a.halfWidth, a.halfLength);
@@ -345,6 +373,7 @@ export class ParkedDressing {
   }
 
   get objects(): number {
+    if (!this.group.visible) return 0;
     return this.families.filter((f) => f.mesh.visible && f.count > 0).length;
   }
 
@@ -354,7 +383,7 @@ export class ParkedDressing {
     return {
       profile: this.profile, instances: this.drawn.length, cap: this.cap, candidates, objects: this.objects, families: this.families.map((f) => f.name),
       loaded: this.loaded, layer: this.layerOn,
-      ...(qa ? { drawn: this.drawn.map((d) => ({ key: d.key, x: d.x, z: d.z, fade: d.fade, arch: d.arch })) } : {}),
+      ...(qa ? { drawn: this.drawn.map((d) => ({ key: d.key, x: d.x, z: d.z, yaw: d.yaw, fade: d.fade, arch: d.arch })) } : {}),
     };
   }
 

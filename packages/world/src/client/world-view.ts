@@ -548,6 +548,12 @@ export class WorldView implements WorldLayer {
         },
       });
     }
+    // M02h6: the QA switch `?furniture=0` starts with the `furniture` and `parked` layers off: the earlier look rows' ledgers measure their
+    // own scene without this row's pools and dressing (DL-758, as `&art=0` and `&textures=0` keep the later rows' layers out)
+    if (this.o.qa === true && new URLSearchParams(globalThis.location?.search ?? '').get('furniture') === '0') {
+      this.renderer.furniture?.setLayer(false);
+      this.parked?.setLayer(false);
+    }
     this.transit = new TransitRenderer({
       parent: host.scene,
       trafficCap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier),
@@ -625,6 +631,8 @@ export class WorldView implements WorldLayer {
     // M02h6: the signal heads at the snapshot's tick (a held look shot freezes them at tick 0, so a golden does not depend on when the
     // sim paused), and the parked dressing between its fades (away from the live cars only while the traffic is drawn)
     this.renderer.furniture?.update(held ? 0 : (f.simTick ?? -1), f.blackout, f.camera.pos[0], f.camera.pos[2], f.nowMs);
+    // the dressing is part of the traffic picture: hidden with the traffic group (the goldens hide it, so they hold no car model that may
+    // still be loading; BD-M02h6-04)
     this.parked?.update(f, this.traffic?.group.visible !== false);
     // M02g1: the blob shadows follow the poses the traffic, the pedestrians and the object pool just drew.
     // M02h2 repair: an ambient actor whose renderer group is hidden (the goldens hide traffic, pedestrians and transit) casts no blob.

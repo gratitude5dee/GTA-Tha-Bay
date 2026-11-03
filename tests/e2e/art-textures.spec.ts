@@ -177,7 +177,7 @@ test.describe('textures ledger @textures-ledger', () => {
     test(`${tier}: the textures add no render object @textures-ledger`, async ({ page }) => {
       // The same state as the ledger it measures from (M02g1): 480 x 270, 13:00 clear, traffic resident, `fog-west` at `mobile-low`.
       // `&art=0` (DL-758): this row is M10d0's own scene, so the art of the later M10d1 row stays out of the frame (BD-REPAIR-M10d1-01)
-      await bootWorld(page, tier, '&art=0', SMALL_VIEWPORT);
+      await bootWorld(page, tier, '&art=0&furniture=0', SMALL_VIEWPORT);
       await texturesSettled(page);
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);

@@ -36,6 +36,8 @@ test.describe('street furniture @world-furniture', () => {
         if (r.resourceType() === 'image' || /\/texture\//.test(url.pathname)) requests.push(url.pathname);
       });
       await bootWorld(page, tier, '', SMALL_VIEWPORT);
+      // the player at the junction, so the heads stay within 200 m of the camera once the shot is released
+      await page.evaluate(() => (window as unknown as W).__dvBridge.world.teleport({ x: 70, z: 318 }));
       await setSky(page, 13, 'clear');
       await world(page, (w) => w.shot('junction-noon'));
       await frames(page, 8);

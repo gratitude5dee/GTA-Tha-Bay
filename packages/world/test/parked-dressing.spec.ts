@@ -2,7 +2,8 @@
  * M02h6 AC-4: the parked dressing on the `synth` bake at each flat tier, run 600 ticks beside the traffic sim (which parks its own cars):
  * no drawn slot is one the sim filled or could fill (its index is past `densityCap(capacity, tierFactors.parked[tier])`); every dressed
  * pose, archetype and colour equals the sim's rules (`parkedPose`, `slotUnit` with `pickArchetype` and the palette); no drawn car is inside
- * `ghostM` of the player or the camera, or within 0.6 car lengths of a live car; the counts stay within the caps; the legacy look draws none.
+ * `ghostM` of the player or the camera, or by a live car (`nearLive`: within 0.6 car lengths of its body along the curb, inside its parking
+ * lane; BD-M02h6-03) and no drawn body overlaps a live car's; the counts stay within the caps; the legacy look draws none.
  */
 import { Group } from 'three/webgpu';
 import { ambientKey, densityCap, worldSeedOf, type ChunkKey, type ParkedSlot, type QualityTierId, type SimChunk } from '@dv/shared';
@@ -10,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { FURNITURE, PARKED_STRIDE, meshChunk, parkedDressingRecords } from '../src/client/chunks/mesher.ts';
 import { lookProfileFor } from '../src/client/look/config.ts';
 import { createSkyNodes } from '../src/client/sky/nodes.ts';
-import { ParkedDressing, dressFade, parkedLook, type DressingProfile } from '../src/client/traffic/parked-dressing.ts';
+import { ParkedDressing, dressFade, nearLive, parkedLook, type DressingProfile } from '../src/client/traffic/parked-dressing.ts';
 import { PALETTE, pickArchetype } from '../src/sim/traffic/components.ts';
 import { DENSITY, profileName } from '../src/sim/traffic/density.ts';
 import { parkedPose, slotUnit } from '../src/sim/traffic/spawn.ts';
@@ -72,7 +73,6 @@ describe('parked dressing on synth (AC-4)', () => {
     }
     const cfg = FURNITURE.parked;
     const ghost = cfg.ghostM[profile];
-    const skip = cfg.skipCarLengths * cfg.carLengthM;
     let maxDrawn = 0, frames = 0;
     rig.run(600, (tick) => {
       if (tick % 6 !== 0) return;
@@ -90,7 +90,17 @@ describe('parked dressing on synth (AC-4)', () => {
         expect(filled.has(ambientKey(cell as ChunkKey, slot)), `${d.key} is a live sim car`).toBe(false);
         expect(Math.hypot(d.x - focus.x, d.z - focus.z), `${d.key} inside ghostM of the player`).toBeGreaterThan(ghost);
         expect(Math.hypot(d.x - focus.x, d.z - (focus.z + 6)), `${d.key} inside ghostM of the camera`).toBeGreaterThan(ghost);
-        for (const a of agents) expect(Math.hypot(a.x - d.x, a.z - d.z), `${d.key} by live car ${a.key}`).toBeGreaterThanOrEqual(skip);
+        const yaw = d.yaw;
+        // (plain checks first: an expect per car pair costs minutes at desktop's cap)
+        const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+        const bad: string[] = [];
+        for (const a of agents) {
+          if (nearLive({ x: d.x, z: d.z, yaw }, a.x, a.z, cfg)) bad.push(`${d.key} by live car ${a.key}`);
+          // no overlap of the two bodies (a car of 4.6 by 1.9 m each way, in the slot's frame)
+          const dx = a.x - d.x, dz = a.z - d.z;
+          if (Math.abs(dx * fx + dz * fz) < cfg.carLengthM && Math.abs(dx * fz - dz * fx) < 1.9) bad.push(`${d.key} overlaps live car ${a.key}`);
+        }
+        expect(bad).toEqual([]);
         expect(d.fade).toBeGreaterThan(0);
       }
     });

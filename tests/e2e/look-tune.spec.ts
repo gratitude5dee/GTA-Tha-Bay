@@ -192,7 +192,7 @@ test.describe('look ledger @look-ledger', () => {
       // no `perf=1`: with it `live()` returns the last frame the loop measured, and a held frame would never change
       // `&textures=0&art=0` (DL-758): this row is M02g1's own scene, so the layers of the later rows (M10d0's surface textures, M10d1's art)
       // stay out of the frame, as M02g2's row keeps the art out (BD-REPAIR-M10d1-01)
-      await bootWorld(page, tier, '&textures=0&art=0');
+      await bootWorld(page, tier, '&textures=0&art=0&furniture=0');
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);
       // `mobile-low`: the `fog-west` shot looks down a street of the synth world with 87 render objects (the spawn's street has 116 with

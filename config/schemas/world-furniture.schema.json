@@ -325,6 +325,7 @@
         "dressShare",
         "skipCarLengths",
         "carLengthM",
+        "skipLateralM",
         "rebandM",
         "everyFrames"
       ],
@@ -473,6 +474,10 @@
         "carLengthM": {
           "type": "number",
           "minimum": 1
+        },
+        "skipLateralM": {
+          "type": "number",
+          "minimum": 0
         },
         "rebandM": {
           "type": "number",
