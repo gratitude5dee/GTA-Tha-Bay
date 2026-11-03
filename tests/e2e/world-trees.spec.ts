@@ -110,8 +110,11 @@ test.describe('world trees @world-trees', () => {
       const back = await cameraXZ(page);
       expect(Math.hypot(back.x - home.x, back.z - home.z), 'back home').toBeLessThan(50);
 
+      // M02h5: both reads of one held frame (a unit that lands between them would add its hundreds of scatter instances to one side)
+      await world(page, (w) => w.hold(true));
       const units = await residentTrees(page);
       const v = await veg(page);
+      await world(page, (w) => w.hold(false));
       const drawnByUnits = units.filter((u) => u.shown).reduce((n, u) => n + u.n, 0);
       console.log(`world-trees ${tier}: set ${v.set}, pools ${v.pools} (${v.drawnPools} drawing), forms ${JSON.stringify(v.forms)}, wind ${v.wind}, drawn ${v.drawnInstances} of ${units.reduce((n, u) => n + u.n, 0)} resident in ${units.length} units, crossings ${v.crossings}`);
       expect(units.length).toBeGreaterThan(0);

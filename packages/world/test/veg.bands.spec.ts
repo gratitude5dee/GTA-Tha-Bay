@@ -95,6 +95,11 @@ function script(p: Profile, writeCap: number, steps = 300): { sig: string; check
       const ids = [...units.keys()];
       const id = ids[rng.nextU32() % ids.length] as string;
       pools.setNear(id, pools.nearOf(id) !== true);
+    } else if (r < 0.24) {
+      // a unit crosses tree.drawM: its ranges are hidden or drawn again
+      const ids = [...units.keys()];
+      const id = ids[rng.nextU32() % ids.length] as string;
+      pools.setDrawn(id, pools.drawnOf(id) !== true);
     } else if (r < 0.25) {
       // a jump (a teleport)
       cam = { x: rng.nextFloat() * 1536, z: rng.nextFloat() * 1536 };
@@ -122,6 +127,10 @@ function script(p: Profile, writeCap: number, steps = 300): { sig: string; check
     spread = Math.max(spread, frames);
     expect(pools.pendingBands).toBe(0);
     checked++;
+    // what every pool draws is what the drawn units' bands say, no more (a hidden unit draws nothing)
+    let want = 0;
+    for (const id of units.keys()) if (pools.drawnOf(id) === true) want += pools.bandsOf(id).filter((b) => b.band !== BAND_NONE).length;
+    expect(pools.drawnInstances(), `${p} step ${step}: drawn instances`).toBe(want);
     for (const id of units.keys()) {
       const bands = pools.bandsOf(id);
       const counts = pools.drawCounts(id);
