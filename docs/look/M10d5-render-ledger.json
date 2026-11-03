@@ -46,5 +46,13 @@
         "variant": "mobile-low"
       }
     }
+  },
+  "xr": {
+    "baseline": 93,
+    "after": 76,
+    "player": {
+      "objects": 1,
+      "triangles": 1377
+    }
   }
 }
