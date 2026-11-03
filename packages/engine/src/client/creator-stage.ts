@@ -336,6 +336,11 @@ function createModelCache(assets: StageAssets | undefined): {
           if (hair) out.hair = hair;
           return out;
         });
+        // a failed read is asked again next time, like a part model (BD-FIX-CREATOR-SHOES-02)
+        const mine = pages;
+        mine.catch(() => {
+          if (pages === mine) pages = null;
+        });
       }
       return pages;
     },
