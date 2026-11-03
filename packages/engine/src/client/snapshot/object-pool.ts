@@ -1,6 +1,11 @@
 import { BoxGeometry, Group, Mesh, MeshStandardNodeMaterial, Vector3, type BufferGeometry, type Object3D, type Scene } from 'three/webgpu';
 import { AnimLod, ENGINE_TIERS } from '../anim/lod.ts';
 import { buildPlaceholderRig, MannequinAnimator, type PlaceholderRig } from '../anim/placeholder-rig.ts';
+import {
+  actorBody, BodyLoader, bodySpecKey, bodyVariantOf, isActorBodyKey, isBodyKey, isPlayerBodyKey, playerBody, resolveBody,
+  type BodyAssets, type BodyFigure, type BodyPart, type BodySpec, type BodyVariant,
+} from '../avatar/player-body.ts';
+import type { QualityTierId } from '@dv/shared';
 import { buildGrayboxThing, GrayboxAssets, isGrayboxThing, type DrawnThing } from '../vehicle/vehicle-view.ts';
 import { art } from '../vehicle/art.ts';
 import { isArtKey } from '../vehicle/art-model.ts';
@@ -76,6 +81,51 @@ interface Avatar {
   pendingSec: number;
 }
 
+/**
+ * An on-foot body of M10d5 (`character/pc-body-*` for the player, `character/ped.body.*` for a mission actor): the mannequin draws until the
+ * body is built and its program compiled, and for good when a part fails to load (`GRAYBOX_CAPSULE` is the load-failure stand-in).
+ */
+interface BodyEntry {
+  kind: 'player' | 'actor';
+  /** What the drawn or awaited body is made of (`bodySpecKey`, or `actor`). */
+  want: string;
+  state: 'loading' | 'compiling' | 'body' | 'failed';
+  failure?: { ref: string; reason: string };
+  /** The figure being compiled: it replaces the mannequin once its program is ready. */
+  next?: BodyFigure;
+  figure?: BodyFigure;
+}
+
+/** What the QA bridge reads of the on-foot bodies (`observe().bodies`). */
+export interface BodyReport {
+  variant: BodyVariant | null;
+  /** The render keys of every pooled entity, sorted (what the snapshot asks to draw). */
+  keys: string[];
+  player: BodyEntryReport | null;
+  actors: BodyEntryReport[];
+}
+export interface BodyEntryReport {
+  handle: number;
+  key: string;
+  /** `body` once the realistic body draws; `mannequin` while it loads or compiles, and for good after a failure (`failure`). */
+  drawn: 'body' | 'mannequin';
+  state: BodyEntry['state'] | 'off';
+  failure: { ref: string; reason: string } | null;
+  /** The player's parts (refs drawn, `model` or `fallback`); empty for an actor. */
+  parts: BodyPart[];
+  /** Render objects of the entity (mesh nodes under its root), and of them skinned meshes; distinct materials; triangles. */
+  objects: number;
+  skinned: number;
+  materials: number;
+  triangles: number;
+  /** The clips with weight on the entity's mixer: an active clip, never the bind pose. */
+  clips: { name: string; weight: number; time: number }[];
+  clipSource: 'file' | 'placeholder' | 'mixed' | null;
+  /** The drawn root (the feet), world metres, and the render lift there (M02h2). */
+  at: [number, number, number];
+  lift: number;
+}
+
 export class ObjectPool {
   private readonly meshes = new Map<number, Object3D>();
   private readonly avatars = new Map<number, Avatar>();
@@ -103,6 +153,16 @@ export class ObjectPool {
   /** The warm set (`warm`): one object per `WARM_KEYS` entry, kept hidden so that their pipelines and programs stay alive. */
   private warmSet: Group | null = null;
   private readonly warmRigs: PlaceholderRig[] = [];
+  /** The renderer's program compile (`warm`): a built body joins the scene once its program is ready. */
+  private compile: ((root: Object3D) => Promise<unknown>) | null = null;
+  /** M10d5: the on-foot bodies (null: every character draws the mannequin), the player's spec and each body entity. */
+  private bodyLoader: BodyLoader | null = null;
+  private bodySpec: BodySpec = resolveBody({});
+  private bodyWant = bodySpecKey(this.bodySpec);
+  private bodySeen = -1;
+  private bodyDirty = false;
+  private readonly bodies = new Map<number, BodyEntry>();
+  private readonly keyOfHandle = new Map<number, string>();
 
   constructor(private readonly scene: Pick<Scene, 'add' | 'remove'>) {}
 
@@ -158,6 +218,68 @@ export class ObjectPool {
     return lowest;
   }
 
+  /**
+   * M10d5: draws the on-foot bodies from `assets` at the variant of `tier` (`mid` parts on the flat desktop and mobile tiers, `lo` on
+   * `mobile-low` and XR). Without it (a gray-box scene, a QA `?art=0` boot) every character keeps the mannequin.
+   */
+  setBodies(assets: BodyAssets | null, tier: QualityTierId): void {
+    this.bodyLoader?.dispose();
+    this.bodyLoader = assets ? new BodyLoader(assets, bodyVariantOf(tier)) : null;
+    this.bodySeen = -1;
+    for (const e of this.bodies.values()) if (e.state !== 'compiling') e.state = 'loading';
+    this.bodyDirty = true;
+  }
+
+  /** M10d5: the profile's `PlayerAvatar` (`sys.avatar`, any JSON; `{}` is the creator's default, Coast). A change rebuilds the player's body. */
+  setAvatar(raw: unknown): void {
+    const spec = resolveBody(raw);
+    const key = bodySpecKey(spec);
+    if (key === this.bodyWant) return;
+    this.bodySpec = spec;
+    this.bodyWant = key;
+    this.bodyDirty = true;
+  }
+
+  /** M10d5 QA: the on-foot bodies now (the bridge's `observe().bodies`). */
+  bodyReport(): BodyReport {
+    const entry = (handle: number, e: BodyEntry | undefined): BodyEntryReport => {
+      const root = this.meshes.get(handle);
+      const a = this.avatars.get(handle);
+      let objects = 0, skinned = 0, triangles = 0;
+      const mats = new Set<unknown>();
+      root?.traverse((o) => {
+        const m = o as Mesh & { isSkinnedMesh?: boolean };
+        if (!m.isMesh) return;
+        objects++;
+        if (m.isSkinnedMesh) skinned++;
+        for (const x of Array.isArray(m.material) ? m.material : [m.material]) mats.add(x);
+        const g = m.geometry;
+        triangles += (g.index ? g.index.count : (g.getAttribute('position')?.count ?? 0)) / 3;
+      });
+      const p = root?.position;
+      return {
+        handle,
+        key: this.keyOfHandle.get(handle) ?? '',
+        drawn: e?.state === 'body' ? 'body' : 'mannequin',
+        state: e?.state ?? 'off',
+        failure: e?.failure ?? null,
+        parts: e?.kind === 'player' ? [...this.bodySpec.parts] : [],
+        objects, skinned, materials: mats.size, triangles,
+        clips: a ? a.animator.activeClips() : [],
+        clipSource: e?.figure?.clipSource ?? null,
+        at: p ? [p.x, p.y, p.z] : [0, 0, 0],
+        lift: p && this.footLift ? this.footLift(p.x, p.z) : 0,
+      };
+    };
+    let player: BodyEntryReport | null = null;
+    const actors: BodyEntryReport[] = [];
+    for (const [handle, key] of this.keyOfHandle) {
+      if (isPlayerBodyKey(key)) player = entry(handle, this.bodies.get(handle));
+      else if (isActorBodyKey(key)) actors.push(entry(handle, this.bodies.get(handle)));
+    }
+    return { variant: this.bodyLoader?.variant ?? null, keys: [...new Set(this.keyOfHandle.values())].sort(), player, actors };
+  }
+
   /** Sets the anim LOD bands of the tier (config/engine-tiers.json). */
   setLodBands(bands: { fullHzWithinM: number; halfHzWithinM: number; quarterHzWithinM: number }): void {
     this.lod.setBands(bands);
@@ -181,10 +303,17 @@ export class ObjectPool {
       let mesh = this.meshes.get(p.handle);
       if (!mesh) {
         const key = keyOf(p.renderKey) ?? '';
-        if (key === GRAYBOX_CAPSULE) {
+        this.keyOfHandle.set(p.handle, key);
+        if (key === GRAYBOX_CAPSULE || isBodyKey(key)) {
+          // M10d5: a body key draws the mannequin until its body is built (and for good when a part fails to load)
           const rig = buildPlaceholderRig();
           this.avatars.set(p.handle, { rig, animator: new MannequinAnimator(rig), pendingSec: 0 });
           mesh = rig.root;
+          if (isBodyKey(key)) {
+            const kind = isPlayerBodyKey(key) ? 'player' : 'actor';
+            this.bodies.set(p.handle, { kind, want: kind === 'player' ? this.bodyWant : 'actor', state: 'loading' });
+            this.bodyDirty = true;
+          }
         } else if (isGrayboxThing(key)) {
           const thing = buildGrayboxThing(this.assets, key) as DrawnThing;
           this.things.set(p.handle, thing);
@@ -205,7 +334,7 @@ export class ObjectPool {
           mesh = this.create(key);
         }
         // M02g1: the look finds the actors by this tag (shadow casters on the desktop tiers); the engine draws them either way.
-        mesh.userData['dvActor'] = key === GRAYBOX_CAPSULE ? 'avatar' : key.startsWith('vehicle/') || key === 'prop/police.heli' ? 'vehicle' : 'prop';
+        mesh.userData['dvActor'] = key === GRAYBOX_CAPSULE || isBodyKey(key) ? 'avatar' : key.startsWith('vehicle/') || key === 'prop/police.heli' ? 'vehicle' : 'prop';
         this.meshes.set(p.handle, mesh);
         this.scene.add(mesh);
       }
@@ -239,7 +368,119 @@ export class ObjectPool {
       this.things.delete(handle);
       this.pendingArt.delete(handle);
       this.disposeAvatar(handle);
+      this.disposeBody(handle);
+      this.keyOfHandle.delete(handle);
     }
+    if (this.bodyLoader && (this.bodyDirty || this.bodyLoader.version !== this.bodySeen)) this.refreshBodies();
+  }
+
+  /**
+   * M10d5: builds the bodies whose parts have arrived and swaps each mannequin for its body once the body's program is compiled, keeping
+   * pose, visibility, opacity, shadow flags, layers and the animation state; a player body whose avatar changed is built again.
+   */
+  private refreshBodies(): void {
+    const loader = this.bodyLoader;
+    if (!loader) return;
+    this.bodySeen = loader.version;
+    this.bodyDirty = false;
+    for (const [handle, e] of this.bodies) {
+      const want = e.kind === 'player' ? this.bodyWant : 'actor';
+      if (e.want !== want) {
+        e.want = want;
+        if (e.state !== 'compiling') e.state = 'loading';
+        delete e.failure;
+      }
+      if (e.state !== 'loading') continue;
+      const built = e.kind === 'player' ? playerBody(loader, this.bodySpec) : actorBody(loader, handle);
+      if (built.state === 'loading') continue;
+      if (built.state === 'failed') {
+        e.state = 'failed';
+        e.failure = { ref: built.ref, reason: built.reason };
+        console.warn(`body ${e.kind}: ${built.ref} did not load (${built.reason}); the mannequin stays`);
+        continue;
+      }
+      const figure = built.figure;
+      e.state = 'compiling';
+      e.next = figure;
+      const ready = (): void => {
+        if (this.bodies.get(handle) !== e || e.next !== figure) {
+          figure.dispose();
+          return;
+        }
+        delete e.next;
+        if (e.want !== want) {
+          // the avatar changed while this one compiled: build the new one
+          figure.dispose();
+          e.state = 'loading';
+          this.bodyDirty = true;
+          return;
+        }
+        this.swapBody(handle, e, figure);
+      };
+      if (!this.compile) {
+        ready();
+        continue;
+      }
+      // the compile collects the figure wherever it stands (unculled, as `warm` does); it is out of the scene again until the swap
+      this.scene.add(figure.root);
+      figure.mesh.frustumCulled = false;
+      let done: Promise<unknown>;
+      try {
+        done = this.compile(figure.root);
+      } catch (err) {
+        done = Promise.reject(err);
+      }
+      figure.mesh.frustumCulled = true;
+      this.scene.remove(figure.root);
+      void done.then(ready, ready);
+    }
+  }
+
+  private swapBody(handle: number, e: BodyEntry, figure: BodyFigure): void {
+    const old = this.meshes.get(handle);
+    const prev = this.avatars.get(handle);
+    if (!old || !prev) {
+      figure.dispose();
+      return;
+    }
+    const root = figure.root;
+    root.position.copy(old.position);
+    root.quaternion.copy(old.quaternion);
+    root.userData['dvActor'] = old.userData['dvActor'];
+    // what the look (sun casters) and the QA captures (layer 31) set on the old figure carries over to the new one
+    let cast = false, receive = false;
+    old.traverse((o) => {
+      const m = o as Mesh;
+      if (m.isMesh) {
+        cast ||= m.castShadow;
+        receive ||= m.receiveShadow;
+      }
+    });
+    let mask = old.layers.mask;
+    old.traverse((o) => void (mask = o.layers.mask));
+    root.traverse((o) => {
+      o.layers.mask = mask;
+      const m = o as Mesh;
+      if (m.isMesh) {
+        m.castShadow = cast;
+        m.receiveShadow = receive;
+      }
+    });
+    const animator = new MannequinAnimator(figure, prev.animator.graph);
+    this.scene.remove(old);
+    this.scene.add(root);
+    prev.animator.dispose();
+    prev.rig.dispose();
+    this.avatars.set(handle, { rig: figure, animator, pendingSec: prev.pendingSec });
+    root.visible = old.visible;
+    e.figure = figure;
+    e.state = 'body';
+    this.meshes.set(handle, root);
+  }
+
+  private disposeBody(handle: number): void {
+    // the figure itself is the avatar's rig (`disposeAvatar`); one still compiling is disposed when its compile ends
+    this.bodies.delete(handle);
   }
 
   /**
@@ -250,6 +491,7 @@ export class ObjectPool {
    * are hidden once the compile has collected them, so they are never drawn; they stay in the scene so their programs are not released.
    */
   warm(compile: (root: Object3D) => Promise<unknown>): Promise<void> {
+    this.compile = compile;
     if (this.warmSet) return Promise.resolve();
     const set = new Group();
     set.name = 'dv:warm';
@@ -310,6 +552,8 @@ export class ObjectPool {
   /** Remove every mesh (worker restart: handles are not valid across sessions). */
   clear(): void {
     this.pendingArt.clear();
+    this.bodies.clear();
+    this.keyOfHandle.clear();
     for (const mesh of this.meshes.values()) this.scene.remove(mesh);
     for (const handle of [...this.avatars.keys()]) this.disposeAvatar(handle);
     this.things.clear();
@@ -327,6 +571,8 @@ export class ObjectPool {
     this.geometries.clear();
     this.materials.clear();
     this.assets.dispose();
+    this.bodyLoader?.dispose();
+    this.bodyLoader = null;
   }
 
   private disposeAvatar(handle: number): void {

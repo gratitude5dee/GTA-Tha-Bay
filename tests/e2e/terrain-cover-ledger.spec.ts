@@ -15,7 +15,7 @@ import { bakeIdOf, bootWorld, live, read, setSky, world, type W } from './markin
 
 const LEDGER = 'docs/look/M02h3-render-ledger.json';
 /** The latest merged ledger first (its `after` is this one's baseline). */
-const PRIORS = ['docs/look/M10d5-render-ledger.json', 'docs/look/M02h2-render-ledger.json', 'docs/look/M02h1-render-ledger.json', 'docs/look/M10d1-render-ledger.json'];
+const PRIORS = ['docs/look/M02h2-render-ledger.json', 'docs/look/M02h1-render-ledger.json', 'docs/look/M10d1-render-ledger.json'];
 const LEDGER_TIERS = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low'] as const;
 interface TierRow {
   baseline: number;

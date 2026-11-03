@@ -99,8 +99,8 @@ export function registryFindings(reg: PlaceholderRegistry, root: string, catalog
         bad('bad-match', `${row.id}: ${(e as Error).message}`);
       }
     }
-    if (row.owner === 'M10d4') {
-      // the ped and creator rows of M10d4: a non-empty replacedBy that resolves, and no Coast row (those are M10a2's, DL-741)
+    if (row.owner === 'M10d4' || row.owner === 'M10d5') {
+      // the ped and creator rows of M10d4 and the capsule row of M10d5: a non-empty replacedBy that resolves, and no Coast row (those are M10a2's, DL-741)
       if (row.replacedBy.length === 0) bad('replaced-by-empty', `${row.id}: replacedBy is empty`);
       for (const ref of row.replacedBy) {
         if (catalog && !catalog.has(ref)) bad('replaced-by-unresolved', `${row.id}: ${ref} is not in the catalog`);

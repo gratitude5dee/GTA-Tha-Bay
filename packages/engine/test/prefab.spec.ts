@@ -89,7 +89,7 @@ describe('PrefabRegistry', () => {
     expect(body.height[id]).toBeCloseTo(1.8, 6);
     expect(ecs.store(Control).state[id]).toBe(100);
     expect(ecs.store(Control).owner[id]).toBe(1);
-    expect(ecs.strings.get(ecs.store(RenderKey).asset[id] as number)).toBe('prop/graybox.capsule');
+    expect(ecs.strings.get(ecs.store(RenderKey).asset[id] as number)).toBe('character/pc-body-athletic');
     expect(ecs.store(RenderKey).visible[id]).toBe(1);
 
     // The body: a kinematic capsule, centred 0.9 m + skin above the feet.

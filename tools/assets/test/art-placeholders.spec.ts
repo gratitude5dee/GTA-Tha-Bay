@@ -69,6 +69,22 @@ describe('config/art-placeholders.json', () => {
     expect(rules).toContain('replaced-by-unresolved');
   });
 
+  it('has the M10d5 capsule row replaced by refs in the catalog, and player.default and ped.actor draw no gray-box ref (M10d5 AC-2)', () => {
+    const row = rowOf(reg, 'prop/graybox.capsule');
+    expect(row?.owner).toBe('M10d5');
+    expect(row?.replacedBy.length ?? 0).toBeGreaterThan(0);
+    for (const ref of row?.replacedBy ?? []) expect(catalog().has(ref), ref).toBe(true);
+    for (const id of ['player.default', 'ped.actor']) {
+      const j = JSON.parse(readFileSync(path.join(toolsRoot, 'assets/prefabs', `${id}.json`), 'utf8')) as { render: { asset: string } };
+      expect(j.render.asset, id).not.toMatch(/^[a-z_]+\/graybox\./);
+      expect(row?.replacedBy, id).toContain(j.render.asset);
+    }
+    // an empty capsule row is a finding naming it
+    const empty: PlaceholderRegistry = structuredClone(reg);
+    (empty.rows.find((r) => r.id === 'capsule') as PlaceholderRegistry['rows'][number]).replacedBy = [];
+    expect(registryFindings(empty, toolsRoot, catalog()).some((f) => f.rule === 'replaced-by-empty' && f.detail.startsWith('capsule:'))).toBe(true);
+  });
+
   it('fails a repoint to a ref the catalog lacks, and a source its row does not match', () => {
     const bad: PlaceholderRegistry = structuredClone(reg);
     const row = bad.rows.find((r) => r.id === 'vehicles') as PlaceholderRegistry['rows'][number];

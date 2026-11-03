@@ -17,7 +17,7 @@ import { veg } from './trees-helpers.ts';
 
 const LEDGER = 'docs/look/M02h5-render-ledger.json';
 /** The latest merged ledger first (its `after` is this one's baseline). */
-const PRIORS = ['docs/look/M10d5-render-ledger.json', 'docs/look/M10d4-render-ledger.json', 'docs/look/M02h4-render-ledger.json'];
+const PRIORS = ['docs/look/M10d4-render-ledger.json', 'docs/look/M02h4-render-ledger.json'];
 const LEDGER_TIERS = ['desktop', 'mobile', 'mobile-low'] as const;
 /** The scatter's object delta allowed per row. */
 const SCATTER_DELTA_MAX: Record<string, number> = { desktop: 4, mobile: 3, 'mobile-low': 1, legacy: 0, xr: 0 };

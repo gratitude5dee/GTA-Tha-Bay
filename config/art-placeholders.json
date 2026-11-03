@@ -272,7 +272,10 @@
       "what": "The on-foot capsule of player.default and ped.actor (prop/graybox.capsule)",
       "owner": "M10d5",
       "match": "^prop/graybox\\.capsule$",
-      "replacedBy": []
+      "replacedBy": [
+        "character/pc-body-athletic",
+        "character/ped.body.a"
+      ]
     }
   ]
 }
