@@ -607,7 +607,17 @@
       "scatter-ledger.spec.ts › scatter ledger @scatter-ledger › mobile: the scatter's render objects against the latest merged ledger, and park-forest's vegetation triangles @scatter-ledger": 4.5,
       "scatter-ledger.spec.ts › scatter ledger @scatter-ledger › mobile-low: the scatter's render objects against the latest merged ledger, and park-forest's vegetation triangles @scatter-ledger": 2,
       "scatter-ledger.spec.ts › scatter ledger @scatter-ledger › legacy: the scatter's render objects against the latest merged ledger, and park-forest's vegetation triangles @scatter-ledger": 1.8,
-      "scatter-ledger.spec.ts › scatter ledger @scatter-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @scatter-ledger": 0
+      "scatter-ledger.spec.ts › scatter ledger @scatter-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @scatter-ledger": 0,
+      "world-furniture.spec.ts › street furniture @world-furniture › desktop: junction-noon lists the profile's pools and parked cars, the heads change, the layers switch, nothing is fetched @world-furniture": 9,
+      "world-furniture.spec.ts › street furniture @world-furniture › mobile: junction-noon lists the profile's pools and parked cars, the heads change, the layers switch, nothing is fetched @world-furniture": 3.3,
+      "world-furniture.spec.ts › street furniture @world-furniture › mobile-low: junction-noon lists the profile's pools and parked cars, the heads change, the layers switch, nothing is fetched @world-furniture": 1.2,
+      "furniture-ledger.spec.ts › furniture ledger @furniture-ledger › desktop: the furniture's render objects against the latest merged ledger, and its delta at noon-street and junction-noon @furniture-ledger": 16,
+      "furniture-ledger.spec.ts › furniture ledger @furniture-ledger › mobile: the furniture's render objects against the latest merged ledger, and its delta at noon-street and junction-noon @furniture-ledger": 5,
+      "furniture-ledger.spec.ts › furniture ledger @furniture-ledger › mobile-low: the furniture's render objects against the latest merged ledger, and its delta at noon-street and junction-noon @furniture-ledger": 3,
+      "furniture-ledger.spec.ts › furniture ledger @furniture-ledger › legacy: the furniture's render objects against the latest merged ledger, and its delta at noon-street and junction-noon @furniture-ledger": 2,
+      "furniture-ledger.spec.ts › furniture ledger @furniture-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @furniture-ledger": 0,
+      "city-look-golden.spec.ts › look goldens @look-golden › desktop junction-noon is within the tolerance of its golden and a second capture is byte-identical @look-golden": 15,
+      "city-look-golden.spec.ts › look goldens @look-golden › mobile-low junction-noon is within the tolerance of its golden and a second capture is byte-identical @look-golden": 0.8
     },
     "webkit-webgl2": {
       "account-password.spec.ts › account island @account › an adult creates an account after reading the terms; no token is stored in the browser @account": 0.03,
@@ -867,7 +877,10 @@
       "world-scatter.spec.ts › world scatter @world-scatter › desktop: park-forest draws impostors, shrubs and hedges within the write cap; the scatter layer changes the frame @world-scatter": 15,
       "world-scatter.spec.ts › world scatter @world-scatter › mobile: park-forest draws impostors, shrubs and hedges within the write cap; the scatter layer changes the frame @world-scatter": 4.5,
       "world-scatter.spec.ts › world scatter @world-scatter › mobile-low: park-forest draws impostors, shrubs and hedges within the write cap; the scatter layer changes the frame @world-scatter": 3,
-      "world-scatter.spec.ts › world scatter @world-scatter › mobile-low: world.scatter off (?scatter=0) reports no scatter instance and no impostor pool @world-scatter": 1.2
+      "world-scatter.spec.ts › world scatter @world-scatter › mobile-low: world.scatter off (?scatter=0) reports no scatter instance and no impostor pool @world-scatter": 1.2,
+      "world-furniture.spec.ts › street furniture @world-furniture › desktop: junction-noon lists the profile's pools and parked cars, the heads change, the layers switch, nothing is fetched @world-furniture": 4.1,
+      "world-furniture.spec.ts › street furniture @world-furniture › mobile: junction-noon lists the profile's pools and parked cars, the heads change, the layers switch, nothing is fetched @world-furniture": 0.8,
+      "world-furniture.spec.ts › street furniture @world-furniture › mobile-low: junction-noon lists the profile's pools and parked cars, the heads change, the layers switch, nothing is fetched @world-furniture": 0.5
     },
     "xr-quest3": {
       "art-city.spec.ts › xr art @xr @art-city › the Quest tier is legacy with one family and standard paint @xr @art-city": 0.21,
@@ -882,7 +895,9 @@
       "world-sky-look-fixes.spec.ts › xr fixes ledger @fixes-ledger › the Quest tier holds its render objects on a held frame, against M10d0 @xr @fixes-ledger": 0.19,
       "xr-smoke.spec.ts › XR smoke @xr @xr-smoke › Enter VR (smoke) presents, renders XR frames, runs the sim, and exiting returns to the flat page @xr @xr-smoke": 0.55,
       "xr/xr-panel.spec.ts › XR UI panel skeleton @xr @xr-panel › a ScreenDef panel opens 1.2 m away on a world anchor, a ray press works, text is 1.5 degrees, it redraws only after a view-model change @xr @xr-panel": 0.44,
-      "scatter-ledger.spec.ts › xr scatter ledger @xr @scatter-ledger › the Quest tier: no impostor or understory pool, its render objects equal its baseline @xr @scatter-ledger": 3
+      "scatter-ledger.spec.ts › xr scatter ledger @xr @scatter-ledger › the Quest tier: no impostor or understory pool, its render objects equal its baseline @xr @scatter-ledger": 3,
+      "world-furniture.spec.ts › xr furniture @world-furniture › the Quest tier has no furniture pool, no parked dressing and no layer to switch @xr @world-furniture": 0.3,
+      "furniture-ledger.spec.ts › xr furniture ledger @xr @furniture-ledger › the Quest tier: no furniture pool and no parked dressing, its render objects at or under its baseline @xr @furniture-ledger": 0.4
     }
   }
 }
