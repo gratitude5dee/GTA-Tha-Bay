@@ -47,6 +47,8 @@ export interface PoolWrite {
   id: string;
   start: number;
   len: number;
+  /** M02h5 (`HoleLayout`): write zero-scale instances here (a removed or hidden range), not the unit's data. */
+  zero?: boolean;
 }
 
 export const MIN_CAPACITY = 64;
@@ -124,6 +126,11 @@ export class PoolLayout {
     c.free.length = 0;
     for (const f of this.free) c.free.push([f[0], f[1]]);
     return c;
+  }
+
+  /** Instances drawn (the prefix). */
+  get drawnCount(): number {
+    return this.count;
   }
 
   /** Instances held, drawn or not. */
@@ -231,6 +238,125 @@ export class PoolLayout {
   }
 }
 
+/**
+ * M02h5: the layout of the pools when the scatter is on. A range stays where it was allocated (first fit, no prefix to keep packed): a
+ * removed or hidden range is written as zero-scale instances (degenerate triangles, no pixel) and its slots are reused first; `count` is
+ * the end of the last allocated range. A step therefore writes only its own instances, never a slide of the units after it, so the
+ * re-banding's per-frame cap holds whatever the order of the units. `drawnCount` is the instances of the drawn ranges (what the pool
+ * draws for real).
+ */
+export class HoleLayout {
+  capacity: number;
+  count = 0;
+  readonly ranges = new Map<string, PoolRange>();
+  /** Free intervals `[start, end)` over the whole capacity, sorted and merged. */
+  readonly free: [number, number][] = [];
+  grows = 0;
+
+  constructor(capacity = MIN_CAPACITY) {
+    let c = MIN_CAPACITY;
+    while (c < capacity) c *= 2;
+    this.capacity = c;
+    this.free.push([0, c]);
+  }
+
+  add(id: string, len: number, drawn: boolean): PoolWrite[] {
+    if (this.ranges.has(id)) throw new Error(`pool: ${id} is already in the pool`);
+    if (len <= 0) return [];
+    const start = this.alloc(len);
+    this.ranges.set(id, { start, len, drawn });
+    this.count = Math.max(this.count, start + len);
+    return [{ id, start, len, ...(drawn ? {} : { zero: true }) }];
+  }
+
+  remove(id: string): PoolWrite[] {
+    const r = this.ranges.get(id);
+    if (!r) return [];
+    this.ranges.delete(id);
+    this.release(r.start, r.start + r.len);
+    const out: PoolWrite[] = [];
+    // a range at the end shortens the drawn span; one inside it is zeroed
+    let end = 0;
+    for (const q of this.ranges.values()) end = Math.max(end, q.start + q.len);
+    if (r.start < end) out.push({ id, start: r.start, len: r.len, zero: true });
+    this.count = end;
+    return out;
+  }
+
+  setDrawn(id: string, drawn: boolean): PoolWrite[] {
+    const r = this.ranges.get(id);
+    if (!r || r.drawn === drawn) return [];
+    r.drawn = drawn;
+    return [{ id, start: r.start, len: r.len, ...(drawn ? {} : { zero: true }) }];
+  }
+
+  reserve(n: number): void {
+    while (this.capacity < n) this.grow();
+  }
+
+  clone(): HoleLayout {
+    const c = new HoleLayout(this.capacity);
+    c.capacity = this.capacity;
+    c.count = this.count;
+    c.grows = this.grows;
+    for (const [k, r] of this.ranges) c.ranges.set(k, { ...r });
+    c.free.length = 0;
+    for (const f of this.free) c.free.push([f[0], f[1]]);
+    return c;
+  }
+
+  get used(): number {
+    let n = 0;
+    for (const r of this.ranges.values()) n += r.len;
+    return n;
+  }
+
+  get drawnCount(): number {
+    let n = 0;
+    for (const r of this.ranges.values()) if (r.drawn) n += r.len;
+    return n;
+  }
+
+  private alloc(len: number): number {
+    for (;;) {
+      for (let i = 0; i < this.free.length; i++) {
+        const f = this.free[i] as [number, number];
+        if (f[1] - f[0] < len) continue;
+        const start = f[0];
+        if (f[1] - f[0] === len) this.free.splice(i, 1);
+        else f[0] += len;
+        return start;
+      }
+      this.grow();
+    }
+  }
+
+  private grow(): void {
+    const old = this.capacity;
+    this.capacity *= 2;
+    this.grows++;
+    this.release(old, this.capacity);
+  }
+
+  private release(lo: number, hi: number): void {
+    if (hi <= lo) return;
+    let i = 0;
+    while (i < this.free.length && (this.free[i] as [number, number])[0] < lo) i++;
+    this.free.splice(i, 0, [lo, hi]);
+    if (i > 0 && (this.free[i - 1] as [number, number])[1] === lo) {
+      (this.free[i - 1] as [number, number])[1] = hi;
+      this.free.splice(i, 1);
+      i--;
+    }
+    const cur = this.free[i] as [number, number];
+    const nxt = this.free[i + 1];
+    if (nxt && cur[1] === nxt[0]) {
+      cur[1] = nxt[1];
+      this.free.splice(i + 1, 1);
+    }
+  }
+}
+
 // ---- the meshes ---------------------------------------------------------------------------------------------------------------
 
 /** How a pool draws its instances: the form's mesh, or the impostor card turned to the camera (M02h5). */
@@ -246,7 +372,7 @@ interface Pool {
   mode: PoolMode;
   data: TreeGeometryData;
   base: BufferGeometry;
-  layout: PoolLayout;
+  layout: PoolLayout | HoleLayout;
   mesh: InstancedMesh;
   matrices: Float32Array;
   tints: Float32Array;
@@ -435,7 +561,7 @@ export class VegetationPools {
     base.setAttribute('aLeaf', new BufferAttribute(data.leaf, 1));
     if (data.sway) base.setAttribute('sway', new BufferAttribute(data.sway, 1));
     base.setIndex(new BufferAttribute(data.indices, 1));
-    const layout = new PoolLayout();
+    const layout = this.sc ? new HoleLayout() : new PoolLayout();
     const pool = { key: `${data.id}:${band}`, geometry: data.id, band, extra, mode, data, base, layout, src: new Map(), potential: 0 } as unknown as Pool;
     this.makeMesh(pool);
     return pool;
@@ -475,11 +601,14 @@ export class VegetationPools {
     }
     p.mesh = mesh;
     p.matrices = mesh.instanceMatrix.array as Float32Array;
+    // three's InstancedMesh starts every slot at the identity matrix: zero them, so a slot outside every range (a hole, a hidden range of
+    // the hole layout) draws nothing
+    p.matrices.fill(0);
     p.tints = tints;
-    // every unit's range again, from its source
-    for (const [id, r] of p.layout.ranges) this.writeRange(p, id, r.start, r.len, false);
+    // every unit's range again, from its source (a hidden range of a hole layout stays zero)
+    for (const [id, r] of p.layout.ranges) if (r.drawn || p.layout instanceof PoolLayout) this.writeRange(p, id, r.start, r.len, false);
     mesh.count = p.layout.count;
-    mesh.visible = mesh.count > 0;
+    mesh.visible = p.layout.drawnCount > 0;
     mesh.instanceMatrix.needsUpdate = true;
     tAttr.needsUpdate = true;
     this.o.parent.add(mesh);
@@ -507,6 +636,20 @@ export class VegetationPools {
     this.totalWrites++;
   }
 
+  /** M02h5: zero-scale instances over `[start, start + len)` (a removed or hidden range of a hole layout). */
+  private zeroRange(p: Pool, start: number, len: number): void {
+    p.matrices.fill(0, start * 16, (start + len) * 16);
+    p.tints.fill(0, start * 4, (start + len) * 4);
+    p.mesh.instanceMatrix.addUpdateRange(start * 16, len * 16);
+    const t = p.mesh.geometry.getAttribute('aTint') as InstancedBufferAttribute;
+    t.addUpdateRange(start * 4, len * 4);
+    p.mesh.instanceMatrix.needsUpdate = true;
+    t.needsUpdate = true;
+    this.bytesThisFrame += len * 80;
+    this.maxBytesInFrame = Math.max(this.maxBytesInFrame, this.bytesThisFrame);
+    this.totalWrites++;
+  }
+
   /** Applies a layout's writes (a doubling rebuilds the mesh and writes everything). Returns the instances written. */
   private apply(p: Pool, writes: readonly PoolWrite[], grows0: number): number {
     let n = 0;
@@ -515,12 +658,13 @@ export class VegetationPools {
       n = p.layout.used;
     } else {
       for (const w of writes) {
-        this.writeRange(p, w.id, w.start, w.len, true);
+        if (w.zero === true) this.zeroRange(p, w.start, w.len);
+        else this.writeRange(p, w.id, w.start, w.len, true);
         n += w.len;
       }
     }
     p.mesh.count = p.layout.count;
-    p.mesh.visible = p.mesh.count > 0;
+    p.mesh.visible = p.layout.drawnCount > 0;
     return n;
   }
 
@@ -915,7 +1059,7 @@ export class VegetationPools {
     for (const p of this.pools) {
       if (!p.mesh.visible || p.mesh.count <= 0) continue;
       objects++;
-      triangles += p.mesh.count * p.data.triangles;
+      triangles += p.layout.drawnCount * p.data.triangles;
       if (p.mesh.castShadow) casting++;
     }
     return { objects, triangles, casting };
@@ -955,7 +1099,7 @@ export class VegetationPools {
         },
         impostorM: sc?.impostorM ?? 0, shrubDrawM: sc?.shrubDrawM ?? 0,
       },
-      poolTris: this.pools.map((p) => ({ key: p.key, mode: p.mode, count: p.mesh.visible ? p.mesh.count : 0, tris: p.mesh.visible ? p.mesh.count * p.data.triangles : 0 })),
+      poolTris: this.pools.map((p) => ({ key: p.key, mode: p.mode, count: p.layout.drawnCount, tris: p.layout.drawnCount * p.data.triangles })),
     };
   }
 
@@ -992,7 +1136,7 @@ export class VegetationPools {
   /** Instances drawn now over every pool (the sum of the drawn prefixes). */
   drawnInstances(): number {
     let n = 0;
-    for (const p of this.pools) n += p.layout.count;
+    for (const p of this.pools) n += p.layout.drawnCount;
     return n;
   }
 

@@ -151,6 +151,20 @@ function script(p: Profile, writeCap: number, steps = 300): { sig: string; check
     }
   }
   const sig = [...units.keys()].sort().map((id) => pools.bandsOf(id).map((b) => `${b.x.toFixed(1)},${b.z.toFixed(1)},${b.form}`).join(';')).join('|');
+  // the hole layout: each drawn range holds its unit's source, every other slot below `count` is zero-scale (no pixel)
+  for (const pool of pools.pools) {
+    const live = new Uint8Array(pool.layout.count);
+    for (const [id, r] of pool.layout.ranges) {
+      if (!r.drawn) continue;
+      live.fill(1, r.start, r.start + r.len);
+      const src = pool.src.get(id);
+      expect(src, `${pool.key} ${id} has a source`).toBeDefined();
+      expect(Array.from(pool.matrices.subarray(r.start * 16, (r.start + r.len) * 16)), `${pool.key} ${id}`).toEqual(Array.from(src!.m.subarray(0, r.len * 16)));
+    }
+    let bad = 0;
+    for (let k = 0; k < pool.layout.count; k++) if (live[k] === 0 && (pool.matrices[k * 16] !== 0 || pool.matrices[k * 16 + 5] !== 0)) bad++;
+    expect(bad, `${pool.key}: slots outside the drawn ranges are zero-scale`).toBe(0);
+  }
   const out = { sig, checked, maxWrites: pools.maxBandWritesInFrame, overCap: pools.bandOverCap, spread };
   pools.dispose();
   return out;

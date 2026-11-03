@@ -186,7 +186,7 @@ describe('vegetation pools (AC-4)', () => {
         expect(p.mesh.castShadow).toBe(p.band === 'near');
         for (const id of p.layout.ranges.keys()) expect(live.get(id)!.near, `${p.key} holds ${id}`).toBe(p.band === 'near');
         // the instance data of each drawn range is its unit's source
-        for (const id of p.layout.order) {
+        for (const id of (p.layout as PoolLayout).order) {
           const r = p.layout.ranges.get(id)!;
           const src = p.src.get(id)!;
           expect(Array.from(p.matrices.subarray(r.start * 16, (r.start + r.len) * 16))).toEqual(Array.from(src.m.subarray(0, r.len * 16)));
