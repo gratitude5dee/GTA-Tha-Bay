@@ -23,6 +23,7 @@
     "./client/boot/spawn-worker": "./src/client/boot/spawn-worker.ts",
     "./client/boot/world-layer": "./src/client/boot/world-layer.ts",
     "./client/anim": "./src/client/anim/placeholder-rig.ts",
+    "./client/anim/clip-source": "./src/client/anim/clip-source.ts",
     "./assets/service": "./src/assets/service.ts",
     "./assets/client": "./src/assets/client.ts",
     "./assets/spawn": "./src/assets/spawn.ts",
@@ -41,7 +42,9 @@
     "./client/vehicle/vehicle-view": "./src/client/vehicle/vehicle-view.ts",
     "./client/vehicle/art": "./src/client/vehicle/art.ts",
     "./client/vehicle/art-model": "./src/client/vehicle/art-model.ts",
-    "./client/vehicle/art-tables": "./src/client/vehicle/art-tables.ts"
+    "./client/vehicle/art-tables": "./src/client/vehicle/art-tables.ts",
+    "./client/avatar/person-glb": "./src/client/avatar/person-glb.ts",
+    "./client/avatar/assemble": "./src/client/avatar/assemble.ts"
   },
   "scripts": {
     "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/engine",

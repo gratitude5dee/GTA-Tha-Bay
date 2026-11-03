@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "08ef4c46bc6de516f3ad86ff5fcadee09b4bb9b10ae3f9d3bfe0098fb2561297",
+  "paths": [
+    "assets/src/portrait/pc-bottom-shorts/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "78e8680ce9aa2a31968b7ac05fc7b62d12c68fcd4aff356f6c25c42e0967f476"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "6b70be4b62be97077f86b384be55191cf04a432e248f30493b3dbdf3e6d00d6a"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

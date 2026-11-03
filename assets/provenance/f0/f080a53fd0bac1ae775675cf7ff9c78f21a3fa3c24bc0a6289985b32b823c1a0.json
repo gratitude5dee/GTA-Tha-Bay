@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "f080a53fd0bac1ae775675cf7ff9c78f21a3fa3c24bc0a6289985b32b823c1a0",
+  "paths": [
+    "assets/src/portrait/pc-face-portola/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "5a240ec4a9305a6036650e5a4a5e5360468ff5b5ba6378e15760623713d922d7"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "69fe5cac035b80a7ca664d9cd67c42fe7bda6f690db57d708027bac9782aac5d"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

@@ -1,0 +1,22 @@
+{
+  "kind": "portrait",
+  "id": "pc-face-castro",
+  "variants": {
+    "default": "assets/src/portrait/pc-face-castro/default.png"
+  },
+  "deps": [],
+  "tags": [
+    "class:creator-portrait",
+    "art:m10d4"
+  ],
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

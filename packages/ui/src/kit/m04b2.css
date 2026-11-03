@@ -23,6 +23,7 @@
 }
 .dv-part[aria-checked='true'] { border-color: var(--dv-color-accent); background: var(--dv-color-surface-raised); }
 .dv-part-art { inline-size: 2.5rem; block-size: 2.5rem; }
+.dv-part-portrait { object-fit: cover; border-radius: 0.4rem; background: #131a26; }
 .dv-part-none { display: inline-flex; align-items: center; justify-content: center; font-size: 1.5rem; }
 .dv-part-name { font-size: var(--dv-text-sm); text-align: center; overflow-wrap: anywhere; }
 .dv-swatches { display: flex; flex-wrap: wrap; gap: var(--dv-space-2); }

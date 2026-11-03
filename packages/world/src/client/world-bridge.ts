@@ -13,7 +13,7 @@ import { mountWorldControls } from './world-controls.ts';
 import type { PrefetchReport } from './boot-prefetch.ts';
 import type { ArtReport, BootReport, ChunksReport, WorldView } from './world-view.ts';
 import type { TrafficInfo } from './traffic/instances.ts';
-import type { PedInfo } from './peds/instances.ts';
+import type { PedArtReport, PedInfo } from './peds/instances.ts';
 import type { TransitInfo } from './transit/render.ts';
 
 /**
@@ -161,7 +161,9 @@ export interface WorldBridge {
   /** Counts of the ambient traffic inside sim.worker (`debug.world` op `traffic`); null after `timeoutMs`. */
   trafficSim(timeoutMs?: number): Promise<unknown>;
   /** The instanced pedestrians (M03b2): far and near-LOD instances, per body, draws and the caps of the tier; null before the world is attached. */
-  peds(): PedInfo | null;
+  // art-hook:peds begin (M10d4): `art`, the pedestrian kit (near and far figures, bodies, clips, atlas bytes, load state, refs)
+  peds(): (PedInfo & { art: PedArtReport }) | null;
+  // art-hook:peds end
   /**
    * M02h2 QA: the drawn feet of the pedestrians on the screen now (world x, the drawn y, z), each with the render lift there (`walkLiftAt`)
    * and the top of the resident sidewalk ribbon under it (null off a ribbon); at most `max` (default 64).
@@ -375,7 +377,12 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
     traffic: () => view.trafficReport(),
     art: () => view.artReport(), // art-hook:vehicles (M10d1)
     trafficSim: (timeoutMs) => call('traffic', undefined, timeoutMs),
-    peds: () => view.pedsReport(),
+    // art-hook:peds begin (M10d4)
+    peds: () => {
+      const r = view.pedsReport();
+      return r && view.peds ? { ...r, art: view.peds.art() } : null;
+    },
+    // art-hook:peds end
     pedFeet: (max) => view.pedFeet(max),
     pedsSim: (head, timeoutMs) => call('peds', head === undefined ? undefined : head === null ? { clearHead: true } : { headX: head.x, headZ: head.z }, timeoutMs),
     attract: async (x, z) => (await call('attract', { x, z, by: 'qa' })) as { id: number } | null,

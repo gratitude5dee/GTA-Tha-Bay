@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "80665055b7e06b8d6a3819bdb02245aa99db126db312557c8b0af1e09ce67b56",
+  "paths": [
+    "assets/src/portrait/pc-hair-coils/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "9ec96bab03e736b1319a01aa096fba9ce978e0e83cc06de90f1a4cc5a56e0646"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "7b64aa135f31e3363f5b54817ddbb915105e0c37827d3cb8b472e184b1e91d5a"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

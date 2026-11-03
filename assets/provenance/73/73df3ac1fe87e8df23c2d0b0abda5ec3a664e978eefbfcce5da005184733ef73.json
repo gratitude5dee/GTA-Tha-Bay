@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "73df3ac1fe87e8df23c2d0b0abda5ec3a664e978eefbfcce5da005184733ef73",
+  "paths": [
+    "assets/src/portrait/pc-hair-pomp/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "5acfc6ca3876d0b7f68302e132378e2bde03b007e7205406c47462143ec6e507"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "f8ada69bd4c05ed81dc7ac7f89cb20084951bebbb7812218bbf5ef97263b5a2b"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

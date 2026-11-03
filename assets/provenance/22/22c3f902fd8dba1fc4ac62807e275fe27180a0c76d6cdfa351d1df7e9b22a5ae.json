@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "22c3f902fd8dba1fc4ac62807e275fe27180a0c76d6cdfa351d1df7e9b22a5ae",
+  "paths": [
+    "assets/src/character/pc-body-lean/desktop.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "83650b55e1cee61a62ad764a1d7f020fa8a9c72be65e75d08614532442ad95fb"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

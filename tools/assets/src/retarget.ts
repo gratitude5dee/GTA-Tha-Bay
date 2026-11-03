@@ -13,7 +13,7 @@ import {
 } from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { canonicalBone, checkA5Retarget, hipDrift, type RetargetStats, type RigFamily } from '../../../packages/shared/src/assets/gates/index.ts';
-import type { GateFinding } from '../../../packages/shared/src/assets/gates/types.ts';
+import { finding, type GateFinding } from '../../../packages/shared/src/assets/gates/types.ts';
 import { readGlb, writeGlb } from './glb-inspect.ts';
 
 export const RETARGET_FPS = 30;
@@ -118,6 +118,11 @@ export interface RetargetInput {
   fps?: number;
   /** Clip names to bake (default: all). */
   only?: readonly string[];
+  /**
+   * Source clip name to output clip name (M10d4, `--map <json>`): only the clips named here are baked, each under its new name, so a
+   * Library clip such as `Walk_Formal_Loop` becomes the ped state `walk`. A name that matches no clip is a finding, not a skip.
+   */
+  rename?: Readonly<Record<string, string>>;
 }
 
 /** Largest world-space distance any bone moves between two frames of a retargeted clip. */
@@ -177,12 +182,20 @@ export async function retargetClips(i: RetargetInput): Promise<RetargetResult> {
 
   const reports: ClipReport[] = [];
   const findings: GateFinding[] = [];
-  const wanted = i.only === undefined ? source.clips : source.clips.filter((c) => i.only?.includes(c.name));
+  const renameKeys = i.rename === undefined ? null : Object.keys(i.rename);
+  let wanted = i.only === undefined ? source.clips : source.clips.filter((c) => i.only?.includes(c.name));
+  if (i.rename !== undefined) wanted = wanted.filter((c) => renameKeys?.includes(c.name));
+  for (const k of renameKeys ?? []) {
+    if (!source.clips.some((c) => c.name === k)) {
+      findings.push(finding('A5', `${i.slug}/${k}`, 'map-clip', `--map names the clip "${k}", which the clips file does not hold`));
+    }
+  }
   for (const clip of wanted) {
+    const outName = i.rename?.[clip.name] ?? clip.name;
     target.mesh.skeleton.pose();
     const baked = SkeletonUtils.retargetClip(target.mesh, source.mesh, clip, { names, hip: 'hips', fps, scale, useFirstFramePosition: false });
-    baked.name = clip.name;
-    const anim = out.createAnimation(clip.name);
+    baked.name = outName;
+    const anim = out.createAnimation(outName);
     let frames = 0;
     let hipValues: Float32Array | null = null;
     for (const t of baked.tracks) {
@@ -201,9 +214,9 @@ export async function retargetClips(i: RetargetInput): Promise<RetargetResult> {
     const hips: [number, number, number][] = [];
     if (hipValues !== null) for (let k = 0; k + 2 < hipValues.length; k += 3) hips.push([hipValues[k] as number, hipValues[k + 1] as number, hipValues[k + 2] as number]);
     const stats: RetargetStats = { heightM: i.heightM, hipDriftM: hipDrift(hips), endPoseDistM: endPoseDistance(target, baked) };
-    const f = checkA5Retarget(`${i.slug}/${clip.name}`, stats);
+    const f = checkA5Retarget(`${i.slug}/${outName}`, stats);
     findings.push(...f);
-    reports.push({ name: clip.name, frames, stats, findings: f });
+    reports.push({ name: outName, frames, stats, findings: f });
   }
   out.getRoot().setExtras({ assetId: `anim/${i.slug}.moves`, rig: i.rig.family, clips: reports.map((r) => r.name) });
   await MeshoptEncoder.ready;
