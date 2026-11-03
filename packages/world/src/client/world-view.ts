@@ -26,7 +26,7 @@ import { tileSets, unitExists, type TileSets } from '../sim/streaming/boot.ts';
 import { BackdropLayer, type BackdropInfo, type JobClient } from './backdrop/backdrop-layer.ts';
 import { ChunkRenderer, type RenderLevel } from './chunks/chunk-renderer.ts';
 import { createWorldMaterials, type WorldMaterials } from './chunks/materials.ts';
-import { LandmarkLayer, type LandmarkSpot, type LandmarksReport, type PreparedRemesh } from './chunks/landmark-layer.ts';
+import { LandmarkLayer, type LandmarkSpot, type LandmarksReport, type PrepareCall, type PreparedRemesh } from './chunks/landmark-layer.ts';
 import { mountLandmark } from './chunks/landmark-view.ts';
 import { MESHER, profileOf, wantNearStride } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
@@ -67,6 +67,12 @@ export interface WorldViewLabels {
 
 export interface AssetsLike extends JobClient {
   stats(o?: { resetPeak?: boolean }): Promise<{ bytes: number; network: number; retries: number; waves?: number; inflightPeak?: number }>;
+  /** `job` with the request id that `held` asks about (`AssetClient.trackedJob`; the landmark swap's prepares, BD-FIX-LANDMARK-PREPARE-01). */
+  trackedJob(name: string, args: unknown): { id: number; done: Promise<unknown> };
+  /** What the worker holds of requests sent before (`AssetClient.held`): ms held on its own clock, or null when not held. */
+  held(ids: readonly number[]): Promise<(number | null)[]>;
+  /** Messages handled from the worker so far (`AssetClient.heard`). */
+  heard(): number;
   /**
    * Network bytes downloaded as of the latest asset reply handled on this thread (`AssetClient.bytesSeen`), read synchronously at the
    * reveal. Absent: the reveal asks `stats()`, whose answer comes a worker round trip later and counts what arrived in between.
@@ -409,6 +415,9 @@ export class WorldView implements WorldLayer {
           apply: (p) => this.applyPrepared(p),
           remesh: (key, mask) => this.remeshChunk(key, mask),
           rerecords: (key) => this.renderer.rerecordsOf('l0', key),
+          // asset.worker's own account of the prepares, on the channel they use (BD-FIX-LANDMARK-PREPARE-01)
+          held: (jobs) => this.o.assets.held(jobs),
+          heard: () => this.o.assets.heard(),
         },
         // The commit takes one upload slot, like a chunk: the gate never lets two through in a frame.
         queue: (task) => this.renderer.enqueueTask(task.id, task.priority, task.bytes, { run: (info) => task.run(info) }),
@@ -834,17 +843,18 @@ export class WorldView implements WorldLayer {
    * The first half of a landmark swap (M02d2): the chunk is meshed again in `asset.worker` with `mask` left out and the mesh is held,
    * not uploaded. The layer queues it through the upload gate after the model it belongs to has joined the scene.
    */
-  private prepareChunk(key: ChunkKey, mask: number[]): Promise<PreparedRemesh | null> {
+  private prepareChunk(key: ChunkKey, mask: number[]): PrepareCall {
     const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store ? this.store.distanceTo(key) : 0, priority: 'now', maskProxies: mask, cover: this.coverOn };
     this.inflight++;
-    return this.o.assets
-      .job('world.mesh', args)
+    const call = this.o.assets.trackedJob('world.mesh', args);
+    const result = call.done
       .then((res): PreparedRemesh | null => {
-        const result = res as MeshJobResult;
-        return 'mesh' in result && !this.disposed ? ({ key, mask, mesh: result.mesh } as PreparedRemesh & { mesh: UnitMesh }) : null;
+        const r = res as MeshJobResult;
+        return 'mesh' in r && !this.disposed ? ({ key, mask, mesh: r.mesh } as PreparedRemesh & { mesh: UnitMesh }) : null;
       })
       .catch(() => null)
       .finally(() => void this.inflight--);
+    return { job: call.id, result };
   }
 
   /** The second half: the prepared mesh goes through the upload gate (one unit per frame, the model's own commit went first). */
