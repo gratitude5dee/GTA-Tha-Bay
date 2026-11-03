@@ -11,7 +11,7 @@
  * algorithm (`k` candidates in the annulus `[rMin, 2 rMin)` per active point) until its piece is full. The density this reaches on open
  * ground is `BRIDSON_DENSITY / rMin^2` points per square metre (measured, `tools/map/test/poisson.spec.ts`).
  */
-import { Rng, dcos, dsin, dsqrt } from '../../../../packages/shared/src/index.ts';
+import { dcos, dsin, dsqrt, type Rng } from '../../../../packages/shared/src/index.ts';
 
 /** Points per square metre times `rMin^2` that `bridson` reaches on open ground with `k = 30` (the scatter's target density). */
 export const BRIDSON_DENSITY = 0.63;

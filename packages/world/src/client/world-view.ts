@@ -1257,7 +1257,10 @@ export class WorldView implements WorldLayer {
 
   /** M02e QA: the look on or off at runtime; false when the tier has none. */
   setLook(on: boolean): boolean {
-    return this.lookView ? this.lookView.setOn(on) : !on;
+    const ok = this.lookView ? this.lookView.setOn(on) : !on;
+    // M02h5: the legacy look has no impostors: the far trees go back to their meshes within drawM (as in M02h4)
+    if (ok && this.renderer) this.renderer.vegetation.setLookOn(on);
+    return ok;
   }
 
   /** M02g1 QA: one layer of the look's profile on or off; false when the profile has no such layer (or the look is off). */

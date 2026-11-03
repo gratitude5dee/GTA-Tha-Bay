@@ -400,6 +400,8 @@ export class VegetationPools {
   private readonly sc: ScatterPoolOptions | null;
   private scatterLayer = true;
   private impostorLayer = true;
+  /** The look is on (the QA `setLook(false)` is the legacy look: no impostors, the far trees are meshes again). */
+  private lookOn = true;
   private cam: { x: number; z: number } | null = null;
   private rebandAt: { x: number; z: number } | null = null;
   /** Units with stale pools, oldest first. */
@@ -536,7 +538,7 @@ export class VegetationPools {
     const sc = this.sc;
     return {
       impostorM: sc?.impostorM ?? Infinity, shrubDrawM: sc?.shrubDrawM ?? Infinity, hysteresis: sc?.hysteresis ?? 0,
-      impostorPools: this.pools.some((p) => p.mode === 'impostor'), impostorLayer: this.impostorLayer,
+      impostorPools: this.lookOn && this.pools.some((p) => p.mode === 'impostor'), impostorLayer: this.impostorLayer,
     };
   }
 
@@ -880,6 +882,13 @@ export class VegetationPools {
     this.impostorLayer = on;
     for (const [id, u] of this.units) this.reband(id, u);
     return true;
+  }
+
+  /** The look switched on or off (QA): off, the trees beyond `impostorM` draw as meshes (the legacy look has no impostors). */
+  setLookOn(on: boolean): void {
+    if (this.lookOn === on) return;
+    this.lookOn = on;
+    for (const [id, u] of this.units) this.reband(id, u);
   }
 
   /** QA `setLookLayer('scatter', on)`: off, no scatter record is drawn (street trees only); every unit is filled again. */

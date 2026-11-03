@@ -86,13 +86,22 @@ describe('tree records (AC-3)', () => {
         trees++;
         const o = i * TREE_STRIDE;
         const lane = a.trees[o + 5] as number;
+        // M02h5: + 64 on a scatter record (bit 7 of the byte)
+        const byte = s.render.trees[i * 4 + 3] as number;
         const form = lane % 8;
-        const tint = Math.floor(lane / 8);
-        expect(form).toBe(treeFormOfByte(s.render.trees[i * 4 + 3] as number));
+        const tint = Math.floor(lane / 8) % 8;
+        expect(lane >= 64).toBe(byte >= 128);
+        expect(form).toBe(treeFormOfByte(byte));
         expect(tint >= 0 && tint < TREE_TINTS).toBe(true);
         seen.add(form);
         const h = a.trees[o + 3] as number;
         const [min, , max] = formHeights(form as TreeForm);
+        if (form === TreeForm.Shrub || form === TreeForm.Hedge) {
+          // the understory keeps its own draw: no eave cap, no tree minimum
+          expect(h, `${s.sim.key} shrub ${i}`).toBeGreaterThanOrEqual(min - 1e-4);
+          expect(h, `${s.sim.key} shrub ${i}`).toBeLessThanOrEqual(max + 1e-4);
+          continue;
+        }
         expect(h, `${s.sim.key} tree ${i}`).toBeGreaterThanOrEqual(Math.min(min, MESHER.tree.minHeightM) - 1e-4);
         expect(h, `${s.sim.key} tree ${i}`).toBeLessThanOrEqual(max + 1e-4);
         expect(h).toBeGreaterThanOrEqual(MESHER.tree.minHeightM - 1e-4);

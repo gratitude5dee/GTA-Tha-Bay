@@ -409,8 +409,16 @@ describe('trees (AC-3)', () => {
         expect(y!, `${s.sim.key} tree ${i}: at or below the heightfield`).toBeLessThanOrEqual(fieldMin + 1e-6);
         expect(y!, `${s.sim.key} tree ${i}: at or below the mesh`).toBeLessThanOrEqual(meshMin + 1e-6);
         expect(y!, `${s.sim.key} tree ${i}: within 0.15 m of the lowest ground`).toBeGreaterThanOrEqual(Math.min(fieldMin, meshMin) - 0.15);
-        // the height: the form's draw, between the minimum and the cap under the nearest eave within eaveRadiusM
-        const formMax = formHeights(treeFormOfByte((lane as number) & 7))[2];
+        // the height: the form's draw, between the minimum and the cap under the nearest eave within eaveRadiusM (M02h5: a shrub or a
+        // hedge keeps its own draw, with no eave cap and no tree minimum)
+        const f = treeFormOfByte((lane as number) & 7);
+        if (f === 5 || f === 6) {
+          const [lo, , hi] = formHeights(f);
+          expect(height!).toBeGreaterThanOrEqual(lo - 1e-4);
+          expect(height!).toBeLessThanOrEqual(hi + 1e-4);
+          continue;
+        }
+        const formMax = formHeights(f)[2];
         let eave = Infinity;
         let nearest = Infinity;
         for (const b of rings) {

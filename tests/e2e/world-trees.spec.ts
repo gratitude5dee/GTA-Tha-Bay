@@ -9,7 +9,7 @@ import { FLAT_TIERS, GOLDEN_VIEWPORT, HIDE, bootWorld, clearActors, frames, worl
  * M02h4 street-tree forms in a real browser, on a `DV_WORLD=synth` QA build.
  *
  *  - @world-trees (AC-5) per flat tier on `chromium-webgl2` and `webkit-webgl2`: `look().vegetation` reports the `full` / `lite` / `low`
- *    set with 10 / 5 / 2 pools and all five forms resident, the wind above 0 at `desktop` only, and after a 2 km teleport and back the
+ *    set with 10 / 5 / 2 pools (M02h5: 14 / 8 / 3 with the scatter's) and all five forms resident, the wind above 0 at `desktop` only, and after a 2 km teleport and back the
  *    drawn instances are the resident units' within `tree.drawM` (each unit shown within `drawM`, hidden beyond `drawM` x 1.1, nothing
  *    pending); `?treeForms=0` (the QA twin of `world.treeForms: false`) reports one cone pool.
  *  - @look-golden (AC-6, `chromium-webgl2`): `trees-street` at `desktop` and `mobile-low` against `tests/e2e/golden/look/<tier>.trees-street.png`,
@@ -18,7 +18,8 @@ import { FLAT_TIERS, GOLDEN_VIEWPORT, HIDE, bootWorld, clearActors, frames, worl
  *    shards (`tools/ci/e2e-plan.ts`), so the ledger lives in a file of its own (BD-M02h4-08).
  */
 
-const SET: Record<string, { set: string; pools: number }> = { desktop: { set: 'full', pools: 10 }, mobile: { set: 'lite', pools: 5 }, 'mobile-low': { set: 'low', pools: 2 } };
+// M02h5: the scatter adds 4 / 3 / 1 pools (understory and impostors) to M02h4's 10 / 5 / 2 (BD-M02h5-08)
+const SET: Record<string, { set: string; pools: number }> = { desktop: { set: 'full', pools: 14 }, mobile: { set: 'lite', pools: 8 }, 'mobile-low': { set: 'low', pools: 3 } };
 
 /**
  * The trees of the resident L0 units as the renderer holds them: per unit its instances, whether they are drawn and its distance (the
@@ -27,14 +28,17 @@ const SET: Record<string, { set: string; pools: number }> = { desktop: { set: 'f
 async function residentTrees(page: Page): Promise<{ id: string; n: number; shown: boolean; distM: number }[]> {
   return page.evaluate(() => {
     type U = { level: string; hasTrees: boolean; vegShown: boolean; mesh: { trees: Float32Array; originX: number; originZ: number } };
-    const r = (window as unknown as W).__dvBridge.world.internals().view as unknown as { renderer: { units: Map<string, U>; camPos: [number, number, number] | null } };
+    const r = (window as unknown as W).__dvBridge.world.internals().view as unknown as {
+      renderer: { units: Map<string, U>; camPos: [number, number, number] | null; vegetation: { bandsOf(id: string): { band: number }[] } };
+    };
     const cam = r.renderer.camPos ?? [0, 0, 0];
     const out: { id: string; n: number; shown: boolean; distM: number }[] = [];
     for (const [id, u] of r.renderer.units) {
       if (u.level !== 'l0' || !u.hasTrees) continue;
       const dx = Math.max(0, Math.abs(u.mesh.originX + 128 - cam[0]) - 128);
       const dz = Math.max(0, Math.abs(u.mesh.originZ + 128 - cam[2]) - 128);
-      out.push({ id, n: u.mesh.trees.length / 6, shown: u.vegShown, distM: Math.hypot(dx, dz) });
+      // M02h5: the unit's kept instances that draw in some band (thinning and the understory's shrubDrawM leave the rest out)
+      out.push({ id, n: r.renderer.vegetation.bandsOf(id).filter((b) => b.band !== 2).length, shown: u.vegShown, distM: Math.hypot(dx, dz) });
     }
     return out;
   });
@@ -71,8 +75,8 @@ test.describe('world trees @world-trees', () => {
       expect(v0.set).toBe(want.set);
       expect(v0.pools).toBe(want.pools);
       expect(v0.drawnPools).toBeLessThanOrEqual(want.pools);
-      // all five forms among the resident trees
-      await expect.poll(async () => (await veg(page)).forms.filter((f) => f.instances > 0).length, { timeout: 180_000, intervals: [500] }).toBe(5);
+      // all five tree forms among the resident trees (M02h5: the shrub and the hedge may be resident too)
+      await expect.poll(async () => (await veg(page)).forms.slice(0, 5).filter((f) => f.instances > 0).length, { timeout: 180_000, intervals: [500] }).toBe(5);
       // the wind: above 0 at desktop (the sky's frame sets it), 0 elsewhere, and the layer only on desktop
       if (tier === 'desktop') {
         await expect.poll(async () => (await veg(page)).wind, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);

@@ -8,6 +8,8 @@ import { world } from './markings-helpers.ts';
 export type Veg = {
   shown: number; hidden: number; farthestM: number; drawM: number; crossings: number; set: string; pools: number; drawnPools: number;
   forms: { form: string; instances: number; drawn: number; tris: number }[]; wind: number; drawnInstances: number; pendingCrossings: number;
+  /** M02h5: the scatter (impostors, shrubs, hedges, band writes), the triangles per pool and in all. */
+  scatter?: unknown; poolTris?: { key: string; mode: string; count: number; tris: number }[]; triangles?: number;
 };
 
 export const veg = async (page: Page): Promise<Veg> => {
