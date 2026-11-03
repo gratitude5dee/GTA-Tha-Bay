@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "ce5769ee0316b2c9ff89955297c20ef50a512905ecdf0733485dd26e7755c94a",
+  "paths": [
+    "assets/src/character/pc-top-flannel/desktop.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "b941107e46c0bbcd1df259bc478f11f92794575bf7a08f6723e1f82a06d07e28"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

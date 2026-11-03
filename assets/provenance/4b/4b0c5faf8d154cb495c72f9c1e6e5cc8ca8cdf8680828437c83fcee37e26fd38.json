@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "4b0c5faf8d154cb495c72f9c1e6e5cc8ca8cdf8680828437c83fcee37e26fd38",
+  "paths": [
+    "assets/src/prop/ped.far.e/mobile-low.glb"
+  ],
+  "kind": "prop",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "c443448f8e9a8d4b4c899d8ef389936d11f9df681a5748e07bf3d68e79bcddad"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

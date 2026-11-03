@@ -45,7 +45,8 @@ function dropFixtureAssets(root: string): void {
   // M10d0: the PBR texture sets (texture/pbr.<set>.<map>) are built by assets:import and tested in import.textures.spec.
   const textureDir = path.join(root, 'assets', 'src', 'texture');
   for (const id of readdirSync(textureDir)) {
-    if (!id.startsWith('pbr.')) continue;
+    // M10d4: the people atlas pages (texture/pc.<pool>, texture/ped.atlas) are built by assets:import -- characters
+    if (!id.startsWith('pbr.') && !id.startsWith('pc.') && !id.startsWith('ped.')) continue;
     rmSync(path.join(textureDir, id), { recursive: true, force: true });
     delete lock.entries[`texture/${id}`];
   }

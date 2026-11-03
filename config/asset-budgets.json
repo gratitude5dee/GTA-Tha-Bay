@@ -288,6 +288,36 @@
           "fileBytes": 1048576
         }
       }
+    },
+    {
+      "id": "character-ped",
+      "kind": "character",
+      "tag": "class:ped",
+      "fidelity": {
+        "hi": { "tris": 6000, "maxTexPx": 1024, "materials": 1, "gpuTexBytes": 1398101, "fileBytes": 393216 },
+        "mid": { "tris": 3000, "maxTexPx": 512, "materials": 1, "gpuTexBytes": 349525, "fileBytes": 196608 },
+        "lo": { "tris": 1500, "maxTexPx": 256, "materials": 1, "gpuTexBytes": 87382, "fileBytes": 98304 }
+      }
+    },
+    {
+      "id": "prop-ped-far",
+      "kind": "prop",
+      "tag": "prop:ped-far",
+      "fidelity": {
+        "hi": { "tris": 300, "materials": 1, "fileBytes": 24576 },
+        "mid": { "tris": 300, "materials": 1, "fileBytes": 24576 },
+        "lo": { "tris": 300, "materials": 1, "fileBytes": 24576 }
+      }
+    },
+    {
+      "id": "character-creator",
+      "kind": "character",
+      "tag": "class:creator",
+      "fidelity": {
+        "hi": { "tris": 10000, "maxTexPx": 1024, "materials": 1, "gpuTexBytes": 1398101, "fileBytes": 524288 },
+        "mid": { "tris": 5000, "maxTexPx": 512, "materials": 1, "gpuTexBytes": 349525, "fileBytes": 262144 },
+        "lo": { "tris": 2500, "maxTexPx": 256, "materials": 1, "gpuTexBytes": 87382, "fileBytes": 131072 }
+      }
     }
   ]
 }

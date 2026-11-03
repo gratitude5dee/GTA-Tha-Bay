@@ -1,0 +1,62 @@
+{
+  "kind": "character",
+  "id": "pc-face-tenderloin",
+  "variants": {
+    "desktop": "assets/src/character/pc-face-tenderloin/desktop.glb",
+    "mobile": "assets/src/character/pc-face-tenderloin/mobile.glb",
+    "mobile-low": "assets/src/character/pc-face-tenderloin/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1465,
+      "verts": 844,
+      "materials": 1,
+      "primitives": 1,
+      "bones": 22,
+      "texMaxPx": 1024
+    },
+    "mobile": {
+      "tris": 732,
+      "verts": 450,
+      "materials": 1,
+      "primitives": 1,
+      "bones": 22,
+      "texMaxPx": 512
+    },
+    "mobile-low": {
+      "tris": 318,
+      "verts": 208,
+      "materials": 1,
+      "primitives": 1,
+      "bones": 22,
+      "texMaxPx": 256
+    }
+  },
+  "deps": [],
+  "tags": [
+    "class:creator",
+    "art:m10d4"
+  ],
+  "extras": {
+    "t": "character",
+    "npcId": "people-kit",
+    "rigFamily": "bay_rig_v1",
+    "heightM": 1.8,
+    "bones": {
+      "jaw": false,
+      "fingers": false
+    },
+    "animSets": [],
+    "portrait": "portrait/pc-face-tenderloin"
+  },
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

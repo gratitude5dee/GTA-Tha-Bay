@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "b6bdae52e9ff83c9e8cd5910c614b6aae028ab86c7e236cd6881b7f719c11956",
+  "paths": [
+    "assets/src/character/pc-face-sunset-park/mobile.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "6f16da862854ad95bf5c2709449da2014f32e2e3119774014bc970e195c8168f"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

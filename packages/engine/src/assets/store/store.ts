@@ -13,6 +13,8 @@ export const SOFT_CAP_MOBILE_MB = 600;
 export const SOFT_CAP_DESKTOP_MB = 2048;
 /** How many pack gets a city download keeps in flight at once. */
 export const DOWNLOAD_ALL_CONCURRENCY = 4;
+/** How many fetched and verified packs of a city download may wait for their commit before the next fetch waits (memory bound). */
+export const DOWNLOAD_ALL_BACKLOG = 16;
 /** How many `soon` (or `now`) prefetched packs the store keeps between start and end at once; the lanes cap them further. */
 export const PREFETCH_SOON_WINDOW = 16;
 
@@ -94,6 +96,19 @@ interface PrefetchItem {
   batch: { stopped: boolean };
 }
 
+/** One verified pack waiting to be committed. */
+interface CommitItem {
+  ref: PackRef;
+  bytes: Uint8Array;
+  resolve: () => void;
+  reject: (e: unknown) => void;
+}
+
+/** Rows for `hashes`, in order: one `getMany` where the port has it. */
+function getRows(index: IndexStore, hashes: readonly string[]): Promise<Array<PackRow | null>> {
+  return index.getMany ? index.getMany(hashes) : Promise.all(hashes.map((h) => index.get(h)));
+}
+
 /**
  * The C13 `WorldPackStore` over two ports (11-platform-pwa.md section 5): one file per pack keyed by SHA-256 and one index row
  * per pack as its commit record. A plain class with an injected clock, so Node tests run it on the memory ports.
@@ -123,6 +138,15 @@ export class PackStore implements WorldPackStore {
   private readonly quotaFailed = new Set<string>();
   private lastTick = 0;
   private chain: Promise<unknown> = Promise.resolve();
+  /**
+   * Bytes of every index row, kept beside the index so that a commit below the soft cap does not read every row (a city download
+   * commits hundreds of packs one after another, and `index.all()` per commit made it quadratic). `null`: read the rows again. Any
+   * removal, `open`, `clear` or a read-only moment drops it; a commit adds its bytes. It only decides whether `makeRoom` looks closer.
+   */
+  private heldBytes: number | null = null;
+  /** Verified packs waiting for the next commit group, and whether that group is already on the exclusive chain. */
+  private readonly commitQueue: CommitItem[] = [];
+  private commitScheduled = false;
 
   constructor(o: PackStoreOptions) {
     this.files = o.files;
@@ -141,7 +165,10 @@ export class PackStore implements WorldPackStore {
   }
 
   get writable(): boolean {
-    return this.writableFn();
+    const w = this.writableFn();
+    // Another tab may write while this one is read-only: the running total is no longer this store's alone.
+    if (!w) this.heldBytes = null;
+    return w;
   }
 
   private tick(): number {
@@ -162,6 +189,7 @@ export class PackStore implements WorldPackStore {
   }
 
   async open(): Promise<'opfs' | 'memory-fallback'> {
+    this.heldBytes = null;
     await this.files.open();
     await this.index.open();
     if (!this.writable) return this.kind;
@@ -180,6 +208,7 @@ export class PackStore implements WorldPackStore {
         if ((await this.files.size(r.sha256)) === null) await this.index.delete(r.sha256);
         else if (r.pinned) await this.index.put({ ...r, pinned: false });
       }
+      this.heldBytes = null;
     });
     return this.kind;
   }
@@ -234,7 +263,8 @@ export class PackStore implements WorldPackStore {
     return o.signal ? raceAbort(copy, o.signal, ref) : copy;
   }
 
-  private async fetchVerified(ref: PackRef, priority: Priority | undefined): Promise<Uint8Array> {
+  /** `onVerified` runs once the bytes are fetched and verified, before the commit: a city download starts its next fetch then. */
+  private async fetchVerified(ref: PackRef, priority: Priority | undefined, onVerified?: () => void): Promise<Uint8Array> {
     let bytes: Uint8Array;
     try {
       bytes = await this.fetcher.fetchBytes(ref.url, { ...(priority ? { priority } : {}), bytes: ref.bytes });
@@ -243,9 +273,10 @@ export class PackStore implements WorldPackStore {
       throw e;
     }
     if (bytes.byteLength !== ref.bytes || (await this.hashFn(bytes)) !== ref.sha256) throw new PackUnavailable('hash-mismatch', ref);
+    onVerified?.();
     if (this.writable) {
       try {
-        await this.exclusive(() => this.commit(ref, bytes));
+        await this.commit(ref, bytes);
       } catch (e) {
         // A cache that cannot be written is not a failed read: serve the verified bytes without caching them.
         const reason = e instanceof PackUnavailable && e.reason === 'quota' ? 'quota' : 'io';
@@ -256,29 +287,81 @@ export class PackStore implements WorldPackStore {
     return bytes;
   }
 
-  /** Rule 1: make room, write and flush the file, then write the row. The row is the commit. */
-  private async commit(ref: PackRef, bytes: Uint8Array): Promise<void> {
-    if (await this.has(ref.sha256)) return;
-    await this.makeRoom(bytes.byteLength, ref.sha256);
-    for (;;) {
-      try {
-        await this.files.write(ref.sha256, bytes);
-        break;
-      } catch (e) {
-        if ((e as { name?: string }).name !== 'QuotaExceededError') throw e;
-        if (!(await this.evictOne('quota', ref.sha256))) throw new PackUnavailable('quota', ref);
-      }
-    }
-    const now = this.tick();
-    await this.index.put({
-      sha256: ref.sha256,
-      bytes: bytes.byteLength,
-      kind: ref.kind,
-      tags: [...(ref.tags ?? [])],
-      createdAt: now,
-      lastUsedAt: now,
-      pinned: this.pinned.has(ref.sha256),
+  /**
+   * Rule 1: make room, write and flush the file, then write the row. The row is the commit. Packs whose bytes arrive while an earlier
+   * commit runs wait in `commitQueue` and commit together as one group: every file is written and flushed first, then all their rows
+   * go in one `putMany`. Each pack still has its row written only after its own flush; a city download no longer pays two IndexedDB
+   * transactions per pack, which is what made hundreds of small packs slow on WebKit (BD-REPAIR-M10d4-01).
+   */
+  private commit(ref: PackRef, bytes: Uint8Array): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.commitQueue.push({ ref, bytes, resolve, reject });
+      if (this.commitScheduled) return;
+      this.commitScheduled = true;
+      void this.exclusive(() => this.commitGroup());
     });
+  }
+
+  private async commitGroup(): Promise<void> {
+    this.commitScheduled = false;
+    const group = this.commitQueue.splice(0);
+    const written: Array<{ item: CommitItem; replaced: boolean }> = [];
+    try {
+      // `has`, keeping the row: one that exists without its file is replaced below.
+      const priors = await getRows(this.index, group.map((g) => g.ref.sha256));
+      const seen = new Set<string>();
+      let incoming = 0;
+      for (let i = 0; i < group.length; i++) {
+        const item = group[i] as CommitItem;
+        const { ref, bytes } = item;
+        const prior = priors[i] ?? null;
+        if (seen.has(ref.sha256) || (prior && (await this.files.size(ref.sha256)) === prior.bytes)) {
+          item.resolve();
+          continue;
+        }
+        try {
+          // Files written earlier in this group have no row yet, so `makeRoom` counts them through `incoming`.
+          await this.makeRoom(incoming + bytes.byteLength, ref.sha256);
+          for (;;) {
+            try {
+              await this.files.write(ref.sha256, bytes);
+              break;
+            } catch (e) {
+              if ((e as { name?: string }).name !== 'QuotaExceededError') throw e;
+              if (!(await this.evictOne('quota', ref.sha256))) throw new PackUnavailable('quota', ref);
+            }
+          }
+        } catch (e) {
+          item.reject(e);
+          continue;
+        }
+        seen.add(ref.sha256);
+        incoming += bytes.byteLength;
+        written.push({ item, replaced: prior !== null });
+      }
+      if (written.length === 0) return;
+      const rows = written.map(({ item: { ref, bytes } }): PackRow => {
+        const now = this.tick();
+        return {
+          sha256: ref.sha256,
+          bytes: bytes.byteLength,
+          kind: ref.kind,
+          tags: [...(ref.tags ?? [])],
+          createdAt: now,
+          lastUsedAt: now,
+          pinned: this.pinned.has(ref.sha256),
+        };
+      });
+      if (this.index.putMany) await this.index.putMany(rows);
+      else for (const r of rows) await this.index.put(r);
+      // A replaced row (its file was lost) would be counted twice: read the rows again instead.
+      this.heldBytes = this.heldBytes === null || written.some((w) => w.replaced) ? null : this.heldBytes + incoming;
+      for (const w of written) w.item.resolve();
+    } catch (e) {
+      // The rows did not land: those files are orphans (swept at the next open) and their packs are served uncached.
+      this.heldBytes = null;
+      for (const g of group) g.reject(e);
+    }
   }
 
   private isPinned(r: PackRow): boolean {
@@ -286,8 +369,10 @@ export class PackStore implements WorldPackStore {
   }
 
   private async makeRoom(incoming: number, keep: string): Promise<void> {
+    if (this.heldBytes !== null && this.heldBytes + incoming <= this.softCapBytes) return;
     let rows = await this.index.all();
     let total = rows.reduce((n, r) => n + r.bytes, 0);
+    this.heldBytes = total;
     if (total + incoming <= this.softCapBytes) return;
     rows = rows.filter((r) => !this.isPinned(r) && r.sha256 !== keep).sort(lruOrder);
     for (const r of rows) {
@@ -306,6 +391,7 @@ export class PackStore implements WorldPackStore {
   }
 
   private async remove(sha256: string, why: 'lru' | 'quota' | 'tag' | 'gc' | 'purge'): Promise<void> {
+    this.heldBytes = null;
     await this.files.remove(sha256);
     await this.index.delete(sha256);
     if (why !== 'purge') this.stats.evictions++;
@@ -495,26 +581,65 @@ export class PackStore implements WorldPackStore {
     onProgress(done, refs.length);
     let next = 0;
     let failure: unknown = null;
+    // Packs fetched and verified whose commit has not landed yet. A fetch slot frees as soon as its bytes are verified, so the network
+    // keeps DOWNLOAD_ALL_CONCURRENCY gets busy while the commits run behind it in groups; at most DOWNLOAD_ALL_BACKLOG wait.
+    const storing = new Set<Promise<void>>();
     const worker = async (): Promise<void> => {
       while (failure === null && next < missing.length) {
+        while (storing.size >= DOWNLOAD_ALL_BACKLOG) await Promise.race(storing);
+        if (failure !== null || next >= missing.length) return;
         const ref = missing[next++] as PackRef;
         if (signal?.aborted) {
           failure = new PackUnavailable('aborted', ref);
           return;
         }
+        const { verified, stored } = this.fetchForDownload(ref);
         try {
-          await this.get(ref, { priority: 'soon', ...(signal ? { signal } : {}) });
+          await (signal ? raceAbort(verified, signal, ref) : verified);
         } catch (e) {
           failure ??= e;
           return;
         }
-        done++;
-        onProgress(done, refs.length);
+        const tracked: Promise<void> = stored.then(
+          () => {
+            storing.delete(tracked);
+            done++;
+            onProgress(done, refs.length);
+          },
+          (e: unknown) => {
+            storing.delete(tracked);
+            failure ??= e;
+          },
+        );
+        storing.add(tracked);
       }
     };
     await Promise.all(Array.from({ length: Math.min(DOWNLOAD_ALL_CONCURRENCY, missing.length) }, worker));
+    // An abort answers at once (packs still committing stay); otherwise the call ends when every pack it fetched is stored.
+    if (failure === null && !signal?.aborted) await Promise.all(storing);
     if (failure !== null) throw failure;
     if (signal?.aborted && done < refs.length && first) throw new PackUnavailable('aborted', first);
+  }
+
+  /**
+   * One pack of a city download at priority `soon`, joining a fetch already in flight. `verified` settles when the bytes are fetched
+   * and verified (or the fetch fails); `stored` when the pack's commit has run, as `get` would.
+   */
+  private fetchForDownload(ref: PackRef): { verified: Promise<void>; stored: Promise<void> } {
+    const key = ref.sha256;
+    let onVerified: () => void = () => undefined;
+    const verifiedOnly = new Promise<void>((resolve) => (onVerified = resolve));
+    let shared = this.pending.get(key);
+    if (shared) this.fetcher.promote?.(ref.url, 'soon');
+    else {
+      shared = this.fetchVerified(ref, 'soon', onVerified).finally(() => this.pending.delete(key));
+      this.pending.set(key, shared);
+    }
+    const stored = shared.then(() => undefined);
+    // A worker that stops early (abort, an earlier failure) no longer tracks `stored`: its rejection is not unhandled.
+    stored.catch(() => undefined);
+    // A joined fetch never calls `onVerified`, and a failed one rejects `stored`: either way the race settles.
+    return { verified: Promise.race([verifiedOnly, stored]), stored };
   }
 
   async evictByTag(tag: string): Promise<{ removed: number }> {
@@ -533,6 +658,7 @@ export class PackStore implements WorldPackStore {
   async clear(): Promise<void> {
     if (!this.writable) return;
     await this.exclusive(async () => {
+      this.heldBytes = null;
       await this.files.clear();
       await this.index.clear();
     });
