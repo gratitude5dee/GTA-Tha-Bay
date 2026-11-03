@@ -19,7 +19,7 @@ import { BONE_PARENT, BONE_REST, buildPlaceholderClips } from '@dv/engine/client
 import { classColor, type AssemblyColors, type AssemblySlot } from '@dv/engine/client/avatar/assemble';
 import { parsePersonGlb, type PersonMesh } from '@dv/engine/client/avatar/person-glb';
 import pedArtJson from '../../../../../config/world/ped-art.json';
-import type { NearFigure } from './mannequin.ts';
+import { whitePage, type NearFigure } from './mannequin.ts';
 import type { PedJobArgs, PedJobResult, PedStopArgs } from './ped-job.ts';
 import { OPEN_GATE, type KitGate } from './art-gate.ts';
 
@@ -286,10 +286,11 @@ function buildKit(
     }
     return m;
   };
-  // built like the mannequin's material (mannequin.ts), so the two draw with one render program and the swap links none
-  // (BD-REPAIR-M10d4-04): opaque, vertex colours, a colour map in sRGB, and the same vertex attributes
+  // built like the mannequin's material (mannequin.ts), so the two draw with one render program (WebGL2) or pipeline (WebGPU) and the
+  // swap builds none (BD-REPAIR-M10d4-04): opaque, vertex colours, a colour map in sRGB sampled with a `Texture`'s filters and wraps, and
+  // the same vertex attributes; without its atlas page the kit draws on the mannequin's white page (untextured, the same program)
   const material = new MeshStandardNodeMaterial({ vertexColors: true, roughness: 0.78, metalness: 0.02 });
-  if (texture) material.map = texture;
+  material.map = texture ?? whitePage();
   const skinTones = cfg.skinTones.map(toHex);
   const farGeos = new Map<string, BufferGeometry>();
   let disposed = false;

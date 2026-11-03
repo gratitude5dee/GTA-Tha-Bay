@@ -2,7 +2,8 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { Group, type InstancedMesh, type Object3D, type SkinnedMesh } from 'three/webgpu';
+import { Group, LinearFilter, LinearMipmapLinearFilter, NearestFilter, WGSLNodeBuilder, type InstancedMesh, type Object3D, type SkinnedMesh } from 'three/webgpu';
+import RenderObject from 'three/src/renderers/common/RenderObject.js';
 import type { QualityTierId } from '@dv/shared';
 import { PackUnavailable } from '@dv/engine/assets/types';
 import type { AssetService } from '@dv/engine/assets/service';
@@ -122,24 +123,45 @@ describe('PedRenderer with the pedestrian kit', () => {
     });
   }
 
-  it('the kit\'s near figure and the mannequin are built for one render program: same material class and settings, a colour map in sRGB, the same vertex attributes (BD-REPAIR-M10d4-04)', async () => {
+  it('the kit\'s near figure and the mannequin are built for one render program on both backends: same material class and settings, a colour map in sRGB sampled alike, the same vertex attributes (BD-REPAIR-M10d4-04)', async () => {
     const r = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 6, art: mock('mobile-low') });
     await settle(r);
     r.update(frame(10, () => 5), 1);
     const kitMesh = skinned(r.group)[0] as SkinnedMesh;
     const man = buildNearFigure().mesh;
-    type M = { type: string; isNodeMaterial?: boolean; transparent: boolean; vertexColors: boolean; side: number; blending: number; alphaTest: number; flatShading: boolean; fog: boolean; map: { colorSpace: string; channel: number; isTexture: boolean } | null };
+    type Tex = { colorSpace: string; channel: number; mapping: number; magFilter: number; minFilter: number; wrapS: number; wrapT: number; wrapR: number; type: number; format: number; flipY: boolean };
+    type M = { type: string; isNodeMaterial?: boolean; transparent: boolean; vertexColors: boolean; side: number; blending: number; alphaTest: number; flatShading: boolean; fog: boolean; map: Tex | null };
     const shape = (m: SkinnedMesh): Record<string, unknown> => {
       const mat = m.material as unknown as M;
       const attrs = Object.fromEntries(Object.entries(m.geometry.attributes).map(([k, a]) => [k, `${(a.array as { constructor: { name: string } }).constructor.name}x${a.itemSize}${a.normalized ? 'n' : ''}`]));
+      const t = mat.map;
       return {
         material: mat.type, node: mat.isNodeMaterial === true, transparent: mat.transparent, vertexColors: mat.vertexColors, side: mat.side, blending: mat.blending,
-        alphaTest: mat.alphaTest, flatShading: mat.flatShading, fog: mat.fog, map: mat.map ? { colorSpace: mat.map.colorSpace, channel: mat.map.channel } : null,
+        alphaTest: mat.alphaTest, flatShading: mat.flatShading, fog: mat.fog,
+        // the sampler too: on WebGPU the filters and wraps are in the render object's key and decide textureSample against textureLoad
+        map: t ? { colorSpace: t.colorSpace, channel: t.channel, mapping: t.mapping, magFilter: t.magFilter, minFilter: t.minFilter, wrapS: t.wrapS, wrapT: t.wrapT, wrapR: t.wrapR, type: t.type, format: t.format, flipY: t.flipY } : null,
         attrs, bones: m.skeleton.bones.length, morphs: Object.keys(m.geometry.morphAttributes).length, castShadow: m.castShadow, receiveShadow: m.receiveShadow,
       };
     };
     expect(shape(kitMesh)).toEqual(shape(man));
-    expect(shape(man)).toMatchObject({ transparent: false, vertexColors: true, map: { colorSpace: 'srgb' } });
+    expect(shape(man)).toMatchObject({ transparent: false, vertexColors: true, map: { colorSpace: 'srgb', magFilter: LinearFilter, minFilter: LinearMipmapLinearFilter } });
+    // three's own key of the render object's material (three 0.186.1 `RenderObject.getMaterialCacheKey`), which picks the program on
+    // WebGL2 and the pipeline on WebGPU (where the map's sampler is part of it): the same for the two figures on both backends
+    const key = (m: SkinnedMesh, isWebGPUBackend: boolean): number => RenderObject.prototype.getMaterialCacheKey.call({
+      object: m, material: m.material, geometry: m.geometry, renderer: { backend: { isWebGPUBackend } }, clippingContextCacheKey: '', context: { id: 0 },
+      getGeometryCacheKey: RenderObject.prototype.getGeometryCacheKey,
+    });
+    for (const webgpu of [false, true]) expect(key(kitMesh, webgpu), webgpu ? 'webgpu' : 'webgl2').toBe(key(man, webgpu));
+    // and WGSL samples both maps (`WGSLNodeBuilder.isUnfilterable` false: textureSample, not textureLoad); Nearest/Nearest would be unfilterable
+    const unfilterable = (t: unknown): boolean => (WGSLNodeBuilder.prototype as unknown as { isUnfilterable(this: unknown, t: unknown): boolean }).isUnfilterable.call(
+      Object.assign(Object.create(WGSLNodeBuilder.prototype) as object, {
+        renderer: { hasFeature: () => false, backend: { utils: { getTextureSampleData: () => ({ primarySamples: 1 }) } } },
+      }),
+      t,
+    );
+    const mapOf = (m: SkinnedMesh): unknown => (m.material as unknown as M).map;
+    expect([unfilterable(mapOf(kitMesh)), unfilterable(mapOf(man))]).toEqual([false, false]);
+    expect(unfilterable(Object.assign(Object.create(mapOf(man) as object) as object, { magFilter: NearestFilter, minFilter: NearestFilter }))).toBe(true);
     // the mannequin samples white: its colours are its vertex colours and its tint, as before
     const page = whitePage().image as unknown as { data: Uint8Array; width: number; height: number };
     expect([page.width, page.height, ...page.data]).toEqual([1, 1, 255, 255, 255, 255]);
@@ -308,32 +330,74 @@ describe('the kit load stays behind the world (BD-REPAIR-M10d4-03)', () => {
     expect(step.aborted, 'dispose stops the step in flight').toBe(true);
   });
 
-  it('next() resolves on the next frame that leaves the gate open, never on a busy one, and rejects once disposed (BD-REPAIR-M10d4-04)', async () => {
+  it('is shut while the UI is up: open reads it live, a frame with the UI up stops the step in flight, and it opens ART_QUIET_FRAMES quiet frames after the UI goes (BD-REPAIR-M10d4-04)', async () => {
     const world: WorldLoad = { ...QUIET };
-    const gate = new ArtGate(() => ({ ...world }));
+    let ui = false;
+    const gate = new ArtGate(() => ({ ...world }), () => ui);
     for (let i = 0; i < ART_QUIET_FRAMES; i++) gate.frame();
     expect(gate.open).toBe(true);
-    let got = 0;
-    void gate.next().then(() => got++);
-    await flush();
-    expect(got, 'not on the frame it was asked in').toBe(0);
-    world.meshing = 1;
+    const step = gate.signal();
+    // the UI comes up between frames: the gate is shut at once for a step that resumes now (after an asset-worker answer)
+    ui = true;
+    expect(gate.open).toBe(false);
+    expect(gate.signal().aborted).toBe(true);
+    let waited = 0;
+    void gate.wait().then(() => waited++);
+    // the first frame with it up stops the step in flight
     gate.frame();
+    expect(step.aborted).toBe(true);
+    // a quiet world does not open it while the UI is up
+    for (let i = 0; i < 10; i++) gate.frame();
     await flush();
-    expect(got, 'not on a busy frame').toBe(0);
-    world.meshing = 0;
+    expect(gate.open).toBe(false);
+    expect(waited).toBe(0);
+    // the UI goes: ART_QUIET_FRAMES quiet frames, then the waiter goes on
+    ui = false;
     for (let i = 0; i < ART_QUIET_FRAMES - 1; i++) gate.frame();
     await flush();
-    expect(got, 'not before the gate opens again').toBe(0);
+    expect(waited).toBe(0);
     gate.frame();
     await flush();
-    expect(got).toBe(1);
-    const late = gate.next();
+    expect(gate.open).toBe(true);
+    expect(waited).toBe(1);
+    // without a world to read the UI alone shuts it
+    let up = true;
+    const bare = new ArtGate(null, () => up);
+    expect(bare.open).toBe(false);
+    up = false;
+    expect(bare.open).toBe(true);
+    const s = bare.signal();
+    up = true;
+    bare.frame();
+    expect(s.aborted).toBe(true);
     gate.dispose();
-    await expect(late).rejects.toThrow(/disposed/);
-    await expect(gate.next()).rejects.toThrow(/disposed/);
-    // without a world to read, at once
-    await expect(new ArtGate(null).next()).resolves.toBeUndefined();
+    bare.dispose();
+  });
+
+  it('with the UI up the kit asks for nothing; a read in flight stops on the first frame it is up, and the rest follows once play resumes (BD-REPAIR-M10d4-04)', async () => {
+    const w = worker();
+    let ui = true;
+    const r = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 6, art: w.port, worldLoad: () => ({ ...QUIET }), ui: () => ui });
+    let t = 1;
+    const tick = async (n: number): Promise<void> => {
+      for (let i = 0; i < n; i++) r.update(f, (t += 0.05));
+      await flush();
+    };
+    await tick(20);
+    expect(w.asked, 'nothing while the UI is up, however quiet the world').toEqual([]);
+    ui = false;
+    await tick(ART_QUIET_FRAMES);
+    expect(w.asked).toEqual([bodies]);
+    await w.step(2);
+    ui = true;
+    await tick(1);
+    expect(w.signals[0]?.aborted, 'the read stops on the first frame the UI is up').toBe(true);
+    await tick(20);
+    expect(w.asked).toHaveLength(1);
+    ui = false;
+    await tick(ART_QUIET_FRAMES);
+    expect(w.asked[1], 'the rest of the group, once play resumes').toEqual(bodies.slice(2));
+    r.dispose();
   });
 
   it('counts requested and retrying units as unsettled, ready, empty and failed ones as settled', () => {
@@ -458,7 +522,7 @@ describe('the kit load stays behind the world (BD-REPAIR-M10d4-03)', () => {
     expect(w3.signals[0]?.aborted).toBe(true);
   });
 
-  it('with ahead, the swap is prepared on quiet frames: each near pedestrian\'s kit figure built after one (at most AHEAD_PER_FRAME a frame), drawn once collapsed on a later one; the swap moves them in (BD-REPAIR-M10d4-04)', async () => {
+  it('with ahead, the swap is prepared in the quiet window the kit is built in: up to AHEAD_PER_FRAME kit figures built, drawn once collapsed on the next frame, then the swap moves them in on the frame after, whatever the crowd and the world (BD-REPAIR-M10d4-04)', async () => {
     const world: WorldLoad = { ...QUIET };
     let frameNo = 0;
     const busyFrames = new Set<number>();
@@ -469,6 +533,7 @@ describe('the kit load stays behind the world (BD-REPAIR-M10d4-03)', () => {
     /** The frame each figure was built on, and the frames each was drawn on (visible after the frame's update) with its scale. */
     const builtAt = new Map<Object3D, number>();
     const drawn: { at: number; obj: Object3D; scale: number }[] = [];
+    let swapAt = -1;
     let t = 1;
     const tick = async (n: number): Promise<void> => {
       for (let i = 0; i < n; i++) {
@@ -478,41 +543,37 @@ describe('the kit load stays behind the world (BD-REPAIR-M10d4-03)', () => {
         for (const o of aheadSet()?.children ?? []) if (o.visible) drawn.push({ at: frameNo, obj: o, scale: o.scale.x });
         await flush();
         for (const o of built()) if (!builtAt.has(o)) builtAt.set(o, frameNo);
+        if (swapAt < 0 && r.art().state === 'ready') swapAt = frameNo;
       }
     };
     // the kit loads (every step on a quiet frame); the six near pedestrians draw the mannequin meanwhile
     for (let i = 0; i < 40 && aheadSet() === undefined; i++) await tick(1);
     expect(aheadSet(), 'the set is made once the kit has loaded').toBeDefined();
     expect(r.art()).toMatchObject({ state: 'loading', near: 'mannequin' });
-    for (let i = 0; i < 120 && r.art().state === 'loading'; i++) {
-      world.meshing = i % 5 === 3 ? 1 : 0;
-      const b = built().length;
-      await tick(1);
-      expect(built().length - b, 'at most AHEAD_PER_FRAME figures per frame').toBeLessThanOrEqual(AHEAD_PER_FRAME);
-      if (busyFrames.has(frameNo)) expect(built().length, 'nothing is built on a busy frame').toBe(b);
-    }
+    // the world gets busy right after the build: the draw and the swap need no other quiet window
+    world.meshing = 1;
+    for (let i = 0; i < 6 && r.art().state === 'loading'; i++) await tick(1);
     expect(r.art()).toMatchObject({ state: 'ready', near: 'kit', far: 'kit' });
-    // six figures, one per near pedestrian the mannequin drew, each built on a quiet frame and drawn once, collapsed, on a later quiet
-    // frame, a batch a frame; then the swap
+    world.meshing = 0;
+    // AHEAD_PER_FRAME figures of the six near pedestrians, all built on one quiet frame and drawn once, collapsed, together on the next
+    // frame (busy or not); the swap on the frame after
     const figures = [...builtAt.keys()];
-    expect(figures).toHaveLength(6);
-    expect(drawn).toHaveLength(6);
-    for (const [obj, at] of builtAt) {
-      expect(busyFrames.has(at), `built on frame ${at}`).toBe(false);
-      const d = drawn.find((x) => x.obj === obj);
-      expect(d, 'each figure drawn once').toBeDefined();
-      expect(d?.at as number).toBeGreaterThan(at);
-      expect(busyFrames.has(d?.at as number), `drawn on frame ${d?.at}`).toBe(false);
-      expect(d?.scale).toBe(0);
-    }
-    // the figures built after one frame are drawn together on one later frame: as many draw frames as build frames
-    expect(new Set(drawn.map((d) => d.at)).size, 'a batch a frame').toBe(new Set(builtAt.values()).size);
-    expect(new Set(builtAt.values()).size).toBeGreaterThanOrEqual(Math.ceil(6 / AHEAD_PER_FRAME));
-    // the next frame draws the figures built ahead at full size: no new figure, every near ped a kit figure
+    expect(figures).toHaveLength(AHEAD_PER_FRAME);
+    expect(new Set(builtAt.values()).size, 'one build frame').toBe(1);
+    const at = [...builtAt.values()][0] as number;
+    expect(busyFrames.has(at), `built on frame ${at}`).toBe(false);
+    expect(drawn).toHaveLength(AHEAD_PER_FRAME);
+    expect(new Set(drawn.map((d) => d.at)).size, 'one draw frame').toBe(1);
+    const drawAt = (drawn[0] as { at: number }).at;
+    expect(drawAt).toBe(at + 1);
+    expect(busyFrames.has(drawAt), 'the draw does not wait for a quiet frame').toBe(true);
+    for (const d of drawn) expect(d.scale).toBe(0);
+    expect(swapAt).toBe(drawAt + 1);
+    // the next frame: the figures built ahead at full size, and the two other near pedestrians take theirs (AHEAD_PER_FRAME a frame)
     await tick(1);
     const near = skinned(r.group);
     expect(near).toHaveLength(6);
-    expect(near.every((m) => m.parent !== null && builtAt.has(m.parent)), 'the figures built ahead').toBe(true);
+    expect(near.filter((m) => m.parent !== null && builtAt.has(m.parent)), 'the figures built ahead').toHaveLength(AHEAD_PER_FRAME);
     for (const m of near) {
       expect(m.parent?.scale.x).toBe(1);
       expect(m.geometry.getAttribute('position').count).toBeGreaterThan(MANNEQUIN_VERTICES);
@@ -526,35 +587,99 @@ describe('the kit load stays behind the world (BD-REPAIR-M10d4-03)', () => {
     r.dispose();
   });
 
-  it('with ahead in a quiet world the preparation is pipelined: each frame draws the batch built after the frame before and builds the next (BD-REPAIR-M10d4-04)', async () => {
-    const world: WorldLoad = { ...QUIET };
-    const r = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 10, art: mock('mobile-low'), worldLoad: () => ({ ...world }), ahead: true });
-    const aheadSet = (): Group | undefined => r.group.children.find((o) => o.name === 'peds.ahead') as Group | undefined;
-    const ten = frame(10, () => 5);
-    const builtAt = new Map<Object3D, number>();
-    const drawnAt = new Map<Object3D, number>();
-    let frameNo = 0;
-    let swapAt = -1;
+  it('with ahead, after the swap a near pedestrian of a kind not built yet takes a figure only with the UI down, at most AHEAD_PER_FRAME a frame, and draws at the far level until then (BD-REPAIR-M10d4-04)', async () => {
+    let ui = false;
+    const r = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 12, art: mock('mobile-low'), worldLoad: () => ({ ...QUIET }), ahead: true, ui: () => ui });
+    const twelve = frame(12, () => 5);
     let t = 1;
-    for (let i = 0; i < 200 && swapAt < 0; i++) {
-      frameNo++;
-      r.update(ten, (t += 0.05));
-      for (const o of aheadSet()?.children ?? []) if (o.visible) drawnAt.set(o, frameNo);
+    for (let i = 0; i < 80 && r.art().state === 'loading'; i++) {
+      r.update(twelve, (t += 0.05));
       await flush();
-      for (const o of aheadSet()?.children ?? []) if (!builtAt.has(o)) builtAt.set(o, frameNo);
-      if (r.art().state === 'ready') swapAt = frameNo;
     }
-    expect(swapAt).toBeGreaterThan(0);
-    const built = [...builtAt.values()].sort((a, b) => a - b);
-    expect(built).toHaveLength(10);
-    // ten figures in batches of AHEAD_PER_FRAME (4, 4, 2), built after consecutive frames, each drawn once on the frame after its build
-    const frames = [...new Set(built)];
-    expect(frames).toHaveLength(Math.ceil(10 / AHEAD_PER_FRAME));
-    for (let i = 1; i < frames.length; i++) expect(frames[i] as number).toBe((frames[i - 1] as number) + 1);
-    for (const at of frames) expect(built.filter((x) => x === at).length).toBeLessThanOrEqual(AHEAD_PER_FRAME);
-    for (const [obj, at] of builtAt) expect(drawnAt.get(obj)).toBe(at + 1);
-    // the swap follows the last batch's draw within two frames
-    expect(swapAt - (frames[frames.length - 1] as number)).toBeLessThanOrEqual(3);
+    expect(r.art().state).toBe('ready');
+    const kitFigures = (): number => r.group.children.filter((o) => o.name === 'ped.near').length;
+    // the swap frame: the AHEAD_PER_FRAME figures built ahead and AHEAD_PER_FRAME more; the four others draw at the far level
+    const counts: { near: number; far: number; built: number }[] = [];
+    for (let i = 0; i < 3; i++) {
+      r.update(twelve, (t += 0.05));
+      counts.push({ near: r.info().near, far: r.info().far, built: kitFigures() });
+    }
+    expect(counts).toEqual([
+      { near: 2 * AHEAD_PER_FRAME, far: 12 - 2 * AHEAD_PER_FRAME, built: 2 * AHEAD_PER_FRAME },
+      { near: 12, far: 0, built: 12 },
+      { near: 12, far: 0, built: 12 },
+    ]);
+    expect(r.info().instances).toBe(12);
+    expect(r.info().objects).toBe(r.info().near + r.info().perBody.filter((n) => n > 0).length);
+    // the crowd changes outfit (new kinds) while the UI is up: nobody takes a new figure, they draw at the far level; the frame's
+    // drawn count stays twelve
+    ui = true;
+    const changed = frame(12, () => 5, 7);
+    for (let i = 0; i < 3; i++) {
+      r.update(changed, (t += 0.05));
+      expect(r.info().instances).toBe(12);
+      expect(kitFigures(), 'no figure built while the UI is up').toBe(12);
+    }
+    const whileUp = r.info().near;
+    expect(r.info().far).toBe(12 - whileUp);
+    // play resumes: AHEAD_PER_FRAME new figures a frame (the free ones of other kinds are rebuilt in their place)
+    ui = false;
+    r.update(changed, (t += 0.05));
+    expect(r.info().near).toBe(Math.min(12, whileUp + AHEAD_PER_FRAME));
+    for (let i = 0; i < 4; i++) r.update(changed, (t += 0.05));
+    expect(r.info()).toMatchObject({ near: 12, far: 0, instances: 12 });
+    expect(r.group.children.filter((o) => o.name === 'ped.near').length).toBeLessThanOrEqual(24);
+    r.dispose();
+  });
+
+  it('with ahead the swap needs the quiet window it needs without, and two frames more, however short the windows and however big the crowd (BD-REPAIR-M10d4-04)', async () => {
+    // a world quiet for ART_QUIET_FRAMES frames in every 12: the gate opens on the last of them and shuts on the next (the shortest window)
+    let frameNo = 0;
+    const world = (): WorldLoad => ({ ...QUIET, meshing: frameNo % 12 < 12 - ART_QUIET_FRAMES ? 1 : 0 });
+    const make = (ahead: boolean): PedRenderer => new PedRenderer({ parent: new Group(), cap: 40, nearCap: 24, art: mock('mobile-low'), worldLoad: world, ...(ahead ? { ahead: true } : {}) });
+    const plain = make(false);
+    const paced = make(true);
+    const swapped = new Map<PedRenderer, number>();
+    const crowd = frame(20, () => 5);
+    let t = 1;
+    for (let i = 0; i < 3000 && swapped.size < 2; i++) {
+      frameNo++;
+      t += 0.05;
+      plain.update(crowd, t);
+      paced.update(crowd, t);
+      await flush();
+      for (const r of [plain, paced]) if (!swapped.has(r) && r.art().state === 'ready') swapped.set(r, frameNo);
+    }
+    expect(swapped.size).toBe(2);
+    expect(swapped.get(paced), `the paced swap on frame ${swapped.get(paced)}, the plain one on ${swapped.get(plain)}`).toBe((swapped.get(plain) as number) + 2);
+    plain.dispose();
+    paced.dispose();
+  });
+
+  it('with ahead, the draw once and the swap wait while the UI is up (BD-REPAIR-M10d4-04)', async () => {
+    let ui = false;
+    const r = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 6, art: mock('mobile-low'), worldLoad: () => ({ ...QUIET }), ahead: true, ui: () => ui });
+    const aheadSet = (): Group | undefined => r.group.children.find((o) => o.name === 'peds.ahead') as Group | undefined;
+    let t = 1;
+    const tick = async (): Promise<void> => {
+      r.update(f, (t += 0.05));
+      await flush();
+    };
+    for (let i = 0; i < 40 && aheadSet() === undefined; i++) await tick();
+    expect(aheadSet()?.children.length).toBeGreaterThan(0);
+    // the UI comes up after the build: nothing is drawn, nothing swaps, the mannequins draw on
+    ui = true;
+    for (let i = 0; i < 10; i++) {
+      await tick();
+      expect(aheadSet()?.children.some((o) => o.visible), 'no draw while the UI is up').toBe(false);
+    }
+    expect(r.art()).toMatchObject({ state: 'loading', near: 'mannequin' });
+    // it goes: drawn on the next frame, swapped on the one after
+    ui = false;
+    await tick();
+    expect(aheadSet()?.children.filter((o) => o.visible).length).toBeGreaterThan(0);
+    await tick();
+    expect(r.art().state).toBe('ready');
     r.dispose();
   });
 

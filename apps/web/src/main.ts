@@ -8,7 +8,7 @@ import { bootChoice } from '@dv/world/sim/boot';
 import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/client';
 import platformFlags from '../../../config/platform-flags.json';
 import lookConfig from '../../../config/world/look.json';
-import { createVoicePreview, creatorVoiceRef, CREATOR_VOICES, loadPrefs, memoryPrefs, defaultPrefs, mountShell, registerTexts, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps, type VoicePreview } from '@dv/ui';
+import { createVoicePreview, creatorVoiceRef, CREATOR_VOICES, getDialogueSession, loadPrefs, memoryPrefs, defaultPrefs, mountShell, registerTexts, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps, type VoicePreview } from '@dv/ui';
 import type { TtsAudioHost } from '@dv/npc/voice';
 import type { FighterUiHandle } from './fighter-ui.ts';
 import { TERMS_VERSION } from '../../../config/terms.ts';
@@ -307,6 +307,9 @@ async function bootPlatformAndEngine(simWorker: EarlySimWorker): Promise<void> {
         // The rest of the boot set downloads at idle priority behind the menu once the world is revealed (M02f2); `?prefetch=0` (QA builds)
         // turns that off for the start-to-play comparison of the demo.
         menu: () => !want.play,
+        // The pedestrian kit (M10d4) loads, builds and swaps in only in play: never while a page, the pause page or the phone (with its
+        // map), or a dialogue panel is up, when the main thread belongs to the page (BD-REPAIR-M10d4-04).
+        ui: () => !want.play || want.paused || getDialogueSession()?.state().open === true,
         prefetch: !(QA && new URLSearchParams(location.search).get('prefetch') === '0'),
         container,
         emit: (name, props) => platform.telemetry.emit(name, props),

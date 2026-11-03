@@ -42,6 +42,11 @@ export interface PrepareWorldOptions {
   prefetch?: boolean;
   /** M02c2: called for each neighbourhood banner (`nhood.<slug>`); the app patches `hud.area`. */
   onArea?: (p: AreaBannerPatch) => void;
+  /**
+   * M10d4 repair (BD-REPAIR-M10d4-04): true while the shell shows something over the world that the player reads or works (the gates,
+   * the menus, the loading screen, the pause page and the phone with its apps, a dialogue panel); the pedestrian kit waits then.
+   */
+  ui?: () => boolean;
 }
 
 /**
@@ -184,6 +189,7 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     ...(o.emit ? { emit: o.emit } : {}),
     ...(o.qa ? { qa: true } : {}),
     ...(o.onArea ? { onArea: o.onArea } : {}),
+    ...(o.ui ? { ui: o.ui } : {}),
   });
 
   const boot: WorldBoot = {

@@ -6,13 +6,17 @@
  *
  * M10d4 (BD-REPAIR-M10d4-04): its material is built like the pedestrian kit's (`kit.ts`: opaque, vertex colours, a colour map, a `uv`
  * attribute on the geometry), with a 1x1 white sRGB page for the map, so the mannequin and the kit's near figures draw with ONE render
- * program: the program the mannequin linked when the first near pedestrian appeared is the one the kit draws with after its swap, and
- * the swap links none. On CI's chromium-webgl2 (SwiftShader, no `KHR_parallel_shader_compile`) a new program is linked synchronously, a
- * main-thread wait of seconds. The page samples white, so the mannequin looks as before.
+ * program on both backends: the program (WebGL2) or pipeline (WebGPU) the mannequin built when the first near pedestrian appeared is the
+ * one the kit draws with after its swap, and the swap builds none. On WebGPU the map's sampler is part of the render object's cache key
+ * (three 0.186.1 `RenderObject.getMaterialCacheKey` adds its filters and wraps there) and a map filtered Nearest/Nearest is unfilterable
+ * (`WGSLNodeBuilder.isUnfilterable`: `textureLoad` instead of `textureSample`), so the page is filtered as the kit's atlas page is
+ * (`Texture`'s defaults: Linear magnification, LinearMipmapLinear minification, clamped; a 1x1 page is mip-complete), not as a
+ * `DataTexture` is by default (Nearest/Nearest). On CI's chromium-webgl2 (SwiftShader, no `KHR_parallel_shader_compile`) a new program is
+ * linked synchronously, a main-thread wait of seconds. The page samples white, so the mannequin looks as before.
  */
 import {
-  Bone, BoxGeometry, BufferAttribute, BufferGeometry, CapsuleGeometry, DataTexture, Group, MeshStandardNodeMaterial, SRGBColorSpace, Skeleton,
-  SkinnedMesh, SphereGeometry, type Texture,
+  Bone, BoxGeometry, BufferAttribute, BufferGeometry, CapsuleGeometry, ClampToEdgeWrapping, DataTexture, Group, LinearFilter,
+  LinearMipmapLinearFilter, MeshStandardNodeMaterial, SRGBColorSpace, Skeleton, SkinnedMesh, SphereGeometry, type Texture,
   type Object3D,
 } from 'three/webgpu';
 import { HUMANOID_BONES } from '@dv/shared';
@@ -21,11 +25,19 @@ import { BONE_PARENT, BONE_REST, buildPlaceholderClips, type HumanoidBone, type 
 const SKIN = [1, 0.78, 0.63] as const;
 
 let white: Texture | null = null;
-/** The 1x1 white sRGB page the mannequin's map samples (shared, never disposed): the kit's atlas page stands in its place. */
+/**
+ * The 1x1 white sRGB page the mannequin's map samples (shared, never disposed): the kit's atlas page stands in its place, and the kit
+ * draws on it when its atlas cannot be had. Sampled as the atlas page is (filters and wraps of a `Texture`), so both maps give the same
+ * WebGPU sampler binding and the same WGSL (`textureSample`).
+ */
 export function whitePage(): Texture {
   if (!white) {
     white = new DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
     white.colorSpace = SRGBColorSpace;
+    white.magFilter = LinearFilter;
+    white.minFilter = LinearMipmapLinearFilter;
+    white.wrapS = ClampToEdgeWrapping;
+    white.wrapT = ClampToEdgeWrapping;
     white.needsUpdate = true;
   }
   return white;

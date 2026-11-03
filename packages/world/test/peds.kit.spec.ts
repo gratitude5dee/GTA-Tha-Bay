@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { BufferAttribute, SkinnedMesh } from 'three/webgpu';
 import { PED_ASSETS, PED_BODIES, PED_PALETTE } from '../src/sim/peds/components.ts';
 import { loadPedKit, PED_ART, type PedKitAssets } from '../src/client/peds/kit.ts';
+import { whitePage } from '../src/client/peds/mannequin.ts';
 
 const repo = path.resolve(import.meta.dirname, '../../..');
 const bytesOf = (ref: string, variant = 'mobile'): Uint8Array => {
@@ -104,11 +105,15 @@ describe('loadPedKit', () => {
     expect(await loadPedKit(garbage)).toBeNull();
   });
 
-  it('draws without the atlas when it cannot be had (one material, no map)', async () => {
+  it('draws without the atlas when it cannot be had (one material, on the mannequin\'s white page: the same program, BD-REPAIR-M10d4-04)', async () => {
     const kit = (await loadPedKit({ bytes: async (ref) => bytesOf(ref), image: async () => null })) as NonNullable<Awaited<ReturnType<typeof loadPedKit>>>;
     expect(kit.info().textureBytes).toBe(0);
     const f = kit.near(PED_ASSETS[3] as string, 11, 0x33aa55, 0);
-    expect((f.mesh.material as { map: unknown }).map).toBeNull();
+    expect((f.mesh.material as { map: unknown }).map).toBe(whitePage());
+    // the shared page outlives the kit: the kit disposes only its own atlas page
+    let freed = 0;
+    whitePage().addEventListener('dispose', () => freed++);
     kit.dispose();
+    expect(freed).toBe(0);
   });
 });

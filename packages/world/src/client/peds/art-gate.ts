@@ -18,8 +18,13 @@
  * asks for more: it holds at most one of the two `idle` fetch slots, for one file, when a `want` pass asks for a batch. It does not wait
  * for the whole ring: on software GL at desktop the outer L1/L2 rings take minutes to fill (BD-REPAIR-M10d4-03 measured 172 s on
  * webkit-webgl2, and more than the 300 s of `@art-peds` on chromium-webgl2), and all that time the kit would draw mannequins.
- * `dispose` rejects every waiter and aborts the step in flight. `next` hands out one quiet frame at a time: the kit builds its swap in
- * pieces, one per quiet frame (BD-REPAIR-M10d4-04).
+ * `dispose` rejects every waiter and aborts the step in flight.
+ *
+ * BD-REPAIR-M10d4-04 (round 2): the world is not the only thing the kit must not compete with. While the shell shows something over the
+ * world that the player reads or works (the gates, the menus, the loading screen, the pause page and the phone with its apps, a dialogue
+ * panel: the `ui` reading the app supplies), the world is usually at its quietest, and the main thread belongs to the page. So the gate
+ * is shut then too: `open` reads `ui` live (a step that resumes between frames, after an asset-worker answer, waits as well), a frame
+ * with the UI up counts as busy (the step in flight stops), and the kit takes its steps only in play.
  */
 
 /** One frame's reading of the world (all counts at the moment of the frame). */
@@ -56,11 +61,6 @@ export interface KitGate {
   wait(): Promise<void>;
   /** A signal that aborts on the first frame the world is not quiet (already aborted when the gate is shut). */
   signal(): AbortSignal;
-  /**
-   * Resolves on the next frame that leaves the gate open (at once without a world to read); rejects when the gate is disposed. A step
-   * spread over frames takes one piece per call, so each piece runs on a quiet frame of its own (BD-REPAIR-M10d4-04).
-   */
-  next(): Promise<void>;
 }
 
 /** A gate that is always open (no world to wait for: the unit tests' default, a renderer without `worldLoad`). */
@@ -68,27 +68,30 @@ export const OPEN_GATE: KitGate = {
   open: true,
   wait: () => Promise.resolve(),
   signal: () => new AbortController().signal,
-  next: () => Promise.resolve(),
 };
 
 const quietOf = (w: WorldLoad): boolean => !w.held && w.unsettled === 0 && w.meshing === 0 && w.landmarksIdle && !w.artLoading;
 
 export class ArtGate implements KitGate {
   private readonly read: (() => WorldLoad) | null;
+  private readonly ui: (() => boolean) | null;
   private quietFrames = 0;
   private lastRequests: number | null = null;
   private readonly waiters: { resolve: () => void; reject: (e: Error) => void }[] = [];
-  private readonly nextWaiters: { resolve: () => void; reject: (e: Error) => void }[] = [];
   private step: AbortController | null = null;
   private disposed = false;
 
-  /** `read` null: no world to wait for, the gate is open until `dispose` (which still stops the step in flight). */
-  constructor(read: (() => WorldLoad) | null) {
+  /**
+   * `read` null: no world to wait for, the gate is open until `dispose` (which still stops the step in flight) but for `ui`. `ui`: true
+   * while the shell shows something over the world (BD-REPAIR-M10d4-04); null: never.
+   */
+  constructor(read: (() => WorldLoad) | null, ui: (() => boolean) | null = null) {
     this.read = read;
+    this.ui = ui;
   }
 
   get open(): boolean {
-    return !this.disposed && (this.read === null || this.quietFrames >= ART_QUIET_FRAMES);
+    return !this.disposed && (this.read === null || this.quietFrames >= ART_QUIET_FRAMES) && this.ui?.() !== true;
   }
 
   /** Quiet frames in a row so far (QA and tests). */
@@ -96,32 +99,31 @@ export class ArtGate implements KitGate {
     return this.quietFrames;
   }
 
-  /** Once a frame: reads the world, counts the quiet frames, aborts the step in flight on a busy frame, opens for the waiters. */
+  /**
+   * Once a frame: reads the world and the UI, counts the quiet frames, aborts the step in flight on a busy frame (the world has work or the
+   * UI is up), opens for the waiters.
+   */
   frame(): void {
-    if (this.disposed || !this.read) return;
-    const w = this.read();
-    const asked = this.lastRequests !== null && w.requests !== this.lastRequests;
-    this.lastRequests = w.requests;
-    if (quietOf(w) && !asked) this.quietFrames++;
-    else {
-      this.quietFrames = 0;
+    if (this.disposed) return;
+    let busy = this.ui?.() === true;
+    if (this.read) {
+      const w = this.read();
+      const asked = this.lastRequests !== null && w.requests !== this.lastRequests;
+      this.lastRequests = w.requests;
+      busy ||= !quietOf(w) || asked;
+      this.quietFrames = busy ? 0 : this.quietFrames + 1;
+    }
+    if (busy) {
       this.step?.abort();
       this.step = null;
     }
     if (this.open && this.waiters.length > 0) for (const x of this.waiters.splice(0)) x.resolve();
-    if (this.open && this.nextWaiters.length > 0) for (const x of this.nextWaiters.splice(0)) x.resolve();
   }
 
   wait(): Promise<void> {
     if (this.disposed) return Promise.reject(new Error('the art gate is disposed'));
     if (this.open) return Promise.resolve();
     return new Promise<void>((resolve, reject) => this.waiters.push({ resolve, reject }));
-  }
-
-  next(): Promise<void> {
-    if (this.disposed) return Promise.reject(new Error('the art gate is disposed'));
-    if (this.read === null) return Promise.resolve();
-    return new Promise<void>((resolve, reject) => this.nextWaiters.push({ resolve, reject }));
   }
 
   signal(): AbortSignal {
@@ -140,6 +142,6 @@ export class ArtGate implements KitGate {
     this.step?.abort();
     this.step = null;
     const e = new Error('the art gate is disposed');
-    for (const x of [...this.waiters.splice(0), ...this.nextWaiters.splice(0)]) x.reject(e);
+    for (const x of this.waiters.splice(0)) x.reject(e);
   }
 }

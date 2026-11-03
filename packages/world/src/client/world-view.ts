@@ -137,6 +137,12 @@ export interface WorldViewOptions {
   map?: boolean;
   /** M02c2: called for each neighbourhood banner (`nhood.<slug>`, at most once per 3 s); the app patches `hud.area`. */
   onArea?: (p: AreaBannerPatch) => void;
+  /**
+   * M10d4 repair (BD-REPAIR-M10d4-04): true while the shell shows something over the world that the player reads or works (the gates,
+   * the menus, the loading screen, the pause page and the phone with its apps, a dialogue panel); the pedestrian kit does no work then.
+   * Absent: never.
+   */
+  ui?: () => boolean;
 }
 
 export interface ChunksReport {
@@ -518,7 +524,7 @@ export class WorldView implements WorldLayer {
     this.peds = new PedRenderer({
       parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier],
       lift: (x, z) => this.renderer.walkLiftAt(x, z),
-      ...(artLoader ? { art: pedKitAssets(this.o.assets, artVariantOf(this.o.tier)), artWaits: !this.artAfterReveal, worldLoad: () => ({ held: host.worldHeld, unsettled: unsettledUnits(this.store.units.values()), requests: this.store.stats.requests, meshing: this.inflight, landmarksIdle: this.landmarks?.idle ?? true, artLoading: this.textures?.active === true && !this.textures.report().settled }), ahead: true } : {}), // art-hook:peds (M10d4): the kit's gate reads what the world is doing once a frame (BD-REPAIR-M10d4-03) and the swap is prepared ahead on quiet frames (BD-REPAIR-M10d4-04); `?art=0` keeps the mannequin
+      ...(artLoader ? { art: pedKitAssets(this.o.assets, artVariantOf(this.o.tier)), artWaits: !this.artAfterReveal, worldLoad: () => ({ held: host.worldHeld, unsettled: unsettledUnits(this.store.units.values()), requests: this.store.stats.requests, meshing: this.inflight, landmarksIdle: this.landmarks?.idle ?? true, artLoading: this.textures?.active === true && !this.textures.report().settled }), ahead: true, ...(this.o.ui ? { ui: this.o.ui } : {}) } : {}), // art-hook:peds (M10d4): the kit's gate reads what the world is doing once a frame (BD-REPAIR-M10d4-03), the kit's figures are paced and it does no work while the shell's UI is up (BD-REPAIR-M10d4-04); `?art=0` keeps the mannequin
     });
     this.transit = new TransitRenderer({
       parent: host.scene,
