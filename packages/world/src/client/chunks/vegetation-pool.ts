@@ -723,7 +723,12 @@ export class VegetationPools {
       this.addPotential(u, now, 1);
     }
     u.near = near;
-    for (const p of now) this.fillPool(id, u, p);
+    // a stale entry of the band the unit left is gone with it; the new band's pools are written from the current bands now
+    for (const p of was) u.stale.delete(p);
+    for (const p of now) {
+      this.fillPool(id, u, p);
+      u.stale.delete(p);
+    }
     return true;
   }
 
@@ -859,7 +864,12 @@ export class VegetationPools {
         this.bandQueue.delete(id);
         continue;
       }
+      const mine = this.poolsFor(u.near);
       for (const p of [...u.stale]) {
+        if (!mine.includes(p)) {
+          u.stale.delete(p);
+          continue;
+        }
         if (capBytes !== null && this.bytesThisFrame >= capBytes && this.bandWritesThisFrame > 0) return;
         const cost = this.stepCost(id, u, p);
         if (this.bandWritesThisFrame + cost > cap) {

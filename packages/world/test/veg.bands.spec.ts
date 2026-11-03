@@ -90,6 +90,11 @@ function script(p: Profile, writeCap: number, steps = 300): { sig: string; check
       const id = ids[rng.nextU32() % ids.length] as string;
       pools.removeUnit(id);
       units.delete(id);
+    } else if (r < 0.23 && p === 'full') {
+      // the caster radius moves: a unit changes between the near and the far tree pools
+      const ids = [...units.keys()];
+      const id = ids[rng.nextU32() % ids.length] as string;
+      pools.setNear(id, pools.nearOf(id) !== true);
     } else if (r < 0.25) {
       // a jump (a teleport)
       cam = { x: rng.nextFloat() * 1536, z: rng.nextFloat() * 1536 };
@@ -162,7 +167,7 @@ describe('vegetation bands (M02h5 AC-4)', () => {
   }
 
   it('a small write cap spreads the re-banding over frames; a frame exceeds it only with one step larger than the whole cap', () => {
-    const a = script('full', 1500, 120);
+    const a = script('full', 600, 120);
     expect(a.spread, 'some re-banding took several frames').toBeGreaterThan(1);
     expect(a.checked).toBeGreaterThan(5);
   });
