@@ -192,27 +192,38 @@ export function createCreatorStage(host: StageHost, assets?: StageAssets): Creat
     if (ticket !== want || !state.shown) return;
     const key = draw.map((x) => `${x.slot}:${x.ref}`).join('|');
     const colors = { skin: p.skin, hair: p.hair, top: p.top, bottom: p.bottom, shoes: p.shoes, accessory: p.accessoryColor ?? p.hair };
-    if (!figure || key !== figureKey) {
-      const textures = await models.textures();
-      if (ticket !== want || !state.shown) return;
-      if (figure) {
-        pivot.remove(figure.root);
-        figure.dispose();
+    try {
+      if (!figure || key !== figureKey) {
+        const textures = await models.textures();
+        if (ticket !== want || !state.shown) return;
+        if (figure) {
+          pivot.remove(figure.root);
+          figure.dispose();
+          figure = null;
+          figureKey = '';
+        }
+        const assembled: AssembledPart[] = draw.map((x, i) => ({ slot: x.slot, mesh: meshes[i] as PersonMesh }));
+        figure = assembleAvatar({ parts: assembled, colors, ...(p.morphs ? { morphs: p.morphs } : {}), textures });
+        figureKey = key;
+        pivot.add(figure.root);
+        rig.root.visible = false;
+        state.figure = 'models';
+        state.triangles = figure.triangles;
+        state.textures = figure.textures;
+      } else {
+        figure.setColors(colors);
       }
-      const assembled: AssembledPart[] = draw.map((x, i) => ({ slot: x.slot, mesh: meshes[i] as PersonMesh }));
-      figure = assembleAvatar({ parts: assembled, colors, ...(p.morphs ? { morphs: p.morphs } : {}), textures });
-      figureKey = key;
-      pivot.add(figure.root);
-      rig.root.visible = false;
-      state.figure = 'models';
-      state.triangles = figure.triangles;
-      state.textures = figure.textures;
-    } else {
-      figure.setColors(colors);
+      if (p.morphs) figure.setMorphs(p.morphs);
+      figure.root.scale.set(p.buildScale, (p.heightScale * figure.heightM) / 1.8, p.buildScale);
+    } catch (e) {
+      // BD-FIX-CREATOR-SHOES-02: a page that cannot be read or a figure that cannot be assembled falls back to the mannequin and ends
+      // `pending`, instead of leaving the stage waiting on a promise nobody handles.
+      if (ticket === want) {
+        console.warn('creator stage: the avatar could not be assembled; showing the mannequin', e);
+        dropFigure();
+      }
     }
-    if (p.morphs) figure.setMorphs(p.morphs);
-    figure.root.scale.set(p.buildScale, (p.heightScale * figure.heightM) / 1.8, p.buildScale);
-    state.pending = false;
+    if (ticket === want) state.pending = false;
   };
 
   const place = (): void => {

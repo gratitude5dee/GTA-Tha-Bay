@@ -100,6 +100,28 @@ describe('creator stage', () => {
     expect(stage.state.pending).toBe(false);
   });
 
+  it('a figure that cannot be assembled falls back to the mannequin and ends pending (BD-FIX-CREATOR-SHOES-02)', async () => {
+    const assets = heldAssets();
+    const broken: StageAssets = {
+      load: (ref) => assets.load(ref),
+      texture: () => {
+        throw new Error('texture port broken');
+      },
+    };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const stage = createCreatorStage(host, broken);
+    stage.show(params([model('body', 'body-athletic'), model('face', 'face-karl')]));
+    expect(stage.state.pending).toBe(true);
+    assets.release('character/pc-body-athletic');
+    assets.release('character/pc-face-karl');
+    await settle();
+    expect(stage.state.pending).toBe(false);
+    expect(stage.state.figure).toBe('mannequin');
+    expect(stage.state.triangles).toBe(0);
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
+  });
+
   it('a hidden stage is not pending, and showing it again loads the latest parts', async () => {
     const assets = heldAssets();
     const stage = createCreatorStage(host, assets);

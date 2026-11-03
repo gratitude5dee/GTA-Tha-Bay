@@ -25,8 +25,14 @@ test.describe('governor @governor', () => {
     expect(after.dynamic.renderScale).toBeLessThan(1);
     expect(after.changes).toBeGreaterThan(0);
     expect(after.lastChange?.dir).toBe('down');
-    // the host resized the drawing buffer under the new scale (a 1x display: the pixel ratio is the scale)
-    await expect.poll(() => page.evaluate(() => window.__dvBridge!.platform!.resolution().pixelRatio), { timeout: 15_000 }).toBeLessThan(1);
+    // the host resized the drawing buffer under the new scale (a 1x display: the pixel ratio is the scale). The wait runs in the page
+    // (BD-FIX-GOVERNOR-POLL-01): at `desktop` on SwiftShader each Playwright round trip waits 3-15 s for a gap in the page's frames
+    // (CI run 41611040067: 14 s for one read that already returned 0.9), so a Node-side poll measured the round trips, not the host.
+    const ratio = await page.waitForFunction(() => {
+      const r = window.__dvBridge!.platform!.resolution().pixelRatio;
+      return r < 1 ? r : false;
+    }, undefined, { timeout: 60_000 });
+    expect(await ratio.jsonValue()).toBeLessThan(1);
   });
 
   test('?governor=off: the same injection changes nothing', async ({ page }) => {
