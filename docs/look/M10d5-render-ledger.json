@@ -1,18 +1,18 @@
 {
-  "commit": "local",
-  "bakeId": "f73a47b756ac5cb1358c40859d017811b1f556e5c28742df09da09107821ebe9",
-  "baselineFrom": "docs/look/M10d4-render-ledger.json",
+  "commit": "5af6d540",
+  "bakeId": "2536435fb1f8e8f1229648294e8450d6518ae98995cb0c6f82e070aec8339f93",
+  "baselineFrom": "docs/look/M02h5-render-ledger.json",
   "drift": {
-    "reason": "the player stands in the frame: the mannequin of docs/look/M10d4-render-ledger.json drew 17 meshes, each one render object plus one per shadow pass where the look's casters are on (desktop), and the body draws one skinned mesh; this checkout reads the render objects in measured",
+    "reason": "the player stands in the frame: the mannequin of docs/look/M02h5-render-ledger.json drew 17 meshes, each one render object plus one per shadow pass where the look's casters are on (desktop), and the body draws one skinned mesh; this checkout reads the render objects in measured",
     "measured": {
-      "desktop": 487,
-      "mobile": 121
+      "desktop": 488,
+      "mobile": 123
     }
   },
   "tiers": {
     "desktop": {
-      "baseline": 551,
-      "after": 487,
+      "baseline": 552,
+      "after": 488,
       "perLayer": {
         "player": 0
       },
@@ -23,8 +23,8 @@
       }
     },
     "mobile": {
-      "baseline": 137,
-      "after": 121,
+      "baseline": 139,
+      "after": 123,
       "perLayer": {
         "player": 0
       },
