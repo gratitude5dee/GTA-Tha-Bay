@@ -246,7 +246,9 @@
       "world-stream.spec.ts › world streaming @world › the backdrop at mobile: ring null km, cards 20 km, massing false, at most 3 objects, one upload @world-backdrop": 0.18,
       "world-teleport.spec.ts › world teleport and routes @world › 50 seeded routes: the page and Node compute the same edges and lengths @world-astar": 0.44,
       "world-teleport.spec.ts › world teleport and routes @world › ten landmarks: each teleport lands within 0.2 m of the ground or leaves the player unmoved, and at least eight land @world-teleport": 0.56,
-      "world-teleport.spec.ts › world teleport and routes @world › the debug panel lists the landmarks, Go teleports there, and Route sets a GPS route the sim plans @world-teleport": 0.24
+      "world-teleport.spec.ts › world teleport and routes @world › the debug panel lists the landmarks, Go teleports there, and Route sets a GPS route the sim plans @world-teleport": 0.24,
+      "art-player.spec.ts › art player @art-player › desktop: the player draws the creator's parts as one body, plays its clips and stands on the curb @art-player": 6,
+      "art-player.spec.ts › art player @art-player › mobile-low: the player draws the creator's parts as one body, plays its clips and stands on the curb @art-player": 2.5
     },
     "chromium-webgl2": {
       "account-password.spec.ts › account island @account › an adult creates an account after reading the terms; no token is stored in the browser @account": 0.02,
@@ -596,7 +598,13 @@
       "world-trees.spec.ts › world trees @world-trees › desktop: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 11,
       "world-trees.spec.ts › world trees @world-trees › mobile-low: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 1.5,
       "world-trees.spec.ts › world trees @world-trees › mobile-low: world.treeForms off (?treeForms=0) draws one cone pool @world-trees": 1,
-      "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 3
+      "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 3,
+      "art-player.spec.ts › art player @art-player › desktop: the player draws the creator's parts as one body, plays its clips and stands on the curb @art-player": 6,
+      "art-player.spec.ts › art player @art-player › mobile-low: the player draws the creator's parts as one body, plays its clips and stands on the curb @art-player": 2.5,
+      "art-player.spec.ts › player ledger @player-ledger › desktop: the body is one render object and the frame holds its count @player-ledger": 5,
+      "art-player.spec.ts › player ledger @player-ledger › mobile: the body is one render object and the frame holds its count @player-ledger": 1.5,
+      "art-player.spec.ts › player ledger @player-ledger › mobile-low: the body is one render object and the frame holds its count @player-ledger": 1,
+      "art-player.spec.ts › player ledger @player-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @player-ledger": 0.01
     },
     "webkit-webgl2": {
       "account-password.spec.ts › account island @account › an adult creates an account after reading the terms; no token is stored in the browser @account": 0.03,
@@ -852,7 +860,9 @@
       "world-trees.spec.ts › world trees @world-trees › desktop: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 14,
       "world-trees.spec.ts › world trees @world-trees › mobile-low: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 2,
       "world-trees.spec.ts › world trees @world-trees › mobile-low: world.treeForms off (?treeForms=0) draws one cone pool @world-trees": 1.2,
-      "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 4
+      "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 4,
+      "art-player.spec.ts › art player @art-player › desktop: the player draws the creator's parts as one body, plays its clips and stands on the curb @art-player": 5,
+      "art-player.spec.ts › art player @art-player › mobile-low: the player draws the creator's parts as one body, plays its clips and stands on the curb @art-player": 2
     },
     "xr-quest3": {
       "art-city.spec.ts › xr art @xr @art-city › the Quest tier is legacy with one family and standard paint @xr @art-city": 0.21,
@@ -866,7 +876,8 @@
       "world-markings.spec.ts › xr markings @xr @world-markings › the Quest tier draws the flat paint on its legacy roads, and the layer switches it @xr @world-markings": 0.25,
       "world-sky-look-fixes.spec.ts › xr fixes ledger @fixes-ledger › the Quest tier holds its render objects on a held frame, against M10d0 @xr @fixes-ledger": 0.19,
       "xr-smoke.spec.ts › XR smoke @xr @xr-smoke › Enter VR (smoke) presents, renders XR frames, runs the sim, and exiting returns to the flat page @xr @xr-smoke": 0.55,
-      "xr/xr-panel.spec.ts › XR UI panel skeleton @xr @xr-panel › a ScreenDef panel opens 1.2 m away on a world anchor, a ray press works, text is 1.5 degrees, it redraws only after a view-model change @xr @xr-panel": 0.44
+      "xr/xr-panel.spec.ts › XR UI panel skeleton @xr @xr-panel › a ScreenDef panel opens 1.2 m away on a world anchor, a ray press works, text is 1.5 degrees, it redraws only after a view-model change @xr @xr-panel": 0.44,
+      "art-player.spec.ts › xr art player @xr @art-player › the Quest tier draws the player from the lo parts @xr @art-player": 3
     }
   }
 }

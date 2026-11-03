@@ -18,7 +18,7 @@ import { bakeIdOf, bootWorld, live, read, setSky, world, type W } from './markin
  *                   `docs/look/M02h2-render-ledger.json`. `@xr`: the Quest tier holds its count.
  */
 const LEDGER = 'docs/look/M02h2-render-ledger.json';
-const PRIORS = ['docs/look/M10d5-render-ledger.json', 'docs/look/M02h1-render-ledger.json', 'docs/look/M10d1-render-ledger.json', 'docs/look/M10d0-render-ledger.json'];
+const PRIORS = ['docs/look/M02h1-render-ledger.json', 'docs/look/M10d1-render-ledger.json', 'docs/look/M10d0-render-ledger.json'];
 
 // ---- the ledger -------------------------------------------------------------------------------------------------------------------------
 
