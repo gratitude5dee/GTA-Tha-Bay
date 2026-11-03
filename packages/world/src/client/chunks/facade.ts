@@ -27,7 +27,7 @@ export interface FacadeAtlasConfig {
   schema: 'facade-atlas/1';
   asset: string;
   grid: number;
-  sizePx: { desktop: number; mobile: number };
+  sizePx: { desktop: number; mobile: number; 'mobile-low': number };
   mean: number;
   strength: number;
   fade: { startM: number; endM: number };

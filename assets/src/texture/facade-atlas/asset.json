@@ -3,7 +3,8 @@
   "id": "facade-atlas",
   "variants": {
     "desktop": "assets/src/texture/facade-atlas/desktop.ktx2",
-    "mobile": "assets/src/texture/facade-atlas/mobile.ktx2"
+    "mobile": "assets/src/texture/facade-atlas/mobile.ktx2",
+    "mobile-low": "assets/src/texture/facade-atlas/mobile-low.ktx2"
   },
   "deps": [],
   "tags": [
@@ -20,6 +21,10 @@
     "mobile": {
       "texMaxPx": 512,
       "texGpuBytes": 349552
+    },
+    "mobile-low": {
+      "texMaxPx": 256,
+      "texGpuBytes": 87408
     }
   },
   "status": "active",

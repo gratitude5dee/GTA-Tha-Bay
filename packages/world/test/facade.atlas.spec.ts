@@ -36,12 +36,13 @@ describe('facade atlas config and asset', () => {
     for (const p of pairs) expect(p.tileM).toBeGreaterThan(1);
   });
 
-  it('commits the desktop (1024 px) and mobile (512 px) KTX2 variants with full mip chains, and a spec that names them', () => {
+  it('commits the desktop (1024 px), mobile (512 px) and mobile-low (256 px) KTX2 variants with full mip chains, and a spec that names them', () => {
     const spec = JSON.parse(new TextDecoder().decode(read('assets/src/texture/facade-atlas/asset.json'))) as { variants: Record<string, string>; codec: { tex: string } };
-    expect(Object.keys(spec.variants).sort()).toEqual(['desktop', 'mobile']);
+    expect(Object.keys(spec.variants).sort()).toEqual(['desktop', 'mobile', 'mobile-low']);
     expect(spec.codec.tex).toBe('ktx2-etc1s');
     expect(ktx2(read('assets/src/texture/facade-atlas/desktop.ktx2'))).toEqual({ w: 1024, h: 1024, levels: 11 });
     expect(ktx2(read('assets/src/texture/facade-atlas/mobile.ktx2'))).toEqual({ w: 512, h: 512, levels: 10 });
+    expect(ktx2(read('assets/src/texture/facade-atlas/mobile-low.ktx2'))).toEqual({ w: 256, h: 256, levels: 9 });
   });
 
   it('maps a wall point into its tile, inset, with wall-up as image-up', () => {

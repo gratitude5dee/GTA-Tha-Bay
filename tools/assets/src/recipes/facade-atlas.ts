@@ -5,7 +5,7 @@
  * `config/world/facade-atlas.json` `mean`, so the shader multiplies the class palette colour by `sample / mean` and the walls keep the
  * brightness the look tuned. No text, signs, logos, murals or photographs: patterns of courses, joints and grain only.
  *
- *   tsx tools/assets/src/recipes/facade-atlas.ts --write   writes the two KTX2 variants, the asset spec and the provenance records
+ *   tsx tools/assets/src/recipes/facade-atlas.ts --write   writes the three KTX2 variants, the asset spec and the provenance records
  *   tsx tools/assets/src/recipes/facade-atlas.ts --check   fails when a committed variant differs from a fresh build
  *
  * Deterministic: seeded streams, integer pixel loops, and the Basis encoder of M10d0 (BD-M10d0-01).
@@ -30,7 +30,7 @@ export interface FacadeAtlasConfig {
   schema: 'facade-atlas/1';
   asset: string;
   grid: number;
-  sizePx: { desktop: number; mobile: number };
+  sizePx: { desktop: number; mobile: number; 'mobile-low': number };
   mean: number;
   strength: number;
   fade: { startM: number; endM: number };
@@ -192,15 +192,17 @@ export function atlasRaster(cfg: FacadeAtlasConfig, size: number): Raster {
   return { width: size, height: size, data };
 }
 
-export interface AtlasFiles { desktop: Uint8Array; mobile: Uint8Array }
+export interface AtlasFiles { desktop: Uint8Array; mobile: Uint8Array; 'mobile-low': Uint8Array }
 
-/** Both KTX2 variants: the desktop raster and its box-filtered half (Basis ETC1S, sRGB, mips). */
+/** The KTX2 variants: the desktop raster and its box-filtered halves (Basis ETC1S, sRGB, mips). `mobile-low` exists for the catalog's tier rule only; that tier never requests it. */
 export async function buildAtlas(cfg: FacadeAtlasConfig): Promise<AtlasFiles> {
   const enc = await basisEncoder();
   const desk = atlasRaster(cfg, cfg.sizePx.desktop);
   let mob: Raster = desk;
   while (mob.width > cfg.sizePx.mobile) mob = halve(mob, false);
-  return { desktop: await enc.encode(desk, 'albedo'), mobile: await enc.encode(mob, 'albedo') };
+  let low: Raster = mob;
+  while (low.width > cfg.sizePx['mobile-low']) low = halve(low, false);
+  return { desktop: await enc.encode(desk, 'albedo'), mobile: await enc.encode(mob, 'albedo'), 'mobile-low': await enc.encode(low, 'albedo') };
 }
 
 const sha256 = (b: Uint8Array | string): string => createHash('sha256').update(b).digest('hex');
@@ -232,7 +234,7 @@ export function writeAtlas(root: string, files: AtlasFiles, cfg: FacadeAtlasConf
   const out: string[] = [];
   const variants: Record<string, string> = {};
   const stats: Record<string, { texMaxPx: number; texGpuBytes: number }> = {};
-  for (const v of ['desktop', 'mobile'] as const) {
+  for (const v of ['desktop', 'mobile', 'mobile-low'] as const) {
     const rel = `${FACADE_ATLAS_DIR}/${v}.ktx2`;
     writeFileSync(path.join(root, rel), files[v]);
     variants[v] = rel;
@@ -260,7 +262,7 @@ async function main(): Promise<number> {
   const files = await buildAtlas(cfg);
   if (argv.includes('--check')) {
     let ok = true;
-    for (const v of ['desktop', 'mobile'] as const) {
+    for (const v of ['desktop', 'mobile', 'mobile-low'] as const) {
       const p = path.join(toolsRoot, FACADE_ATLAS_DIR, `${v}.ktx2`);
       const same = existsSync(p) && sha256(readFileSync(p)) === sha256(files[v]);
       console.log(`${same ? 'ok  ' : 'DIFF'} ${FACADE_ATLAS_DIR}/${v}.ktx2`);
