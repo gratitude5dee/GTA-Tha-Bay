@@ -142,7 +142,9 @@ describe('vertex ambient occlusion (AC-2)', () => {
           const x = i * stride * s.sim.height.cellM, z = j * stride * s.sim.height.cellM;
           const d = rings.reduce((best, r) => Math.min(best, distToRing(r, x, z)), Infinity);
           const ao = t.ao[j * verts + i] as number;
-          if (d < ring - 1e-6) {
+          // a post a hair inside the ring has ao 1 - strength x (a hair)^2, which the mesher's Float32Array stores as 1: within 1 mm of
+          // the ring either value is right (BD-M02h5-13; the scatter bake put a post 3.0000 m from a footprint)
+          if (d < ring - 1e-3) {
             near++;
             expect(ao, `${s.sim.key} post ${i},${j} at ${d.toFixed(2)} m`).toBeLessThan(1);
             // a post a hair inside the ring is a hair under 1 (rounding of the footprint to a decimetre aside)
