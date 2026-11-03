@@ -2,7 +2,7 @@
   "id": "player.default",
   "kind": "player",
   "version": 1,
-  "render": { "asset": "prop/graybox.capsule" },
+  "render": { "asset": "character/pc-body-athletic" },
   "physics": { "body": "kinematic", "shape": "capsule", "dims": [0.55, 0.35], "groups": ["character"] },
   "components": {
     "Transform": { "qw": 1 },

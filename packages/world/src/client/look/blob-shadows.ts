@@ -46,6 +46,12 @@ ASSET_STYLE.set('prop/graybox.capsule', { halfWidth: AVATAR_BLOB_HALF_M, halfLen
 export function blobStyleOf(key: string): BlobStyle | null {
   const known = ASSET_STYLE.get(key);
   if (known) return known;
+  // M10d5: the on-foot bodies of the player (`character/pc-body-*`) and the mission actors (`character/ped.body.*`) cast the capsule's blob
+  if (key.startsWith('character/pc-body-') || key.startsWith('character/ped.body.')) {
+    const style = ASSET_STYLE.get('prop/graybox.capsule') as BlobStyle;
+    ASSET_STYLE.set(key, style);
+    return style;
+  }
   const v = vehicleFootprint(key);
   if (!v) return null;
   const style: BlobStyle = { halfWidth: v.halfWidth, halfLength: v.halfLength, dropM: v.dropM, range: CAR_BLOB_RANGE_M };

@@ -15,7 +15,9 @@ import type { DebugCommand } from '../../sim/transport/envelope.ts';
 import type { PlayerSide } from '../../sim/publish.ts';
 import type { PromptSide, VehicleSide } from '../snapshot/reader.ts';
 import { SnapshotView } from '../snapshot/reader.ts';
-import type { ObjectPool } from '../snapshot/object-pool.ts';
+import type { BodyReport, ObjectPool } from '../snapshot/object-pool.ts';
+import type { BodyAssets } from '../avatar/player-body.ts';
+export type { BodyAssets } from '../avatar/player-body.ts';
 import { CameraRigImpl, type CameraLike } from '../camera/rig.ts';
 import { CONTROL_OWNER } from '../../sim/control/states.ts';
 import type { PursuitSide } from '../snapshot/reader.ts';
@@ -104,6 +106,11 @@ export interface BootEngineOptions {
   onToast?: (t: ToastRecord) => void;
   /** Telemetry the sim queued (`mode.enter`, `mode.exit`, `unlock.emit`; M04a2) is handed here with its registry props. */
   onTelemetry?: (name: string, props: Record<string, string | number | boolean>) => void;
+  /**
+   * M10d5: the bytes of the on-foot bodies (the player's creator parts, the mission actors' ped kit). Without it every character keeps
+   * the mannequin (a gray-box scene, a QA `?art=0` boot).
+   */
+  bodies?: BodyAssets;
 }
 
 /** A toast the sim-side UiBridge raised; the shell (M04b1) draws it, the QA panel lists it. */
@@ -176,6 +183,8 @@ export interface EngineObservation {
   look: { yaw: number; pitch: number; playerHeading: number | null };
   /** QA tools (M03a1): the entity inspector and the physics wireframe. */
   tools: { inspector: boolean; inspectorComponents: string[]; physics: boolean; physicsBodies: number; physicsShapes: string[] } | null;
+  /** M10d5: the on-foot bodies the pool draws (the player's and the mission actors'); null without a view. */
+  bodies: BodyReport | null;
 }
 
 export interface EngineHandle {
@@ -786,6 +795,13 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       hostScene = opts.host;
       rig = new CameraRigImpl({ camera: made.camera as unknown as CameraLike, targetPose, look: () => look });
       applyScale();
+      // M10d5: the player wears the profile's avatar (`sys.avatar`, the creator's default until a save names one); the actors the ped kit
+      if (opts.bodies) {
+        const bodyPool = made.pool;
+        bodyPool.setBodies(opts.bodies, opts.tier ?? opts.flags.tier ?? 'desktop');
+        bodyPool.setAvatar(vm.get('sys.avatar'));
+        cleanups.push(vm.subscribe('sys.avatar', (v) => bodyPool.setAvatar(v)));
+      }
     } else {
       runOnRaf();
     }
@@ -1083,6 +1099,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
               physicsBodies: physicsDraw.count, physicsShapes: physicsDraw.shapesDrawn,
             }
           : null,
+        bodies: pool ? pool.bodyReport() : null,
       };
     },
     act: (cmd) => host.sendDebug(cmd),
