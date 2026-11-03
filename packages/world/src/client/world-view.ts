@@ -622,9 +622,10 @@ export class WorldView implements WorldLayer {
     this.lastPoseKeys = f.poseKeys ?? null; // art-hook:vehicles (M10d1)
     if (this.lookView && this.host) this.lookView.frame(f.dtSec, this.host.camera as PerspectiveCamera);
     this.peds?.update(f, tSec);
-    // M02h6: the signal heads at the snapshot's tick, and the parked dressing between its fades
-    this.renderer.furniture?.update(f.simTick ?? -1, f.blackout, f.camera.pos[0], f.camera.pos[2], f.nowMs);
-    this.parked?.update(f);
+    // M02h6: the signal heads at the snapshot's tick (a held look shot freezes them at tick 0, so a golden does not depend on when the
+    // sim paused), and the parked dressing between its fades (away from the live cars only while the traffic is drawn)
+    this.renderer.furniture?.update(held ? 0 : (f.simTick ?? -1), f.blackout, f.camera.pos[0], f.camera.pos[2], f.nowMs);
+    this.parked?.update(f, this.traffic?.group.visible !== false);
     // M02g1: the blob shadows follow the poses the traffic, the pedestrians and the object pool just drew.
     // M02h2 repair: an ambient actor whose renderer group is hidden (the goldens hide traffic, pedestrians and transit) casts no blob.
     const parked = this.parked;

@@ -115,6 +115,7 @@ export class ParkedDressing {
   private frame = 0;
   private lastAt: [number, number] = [1e9, 1e9];
   private dirty = true;
+  private lastLive = true;
   private drawn: { key: string; x: number; y: number; z: number; yaw: number; fade: number; arch: number }[] = [];
   private loaded = 0;
   private disposed = false;
@@ -248,22 +249,24 @@ export class ParkedDressing {
 
   /**
    * Every frame: re-chooses the drawn slots every `everyFrames` frames or when the camera moved `rebandM` (and on a unit change), nearest
-   * first, within the fades and away from the live car poses; then feeds their blobs.
+   * first, within the fades and away from the live car poses (`liveCars` false: the traffic is not drawn, so no live car can overlap one;
+   * the look goldens hide the traffic, and the dressing then depends on the camera and the player alone).
    */
-  update(f: Pick<WorldFrame, 'camera' | 'player' | 'poses' | 'poseCount'>): void {
+  update(f: Pick<WorldFrame, 'camera' | 'player' | 'poses' | 'poseCount'>, liveCars = true): void {
     this.frame++;
     const cfg = FURNITURE.parked;
     const cx = f.camera.pos[0], cz = f.camera.pos[2];
     const moved = Math.hypot(cx - this.lastAt[0], cz - this.lastAt[1]) > cfg.rebandM;
-    if (!this.dirty && !moved && this.frame % cfg.everyFrames !== 0) return;
+    if (!this.dirty && !moved && this.frame % cfg.everyFrames !== 0 && liveCars === this.lastLive) return;
     this.dirty = false;
+    this.lastLive = liveCars;
     this.lastAt = [cx, cz];
     const px = f.player ? f.player.pos[0] : cx, pz = f.player ? f.player.pos[2] : cz;
     const ghost = cfg.ghostM[this.profile], far = cfg.dressFarM[this.profile], fadeM = cfg.fadeM;
     const skip = cfg.skipCarLengths * cfg.carLengthM;
     // live car poses (traffic and the sim's parked cars): flagged ambient
     const live: number[] = [];
-    const n = f.poseCount ?? 0;
+    const n = liveCars ? (f.poseCount ?? 0) : 0;
     for (let i = 0; i < n; i++) {
       const pose = f.poses?.[i];
       if (pose && (pose.flags & 2) !== 0) live.push(pose.px, pose.pz);
