@@ -19,7 +19,7 @@ import {
   BufferAttribute, BufferGeometry, type Frustum, Group, Mesh, type Object3D, BundleGroup, Sphere, Vector3, type WebGPURenderer,
 } from 'three/webgpu';
 import type { TreeSet } from './tree-forms.ts';
-import { VegetationPools, type VegetationPoolReport } from './vegetation-pool.ts';
+import { VegetationPools, type ScatterPoolOptions, type VegetationPoolReport } from './vegetation-pool.ts';
 import type { MeshBuffers, UnitMesh } from './mesh-types.ts';
 import type { WorldMaterials } from './materials.ts';
 import { ChunkUploadGate } from './upload-gate.ts';
@@ -111,6 +111,8 @@ export interface ChunkRendererOptions {
    * look, `cone` with `world.treeForms` off). `low` when absent.
    */
   treeSet?: TreeSet;
+  /** M02h5: the vegetation scatter's bands, thinning and pools (absent: M02h4's pools alone). */
+  scatter?: ScatterPoolOptions;
 }
 
 /** The trees of the resident L0 units as the camera sees them (QA, `look().vegetation`). */
@@ -134,6 +136,11 @@ export interface VegetationReport {
   drawnInstances: number;
   /** M02h4: crossings waiting for upload room (the pools' writes count against the tier's upload cap). */
   pendingCrossings: number;
+  /** M02h5: the scatter (impostors, shrubs, hedges, band writes) and the triangles per pool. */
+  scatter: VegetationPoolReport['scatter'];
+  poolTris: VegetationPoolReport['poolTris'];
+  /** M02h5: the drawn vegetation triangles over every pool. */
+  triangles: number;
 }
 
 export class ChunkRenderer {
@@ -187,6 +194,8 @@ export class ChunkRenderer {
       set: o.treeSet ?? 'low',
       material: () => this.o.materials.materialFor('l0', 'vegetation'),
       receiveShadow: () => this.look?.receive ?? false,
+      scatter: o.scatter,
+      impostorMaterial: () => this.o.materials.impostorMaterial(),
     });
   }
 
@@ -511,6 +520,8 @@ export class ChunkRenderer {
       this.cullTrees(this.camPos);
     }
     this.flushCrossings();
+    // M02h5: the scatter's bands follow the camera (re-banded after `rebandM` of travel; writes capped per frame and by the upload cap)
+    this.vegetation.update(cam.pos[0], cam.pos[2], this.o.uploadBytes);
     return uploaded;
   }
 
@@ -595,6 +606,7 @@ export class ChunkRenderer {
       shown, hidden, farthestM: farthest, drawM: this.treeDrawM, crossings: this.treeCrossings,
       set: pools.set, pools: pools.pools, drawnPools: pools.drawnPools, forms: pools.forms, wind: this.windNow,
       drawnInstances: this.vegetation.drawnInstances(), pendingCrossings: this.crossQueue.size,
+      scatter: pools.scatter, poolTris: pools.poolTris, triangles: this.vegetation.totals().triangles,
     };
   }
 

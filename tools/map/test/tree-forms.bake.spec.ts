@@ -13,8 +13,8 @@ import { requireBake } from '../../../tests/support/require-bake.ts';
  * `bakeId`s differ from the parent's; `bake-report.json` has `treeForms` and `treeUnmatched`.
  */
 const TABLE = loadTreeForms();
-/** The synth bakeId of the parent (`docs/look/M02h3-render-ledger.json`, tools/map@0.3.1). */
-const PARENT_SYNTH = '6e5d9a7fc0c8faa0ae8124ba55e8d6eb6438ca9b98c695d0c163c6828dc0af59';
+/** The synth bakeId of the parent (M02h5: `docs/look/M02h4-render-ledger.json`, tools/map@0.4.0). */
+const PARENT_SYNTH = 'f73a47b756ac5cb1358c40859d017811b1f556e5c28742df09da09107821ebe9';
 
 describe('tree forms table (AC-2)', () => {
   it('validates against tools/map/schemas/tree-forms.schema.json, and a broken table does not', () => {
@@ -53,7 +53,8 @@ describe('tree forms table (AC-2)', () => {
 
 describe('tree bytes of the baked worlds (AC-2)', () => {
   for (const area of ['synth', 'civic-excerpt'] as const) {
-    it(`${area}: every TREE byte is 0..4${area === 'synth' ? ' with all five forms' : ''}; the report has treeForms and treeUnmatched; the bakeId is a 0.4.0 one`, () => {
+    // M02h5: a street tree's byte is still 0..4; a scatter record (bit 7) holds a tree form or Shrub 5 / Hedge 6 in its low bits
+    it(`${area}: every street-tree byte is 0..4${area === 'synth' ? ' with all five forms' : ''}, every other byte a scatter record; the report has treeForms and treeUnmatched; the bakeId is a 0.5.0 one`, () => {
       const bake = requireBake(area, `tree-forms.bake ${area}`);
       if (!bake) return;
       const report = JSON.parse(readFileSync(path.join(bake.dir, 'bake-report.json'), 'utf8')) as {
@@ -61,11 +62,12 @@ describe('tree bytes of the baked worlds (AC-2)', () => {
       };
       expect(mapSchema('bake-report')(report)).toEqual([]);
       expect(report.toolVersion).toBe(TOOL_ID);
-      expect(TOOL_VERSION).toBe('0.4.0');
+      expect(TOOL_VERSION).toBe('0.5.0');
       if (area === 'synth') expect(report.bakeId).not.toBe(PARENT_SYNTH);
       expect(report.treeForms, 'bake-report.json treeForms').toBeDefined();
       expect(Array.isArray(report.treeUnmatched)).toBe(true);
       expect(Object.values(report.treeForms ?? {}).reduce((n, v) => n + v, 0)).toBe(report.counts.trees);
+      let scatter = 0;
       const seen = [0, 0, 0, 0, 0];
       let trees = 0;
       const dir = path.join(bake.dir, 'packs');
@@ -74,6 +76,11 @@ describe('tree bytes of the baked worlds (AC-2)', () => {
         for (const c of decodeL0(new Uint8Array(readFileSync(path.join(dir, name))), sims)) {
           for (let i = 3; i < c.trees.length; i += 4) {
             const b = c.trees[i] as number;
+            if (b >= 128) {
+              expect((b & 0x7f) <= 6 && Number.isInteger(b), `${c.key} scatter byte ${b}`).toBe(true);
+              scatter++;
+              continue;
+            }
             expect(b >= 0 && b <= 4 && Number.isInteger(b), `${c.key} tree byte ${b}`).toBe(true);
             seen[b] = (seen[b] as number) + 1;
             trees++;
@@ -81,6 +88,7 @@ describe('tree bytes of the baked worlds (AC-2)', () => {
         }
       }
       expect(trees).toBeGreaterThan(0);
+      if (area === 'synth') expect(scatter, 'synth scatter records').toBeGreaterThan(0);
       if (area === 'synth') for (let f = 0; f < 5; f++) expect(seen[f], `synth form ${TREE_FORM_NAMES[f]}`).toBeGreaterThan(0);
       console.log(`tree-forms.bake ${area}: ${trees} baked trees by form ${seen.join('/')}; report ${JSON.stringify(report.treeForms)}; unmatched ${JSON.stringify(report.treeUnmatched?.slice(0, 5))}`);
     });

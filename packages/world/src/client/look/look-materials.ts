@@ -5,7 +5,8 @@
  *    nodes);
  *  - L0 `buildings`: walls (façade), roofs and rooftop equipment in one material, branched on the surface id;
  *  - L0 `vegetation`: the tree pools (M02h4): opaque, no alpha test and no fade, the vertex colour with the instance's crown tint
- *    (`aTint`, crown vertices only by `aLeaf`), a little colour variation, and on `full` the wind sway (`look/wind.ts`);
+ *    (`aTint`, crown vertices only by `aLeaf`), a little colour variation, and on `full` the wind sway (`look/wind.ts`); M02h5: the
+ *    `impostors` twin turns the far-tree cards to the camera (`chunks/impostors.ts`), opaque, no wind;
  *  - L1/L2 `terrain`, `roads`: the ground material with the cover mask (and the dithered fade); `massing` keeps M02b1's world-space
  *    night mask (`windowEmissive`) with the new palettes.
  *
@@ -31,6 +32,7 @@ import { roofNodes } from './roof.ts';
 import { SURF_SCALE, Surf } from './surfaces.ts';
 import { waterNodes } from './water.ts';
 import { windOffset, type WindNodes } from './wind.ts';
+import { billboardPosition } from '../chunks/impostors.ts';
 // art-hook:textures begin (M10d0): the one import of the surface textures
 import { withSurfaceTextures } from '../textures/surface-textures.ts';
 // art-hook:textures end
@@ -39,6 +41,8 @@ export type MaterialProfile = 'full' | 'lite' | 'min';
 
 export interface LookMaterialSet {
   l0: Partial<Record<ObjectKind, MeshStandardNodeMaterial>>;
+  /** M02h5: the impostor cards of the far trees (the vegetation material with the billboard `positionNode`, no wind). */
+  impostors: MeshStandardNodeMaterial;
   coarse: Partial<Record<ObjectKind, MeshStandardNodeMaterial>>;
   dispose(): void;
 }
@@ -165,7 +169,7 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
 
   // ---- vegetation ---------------------------------------------------------------------------------------------------------
   // M02h4: the pools draw opaque geometry with no fade (a pool spans the city); the crown takes the instance tint, and on `full` the wind
-  const trees = (): MeshStandardNodeMaterial => {
+  const trees = (impostor = false): MeshStandardNodeMaterial => {
     const m = new MeshStandardNodeMaterial({ roughness: 0.88, metalness: 0, side: FrontSide });
     all.push(m);
     const vc = vertexColor(0);
@@ -178,7 +182,8 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     const wet = float(1).sub(n.sky.uWet.mul(0.12));
     m.colorNode = asNode(vc.mul(crown).mul(leafVar).mul(wet));
     m.roughnessNode = asNode(mix(float(0.88), float(0.6), n.sky.uWet.mul(leaf).mul(0.5))) as never;
-    if (profile === 'full' && o.wind) m.positionNode = asNode(positionLocal.add(windOffset(o.wind, n.uLook, look.vegetation)));
+    if (impostor) m.positionNode = asNode(billboardPosition());
+    else if (profile === 'full' && o.wind) m.positionNode = asNode(positionLocal.add(windOffset(o.wind, n.uLook, look.vegetation)));
     return m;
   };
 
@@ -187,6 +192,7 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
   l0.roads = depth.set(ground(false, true), roadBias(MESHER.depth.roadFactor, MESHER.depth.roadUnits));
   l0.buildings = buildings();
   l0.vegetation = trees();
+  const impostors = trees(true);
   const coarse: LookMaterialSet['coarse'] = {};
   coarse.terrain = ground(true);
   coarse.roads = ground(true);
@@ -198,6 +204,7 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
   depth.set(coarse.roads, plus(COARSE_BACK, roadBias(MESHER.depth.roadFactor, MESHER.depth.roadUnits)));
   return {
     l0,
+    impostors,
     coarse,
     dispose: () => {
       for (const m of new Set(all)) m.dispose();

@@ -106,8 +106,12 @@ describe('tree records (AC-3)', () => {
     }
   });
 
-  it('a 1.0 index species hash 5..7 and any reserved byte draw as Plane', () => {
-    for (const b of [5, 6, 7, 8, 127, 255]) expect(treeFormOfByte(b)).toBe(TreeForm.Plane);
+  // M02h5 (BD-M02h5-03): 5 and 6 are Shrub and Hedge, bit 7 the scatter flag; a reserved low value (7..127) still draws as Plane
+  it('a reserved byte draws as Plane; 5 and 6 are the understory, bit 7 is ignored by the form', () => {
+    for (const b of [7, 8, 127, 255, 135]) expect(treeFormOfByte(b)).toBe(TreeForm.Plane);
     for (const f of FORMS) expect(treeFormOfByte(f)).toBe(f);
+    for (const f of FORMS) expect(treeFormOfByte(f | 0x80)).toBe(f);
+    expect(treeFormOfByte(5)).toBe(TreeForm.Shrub);
+    expect(treeFormOfByte(6 | 0x80)).toBe(TreeForm.Hedge);
   });
 });

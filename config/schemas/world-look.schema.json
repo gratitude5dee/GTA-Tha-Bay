@@ -9,6 +9,20 @@
     "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
     "tier": { "enum": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"] },
     "profile": { "enum": ["full", "lite", "min", "legacy"] },
+    "vegProfileM": {
+      "type": "object", "additionalProperties": false, "required": ["desktop", "visionpro", "mobile", "low"],
+      "properties": {
+        "desktop": { "type": "number", "minimum": 0, "maximum": 2000 }, "visionpro": { "type": "number", "minimum": 0, "maximum": 2000 },
+        "mobile": { "type": "number", "minimum": 0, "maximum": 2000 }, "low": { "type": "number", "minimum": 0, "maximum": 2000 }
+      }
+    },
+    "vegKeep": {
+      "type": "object", "additionalProperties": false, "required": ["full", "lite", "min", "legacy"],
+      "properties": {
+        "full": { "type": "number", "minimum": 0, "maximum": 1 }, "lite": { "type": "number", "minimum": 0, "maximum": 1 },
+        "min": { "type": "number", "minimum": 0, "maximum": 1 }, "legacy": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
     "perWeather": {
       "type": "object",
       "additionalProperties": false,
@@ -357,7 +371,22 @@
         },
         "freq": { "type": "number", "minimum": 0, "maximum": 10 },
         "waveK": { "type": "number", "minimum": 0, "maximum": 2 },
-        "dirDeg": { "type": "number", "minimum": -360, "maximum": 360 }
+        "dirDeg": { "type": "number", "minimum": -360, "maximum": 360 },
+        "scatter": {
+          "type": "object", "additionalProperties": false,
+          "required": ["impostorM", "shrubDrawM", "hysteresis", "rebandM", "writeCap", "scatterKeep", "shrubKeep"],
+          "$comment": "M02h5: impostor bands, understory draw distance, re-banding and thinning of the scatter",
+          "properties": {
+            "$comment": { "type": "string" },
+            "impostorM": { "$ref": "#/$defs/vegProfileM" },
+            "shrubDrawM": { "$ref": "#/$defs/vegProfileM" },
+            "hysteresis": { "type": "number", "minimum": 0, "maximum": 0.5 },
+            "rebandM": { "type": "number", "minimum": 1, "maximum": 256 },
+            "writeCap": { "type": "integer", "minimum": 64, "maximum": 65536 },
+            "scatterKeep": { "$ref": "#/$defs/vegKeep" },
+            "shrubKeep": { "$ref": "#/$defs/vegKeep" }
+          }
+        }
       }
     },
     "dynamicCasterRadiusM": { "type": "number", "minimum": 0, "maximum": 400 },

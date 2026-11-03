@@ -148,6 +148,8 @@ export const LOOK_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.
 export const COVER_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.cover'] !== false;
 /** M02h4: `config/platform-flags.json` `world.treeForms` (default true): false draws M02b1's cone as one vegetation pool. */
 export const TREE_FORMS_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.treeForms'] !== false;
+/** M02h5: `config/platform-flags.json` `world.scatter` (default true): false skips the scatter records (bit 7) and the impostors. */
+export const SCATTER_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.scatter'] !== false;
 
 export const TIER_IDS: readonly QualityTierId[] = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low', 'xr-quest', 'xr-visionpro'];
 

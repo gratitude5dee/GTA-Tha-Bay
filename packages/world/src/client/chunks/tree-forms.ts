@@ -14,6 +14,11 @@
  *    Eucalyptus told apart by the instance's non-uniform scale and tint, `LOW_CROWN`) and `palm`;
  *  - `cone`: M02b1's cone (20 triangles), the one pool of `world.treeForms: false`.
  *
+ * M02h5 adds the understory of the scatter: `shrub` (a low clipped mound) and `hedge` (a rounded block about 1 m across, so blocks 0.9 m
+ * apart run together into a hedge), each one pool on `full`; on `lite` the hedges draw with the shrub; on `low` both are flattened
+ * instances of the `crown` pool (`instanceScaleOf`); the cone set draws them as small cones. The impostor cards of the far trees are in
+ * `chunks/impostors.ts`.
+ *
  * The colours are design values (sRGB hex, linearised here).
  */
 import { Rng, TreeForm, splitmix32 } from '@dv/shared';
@@ -21,7 +26,7 @@ import { MESHER, hexToLinear, type Rgb } from './mesher.ts';
 
 export type TreeSet = 'full' | 'lite' | 'low' | 'cone';
 /** The geometries of a set, in pool order: the five forms on `full` and `lite`, `crown` and `palm` on `low`, one `cone`. */
-export type TreeGeometryId = 'plane' | 'ficus' | 'conifer' | 'eucalyptus' | 'palm' | 'crown' | 'cone';
+export type TreeGeometryId = 'plane' | 'ficus' | 'conifer' | 'eucalyptus' | 'palm' | 'crown' | 'cone' | 'shrub' | 'hedge' | 'imp-crown' | 'imp-palm';
 
 export interface TreeGeometryData {
   id: TreeGeometryId;
@@ -48,10 +53,15 @@ export const SET_GEOMETRIES: Readonly<Record<TreeSet, readonly TreeGeometryId[]>
   cone: ['cone'],
 };
 
-/** The geometry a form draws with in a set. */
+/** M02h5: the understory geometries a set adds as pools of their own (`full` shrub and hedge, `lite` shrub, none on `low` and `cone`). */
+export const UNDERSTORY_GEOMETRIES: Readonly<Record<TreeSet, readonly TreeGeometryId[]>> = { full: ['shrub', 'hedge'], lite: ['shrub'], low: [], cone: [] };
+
+/** The geometry a form draws with in a set (M02h5: the shrub and the hedge too). */
 export function geometryOfForm(set: TreeSet, form: TreeForm): TreeGeometryId {
   if (set === 'cone') return 'cone';
   if (set === 'low') return form === TreeForm.Palm ? 'palm' : 'crown';
+  if (form === TreeForm.Shrub) return 'shrub';
+  if (form === TreeForm.Hedge) return set === 'full' ? 'hedge' : 'shrub';
   return (['plane', 'ficus', 'conifer', 'eucalyptus', 'palm'] as const)[form] ?? 'plane';
 }
 
@@ -65,6 +75,9 @@ export const LOW_CROWN: Readonly<Record<number, { kx: number; ky: number; color:
   [TreeForm.Conifer]: { kx: 0.7, ky: 1, color: '#2f5a3f' },
   [TreeForm.Eucalyptus]: { kx: 0.85, ky: 1, color: '#7f9a78' },
   [TreeForm.Palm]: { kx: 1, ky: 1, color: '#5c8a3a' },
+  // M02h5: the understory on `low`, a flattened crown (the trunk sinks into the ground under the wide crown)
+  [TreeForm.Shrub]: { kx: 1.5, ky: 0.8, color: '#4d7a3a' },
+  [TreeForm.Hedge]: { kx: 1.6, ky: 0.8, color: '#3f6e34' },
 };
 /** The neutral crown colour of the `low` crown geometry (the tint divides by it). */
 export const LOW_CROWN_BASE = '#6a8a52';
@@ -81,6 +94,7 @@ const C = {
   eucBark: '#d8d2c2', eucBark2: '#b7ad99', eucLeaf: '#7a957a', eucLeaf2: '#8aa486',
   palmTrunk: '#8a7660', palmKnob: '#6e7d3a', palmFrond: '#4f7f34', palmFrond2: '#61913d',
   crown: LOW_CROWN_BASE, crownTrunk: '#6b4a2f',
+  shrubLeaf: '#47723a', shrubLeaf2: '#5b8a45', hedgeLeaf: '#335f2f', hedgeLeaf2: '#427238',
 } as const;
 
 // ---- the builder -----------------------------------------------------------------------------------------------------------
@@ -329,6 +343,53 @@ function crown(): TreeGeometryData {
   return b.build('crown', false);
 }
 
+/** M02h5: a low clipped mound, as wide as it is tall, sitting on the ground (no trunk): 56 triangles on `full`, 24 on `lite`. */
+function shrub(set: 'full' | 'lite'): TreeGeometryData {
+  const b = new Builder(1);
+  const rng = seeded('shrub', set);
+  const full = set === 'full';
+  b.blob(0, 0.5, 0, 0.5, 0.52, 0.5, full ? 8 : 6, full ? 4 : 3, L(C.shrubLeaf), L(C.shrubLeaf2), rng, 0.14);
+  if (full) b.blob(0.16, 0.62, -0.1, 0.3, 0.3, 0.3, 4, 2, L(C.shrubLeaf), L(C.shrubLeaf2), rng, 0.1);
+  return b.build('shrub', false);
+}
+
+/**
+ * M02h5: a hedge block, a clipped rounded box 1 unit tall and about 1.1 across at scale 1 (the instance's horizontal scale is the block
+ * width, `instanceScaleOf`): an eight-sided prism with a domed top, 40 triangles, so neighbouring blocks 0.9 m apart merge into one hedge
+ * whatever their yaw.
+ */
+function hedge(): TreeGeometryData {
+  const b = new Builder(1);
+  const lo = L(C.hedgeLeaf), hi = L(C.hedgeLeaf2);
+  const sides = 8, r = 0.56;
+  const ring = (y: number, rr: number, c: Rgb, ny: number): number[] => {
+    const out: number[] = [];
+    for (let i = 0; i < sides; i++) {
+      const a = ((i + 0.5) / sides) * Math.PI * 2;
+      out.push(b.vertex(Math.cos(a) * rr, y, Math.sin(a) * rr, Math.cos(a), ny, Math.sin(a), c, 1));
+    }
+    return out;
+  };
+  const r0 = ring(0, r * 0.94, lo, -0.1), r1 = ring(0.82, r, hi, 0.2), r2 = ring(0.97, r * 0.7, hi, 0.8);
+  const top = b.vertex(0, 1, 0, 0, 1, 0, hi, 1);
+  for (const [a, c] of [[r0, r1], [r1, r2]] as const) {
+    for (let i = 0; i < sides; i++) {
+      const j = (i + 1) % sides;
+      b.tri(a[i] as number, c[j] as number, a[j] as number);
+      b.tri(a[i] as number, c[i] as number, c[j] as number);
+    }
+  }
+  for (let i = 0; i < sides; i++) b.tri(top, r2[(i + 1) % sides] as number, r2[i] as number);
+  return b.build('hedge', false);
+}
+
+/** M02h5: the understory geometries of a set, in pool order (`UNDERSTORY_GEOMETRIES`). */
+export function buildUnderstorySet(set: TreeSet): TreeGeometryData[] {
+  if (set === 'full') return [shrub('full'), hedge()];
+  if (set === 'lite') return [shrub('lite')];
+  return [];
+}
+
 /** M02b1's cone (one pool when `world.treeForms` is false): a four-sided trunk and a six-sided cone, 20 triangles, 6.2 m tall at scale 1. */
 function cone(): TreeGeometryData {
   const b = new Builder(MESHER.tree.heightM);
@@ -361,9 +422,16 @@ export function tintOf(set: TreeSet, form: TreeForm, tint: number): Rgb {
   return [t[0] * (want[0] / base[0]), t[1] * (want[1] / base[1]), t[2] * (want[2] / base[2])];
 }
 
-/** The instance's scale: `[horizontal, vertical]` on top of the height (non-uniform on the `low` crown only). The cone is 6.2 m tall at 1. */
+/** M02h5: the width of a hedge block in metres (its geometry is about 1.1 across at scale 1). */
+export const HEDGE_WIDTH_M = 1;
+
+/**
+ * The instance's scale: `[horizontal, vertical]` on top of the height (non-uniform on the `low` crown only). The cone is 6.2 m tall at 1.
+ * M02h5: a hedge block is `HEDGE_WIDTH_M` wide whatever its height on `full`; a hedge drawn with the shrub is a shrub of its height.
+ */
 export function instanceScaleOf(set: TreeSet, form: TreeForm, heightM: number): [number, number] {
   if (set === 'cone') return [heightM / MESHER.tree.heightM, heightM / MESHER.tree.heightM];
+  if (set === 'full' && form === TreeForm.Hedge) return [HEDGE_WIDTH_M, heightM];
   if (set === 'low' && form !== TreeForm.Palm) {
     const k = LOW_CROWN[form] ?? (LOW_CROWN[TreeForm.Plane] as { kx: number; ky: number });
     return [heightM * k.kx, heightM * k.ky];

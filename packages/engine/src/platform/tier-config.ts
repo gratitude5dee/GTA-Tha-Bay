@@ -22,6 +22,8 @@ export interface PlatformFlags {
   readonly 'world.cover': boolean;
   /** M02h4: the five street-tree forms in the vegetation pools. Default true; false draws M02b1's cone as one pool. */
   readonly 'world.treeForms': boolean;
+  /** M02h5: the vegetation scatter (woods, groves, shrubs, hedges: bit 7 of the TREE byte) and the far-tree impostors. Default true; false draws neither. */
+  readonly 'world.scatter': boolean;
 }
 
 export const PLATFORM_FLAGS: PlatformFlags = {
@@ -31,6 +33,7 @@ export const PLATFORM_FLAGS: PlatformFlags = {
   'world.look': (flagsJson as Record<string, unknown>)['world.look'] !== false,
   'world.cover': (flagsJson as Record<string, unknown>)['world.cover'] !== false,
   'world.treeForms': (flagsJson as Record<string, unknown>)['world.treeForms'] !== false,
+  'world.scatter': (flagsJson as Record<string, unknown>)['world.scatter'] !== false,
 };
 
 const problems = validateTierConfig(budgetsJson);

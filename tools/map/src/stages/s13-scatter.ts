@@ -21,7 +21,7 @@
  * chunks without terrain. Points sit on the decimetre grid the pack stores.
  */
 import {
-  CoverClass, GroundClass, Rng, TREE_FORM_NAMES, TreeForm, VEG_FORM_NAMES, chunkKeyAt, fnv32, treeByte,
+  CoverClass, GroundClass, PedEdgeKind, Rng, TREE_FORM_NAMES, TreeForm, VEG_FORM_NAMES, chunkKeyAt, fnv32, treeByte,
   type ChunkKey, type VegFormName,
 } from '../../../../packages/shared/src/index.ts';
 import type { AreaGrid, FormMix, VegetationConfig } from '../config.ts';
@@ -60,6 +60,11 @@ export interface ScatterInputs {
 export interface ScatterReport {
   wood: { polys: number; m2: number; trees: number; shrubs: number };
   scrub: { polys: number; m2: number; shrubs: number };
+  /**
+   * The m2 of the wood and scrub polygons no record may stand on, by the exclusion that blocks it (sampled on a 4 m lattice): the
+   * operator's check that a polygon is not empty for a reason the bake can explain.
+   */
+  blockedM2: Record<string, number>;
   park: { pieces: number; m2: number; groves: number; trees: number; shrubs: number };
   hedge: { lines: number; m: number; blocks: number };
   yard: { frontageCells: number; hedgeLots: number; hedgeBlocks: number; shrubs: number };
@@ -207,6 +212,7 @@ export function runScatter(inp: ScatterInputs): ScatterProduct {
   const report: ScatterReport = {
     wood: { polys: 0, m2: 0, trees: 0, shrubs: 0 },
     scrub: { polys: 0, m2: 0, shrubs: 0 },
+    blockedM2: {},
     park: { pieces: 0, m2: 0, groves: 0, trees: 0, shrubs: 0 },
     hedge: { lines: 0, m: 0, blocks: 0 },
     yard: { frontageCells: 0, hedgeLots: 0, hedgeBlocks: 0, shrubs: 0 },
@@ -249,6 +255,14 @@ export function runScatter(inp: ScatterInputs): ScatterProduct {
       minX: m.r.originX, minZ: m.r.originZ, maxX: m.r.originX + m.r.w, maxZ: m.r.originZ + m.r.h,
       accept: (x, z) => m.r.at(x, z, 0) === 1 && !ex.excluded(x, z),
     };
+    for (let j = 0; j < m.r.h; j += 4) {
+      for (let i = 0; i < m.r.w; i += 4) {
+        const x = m.r.originX + i + 0.5, z = m.r.originZ + j + 0.5;
+        if (m.r.at(x, z, 0) !== 1) continue;
+        const why = ex.reason(x, z);
+        if (why) report.blockedM2[why] = (report.blockedM2[why] ?? 0) + 16;
+      }
+    }
     if (p.kind === 'wood') {
       woodCells.fillRings(p.rings, 1);
       report.wood.polys++;
@@ -408,13 +422,17 @@ export function runScatter(inp: ScatterInputs): ScatterProduct {
   return { records, report };
 }
 
-/** The ped edges of S8's chunks as segments (node ids are local to their chunk). */
-export function pedSegments(chunks: Iterable<{ nodes: readonly { id: number; x: number; z: number }[]; edges: readonly { a: number; b: number; widthM: number }[] }>): { x0: number; z0: number; x1: number; z1: number; widthM: number }[] {
+/**
+ * The ped edges of S8's chunks as segments (node ids are local to their chunk). The plaza and park lattice (`PedEdgeKind.Plaza`, 12 m
+ * walking cells over open ground, no paved path) is left out: it would empty every park.
+ */
+export function pedSegments(chunks: Iterable<{ nodes: readonly { id: number; x: number; z: number }[]; edges: readonly { a: number; b: number; widthM: number; kind?: number }[] }>): { x0: number; z0: number; x1: number; z1: number; widthM: number }[] {
   const out: { x0: number; z0: number; x1: number; z1: number; widthM: number }[] = [];
   for (const c of chunks) {
     const at = new Map<number, { x: number; z: number }>();
     for (const n of c.nodes) at.set(n.id, n);
     for (const e of c.edges) {
+      if (e.kind === PedEdgeKind.Plaza) continue;
       const a = at.get(e.a), b = at.get(e.b);
       if (a && b) out.push({ x0: a.x, z0: a.z, x1: b.x, z1: b.z, widthM: e.widthM });
     }

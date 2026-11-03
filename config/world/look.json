@@ -157,7 +157,17 @@
   "vegetation": {
     "$comment": "M02h4: the wind sway of the street trees on the `full` profile (look/wind.ts): the amplitude per weather preset is the sway of the crown top as a share of the tree height; freq is radians per second of the look clock, waveK radians per metre, dirDeg the bearing from east toward south. Design values.",
     "wind": { "clear": 0.04, "karl-fog": 0.03, "overcast": 0.05, "rain": 0.12, "smoke": 0.03, "golden": 0.04 },
-    "freq": 1.4, "waveK": 0.12, "dirDeg": 60
+    "freq": 1.4, "waveK": 0.12, "dirDeg": 60,
+    "scatter": {
+      "$comment": "M02h5: the vegetation scatter on the client (chunks/vegetation-pool.ts). Within tree.drawM every tree draws once: as a mesh inside impostorM (per mesher profile, 10 % hysteresis), else as an opaque camera-facing impostor card (chunks/impostors.ts); shrubs and hedges within shrubDrawM. Instances are re-banded after rebandM of camera travel or when a unit lands, crossing units only, at most writeCap instance writes per frame (counted against the tier's upload cap). Thinning keeps a scatter record (bit 7 of the TREE byte) when its positional hash is below scatterKeep (trees) or shrubKeep (shrubs and hedges) of the look profile; street trees are never thinned. Design values.",
+      "impostorM": { "desktop": 150, "visionpro": 150, "mobile": 80, "low": 50 },
+      "shrubDrawM": { "desktop": 250, "visionpro": 250, "mobile": 120, "low": 80 },
+      "hysteresis": 0.1,
+      "rebandM": 16,
+      "writeCap": 4096,
+      "scatterKeep": { "full": 1, "lite": 0.7, "min": 0.5, "legacy": 0.35 },
+      "shrubKeep": { "full": 1, "lite": 0.6, "min": 0.3, "legacy": 0.25 }
+    }
   },
   "dynamicCasterRadiusM": 70,
   "webgl2Unsupported": [],

@@ -53,6 +53,8 @@ export interface WorldMaterials {
   lookOn(): boolean;
   /** The material for an object kind of a level: the look's when it is on, else the legacy one. */
   materialFor(level: 'l0' | 'l1' | 'l2', kind: ObjectKind): Material;
+  /** M02h5: the impostor cards' billboard material; null on the `legacy` profile (no impostors there). */
+  impostorMaterial(): Material | null;
   /** Switches the look on or off; false when the tier has no look materials. The caller re-records the resident units. */
   setLook(on: boolean): boolean;
   /** The look clock (waves): frozen by `shot()`. */
@@ -217,6 +219,7 @@ export function createWorldMaterials(o: {
       if (kind === 'vegetation') return trees;
       return level === 'l0' ? chunk : coarse;
     },
+    impostorMaterial: () => look?.impostors ?? null,
     setLook: (on) => {
       if (on && !look) return false;
       lookOn = on;
