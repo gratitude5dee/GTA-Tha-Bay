@@ -183,6 +183,11 @@ export class PoolLayout {
     }
   }
 
+  /** M02h5: doubles until `n` instances fit (the scatter reserves a unit's potential on landing, so a re-banding never grows a pool). */
+  reserve(n: number): void {
+    while (this.capacity < n) this.grow();
+  }
+
   private grow(): void {
     const old = this.capacity;
     this.capacity *= 2;
@@ -247,6 +252,8 @@ interface Pool {
   tints: Float32Array;
   /** Per unit: its instances' matrices (16 floats) and tints (4 floats), the source of every write. */
   src: Map<string, { m: Float32Array; t: Float32Array; form: number[] }>;
+  /** M02h5: the instances the resident units could put here in any band (the capacity reserved for the re-banding). */
+  potential: number;
 }
 
 /**
@@ -427,7 +434,7 @@ export class VegetationPools {
     if (data.sway) base.setAttribute('sway', new BufferAttribute(data.sway, 1));
     base.setIndex(new BufferAttribute(data.indices, 1));
     const layout = new PoolLayout();
-    const pool = { key: `${data.id}:${band}`, geometry: data.id, band, extra, mode, data, base, layout, src: new Map() } as unknown as Pool;
+    const pool = { key: `${data.id}:${band}`, geometry: data.id, band, extra, mode, data, base, layout, src: new Map(), potential: 0 } as unknown as Pool;
     this.makeMesh(pool);
     return pool;
   }
@@ -581,7 +588,30 @@ export class VegetationPools {
     const u: UnitState = { trees, ox, oz, near, drawn, inst, dMin: 0, dMax: 0, stale: new Set() };
     this.measure(u);
     this.units.set(id, u);
+    if (this.sc) this.addPotential(u, this.poolsFor(near), 1);
     for (const p of this.poolsFor(near)) this.fillPool(id, u, p);
+  }
+
+  /**
+   * M02h5: adds (`sign` 1) or takes away (-1) the unit's potential in each pool, and reserves a quarter more than the pool's potential, so
+   * the re-banding never doubles a pool (a doubling rewrites the whole pool, past any per-frame cap); the reserve is written now, with the
+   * landing unit, against the upload cap.
+   */
+  private addPotential(u: UnitState, pools: readonly Pool[], sign: 1 | -1): void {
+    const n = u.inst.idx.length;
+    for (const p of pools) {
+      let k = 0;
+      for (let i = 0; i < n; i++) {
+        const form = u.inst.form[i] as TreeForm;
+        if (p.mode === 'impostor' ? impostorOfForm(this.set, form) === p.geometry : geometryOfForm(this.set, form) === p.geometry) k++;
+      }
+      p.potential += sign * k;
+      if (sign > 0 && k > 0) {
+        const g0 = p.layout.grows;
+        p.layout.reserve(Math.ceil(p.potential * 1.25));
+        if (p.layout.grows !== g0) this.makeMesh(p);
+      }
+    }
   }
 
   /** The instances of the unit a pool draws now (by mode, geometry and band). */
@@ -654,6 +684,7 @@ export class VegetationPools {
     const u = this.units.get(id);
     if (!u) return;
     for (const p of this.poolsFor(u.near)) this.emptyPool(id, p);
+    if (this.sc) this.addPotential(u, this.poolsFor(u.near), -1);
     this.units.delete(id);
     this.bandQueue.delete(id);
   }
@@ -682,9 +713,15 @@ export class VegetationPools {
   setNear(id: string, near: boolean): boolean {
     const u = this.units.get(id);
     if (!u || this.set !== 'full' || u.near === near) return false;
-    for (const p of this.pools) if (!p.extra && p.band === this.bandOf(u.near)) this.emptyPool(id, p);
+    const was = this.pools.filter((p) => !p.extra && p.band === this.bandOf(u.near));
+    const now = this.pools.filter((p) => !p.extra && p.band === this.bandOf(near));
+    for (const p of was) this.emptyPool(id, p);
+    if (this.sc) {
+      this.addPotential(u, was, -1);
+      this.addPotential(u, now, 1);
+    }
     u.near = near;
-    for (const p of this.pools) if (!p.extra && p.band === this.bandOf(near)) this.fillPool(id, u, p);
+    for (const p of now) this.fillPool(id, u, p);
     return true;
   }
 
@@ -751,7 +788,6 @@ export class VegetationPools {
   private reband(id: string, u: UnitState): boolean {
     if (!this.cam) return false;
     const bo = this.bandOpts();
-    const before = new Map<Pool, string>();
     const pools = this.poolsFor(u.near);
     const n = u.inst.idx.length;
     let changed = false;
@@ -761,11 +797,25 @@ export class VegetationPools {
       if (next[k] !== u.inst.band[k]) changed = true;
     }
     if (!changed) return false;
-    for (const p of pools) before.set(p, this.pick(u, p).join(','));
+    // the pools an instance leaves and joins are stale
+    for (let k = 0; k < n; k++) {
+      if (next[k] === u.inst.band[k]) continue;
+      const form = u.inst.form[k] as TreeForm;
+      const a = this.poolOf(pools, form, u.inst.band[k] as number), b = this.poolOf(pools, form, next[k] as number);
+      if (a) u.stale.add(a);
+      if (b) u.stale.add(b);
+    }
     u.inst.band = next;
-    for (const p of pools) if (this.pick(u, p).join(',') !== before.get(p)) u.stale.add(p);
     if (u.stale.size > 0) this.bandQueue.add(id);
     return u.stale.size > 0;
+  }
+
+  /** The pool (of a unit's pools) that draws a form in a band, or null (not drawn). */
+  private poolOf(pools: readonly Pool[], form: TreeForm, band: number): Pool | null {
+    if (band === BAND_NONE) return null;
+    const mode: PoolMode = band === BAND_IMPOSTOR ? 'impostor' : 'mesh';
+    const g = mode === 'impostor' ? impostorOfForm(this.set, form) : geometryOfForm(this.set, form);
+    return pools.find((p) => p.mode === mode && p.geometry === g) ?? null;
   }
 
   /** The instance writes a pool step would cost: a dry run of the remove and the add on a copy of the layout. */

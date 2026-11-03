@@ -2,7 +2,7 @@
  * The far-tree impostors (M02h5): opaque cards that stand in for a tree beyond `impostorM` (look.json `vegetation.scatter`), turned to
  * the camera about Y by a TSL `positionNode`. Two cards: `crown` (8 triangles: a trunk quad and a six-sided crown fan; every form but the
  * palm, told apart by the instance's scale and tint as the `low` crown is) and `palm` (12 triangles: a trunk quad and five drooping
- * fronds). No texture, no offscreen render, no `alphaTest`, alpha-to-coverage or transparency: the silhouette is geometry. The pools
+ * fronds). No texture, no offscreen render, no alpha testing, alpha-to-coverage or transparency: the silhouette is geometry. The pools
  * never let an impostor cast.
  *
  * Geometry: in the card's own plane (`z = 0`), one unit tall, the normals up (the card is lit like the top of a crown whichever way it
@@ -13,9 +13,10 @@
  * `geometryData` is pure (no `three`), so the tests count triangles and check the cards; `billboardPosition` is the node.
  */
 import * as T from 'three/tsl';
+import { FrontSide, MeshStandardNodeMaterial } from 'three/webgpu';
 import { type Rgb, hexToLinear } from './mesher.ts';
 import type { TreeGeometryData, TreeGeometryId } from './tree-forms.ts';
-import { attribute, loose, vec3, type L } from '../sky/tsl.ts';
+import { asNode, attribute, loose, vec3, type L } from '../sky/tsl.ts';
 
 export type ImpostorId = 'imp-crown' | 'imp-palm';
 export const IMPOSTOR_IDS: readonly ImpostorId[] = ['imp-crown', 'imp-palm'];
@@ -80,11 +81,12 @@ function palmCard(): TreeGeometryData {
   const fronds: [number, number][] = [[-0.4, -0.2], [-0.24, 0.02], [0, 0.12], [0.24, 0.02], [0.4, -0.2]];
   for (const [dx, dy] of fronds) {
     const root = c.v(0, top, leaf, 1);
-    // a bent strip: the root, a mid pair across the frond, the tip
+    // a bent strip: the root, a mid pair across the frond (perpendicular to its direction, lifted a little), the tip
     const mx = dx * 0.55, my = top + Math.max(dy, 0) * 0.7 + 0.05;
-    const w = 0.045;
-    const m0 = c.v(mx, my - w, leaf, 1);
-    const m1 = c.v(mx, my + w, leaf, 1);
+    const len = Math.hypot(dx, dy) || 1;
+    const w = 0.045, px = (-dy / len) * w, py = (dx / len) * w;
+    const m0 = c.v(mx - px, my - py, leaf, 1);
+    const m1 = c.v(mx + px, my + py, leaf, 1);
     const tip = c.v(dx, top + dy, leaf, 1);
     // both triangles counter-clockwise from +z whichever side the frond leans to
     const ccw = (a: number, b: number, d: number): void => {
@@ -124,4 +126,18 @@ export function billboardPosition(): L {
   // right = (uz, -ux): right x up = (ux, 0, uz), the card's normal toward the camera
   const off = g.x.mul(sx);
   return vec3(footX.add(uz.mul(off)), pl.y, footZ.sub(ux.mul(off)));
+}
+
+/**
+ * The impostor material: the look's vegetation material (`look/look-materials.ts`, its colour and roughness nodes shared, so the cards take
+ * the crown tint, the colour variation and the rain darkening of the meshes) with the billboard as its `positionNode` and no wind. Opaque,
+ * front faces only. Built once per look material set by the chunk renderer.
+ */
+export function createImpostorMaterial(vegetation: MeshStandardNodeMaterial): MeshStandardNodeMaterial {
+  const m = new MeshStandardNodeMaterial({ roughness: 0.88, metalness: 0, side: FrontSide });
+  m.colorNode = vegetation.colorNode;
+  m.roughnessNode = vegetation.roughnessNode;
+  m.positionNode = asNode(billboardPosition());
+  m.name = 'world.vegetation.impostor';
+  return m;
 }

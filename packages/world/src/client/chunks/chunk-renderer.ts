@@ -16,10 +16,11 @@
  *    refetch.
  */
 import {
-  BufferAttribute, BufferGeometry, type Frustum, Group, Mesh, type Object3D, BundleGroup, Sphere, Vector3, type WebGPURenderer,
+  BufferAttribute, BufferGeometry, type Frustum, Group, type Material, Mesh, type Object3D, BundleGroup, Sphere, Vector3, type WebGPURenderer,
 } from 'three/webgpu';
 import type { TreeSet } from './tree-forms.ts';
 import { VegetationPools, type ScatterPoolOptions, type VegetationPoolReport } from './vegetation-pool.ts';
+import { createImpostorMaterial } from './impostors.ts';
 import type { MeshBuffers, UnitMesh } from './mesh-types.ts';
 import type { WorldMaterials } from './materials.ts';
 import { ChunkUploadGate } from './upload-gate.ts';
@@ -195,8 +196,18 @@ export class ChunkRenderer {
       material: () => this.o.materials.materialFor('l0', 'vegetation'),
       receiveShadow: () => this.look?.receive ?? false,
       scatter: o.scatter,
-      impostorMaterial: () => this.o.materials.impostorMaterial(),
+      impostorMaterial: () => this.impostorMaterial(),
     });
+  }
+
+  /** M02h5: the impostor cards' billboard material, built once from the look's vegetation material; null without a look (no impostors). */
+  private impostorMat: Material | null | undefined;
+  private impostorMaterial(): Material | null {
+    if (this.impostorMat === undefined) {
+      const veg = this.o.materials.look?.l0.vegetation;
+      this.impostorMat = veg ? createImpostorMaterial(veg) : null;
+    }
+    return this.impostorMat;
   }
 
   // ---- uploads -------------------------------------------------------------------------------------------------------------
@@ -732,5 +743,6 @@ export class ChunkRenderer {
     this.units.clear();
     this.o.parent.remove(this.root);
     this.vegetation.dispose();
+    this.impostorMat?.dispose();
   }
 }
