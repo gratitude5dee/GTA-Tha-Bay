@@ -2,17 +2,19 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { Group, type InstancedMesh, type SkinnedMesh } from 'three/webgpu';
+import { Group, type InstancedMesh, type Object3D, type SkinnedMesh } from 'three/webgpu';
 import type { QualityTierId } from '@dv/shared';
 import { PackUnavailable } from '@dv/engine/assets/types';
 import type { AssetService } from '@dv/engine/assets/service';
 import type * as PersonGlbModule from '@dv/engine/client/avatar/person-glb';
 import { PED_ASSETS, PED_BODIES, PED_PALETTE } from '../src/sim/peds/components.ts';
 import { NEAR_PED_CAP, pedCap } from '../src/sim/peds/density.ts';
-import { PED_ART, type PedKitAssets } from '../src/client/peds/kit.ts';
+import { loadPedKit, PED_ART, pedKitAssets, type PedKitAssets } from '../src/client/peds/kit.ts';
 import { ART_QUIET_FRAMES, PedRenderer } from '../src/client/peds/instances.ts';
 import { ArtGate, unsettledUnits, type WorldLoad } from '../src/client/peds/art-gate.ts';
-import { pedJob, type PedJobArgs, type PedStopArgs } from '../src/client/peds/ped-job.ts';
+import { buildNearFigure, whitePage } from '../src/client/peds/mannequin.ts';
+import { pedJob, personMeshTransfer, type PedJobArgs, type PedStopArgs } from '../src/client/peds/ped-job.ts';
+import { parsePersonGlb, type PersonMesh } from '@dv/engine/client/avatar/person-glb';
 
 /** Counts the people-GLB parses of the kit (main-thread work the gate holds back, BD-REPAIR-M10d4-03). */
 const parses = vi.hoisted(() => ({ n: 0 }));
@@ -62,6 +64,9 @@ function skinned(g: Group): SkinnedMesh[] {
   return out;
 }
 
+/** The vertex count of the mannequin's near figure. */
+const MANNEQUIN_VERTICES = buildNearFigure().mesh.geometry.getAttribute('position').count;
+
 const variantOf = (tier: QualityTierId): string => (tier === 'desktop' ? 'desktop' : tier === 'mobile' ? 'mobile' : 'mobile-low');
 /** The profiles of the ledger table: `full`, `lite`, `min` and `legacy` (XR). */
 const PROFILES: [QualityTierId, string][] = [['desktop', 'full'], ['mobile', 'lite'], ['mobile-low', 'min'], ['xr-quest', 'legacy'], ['xr-visionpro', 'legacy']];
@@ -97,6 +102,9 @@ describe('PedRenderer with the pedestrian kit', () => {
             expect(m.skeleton.bones).toHaveLength(22);
             expect((m.material as { vertexColors: boolean }).vertexColors).toBe(true);
             expect((m.material as { transparent: boolean }).transparent).toBe(false);
+            // BD-REPAIR-M10d4-04: the mannequin is opaque too now, so the vertex count tells the kit's figure from it
+            expect(m.geometry.getAttribute('position').count).toBeGreaterThan(MANNEQUIN_VERTICES);
+            expect((m.material as { map: unknown }).map).not.toBe(whitePage());
           }
           // far: one InstancedMesh per body, the kit's far figure (at most 300 triangles) with the gait and tint attributes
           const far = r.group.children.filter((o) => (o as InstancedMesh).isInstancedMesh) as InstancedMesh[];
@@ -113,6 +121,30 @@ describe('PedRenderer with the pedestrian kit', () => {
       expect(objects[1]).toBe(objects[0]);
     });
   }
+
+  it('the kit\'s near figure and the mannequin are built for one render program: same material class and settings, a colour map in sRGB, the same vertex attributes (BD-REPAIR-M10d4-04)', async () => {
+    const r = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 6, art: mock('mobile-low') });
+    await settle(r);
+    r.update(frame(10, () => 5), 1);
+    const kitMesh = skinned(r.group)[0] as SkinnedMesh;
+    const man = buildNearFigure().mesh;
+    type M = { type: string; isNodeMaterial?: boolean; transparent: boolean; vertexColors: boolean; side: number; blending: number; alphaTest: number; flatShading: boolean; fog: boolean; map: { colorSpace: string; channel: number; isTexture: boolean } | null };
+    const shape = (m: SkinnedMesh): Record<string, unknown> => {
+      const mat = m.material as unknown as M;
+      const attrs = Object.fromEntries(Object.entries(m.geometry.attributes).map(([k, a]) => [k, `${(a.array as { constructor: { name: string } }).constructor.name}x${a.itemSize}${a.normalized ? 'n' : ''}`]));
+      return {
+        material: mat.type, node: mat.isNodeMaterial === true, transparent: mat.transparent, vertexColors: mat.vertexColors, side: mat.side, blending: mat.blending,
+        alphaTest: mat.alphaTest, flatShading: mat.flatShading, fog: mat.fog, map: mat.map ? { colorSpace: mat.map.colorSpace, channel: mat.map.channel } : null,
+        attrs, bones: m.skeleton.bones.length, morphs: Object.keys(m.geometry.morphAttributes).length, castShadow: m.castShadow, receiveShadow: m.receiveShadow,
+      };
+    };
+    expect(shape(kitMesh)).toEqual(shape(man));
+    expect(shape(man)).toMatchObject({ transparent: false, vertexColors: true, map: { colorSpace: 'srgb' } });
+    // the mannequin samples white: its colours are its vertex colours and its tint, as before
+    const page = whitePage().image as unknown as { data: Uint8Array; width: number; height: number };
+    expect([page.width, page.height, ...page.data]).toEqual([1, 1, 255, 255, 255, 255]);
+    r.dispose();
+  });
 
   it('keeps the mannequin when the kit fails to load', async () => {
     const failing: PedKitAssets = { bytes: async () => { throw new Error('404'); } };
@@ -276,6 +308,34 @@ describe('the kit load stays behind the world (BD-REPAIR-M10d4-03)', () => {
     expect(step.aborted, 'dispose stops the step in flight').toBe(true);
   });
 
+  it('next() resolves on the next frame that leaves the gate open, never on a busy one, and rejects once disposed (BD-REPAIR-M10d4-04)', async () => {
+    const world: WorldLoad = { ...QUIET };
+    const gate = new ArtGate(() => ({ ...world }));
+    for (let i = 0; i < ART_QUIET_FRAMES; i++) gate.frame();
+    expect(gate.open).toBe(true);
+    let got = 0;
+    void gate.next().then(() => got++);
+    await flush();
+    expect(got, 'not on the frame it was asked in').toBe(0);
+    world.meshing = 1;
+    gate.frame();
+    await flush();
+    expect(got, 'not on a busy frame').toBe(0);
+    world.meshing = 0;
+    for (let i = 0; i < ART_QUIET_FRAMES - 1; i++) gate.frame();
+    await flush();
+    expect(got, 'not before the gate opens again').toBe(0);
+    gate.frame();
+    await flush();
+    expect(got).toBe(1);
+    const late = gate.next();
+    gate.dispose();
+    await expect(late).rejects.toThrow(/disposed/);
+    await expect(gate.next()).rejects.toThrow(/disposed/);
+    // without a world to read, at once
+    await expect(new ArtGate(null).next()).resolves.toBeUndefined();
+  });
+
   it('counts requested and retrying units as unsettled, ready, empty and failed ones as settled', () => {
     expect(unsettledUnits([{ state: 'requested' }, { state: 'retrying' }, { state: 'ready' }, { state: 'empty' }, { state: 'failed' }])).toBe(2);
   });
@@ -398,6 +458,99 @@ describe('the kit load stays behind the world (BD-REPAIR-M10d4-03)', () => {
     expect(w3.signals[0]?.aborted).toBe(true);
   });
 
+  it('with ahead, the swap is prepared on quiet frames: each near pedestrian\'s kit figure built on one, drawn once collapsed on a later one; the swap moves them in (BD-REPAIR-M10d4-04)', async () => {
+    const world: WorldLoad = { ...QUIET };
+    let frameNo = 0;
+    const busyFrames = new Set<number>();
+    const r = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 6, art: mock('mobile-low'), worldLoad: () => ({ ...world }), ahead: true });
+    const quietOf = (w: WorldLoad): boolean => !w.held && w.unsettled === 0 && w.meshing === 0 && w.landmarksIdle && !w.artLoading;
+    const aheadSet = (): Group | undefined => r.group.children.find((o) => o.name === 'peds.ahead') as Group | undefined;
+    const built = (): Object3D[] => aheadSet()?.children.filter((o) => o.name === 'ped.near') ?? [];
+    /** The frame each figure was built on, and the frames each was drawn on (visible after the frame's update) with its scale. */
+    const builtAt = new Map<Object3D, number>();
+    const drawn: { at: number; obj: Object3D; scale: number }[] = [];
+    let t = 1;
+    const tick = async (n: number): Promise<void> => {
+      for (let i = 0; i < n; i++) {
+        frameNo++;
+        if (!quietOf(world)) busyFrames.add(frameNo);
+        r.update(f, (t += 0.05));
+        for (const o of aheadSet()?.children ?? []) if (o.visible) drawn.push({ at: frameNo, obj: o, scale: o.scale.x });
+        await flush();
+        for (const o of built()) if (!builtAt.has(o)) builtAt.set(o, frameNo);
+      }
+    };
+    // the kit loads (every step on a quiet frame); the six near pedestrians draw the mannequin meanwhile
+    for (let i = 0; i < 40 && aheadSet() === undefined; i++) await tick(1);
+    expect(aheadSet(), 'the set is made once the kit has loaded').toBeDefined();
+    expect(r.art()).toMatchObject({ state: 'loading', near: 'mannequin' });
+    for (let i = 0; i < 120 && r.art().state === 'loading'; i++) {
+      world.meshing = i % 5 === 3 ? 1 : 0;
+      const b = built().length;
+      await tick(1);
+      expect(built().length - b, 'at most one figure per frame').toBeLessThanOrEqual(1);
+      if (busyFrames.has(frameNo)) expect(built().length, 'nothing is built on a busy frame').toBe(b);
+    }
+    expect(r.art()).toMatchObject({ state: 'ready', near: 'kit', far: 'kit' });
+    // six figures, one per near pedestrian the mannequin drew, each built on a quiet frame and drawn once, collapsed, on a later quiet
+    // frame, one figure a frame; then the swap
+    const figures = [...builtAt.keys()];
+    expect(figures).toHaveLength(6);
+    expect(drawn).toHaveLength(6);
+    for (const [obj, at] of builtAt) {
+      expect(busyFrames.has(at), `built on frame ${at}`).toBe(false);
+      const d = drawn.find((x) => x.obj === obj);
+      expect(d, 'each figure drawn once').toBeDefined();
+      expect(d?.at as number).toBeGreaterThan(at);
+      expect(busyFrames.has(d?.at as number), `drawn on frame ${d?.at}`).toBe(false);
+      expect(d?.scale).toBe(0);
+    }
+    expect(new Set(drawn.map((d) => d.at)).size, 'one figure a frame').toBe(6);
+    // the next frame draws the figures built ahead at full size: no new figure, every near ped a kit figure
+    await tick(1);
+    const near = skinned(r.group);
+    expect(near).toHaveLength(6);
+    expect(near.every((m) => m.parent !== null && builtAt.has(m.parent)), 'the figures built ahead').toBe(true);
+    for (const m of near) {
+      expect(m.parent?.scale.x).toBe(1);
+      expect(m.geometry.getAttribute('position').count).toBeGreaterThan(MANNEQUIN_VERTICES);
+    }
+    expect(r.group.children.filter((o) => o.name === 'ped.near')).toHaveLength(6);
+    expect(aheadSet(), 'the swap took every figure, and the set with them').toBeUndefined();
+    const far = r.group.children.filter((o) => (o as InstancedMesh).isInstancedMesh) as InstancedMesh[];
+    expect(far).toHaveLength(PED_BODIES);
+    for (const m of far) expect((m.geometry.getIndex()?.count ?? 0) / 3).toBeLessThanOrEqual(300);
+    expect(r.info().objects).toBe(r.info().near + r.info().perBody.filter((n) => n > 0).length);
+    r.dispose();
+  });
+
+  it('with ahead and nobody near, one figure is built for the atlas page; dispose during the preparation drops what was built', async () => {
+    const world: WorldLoad = { ...QUIET };
+    const empty = frame(0, () => 5);
+    const r = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 6, art: mock('mobile-low'), worldLoad: () => ({ ...world }), ahead: true });
+    let t = 1;
+    for (let i = 0; i < 60 && r.art().state === 'loading'; i++) {
+      r.update(empty, (t += 0.05));
+      await flush();
+    }
+    expect(r.art().state).toBe('ready');
+    // the swap moved the one figure to the near slots (free, hidden)
+    expect(r.group.children.filter((o) => o.name === 'ped.near')).toHaveLength(1);
+    r.dispose();
+    // disposed while it prepares: the set goes, and the kit never swaps in
+    const w2: WorldLoad = { ...QUIET };
+    const r2 = new PedRenderer({ parent: new Group(), cap: 40, nearCap: 6, art: mock('mobile-low'), worldLoad: () => ({ ...w2 }), ahead: true });
+    for (let i = 0; i < 40 && !(r2.group.children.find((o) => o.name === 'peds.ahead')?.children.length ?? 0); i++) {
+      r2.update(f, (t += 0.05));
+      await flush();
+    }
+    expect(r2.group.children.find((o) => o.name === 'peds.ahead')?.children.length).toBeGreaterThan(0);
+    r2.dispose();
+    await flush();
+    expect(r2.group.children.some((o) => o.name === 'peds.ahead')).toBe(false);
+    expect(r2.art().state).toBe('loading');
+  });
+
   it('without a group port the files of a step still come one after another', async () => {
     const base = mock('mobile-low');
     let inFlight = 0;
@@ -421,7 +574,7 @@ describe('the kit load stays behind the world (BD-REPAIR-M10d4-03)', () => {
 
 describe('world.ped (the kit\'s asset-worker job)', () => {
   /** A service with the kit's refs in its catalog whose store answers each `get` when the test says so. */
-  function service(): { svc: AssetService; gets: string[]; answer: () => Promise<void>; errors: unknown[] } {
+  function service(content: (url: string) => ArrayBuffer = () => new Uint8Array([1, 2, 3, 4]).buffer): { svc: AssetService; gets: string[]; answer: () => Promise<void>; errors: unknown[] } {
     const gets: string[] = [];
     const waiting: { ref: string; signal: AbortSignal | undefined; go: () => void; stop: (e: unknown) => void }[] = [];
     const errors: unknown[] = [];
@@ -436,7 +589,7 @@ describe('world.ped (the kit\'s asset-worker job)', () => {
           new Promise<ArrayBuffer>((resolve, reject) => {
             gets.push(ref.url);
             const stop = (e: unknown): void => reject(e);
-            waiting.push({ ref: ref.url, signal: o.signal, go: () => resolve(new Uint8Array([1, 2, 3, 4]).buffer), stop });
+            waiting.push({ ref: ref.url, signal: o.signal, go: () => resolve(content(ref.url)), stop });
             o.signal?.addEventListener('abort', () => stop(new PackUnavailable('aborted', ref as never)));
           }),
         reportDecodeFailure: () => Promise.reject(new Error('unused')),
@@ -495,5 +648,95 @@ describe('world.ped (the kit\'s asset-worker job)', () => {
     await pedJob(s.svc, { stop: 't4' } satisfies PedStopArgs, never);
     const early = (await pedJob(s.svc, { refs, variant: 'mobile-low', token: 't4' } satisfies PedJobArgs, never)).result as { files: ArrayBuffer[] };
     expect(early.files).toEqual([]);
+  });
+
+  it('with parse the people files are parsed in the worker and come back as typed arrays, every buffer transferred (BD-REPAIR-M10d4-04)', async () => {
+    const s = service((url) => bytesOf(url, 'mobile-low').slice().buffer);
+    const job = pedJob(s.svc, { refs, variant: 'mobile-low', token: 't5', parse: true } satisfies PedJobArgs, never);
+    await ticks();
+    for (let i = 0; i < refs.length; i++) await s.answer();
+    const out = await job;
+    const meshes = (out.result as { meshes: PersonMesh[] }).meshes;
+    expect(meshes).toHaveLength(refs.length);
+    for (const [i, m] of meshes.entries()) {
+      const page = parsePersonGlb(bytesOf(refs[i] as string, 'mobile-low'));
+      expect(m.position).toEqual(page.position);
+      expect(m.index).toEqual(page.index);
+      expect(m.joints).toEqual(page.joints);
+    }
+    // the transfer list holds every buffer of every mesh once, so the answer moves to the page without a copy
+    expect(new Set(out.transfer).size).toBe(out.transfer?.length);
+    expect(out.transfer).toEqual(expect.arrayContaining(personMeshTransfer(meshes)));
+    expect(out.transfer).toContain(meshes[0]?.position.buffer);
+    // stopped after the first file: the parsed prefix
+    const s2 = service((url) => bytesOf(url, 'mobile-low').slice().buffer);
+    const job2 = pedJob(s2.svc, { refs, variant: 'mobile-low', token: 't6', parse: true } satisfies PedJobArgs, never);
+    await ticks();
+    await s2.answer();
+    await pedJob(s2.svc, { stop: 't6' } satisfies PedStopArgs, never);
+    expect(((await job2).result as { meshes: PersonMesh[] }).meshes).toHaveLength(1);
+    // a file that is not a people GLB fails the read (the page's load fails and the mannequin stays)
+    const s3 = service();
+    const job3 = pedJob(s3.svc, { refs: refs.slice(0, 1), variant: 'mobile-low', token: 't7', parse: true } satisfies PedJobArgs, never);
+    const failed = expect(job3).rejects.toThrow(/GLB/);
+    await ticks();
+    await s3.answer();
+    await failed;
+  });
+
+  it('with decode the atlas page is decoded in the worker and its bitmap transferred; a worker without createImageBitmap answers the bytes (BD-REPAIR-M10d4-04)', async () => {
+    const atlas = ['texture/ped.atlas'];
+    const bitmap = { width: 256, height: 256, close: () => undefined } as unknown as ImageBitmap;
+    vi.stubGlobal('createImageBitmap', async () => bitmap);
+    try {
+      const s = service();
+      const job = pedJob(s.svc, { refs: atlas, variant: 'mobile-low', token: 't8', decode: true } satisfies PedJobArgs, never);
+      await ticks();
+      await s.answer();
+      const out = await job;
+      expect(out.result).toEqual({ bitmaps: [bitmap] });
+      expect(out.transfer).toEqual([bitmap]);
+      // the port hands the decoded page to the kit as it is
+      const port = pedKitAssets({ job: async (_n, a) => ((a as PedJobArgs).decode ? { bitmaps: [bitmap] } : { files: [] }) }, 'mobile-low');
+      expect(await port.image?.('texture/ped.atlas')).toEqual({ width: 256, height: 256, source: bitmap });
+      // a page that does not decode: null (the kit draws untextured); a stopped read: rejects (asked again after the next quiet window)
+      const bad = pedKitAssets({ job: async () => ({ bitmaps: [null] }) }, 'mobile-low');
+      expect(await bad.image?.('texture/ped.atlas')).toBeNull();
+      const cut = pedKitAssets({ job: async () => ({ bitmaps: [] }) }, 'mobile-low');
+      await expect(cut.image?.('texture/ped.atlas')).rejects.toMatchObject({ name: 'AbortError' });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    // no createImageBitmap in this worker (Node has none): the bytes, decoded on the page
+    expect(typeof (globalThis as { createImageBitmap?: unknown }).createImageBitmap).toBe('undefined');
+    const s2 = service();
+    const job2 = pedJob(s2.svc, { refs: atlas, variant: 'mobile-low', token: 't9', decode: true } satisfies PedJobArgs, never);
+    await ticks();
+    await s2.answer();
+    const out2 = await job2;
+    expect((out2.result as { files: ArrayBuffer[] }).files).toHaveLength(1);
+    expect(out2.transfer).toHaveLength(1);
+  });
+
+  it('the app\'s port asks the worker to parse the people files and parses none of them on the page', async () => {
+    const calls: PedJobArgs[] = [];
+    const client = {
+      job: async (name: string, args: unknown): Promise<unknown> => {
+        expect(name).toBe('world.ped');
+        const a = args as PedJobArgs;
+        calls.push(a);
+        if (a.parse) return { meshes: a.refs.map((r) => parsePersonGlb(bytesOf(r, 'mobile-low'))) };
+        return { files: a.refs.map(() => new Uint8Array(8).buffer) };
+      },
+    };
+    const port = pedKitAssets(client, 'mobile-low');
+    const before = parses.n;
+    const kit = await loadPedKit({ ...port, image: async () => null });
+    // the stand-in worker above parses each people file once (the same module); a parse on the page would double the count
+    expect(parses.n - before).toBe(Object.keys(PED_ART.bodies).length * 2 + PED_ART.outfits.length);
+    expect(kit).not.toBeNull();
+    expect(calls.filter((c) => c.parse === true).map((c) => c.refs.length)).toEqual([8, 8, PED_ART.outfits.length]);
+    expect(calls.every((c) => c.parse === true || c.refs.every((r) => r.startsWith('texture/')))).toBe(true);
+    kit?.dispose();
   });
 });

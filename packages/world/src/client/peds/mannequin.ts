@@ -3,15 +3,33 @@
  * but with its parts merged into ONE `SkinnedMesh` bound to the 22 bones, so a near pedestrian costs one render object (the player's
  * own mannequin is a group of separate meshes). The engine's `MannequinAnimator` drives the bones from the anim states 0 to 3.
  * Final bodies and outfits replace it in M10d1 (Q-39).
+ *
+ * M10d4 (BD-REPAIR-M10d4-04): its material is built like the pedestrian kit's (`kit.ts`: opaque, vertex colours, a colour map, a `uv`
+ * attribute on the geometry), with a 1x1 white sRGB page for the map, so the mannequin and the kit's near figures draw with ONE render
+ * program: the program the mannequin linked when the first near pedestrian appeared is the one the kit draws with after its swap, and
+ * the swap links none. On CI's chromium-webgl2 (SwiftShader, no `KHR_parallel_shader_compile`) a new program is linked synchronously, a
+ * main-thread wait of seconds. The page samples white, so the mannequin looks as before.
  */
 import {
-  Bone, BoxGeometry, BufferAttribute, BufferGeometry, CapsuleGeometry, Group, MeshStandardNodeMaterial, Skeleton, SkinnedMesh, SphereGeometry,
+  Bone, BoxGeometry, BufferAttribute, BufferGeometry, CapsuleGeometry, DataTexture, Group, MeshStandardNodeMaterial, SRGBColorSpace, Skeleton,
+  SkinnedMesh, SphereGeometry, type Texture,
   type Object3D,
 } from 'three/webgpu';
 import { HUMANOID_BONES } from '@dv/shared';
 import { BONE_PARENT, BONE_REST, buildPlaceholderClips, type HumanoidBone, type PlaceholderRig } from '@dv/engine/client/anim';
 
 const SKIN = [1, 0.78, 0.63] as const;
+
+let white: Texture | null = null;
+/** The 1x1 white sRGB page the mannequin's map samples (shared, never disposed): the kit's atlas page stands in its place. */
+export function whitePage(): Texture {
+  if (!white) {
+    white = new DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+    white.colorSpace = SRGBColorSpace;
+    white.needsUpdate = true;
+  }
+  return white;
+}
 
 interface Part {
   bone: HumanoidBone;
@@ -118,10 +136,14 @@ export function buildNearFigure(): NearFigure {
   geo.setAttribute('position', new BufferAttribute(Float32Array.from(pos), 3));
   geo.setAttribute('normal', new BufferAttribute(Float32Array.from(nor), 3));
   geo.setAttribute('color', new BufferAttribute(Float32Array.from(col), 3));
+  // the kit's attributes: the map's coordinates (all on the white page) and the skin binding
+  geo.setAttribute('uv', new BufferAttribute(new Float32Array((pos.length / 3) * 2), 2));
   geo.setAttribute('skinIndex', new BufferAttribute(Uint16Array.from(skinIdx), 4));
   geo.setAttribute('skinWeight', new BufferAttribute(Float32Array.from(skinW), 4));
   geo.setIndex(idx);
-  const mat = new MeshStandardNodeMaterial({ roughness: 0.7, metalness: 0.02, vertexColors: true, transparent: true });
+  // the kit's material (kit.ts `buildKit`): opaque, vertex colours, a colour map; the tint is the material colour
+  const mat = new MeshStandardNodeMaterial({ roughness: 0.7, metalness: 0.02, vertexColors: true });
+  mat.map = whitePage();
   const mesh = new SkinnedMesh(geo, mat);
   mesh.name = 'ped.near.mesh';
   mesh.frustumCulled = false;

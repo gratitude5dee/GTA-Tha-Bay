@@ -1,7 +1,10 @@
 /**
  * `world.ped`, the asset.worker job of the pedestrian kit (M10d4): reads a group of `character/ped.*`, `prop/ped.far.*` or `texture/ped.atlas`
  * assets at the variant of a tier through the pack store (hashed, cached in OPFS, counted like every pack) and returns their bytes
- * transferred. The kit parses them on the page (`kit.ts`, `person-glb.ts`). The files of a group are read ONE AFTER ANOTHER in the `idle`
+ * transferred. With `parse` (what the app sends, BD-REPAIR-M10d4-04) the people files are parsed here (`person-glb.ts`, as `world.vehicle`
+ * decodes its models in this worker) and come back as typed arrays, transferred, so the page does no parse (36 main-thread tasks); with
+ * `decode` the atlas page is decoded here (`createImageBitmap`) and comes back as a transferred `ImageBitmap`, or as its bytes in a worker
+ * without `createImageBitmap` (the page then decodes it). The files of a group are read ONE AFTER ANOTHER in the `idle`
  * lane, so the kit never holds more than one of the lane's two slots; one job per group keeps the page's round trips to a few.
  *
  * A read carries a `token`; the page stops it with a second `world.ped` call `{ stop: token }` when the world gets busy (`art-gate.ts`).
@@ -13,6 +16,7 @@
  */
 import { PackUnavailable } from '@dv/engine/assets/types';
 import type { AssetJob, AssetService } from '@dv/engine/assets/service';
+import { parsePersonGlb, type PersonMesh } from '@dv/engine/client/avatar/person-glb';
 
 export interface PedJobArgs {
   /** In order: `character/ped.body.a`, `character/ped.outfit.01`, `prop/ped.far.a` or `texture/ped.atlas`. */
@@ -21,6 +25,10 @@ export interface PedJobArgs {
   variant: 'desktop' | 'mobile' | 'mobile-low';
   /** Names the read for a later `{ stop: token }`. */
   token?: string;
+  /** Parse each file here (people `.glb` files only) and answer `meshes` instead of `files`. */
+  parse?: boolean;
+  /** Decode each file here as an image (the atlas page) and answer `bitmaps` instead of `files` (when the worker can decode). */
+  decode?: boolean;
 }
 
 /** Stops the read of `token` before its next file (a read that has ended, or never started, is not affected). */
@@ -28,8 +36,29 @@ export interface PedStopArgs {
   stop: string;
 }
 
-/** `files` in the order of `refs`: all of them, or the first ones when the read was stopped. */
-export type PedJobResult = { files: ArrayBuffer[] } | { missing: true } | { stopped: boolean };
+/**
+ * `files` (or `meshes`, parsed, or `bitmaps`, decoded: null for a file that does not decode) in the order of `refs`: all of them, or the
+ * first ones when the read was stopped.
+ */
+export type PedJobResult =
+  | { files: ArrayBuffer[] }
+  | { meshes: PersonMesh[] }
+  | { bitmaps: (ImageBitmap | null)[] }
+  | { missing: true }
+  | { stopped: boolean };
+
+/** Every buffer a parsed mesh holds, once each (the transfer list of a `meshes` answer). */
+export function personMeshTransfer(meshes: readonly PersonMesh[]): ArrayBuffer[] {
+  const out = new Set<ArrayBuffer>();
+  const add = (a: ArrayBufferView | null): void => {
+    if (a && a.buffer instanceof ArrayBuffer) out.add(a.buffer);
+  };
+  for (const m of meshes) {
+    for (const a of [m.position, m.normal, m.uv, m.ao, m.part, m.joints, m.weights, m.swing, m.pivot, m.index]) add(a);
+    for (const t of m.targets) add(t.position);
+  }
+  return [...out];
+}
 
 /** Reads in flight by token, so that a stop finds them. */
 const running = new Map<string, AbortController>();
@@ -90,6 +119,16 @@ export const pedJob: AssetJob = async (svc, raw, signal) => {
         if (own.signal.aborted) break;
         throw e;
       }
+    }
+    if (a.parse === true) {
+      // a file that is not a people GLB throws here, so the page's load fails and the mannequin stays, as with a parse on the page
+      const meshes = files.map((f) => parsePersonGlb(new Uint8Array(f)));
+      return { result: { meshes } satisfies PedJobResult, transfer: personMeshTransfer(meshes) };
+    }
+    if (a.decode === true && typeof globalThis.createImageBitmap === 'function') {
+      const bitmaps: (ImageBitmap | null)[] = [];
+      for (const f of files) bitmaps.push(await createImageBitmap(new Blob([f], { type: 'image/png' })).catch(() => null));
+      return { result: { bitmaps } satisfies PedJobResult, transfer: bitmaps.filter((b): b is ImageBitmap => b !== null) };
     }
     return { result: { files } satisfies PedJobResult, transfer: files };
   } finally {
