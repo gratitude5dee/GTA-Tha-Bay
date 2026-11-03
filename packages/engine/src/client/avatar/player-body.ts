@@ -222,6 +222,8 @@ export interface BodyInput {
 }
 
 const morphName = (id: string): string => `morph_${id.replace(/-/g, '_')}`;
+/** How far a clip can move a vertex out of the bind pose's bounding sphere, metres (an arm raised over the head in `jump`). */
+export const BODY_SWING_M = 0.5;
 
 /** Builds one body: the parts merged into one skinned mesh with one material on a fresh `bay_rig_v1` skeleton, feet on the origin, facing -Z. */
 export function buildBody(input: BodyInput): BodyFigure {
@@ -314,7 +316,12 @@ export function buildBody(input: BodyInput): BodyFigure {
   }
   const mesh = new SkinnedMesh(geo, material);
   mesh.name = 'dv:body.mesh';
-  mesh.frustumCulled = false;
+  // culled like the mannequin's parts (one render object only while in view): the bind pose's sphere grown by what a clip swings out
+  // (a raised arm, a stride), set on the geometry and on the skinned mesh so neither the renderer nor the meter skins the vertices for it
+  geo.computeBoundingSphere();
+  if (geo.boundingSphere) geo.boundingSphere.radius += BODY_SWING_M;
+  if (geo.boundingSphere) mesh.boundingSphere = geo.boundingSphere.clone();
+  mesh.frustumCulled = true;
   root.add(mesh);
   root.updateMatrixWorld(true);
   const skeleton = new Skeleton(list);

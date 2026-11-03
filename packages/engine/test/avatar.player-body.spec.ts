@@ -312,6 +312,23 @@ describe('the object pool draws the bodies', () => {
   });
 });
 
+describe('the body is culled like the mannequin', () => {
+  it('has a bounding sphere around the figure, grown for the clips, and is frustum culled', () => {
+    const f = buildBody({
+      parts: resolveBody({}).parts.map((p) => ({ slot: p.slot, mesh: parsePersonGlb(new Uint8Array(readFileSync(fileOf(p.ref, 'mobile-low')))) })),
+      colors: resolveBody({}).colors,
+    });
+    expect(f.mesh.frustumCulled).toBe(true);
+    const s = f.mesh.boundingSphere;
+    expect(s).not.toBeNull();
+    expect(f.mesh.geometry.boundingSphere?.radius).toBe(s?.radius);
+    // the sphere holds the whole figure, feet to crown, with room for a raised arm
+    expect((s?.center.y ?? 0) - (s?.radius ?? 0)).toBeLessThan(-0.3);
+    expect((s?.center.y ?? 0) + (s?.radius ?? 0)).toBeGreaterThan(2.2);
+    f.dispose();
+  });
+});
+
 describe('the loader', () => {
   it('answers null while loading and the parsed parts once in', async () => {
     const loader = new BodyLoader(mockAssets(), 'mobile');

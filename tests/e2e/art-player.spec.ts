@@ -291,7 +291,7 @@ test.describe('player ledger @player-ledger', () => {
         bakeId: bakeIdOf(),
         baselineFrom: base.file,
         ...(Object.keys(drift).length > 0
-          ? { drift: { reason: `${base.file} was measured on a scene later rows changed; this checkout reads the render objects in measured, and the player's body adds none`, measured: drift } }
+          ? { drift: { reason: `the player stands in the frame: the mannequin of ${base.file} drew 17 meshes, each one render object plus one per shadow pass where the look's casters are on (desktop), and the body draws one skinned mesh; this checkout reads the render objects in measured`, measured: drift } }
           : {}),
         tiers: Object.fromEntries(LEDGER_TIERS.filter((t) => measured[t]).map((t) => [t, measured[t] as TierRow])),
         ...(old?.xr ? { xr: old.xr } : {}),

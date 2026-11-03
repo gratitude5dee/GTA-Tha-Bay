@@ -421,14 +421,16 @@ export class ObjectPool {
         ready();
         continue;
       }
-      // the compile collects the figure where it stands (as `warm` does); it is out of the scene again until the swap
+      // the compile collects the figure wherever it stands (unculled, as `warm` does); it is out of the scene again until the swap
       this.scene.add(figure.root);
+      figure.mesh.frustumCulled = false;
       let done: Promise<unknown>;
       try {
         done = this.compile(figure.root);
       } catch (err) {
         done = Promise.reject(err);
       }
+      figure.mesh.frustumCulled = true;
       this.scene.remove(figure.root);
       void done.then(ready, ready);
     }
