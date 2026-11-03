@@ -31,7 +31,7 @@ test.describe('governor @governor', () => {
     const ratio = await page.waitForFunction(() => {
       const r = window.__dvBridge!.platform!.resolution().pixelRatio;
       return r < 1 ? r : false;
-    }, undefined, { timeout: 60_000 });
+    }, undefined, { timeout: 60_000, polling: 250 }); // an interval, not rAF: the page's frames are what is slow here
     expect(await ratio.jsonValue()).toBeLessThan(1);
   });
 
