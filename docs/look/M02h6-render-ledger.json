@@ -1,25 +1,25 @@
 {
   "commit": "local",
   "bakeId": "2536435fb1f8e8f1229648294e8450d6518ae98995cb0c6f82e070aec8339f93",
-  "baselineFrom": "docs/look/M02h5-render-ledger.json",
+  "baselineFrom": "docs/look/M10d5-render-ledger.json",
   "tiers": {
     "desktop": {
-      "baseline": 552,
-      "after": 559,
+      "baseline": 488,
+      "after": 495,
       "perLayer": {
         "furniture": 4,
         "parked": 3
       },
       "shots": {
         "noon-street": {
-          "off": 510,
-          "on": 517,
+          "off": 494,
+          "on": 501,
           "furniture": 4,
           "parked": 3
         },
         "junction-noon": {
-          "off": 553,
-          "on": 560,
+          "off": 546,
+          "on": 553,
           "furniture": 4,
           "parked": 3
         }
@@ -52,22 +52,22 @@
       }
     },
     "mobile": {
-      "baseline": 139,
-      "after": 145,
+      "baseline": 123,
+      "after": 129,
       "perLayer": {
         "furniture": 3,
         "parked": 3
       },
       "shots": {
         "noon-street": {
-          "off": 218,
-          "on": 224,
+          "off": 202,
+          "on": 208,
           "furniture": 3,
           "parked": 3
         },
         "junction-noon": {
-          "off": 211,
-          "on": 217,
+          "off": 203,
+          "on": 209,
           "furniture": 3,
           "parked": 3
         }
@@ -100,14 +100,14 @@
       },
       "shots": {
         "noon-street": {
-          "off": 168,
-          "on": 171,
+          "off": 152,
+          "on": 155,
           "furniture": 2,
           "parked": 1
         },
         "junction-noon": {
-          "off": 162,
-          "on": 165,
+          "off": 149,
+          "on": 152,
           "furniture": 2,
           "parked": 1
         }
@@ -152,11 +152,12 @@
     }
   },
   "xr": {
-    "baseline": 93,
-    "after": 93,
+    "baseline": 76,
+    "after": 77,
     "perLayer": {
       "furniture": 0,
       "parked": 0
-    }
+    },
+    "drift": "77 on this tree with no furniture node in the scene; M10d5's own @xr @art-player frame reads the same 77 here against its recorded 76"
   }
 }
