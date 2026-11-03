@@ -147,7 +147,7 @@ test.describe('xr art peds @xr @art-peds', () => {
 
 const LEDGER = 'docs/look/M10d4-render-ledger.json';
 /** The latest merged ledger first: its `after` is this one's baseline (`_PLAN-3.md` Look program rule 5). */
-const PRIORS = ['docs/look/M02h5-render-ledger.json', 'docs/look/M02h4-render-ledger.json', 'docs/look/M02h3-render-ledger.json', 'docs/look/M02h2-render-ledger.json'];
+const PRIORS = ['docs/look/M02h4-render-ledger.json', 'docs/look/M02h3-render-ledger.json', 'docs/look/M02h2-render-ledger.json'];
 const LEDGER_TIERS = ['desktop', 'mobile', 'mobile-low'] as const;
 interface TierRow {
   baseline: number;
