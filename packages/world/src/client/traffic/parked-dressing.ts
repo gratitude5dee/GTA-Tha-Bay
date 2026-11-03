@@ -19,7 +19,7 @@
  */
 import { InstancedBufferAttribute, InstancedMesh, Group, type BufferGeometry, type Material, type Object3D } from 'three/webgpu';
 import type { WorldFrame } from '@dv/engine/client/boot/world-layer';
-import type { ArtModelData } from '@dv/engine/client/vehicle/art';
+import type { ArtModelData } from '@dv/engine/client/vehicle/art-model';
 import { ambientKey, ctrU32, worldSeedOf, type ChunkKey, type FurnitureFile } from '@dv/shared';
 import { ARCHETYPES, PALETTE, pickArchetype } from '../../sim/traffic/components.ts';
 import { profileName } from '../../sim/traffic/density.ts';
@@ -107,6 +107,8 @@ export interface ParkedDressingReport {
   candidates: number;
   /** Render objects the dressing adds now. */
   objects: number;
+  /** Triangles the drawn cars cost now (0 while hidden). */
+  triangles: number;
   families: string[];
   loaded: number;
   layer: boolean;
@@ -377,11 +379,23 @@ export class ParkedDressing {
     return this.families.filter((f) => f.mesh.visible && f.count > 0).length;
   }
 
+  /** Triangles of the drawn cars (each family's geometry times its count), 0 while hidden. */
+  get triangles(): number {
+    if (!this.group.visible) return 0;
+    let n = 0;
+    for (const f of this.families) {
+      if (!f.mesh.visible || f.count === 0) continue;
+      const g = f.mesh.geometry;
+      n += ((g.index?.count ?? g.getAttribute('position').count) / 3) * f.count;
+    }
+    return n;
+  }
+
   report(qa = false): ParkedDressingReport {
     let candidates = 0;
     for (const l of this.units.values()) candidates += l.length;
     return {
-      profile: this.profile, instances: this.drawn.length, cap: this.cap, candidates, objects: this.objects, families: this.families.map((f) => f.name),
+      profile: this.profile, instances: this.drawn.length, cap: this.cap, candidates, objects: this.objects, triangles: this.triangles, families: this.families.map((f) => f.name),
       loaded: this.loaded, layer: this.layerOn,
       ...(qa ? { drawn: this.drawn.map((d) => ({ key: d.key, x: d.x, z: d.z, yaw: d.yaw, fade: d.fade, arch: d.arch })) } : {}),
     };

@@ -1241,7 +1241,7 @@ export class WorldView implements WorldLayer {
       pools: f?.pools ?? {},
       objects: (f?.objects ?? 0) + (p?.objects ?? 0),
       poolObjects: f?.objects ?? 0,
-      parked: { instances: p?.instances ?? 0, cap: p?.cap ?? 0, objects: p?.objects ?? 0, candidates: p?.candidates ?? 0, families: p?.families ?? [], ...(p?.drawn ? { drawn: p.drawn } : {}) },
+      parked: { instances: p?.instances ?? 0, cap: p?.cap ?? 0, objects: p?.objects ?? 0, triangles: p?.triangles ?? 0, candidates: p?.candidates ?? 0, families: p?.families ?? [], ...(p?.drawn ? { drawn: p.drawn } : {}) },
       heads: { n: f?.heads.n ?? 0, aspects: f?.heads.aspects ?? { green: 0, amber: 0, red: 0, dark: 0 }, total: f?.heads.total ?? 0 },
       layers: { furniture: f?.layer ?? false, parked: p?.layer ?? false },
       dropped: f?.dropped ?? 0,

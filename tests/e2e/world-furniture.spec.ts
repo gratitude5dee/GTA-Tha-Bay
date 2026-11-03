@@ -39,8 +39,8 @@ test.describe('street furniture @world-furniture', () => {
       // the player at the junction, so the heads stay within 200 m of the camera once the shot is released
       await page.evaluate(() => (window as unknown as W).__dvBridge.world.teleport({ x: 70, z: 318 }));
       await setSky(page, 13, 'clear');
-      await world(page, (w) => w.shot('junction-noon'));
-      await frames(page, 8);
+      // `held` settles with the world's draw held: a desktop frame with the traffic drawn costs seconds on software GL (BD-FIX-CI-TEXGOLD-01)
+      await world(page, (w) => w.shot('junction-noon', { held: true }));
       await expect.poll(async () => (await furniture(page)).parked.instances, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
       const f = await furniture(page);
       console.log(`world-furniture ${testInfo.project.name} ${tier}: ${JSON.stringify({ ...f, parked: { ...f.parked, drawn: undefined } })}`);
@@ -57,11 +57,19 @@ test.describe('street furniture @world-furniture', () => {
       // released: the sim runs and the heads follow its tick (a held shot freezes them)
       await world(page, (w) => w.clearShot());
       await world(page, (w) => w.freeze(false));
+      // `heads.aspects` counts per aspect, which a symmetric junction keeps (two green, two red) when its phases swap, so the change is
+      // read on the codes of the heads the last 10 Hz pass evaluated (within 200 m of the camera), together with those counts
       const seen = new Set<string>();
       await expect
         .poll(async () => {
           const h = (await furniture(page)).heads;
-          seen.add(JSON.stringify(h.aspects));
+          const codes = await page.evaluate(() => {
+            type P = { headCodes(): { x: number; z: number; code: number }[] } | null;
+            const v = (window as unknown as W).__dvBridge.world.internals().view as unknown as { renderer: { furniture: P }; host: { camera: { position: { x: number; z: number } } } };
+            const c = v.host.camera.position;
+            return (v.renderer.furniture?.headCodes() ?? []).filter((k) => Math.hypot(k.x - c.x, k.z - c.z) <= 200).map((k) => k.code).join('');
+          });
+          seen.add(`${JSON.stringify(h.aspects)} ${codes}`);
           return seen.size;
         }, { timeout: 30_000, intervals: [500] })
         .toBeGreaterThan(1);
@@ -70,18 +78,18 @@ test.describe('street furniture @world-furniture', () => {
       const before = requests.length;
       expect(await world(page, (w) => w.setLookLayer('furniture', false))).toBe(true);
       expect(await world(page, (w) => w.setLookLayer('parked', false))).toBe(true);
-      await frames(page, 4);
       const off = await furniture(page);
       expect(off.objects).toBe(0);
       expect(off.layers).toEqual({ furniture: false, parked: false });
       expect(await world(page, (w) => w.setLookLayer('furniture', true))).toBe(true);
       expect(await world(page, (w) => w.setLookLayer('parked', true))).toBe(true);
-      await frames(page, 8);
       expect((await furniture(page)).objects).toBeGreaterThan(0);
+      await frames(page, 2);
       expect(requests.length, 'the layers fetch nothing').toBe(before);
 
-      // every image or texture request is a surface texture ref (M10d0) or an art ref (M10d1)
-      const refs = await world(page, (w) => [...(w.look()?.textures?.refs ?? []), ...(w.art()?.refs ?? [])]);
+      // every image or texture request is a surface texture ref (M10d0), an art ref (M10d1) or the backdrop's skyline cards (M02c2,
+      // `texture/far-bay-cards`, on the tiers that draw them), none a furniture or sign face
+      const refs = await world(page, (w) => [...(w.look()?.textures?.refs ?? []), ...(w.art()?.refs ?? []), 'texture/far-bay-cards']);
       for (const url of requests) expect(refs.some((ref) => url.includes(`/${ref}/`)), `${url} is not one of the texture or art refs`).toBe(true);
       expect(errors).toEqual([]);
     });

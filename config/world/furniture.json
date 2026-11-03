@@ -33,7 +33,7 @@
   "headsHz": 10,
   "parked": {
     "families": { "full": ["car", "robotaxi", "pickup", "box"], "lite": ["car", "pickup", "box"], "min": ["car"] },
-    "caps": { "full": 192, "lite": 96, "min": 48 },
+    "caps": { "full": 128, "lite": 96, "min": 48 },
     "ghostM": { "full": 30, "lite": 28, "min": 25 },
     "dressFarM": { "full": 300, "lite": 200, "min": 140 },
     "fadeM": 8,

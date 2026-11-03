@@ -79,7 +79,7 @@ export interface FurnitureLookReport {
   /** Render objects the pools and the dressing add now. */
   objects: number;
   poolObjects: number;
-  parked: { instances: number; cap: number; objects: number; candidates: number; families: string[]; drawn?: { key: string; x: number; z: number; yaw: number; fade: number; arch: number }[] };
+  parked: { instances: number; cap: number; objects: number; triangles: number; candidates: number; families: string[]; drawn?: { key: string; x: number; z: number; yaw: number; fade: number; arch: number }[] };
   /** The heads evaluated in the last 10 Hz pass (within 200 m), their aspects, and the heads of the resident units. */
   heads: { n: number; aspects: Record<'green' | 'amber' | 'red' | 'dark', number>; total: number };
   layers: { furniture: boolean; parked: boolean };

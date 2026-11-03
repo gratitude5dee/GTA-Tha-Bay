@@ -140,12 +140,13 @@ export class FurniturePools {
     const u: UnitSlots = { cx: mesh.originX + 128, cz: mesh.originZ + 128, slots: [], heads: [], mesh };
     this.units.set(id, u);
     const touched = new Set<number>();
+    const donors = new Map<number, UnitSlots[]>();
     for (let i = 0; i + FURNITURE_STRIDE - 1 < recs.length; i += FURNITURE_STRIDE) {
       const kind = recs[i] as number;
       const pi = this.poolOf.get(POOL_OF_KIND[kind] as FurniturePoolName);
       if (pi === undefined) continue;
       const p = this.pools[pi] as Pool;
-      const slot = this.take(p, pi, u);
+      const slot = this.take(p, pi, u, donors);
       if (slot < 0) {
         this.dropped++;
         continue;
@@ -165,25 +166,35 @@ export class FurniturePools {
     if (u.heads.length > 0) this.clock.poke();
   }
 
-  /** A free slot of pool `p` for unit `u`, taking one from a farther unit when the pool is at its cap; -1 when `u` is the farthest. */
-  private take(p: Pool, pi: number, u: UnitSlots): number {
+  /**
+   * A free slot of pool `p` for unit `u`, taking one from a farther unit when the pool is at its cap; -1 when `u` is the farthest.
+   * `donors` caches, per pool, the units farther than `u` that hold its slots, farthest last (built once per `addUnit`).
+   */
+  private take(p: Pool, pi: number, u: UnitSlots, donors: Map<number, UnitSlots[]>): number {
     const reuse = p.free.pop();
     if (reuse !== undefined) return reuse;
     if (p.high < p.cap) return p.high++;
     // at the cap: the farthest unit holding a slot of this pool gives one up if it is farther than `u`
-    let far: { id: string; u: UnitSlots; d: number } | null = null;
-    for (const [id, v] of this.units) {
-      if (v === u || !v.slots.some(([q]) => q === pi)) continue;
-      const d = this.dist2(v);
-      if (!far || d > far.d) far = { id, u: v, d };
+    let list = donors.get(pi);
+    if (!list) {
+      const du = this.dist2(u);
+      list = [...this.units.values()].filter((v) => v !== u && this.dist2(v) > du && v.slots.some(([q]) => q === pi)).sort((a, b) => this.dist2(a) - this.dist2(b));
+      donors.set(pi, list);
     }
-    if (!far || far.d <= this.dist2(u)) return -1;
-    const k = far.u.slots.findIndex(([q]) => q === pi);
-    const [, slot] = far.u.slots[k] as [number, number];
-    far.u.slots.splice(k, 1);
-    far.u.heads = far.u.heads.filter((h) => !(pi === this.poolOf.get('signal') && h.slot === slot));
-    this.dropped++;
-    return slot;
+    for (;;) {
+      const far = list[list.length - 1];
+      if (!far) return -1;
+      const k = far.slots.findIndex(([q]) => q === pi);
+      if (k < 0) {
+        list.pop();
+        continue;
+      }
+      const [, slot] = far.slots[k] as [number, number];
+      far.slots.splice(k, 1);
+      if (pi === this.poolOf.get('signal')) far.heads = far.heads.filter((h) => h.slot !== slot);
+      this.dropped++;
+      return slot;
+    }
   }
 
   /** A unit was unloaded: its slots are freed (zero scale). */
