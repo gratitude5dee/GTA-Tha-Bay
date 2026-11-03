@@ -2,18 +2,23 @@
 //
 // Record 22 TREE `u8 species` and the species lane of `RenderChunk.trees` hold a `TreeForm` when `WorldIndex.c08` is 1.1 or later: the
 // bake (S3) maps a botanical name to one of five original procedural forms, and the client meshes the form, never the name. A 1.0 index
-// keeps the old meaning (a species hash 0..7), which the client meshes as `Plane`. Forms 5–255 are reserved (M02h5 adds `Shrub` 5 and
-// `Hedge` 6 and the scatter bit 7); a reserved value meshes as `Plane`.
+// keeps the old meaning (a species hash 0..7), which the client meshes as `Plane`. M02h5 adds `Shrub` 5 and `Hedge` 6 and bit 7, the
+// scatter flag (a record S13's scatter placed, never a street tree): the low seven bits are the form; 7–127 are reserved and mesh as `Plane`.
 import type { AssetRef } from '../assets/c07.ts';
 import { dsqrt } from '../detmath.ts';
 import { fnv32 } from '../hash.ts';
 
-export const TreeForm = { Plane: 0, Ficus: 1, Conifer: 2, Eucalyptus: 3, Palm: 4 } as const;
+export const TreeForm = { Plane: 0, Ficus: 1, Conifer: 2, Eucalyptus: 3, Palm: 4, Shrub: 5, Hedge: 6 } as const;
 export type TreeForm = (typeof TreeForm)[keyof typeof TreeForm];
-/** The forms of M02h4 in byte order. */
+/** The tree forms of M02h4 in byte order (a street tree is always one of these). */
 export const TREE_FORMS: readonly TreeForm[] = [TreeForm.Plane, TreeForm.Ficus, TreeForm.Conifer, TreeForm.Eucalyptus, TreeForm.Palm];
 export const TREE_FORM_NAMES = ['plane', 'ficus', 'conifer', 'eucalyptus', 'palm'] as const;
 export type TreeFormName = (typeof TREE_FORM_NAMES)[number];
+/** M02h5: every form of the byte in order, the five trees then `shrub` 5 and `hedge` 6. */
+export const VEG_FORM_NAMES = ['plane', 'ficus', 'conifer', 'eucalyptus', 'palm', 'shrub', 'hedge'] as const;
+export type VegFormName = (typeof VEG_FORM_NAMES)[number];
+/** M02h5: bit 7 of the TREE byte marks a scatter record (S13's woods, groves, shrubs and hedges); street trees never carry it. */
+export const SCATTER_BIT = 0x80;
 
 /** `config/world/tree-forms.json` (`tools/map/schemas/tree-forms.schema.json`). */
 export interface TreeFormTable {
@@ -27,7 +32,12 @@ export interface TreeFormTable {
    * Per form: the height distribution in metres (a triangular `[min, mode, max]` the mesher reads) and an optional `AssetRef` a later
    * Track B import may put in place of the near LOD (absent: the form stays procedural).
    */
-  forms: Record<TreeFormName, { heightM: [number, number, number]; asset?: AssetRef }>;
+  forms: Record<TreeFormName, { heightM: [number, number, number]; asset?: AssetRef }> & Partial<Record<'shrub' | 'hedge', { heightM: [number, number, number]; asset?: AssetRef }>>;
+  /**
+   * M02h5: lowercased genera (or whole lowercased names) of DataSF street-tree rows the bake drops: placeholders and stumps that are no
+   * tree (`tree(s)`, `shrub`), tuned from M02h4's `treeUnmatched`. Absent: none.
+   */
+  skipSpecies?: string[];
 }
 
 /** The genus of a botanical name: its first word, lowercased (`"Platanus x hispanica :: London Plane"` → `platanus`). */
@@ -84,9 +94,41 @@ export function formOfOsmTags(tags: Readonly<Record<string, string>>, table: Tre
   return { form: species || genus ? formOfSpecies(name, table) : fallbackForm(key, table), name, matched: false };
 }
 
-/** The form a byte draws: 0–4 as they are, a reserved value (5–255, a newer bake in an older client) as `Plane`. */
+/**
+ * The form a byte draws: its low seven bits, 0–6 as they are (M02h5: `Shrub` 5, `Hedge` 6; bit 7, the scatter flag, is ignored here), a
+ * reserved value (7–127, a newer bake in an older client) as `Plane`.
+ */
 export function treeFormOfByte(b: number): TreeForm {
-  return b >= 0 && b <= 4 && (b | 0) === b ? (b as TreeForm) : TreeForm.Plane;
+  if (!((b | 0) === b && b >= 0 && b <= 255)) return TreeForm.Plane;
+  const f = b & 0x7f;
+  return f <= 6 ? (f as TreeForm) : TreeForm.Plane;
+}
+
+/** M02h5: whether a TREE byte carries the scatter flag (bit 7). */
+export function isScatterByte(b: number): boolean {
+  return (b | 0) === b && b >= 0 && b <= 255 && (b & SCATTER_BIT) !== 0;
+}
+
+/** M02h5: the TREE byte of a form, with the scatter flag when `scatter`. */
+export function treeByte(form: TreeForm, scatter: boolean): number {
+  return (form & 0x7f) | (scatter ? SCATTER_BIT : 0);
+}
+
+/** M02h5: whether a form is a shrub or a hedge (the understory layer: its own pools, `shrubDrawM`, `shrubKeep`). */
+export function isUnderstoryForm(f: TreeForm): boolean {
+  return f === TreeForm.Shrub || f === TreeForm.Hedge;
+}
+
+/**
+ * M02h5: whether a DataSF street-tree name is in the table's `skipSpecies` (its lowercased genus or the whole lowercased name): the bake
+ * drops it.
+ */
+export function skippedSpecies(name: string, table: TreeFormTable): boolean {
+  const list = table.skipSpecies;
+  if (!list || list.length === 0) return false;
+  const whole = name.trim().toLowerCase();
+  const g = genusOf(name);
+  return list.includes(whole) || (g.length > 0 && list.includes(g));
 }
 
 /** Whether a world index's C08 version carries forms in the TREE byte (1.1 and later). */

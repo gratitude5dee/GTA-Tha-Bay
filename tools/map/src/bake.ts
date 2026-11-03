@@ -10,9 +10,9 @@
 import v8 from 'node:v8';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { canonicalize, chunkKeyAt, enuFromLatLng, sha256Hex, type ChunkKey, type SourceStamp } from '../../../packages/shared/src/index.ts';
+import { canonicalize, chunkBounds, chunkKeyAt, enuFromLatLng, isScatterByte, sha256Hex, type ChunkKey, type RenderChunk, type SourceStamp } from '../../../packages/shared/src/index.ts';
 import {
-  CACHE_ROOT, DEFAULT_LAMP_PITCH_M, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadCover, loadDensity, loadBounds, loadTreeForms, loadRoadClass, loadSources, loadSynth, mapSchema, rawDirOf,
+  CACHE_ROOT, DEFAULT_LAMP_PITCH_M, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadCover, loadDensity, loadBounds, loadTreeForms, loadRoadClass, loadSources, loadSynth, loadVegetation, mapSchema, rawDirOf,
   type AreaGrid, type AreaId, type SourcesConfig, type SynthConfig,
 } from './config.ts';
 import { CONTENT_STAMP_AT, CONTENT_STAMP_ID, contentRows, contentStamp, loadContentWorld, type ContentWorld } from './content.ts';
@@ -222,7 +222,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     const hoods = jsonlOrEmpty<HoodRow>(path.join(rawDir, 'j2bu-swwd.jsonl'));
     const trees = jsonlOrEmpty<TreeRow>(path.join(rawDir, 'tkzw-k3nq.jsonl'));
     const product = runWater({
-      grid, osm: osmOf(c), parks, hoods, trees, treeForms: loadTreeForms(), minRingKm2: def.gates.s3.minRingKm2,
+      grid, osm: osmOf(c), parks, hoods, trees, treeForms: loadTreeForms(), vegetation: loadVegetation(), minRingKm2: def.gates.s3.minRingKm2,
       // Only used when no coastline reaches the box: land when most box corners are above 0.5 m.
       baseLandHint: () => {
         const m = mosaicOf(c);
@@ -407,6 +407,24 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       places: placesStage.places, lod: lodStage.files,
       far: [{ name: 'far-bay-dem.pack', bytes: lodStage.far.dem }, { name: 'far-bay-massing.pack', bytes: lodStage.far.massing }, { name: 'far-bay-cards.png', bytes: lodStage.far.cards }],
       cover: { cfg: loadCover(), osm: osmOf(c) },
+      scatter: { cfg: loadVegetation() },
+    });
+    // M02h5: what the scatter placed, and the street trees per km of sidewalk in each neighbourhood (one with sidewalks and no tree warns)
+    const streetTrees = streetTreeDensity(outputs.renders, ped.product.sidewalkM, (x, z) => hoodAt(water.product.hoods, x, z));
+    if (outputs.scatter) {
+      const sc = outputs.scatter;
+      gates.push({
+        id: 's13.scatter', stage: 'S13', level: sc.records > 0 ? 'pass' : 'warn',
+        detail: `scatter ${sc.records} records: wood ${sc.wood.polys} polygons ${sc.wood.m2} m2 (${sc.wood.trees} trees, ${sc.wood.shrubs} shrubs); scrub ${sc.scrub.m2} m2 (${sc.scrub.shrubs} shrubs); parks ${sc.park.groves} groves (${sc.park.trees} trees, ${sc.park.shrubs} shrubs); hedges ${sc.hedge.blocks} blocks on ${sc.hedge.lines} lines, ${sc.yard.hedgeBlocks} in ${sc.yard.hedgeLots} yard lots; ${sc.yard.shrubs} yard shrubs`,
+        values: { records: sc.records, woodM2: sc.wood.m2 },
+      });
+      log(`pack: ${gates[gates.length - 1]?.detail ?? ''}`);
+    }
+    const bare = streetTrees.hoods.filter((h) => h.sidewalkKm > 0 && h.trees === 0).map((h) => h.name);
+    gates.push({
+      id: 's13.street-trees', stage: 'S13', level: bare.length === 0 ? 'pass' : 'warn',
+      detail: `${streetTrees.trees} street trees over ${streetTrees.sidewalkKm} km of sidewalk (${streetTrees.perKm} per km)${bare.length ? `; no street tree in ${bare.join(', ')}` : ''}`,
+      values: { trees: streetTrees.trees, perKm: streetTrees.perKm },
     });
     if (outputs.cover) {
       // M02h3: cells per class; a class without a cell warns (the sf snapshot may lack a tag, the synth sources never do)
@@ -461,6 +479,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
         packs: outputs.files.length,
         buildings: buildings.product.report.records,
         trees: Math.floor(water.product.trees.length / 4),
+        scatter: outputs.scatter?.records ?? 0,
       },
       terrain: terrain.product.stats,
       water: water.product.stats,
@@ -483,6 +502,9 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       // M02h4: trees per form and the most frequent names no row of config/world/tree-forms.json matched
       treeForms: water.product.treeReport.forms,
       treeUnmatched: water.product.treeReport.unmatched,
+      // M02h5: the scatter per kind, and the street trees per km of sidewalk per neighbourhood with their sources
+      ...(outputs.scatter ? { scatter: outputs.scatter } : {}),
+      streetTrees: { ...streetTrees, sources: water.product.treeReport.street },
     };
     const writeReport = (g: GateResult[]): void => {
       const report = { ...baseReport, gates: g, ok: failed(g).length === 0 };
@@ -516,6 +538,31 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     : {};
   const hashes = outputs ? hashTree(outDir) : mapHashes;
   return { ok: failed(gates).length === 0, bakeId, outDir, gates, hashes, ms };
+}
+
+/**
+ * M02h5: the street trees (TREE records without the scatter bit) per km of sidewalk, per neighbourhood. A chunk's trees and its S8
+ * sidewalk length count for the neighbourhood its centre lies in.
+ */
+export function streetTreeDensity(
+  renders: ReadonlyMap<ChunkKey, RenderChunk>, sidewalkM: ReadonlyMap<ChunkKey, number>, hoodOf: (x: number, z: number) => string | null,
+): { trees: number; sidewalkKm: number; perKm: number; hoods: { name: string; trees: number; sidewalkKm: number; perKm: number }[] } {
+  const by = new Map<string, { trees: number; m: number }>();
+  const keys = new Set<ChunkKey>([...renders.keys(), ...sidewalkM.keys()]);
+  for (const key of [...keys].sort()) {
+    const b = chunkBounds(key);
+    const name = hoodOf((b.minX + b.maxX) / 2, (b.minZ + b.maxZ) / 2) ?? '(none)';
+    const row = by.get(name) ?? { trees: 0, m: 0 };
+    const t = renders.get(key)?.trees;
+    if (t) for (let i = 3; i < t.length; i += 4) if (!isScatterByte(t[i] as number)) row.trees++;
+    row.m += sidewalkM.get(key) ?? 0;
+    by.set(name, row);
+  }
+  const r = (v: number): number => Math.round(v * 100) / 100;
+  const hoods = [...by.entries()].sort((a, b) => cmp(a[0], b[0])).map(([name, v]) => ({ name, trees: v.trees, sidewalkKm: r(v.m / 1000), perKm: v.m > 0 ? r(v.trees / (v.m / 1000)) : 0 }));
+  const trees = hoods.reduce((n, h) => n + h.trees, 0);
+  const m = [...by.values()].reduce((n, h) => n + h.m, 0);
+  return { trees, sidewalkKm: r(m / 1000), perKm: m > 0 ? r(trees / (m / 1000)) : 0, hoods };
 }
 
 /** relative path to sha256 of every file below `dir`, bake-times.json excluded. */

@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  TREE_FORM_NAMES, TreeForm, fallbackForm, formOfOsmTags, formOfSpecies, genusOf, readsTreeForms, speciesMatched, treeFormOfByte, triangularQuantile,
-  type TreeFormTable,
+  SCATTER_BIT, TREE_FORM_NAMES, TreeForm, VEG_FORM_NAMES, fallbackForm, formOfOsmTags, formOfSpecies, genusOf, isScatterByte, isUnderstoryForm, readsTreeForms,
+  skippedSpecies, speciesMatched, treeByte, treeFormOfByte, triangularQuantile, type TreeFormTable,
 } from '../src/index.ts';
 
 /**
@@ -70,12 +70,39 @@ describe('tree form class (AC-2)', () => {
     expect([TreeForm.Plane, TreeForm.Ficus]).toContain(r.form);
   });
 
-  it('the byte: 0..4 are forms, anything else draws as Plane; C08 1.1 indexes carry forms', () => {
+  it('the byte: the low seven bits are the form (0..6, M02h5 Shrub 5 and Hedge 6), bit 7 the scatter flag; C08 1.1 indexes carry forms', () => {
     expect(TREE_FORM_NAMES).toEqual(['plane', 'ficus', 'conifer', 'eucalyptus', 'palm']);
-    for (let b = 0; b < 256; b++) expect(treeFormOfByte(b)).toBe(b <= 4 ? b : TreeForm.Plane);
+    expect(VEG_FORM_NAMES).toEqual(['plane', 'ficus', 'conifer', 'eucalyptus', 'palm', 'shrub', 'hedge']);
+    expect([TreeForm.Shrub, TreeForm.Hedge, SCATTER_BIT]).toEqual([5, 6, 128]);
+    for (let b = 0; b < 256; b++) {
+      const low = b & 0x7f;
+      expect(treeFormOfByte(b), `byte ${b}`).toBe(low <= 6 ? low : TreeForm.Plane);
+      expect(isScatterByte(b)).toBe(b >= 128);
+    }
+    for (const b of [-1, 256, 1.5, Number.NaN]) {
+      expect(treeFormOfByte(b)).toBe(TreeForm.Plane);
+      expect(isScatterByte(b)).toBe(false);
+    }
+    for (let f = 0; f <= 6; f++) {
+      expect(treeByte(f as TreeForm, false)).toBe(f);
+      expect(treeByte(f as TreeForm, true)).toBe(f + 128);
+      expect(treeFormOfByte(treeByte(f as TreeForm, true))).toBe(f);
+      expect(isUnderstoryForm(f as TreeForm)).toBe(f === 5 || f === 6);
+    }
     expect(readsTreeForms('1.1.0')).toBe(true);
     expect(readsTreeForms('1.0.0')).toBe(false);
     expect(readsTreeForms('2.0.0')).toBe(true);
+  });
+
+  it('M02h5: skipSpecies drops planting sites and stumps by genus or whole name, never a tree; shrub and hedge have height rows', () => {
+    expect(TABLE.skipSpecies).toEqual(['planting', 'stump']);
+    for (const n of ['Planting site (plant) :: Planting Site (plant)', 'Stump (use Grinder) :: Stump (use Grinder)', 'Stump :: Stump']) expect(skippedSpecies(n, TABLE), n).toBe(true);
+    for (const n of ['Tree(s) ::', 'Platanus x hispanica', 'unknown', '::', 'Shrub :: Shrub']) expect(skippedSpecies(n, TABLE), n).toBe(false);
+    expect(skippedSpecies('Stump', { ...TABLE, skipSpecies: [] })).toBe(false);
+    const { skipSpecies: _s, ...noList } = TABLE;
+    expect(skippedSpecies('Stump', noList as TreeFormTable)).toBe(false);
+    expect(TABLE.forms.shrub?.heightM).toEqual([0.6, 1.2, 2.5]);
+    expect(TABLE.forms.hedge?.heightM).toEqual([0.9, 1.4, 2.2]);
   });
 
   it('the triangular quantile ends at min and max and passes the mode', () => {
