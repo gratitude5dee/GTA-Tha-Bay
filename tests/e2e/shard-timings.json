@@ -599,7 +599,7 @@
       "world-trees.spec.ts › world trees @world-trees › mobile-low: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 1.5,
       "world-trees.spec.ts › world trees @world-trees › mobile-low: world.treeForms off (?treeForms=0) draws one cone pool @world-trees": 1,
       "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 3,
-      "art-player.spec.ts › art player @art-player › desktop: the player draws the creator's parts as one body, plays its clips and stands on the curb @art-player": 6,
+      "art-player.spec.ts › art player @art-player › desktop: the player draws the creator's parts as one body, plays its clips and stands on the curb @art-player": 8,
       "art-player.spec.ts › art player @art-player › mobile-low: the player draws the creator's parts as one body, plays its clips and stands on the curb @art-player": 2.5,
       "art-player.spec.ts › player ledger @player-ledger › desktop: the body is one render object and the frame holds its count @player-ledger": 5,
       "art-player.spec.ts › player ledger @player-ledger › mobile: the body is one render object and the frame holds its count @player-ledger": 1.5,
@@ -861,7 +861,7 @@
       "world-trees.spec.ts › world trees @world-trees › mobile-low: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 2,
       "world-trees.spec.ts › world trees @world-trees › mobile-low: world.treeForms off (?treeForms=0) draws one cone pool @world-trees": 1.2,
       "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 4,
-      "art-player.spec.ts › art player @art-player › desktop: the player draws the creator's parts as one body, plays its clips and stands on the curb @art-player": 5,
+      "art-player.spec.ts › art player @art-player › desktop: the player draws the creator's parts as one body, plays its clips and stands on the curb @art-player": 6,
       "art-player.spec.ts › art player @art-player › mobile-low: the player draws the creator's parts as one body, plays its clips and stands on the curb @art-player": 2
     },
     "xr-quest3": {
