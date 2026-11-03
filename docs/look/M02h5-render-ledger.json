@@ -70,5 +70,12 @@
         "vegTriangles": 6176
       }
     }
+  },
+  "xr": {
+    "baseline": 93,
+    "after": 93,
+    "perLayer": {
+      "scatter": 0
+    }
   }
 }
