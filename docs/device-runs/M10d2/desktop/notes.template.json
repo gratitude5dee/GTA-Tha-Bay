@@ -1,0 +1,17 @@
+{
+  "$comment": "M10d2 AC-9 template (manual, desktop browser with a hardware GPU). Copy to notes.json and fill every null. Nothing here is a result: the review has NOT been run (device check pending). Steps: pnpm map:build -- --area synth, DV_WORLD=synth pnpm dev, open /?debug=1&tier=desktop, call __dvBridge.world.teleport('lm.twin-peaks'), look at the facades (the KTX2 facade atlas: __dvBridge.world.art().facadeAtlas.loaded), the far skyline and the landmarks; repeat at /?debug=1&tier=mobile (the skyline cards: __dvBridge.world.backdrop().cardsAtlas), then at /?debug=1&tier=desktop-ultra&atmosphere=1 in a browser with WebGPU and record __dvBridge.world.sky().atmosphere (U-PLT-8: 'on', or 'fallback' with its reason; this build does not install @takram/three-atmosphere, BD-M10d2-05, so 'fallback' with 'library unavailable' is the expected record here).",
+  "milestone": "M10d2",
+  "ac": "AC-9",
+  "status": "pending",
+  "reviewer": null,
+  "date": null,
+  "gpu": null,
+  "browser": null,
+  "views": [
+    { "tier": "desktop", "at": "lm.twin-peaks", "facadesReadAsTheirPlace": null, "cardsReadAsTheirPlace": null, "landmarksReadAsTheirPlace": null, "showsTextOrLogo": null, "notes": "" },
+    { "tier": "mobile", "at": "lm.twin-peaks", "facadesReadAsTheirPlace": null, "cardsReadAsTheirPlace": null, "landmarksReadAsTheirPlace": null, "showsTextOrLogo": null, "notes": "" },
+    { "tier": "desktop-ultra", "at": "lm.twin-peaks", "facadesReadAsTheirPlace": null, "cardsReadAsTheirPlace": null, "landmarksReadAsTheirPlace": null, "showsTextOrLogo": null, "notes": "" }
+  ],
+  "replacedLandmarks": [],
+  "uPlt8": { "backend": null, "atmosphereState": null, "atmosphereReason": null, "three": "0.186.1", "takram": null, "notes": "" }
+}
