@@ -70,9 +70,25 @@ export interface PedRendererOptions {
    * a request in flight).
    */
   worldLoad?: () => WorldLoad;
+  /**
+   * BD-REPAIR-M10d4-04: prepare the swap ahead, on quiet frames of the gate, so the swap itself only moves figures that are ready: a kit
+   * figure for each near pedestrian the mannequin draws is built on a quiet frame, then drawn once, collapsed to a point, on the next
+   * quiet frame, so that frame's own passes upload its buffers (and, for the first, the atlas page); at most `AHEAD_PER_FRAME` figures
+   * are built, and the batch before drawn, per quiet frame. The kit's near figures draw with the mannequin's render program
+   * (`mannequin.ts`), so nothing is linked. Absent (unit tests): the swap builds the figures and the first frame that draws them uploads
+   * their buffers and the atlas, as before.
+   */
+  ahead?: boolean;
 }
 
 export { ART_QUIET_FRAMES };
+
+/**
+ * BD-REPAIR-M10d4-04: with `ahead`, the kit figures built per quiet frame (and drawn once together on the next). At `desktop` on a loaded
+ * software-GL runner a quiet frame comes every 5 to 17 s, so one figure a frame held the swap back by more than two minutes; four keep a
+ * quiet frame's builds to tens of milliseconds (61 and 83 ms on a loaded webkit-webgl2) and prepare a crowd in a handful of quiet frames.
+ */
+export const AHEAD_PER_FRAME = 4;
 
 /** `world.peds().art` (QA): the kit's report and where its load stands. */
 export interface PedArtReport extends PedArtInfo {
@@ -154,6 +170,8 @@ interface NearSlot {
   fig: NearFigure;
   /** The kit figure this slot holds (`<body>:<outfit>`), or '' for the mannequin. */
   kind: string;
+  /** The sim key of the pedestrian the slot last drew ('' before its first). */
+  key: string;
   anim: MannequinAnimator;
   handle: number;
   pending: number;
@@ -182,6 +200,18 @@ export class PedRenderer {
   private artStarted = false;
   /** BD-REPAIR-M10d4-03: the gate every step of the kit's load waits for (always open without `worldLoad`; dispose stops it). */
   private readonly gate: ArtGate;
+  /**
+   * BD-REPAIR-M10d4-04, with `ahead`: the group the swap is prepared in. It holds the kit figures built for the near pedestrians, each
+   * hidden but for its one collapsed draw, until the swap takes them.
+   */
+  private aheadSet: Group | null = null;
+  /** The far geometry of each body, built before the swap. */
+  private farNext: BufferGeometry[] = [];
+  /** Kit figures built before the swap, by kind (`<body>:<outfit>`). */
+  private prebuilt: NearSlot[] = [];
+  /** The pieces of the swap waiting to be drawn once, collapsed, one entry per quiet frame; and the pieces drawn on the frame before. */
+  private readonly onceQueue: { objs: Object3D[]; done: () => void }[] = [];
+  private onceShown: { objs: Object3D[]; done: () => void } | null = null;
   private disposed = false;
   /** The governor's `crowdDensity` (M11a1): the share of `cap` drawn, 0 to 1. */
   private densityScale = 1;
@@ -242,15 +272,109 @@ export class PedRenderer {
     void loadPedKit(assets, PED_ART, this.gate)
       .then(async (kit) => {
         // the swap (new geometry, the kit's material and its first draw) is main-thread and GPU work: only while the world is quiet too
-        if (kit) await this.gate.wait().catch(() => undefined);
+        if (kit) await this.prepare(kit).catch(() => undefined);
         return kit;
       })
       .then((kit) => this.useKit(kit));
   }
 
+  /**
+   * The work of the swap, ahead of it and on quiet frames (BD-REPAIR-M10d4-04): the far geometries; with `ahead`, for each pedestrian the
+   * mannequin draws now (at most the near cap; at least one figure, for the atlas page) its kit figure, built after one quiet frame and
+   * drawn once, collapsed, in the next, in pipelined batches of at most `AHEAD_PER_FRAME` (each quiet frame draws the batch built before it
+   * and builds the next); once the last batch is drawn the swap waits for the gate once more. Rejects when the gate is disposed (the load
+   * ends; `useKit` and `dispose` drop what was built).
+   */
+  private async prepare(kit: PedKit): Promise<void> {
+    await this.gate.wait();
+    this.farNext = this.bodies.map((body, b) => {
+      const g = kit.far(PED_ASSETS[b] as string).clone();
+      g.setAttribute('aTint', body.tint);
+      g.setAttribute('aGait', body.gait);
+      return g;
+    });
+    if (this.o.ahead === true) {
+      const set = new Group();
+      set.name = 'peds.ahead';
+      this.aheadSet = set;
+      this.group.add(set);
+      // pipelined batches: on each quiet frame the batch built after the frame before is drawn once (in the frame's render) and the
+      // next batch, at most AHEAD_PER_FRAME figures, is built (after it), so a quiet window prepares up to AHEAD_PER_FRAME figures a frame
+      const cap = Math.max(1, this.o.nearCap);
+      let last: Promise<void> | null = null;
+      while (this.prebuilt.length < cap) {
+        await this.gate.next();
+        const batch: Object3D[] = [];
+        while (batch.length < AHEAD_PER_FRAME && this.prebuilt.length < cap) {
+          const want = this.wantedKind(kit);
+          if (!want) break;
+          const tint = PED_PALETTE[((want.outfit % PED_PALETTE.length) + PED_PALETTE.length) % PED_PALETTE.length] as number;
+          const fig = kit.near(want.key, want.outfit, tint, this.archByKey.get(want.key) ?? 0);
+          fig.root.visible = false;
+          set.add(fig.root);
+          this.prebuilt.push({ fig, kind: want.kind, key: want.key, anim: new MannequinAnimator(fig), handle: 0, pending: 0, outfit: -1 });
+          batch.push(fig.root);
+        }
+        if (batch.length === 0) break;
+        last = this.drawOnce(batch);
+      }
+      if (last) await last;
+    }
+    await this.gate.wait();
+  }
+
+  /** Resolves once `objs` have been drawn on a quiet frame, collapsed to a point (`stepDrawOnce`), or the renderer is disposed. */
+  private drawOnce(objs: Object3D[]): Promise<void> {
+    return new Promise<void>((done) => this.onceQueue.push({ objs, done }));
+  }
+
+  /**
+   * Once a frame, before the frame draws: hides the pieces the frame before drew; on a quiet frame shows the next queued pieces (one entry a
+   * frame) at scale 0, so the frame's own passes draw them (uploading their buffers and textures, in the frame's own pass) and they cover
+   * no pixel.
+   */
+  private stepDrawOnce(): void {
+    const shown = this.onceShown;
+    if (shown) {
+      for (const o of shown.objs) {
+        o.visible = false;
+        o.scale.setScalar(1);
+      }
+      this.onceShown = null;
+      shown.done();
+    }
+    const next = this.onceQueue[0];
+    if (next && this.gate.open) {
+      for (const o of next.objs) {
+        o.scale.setScalar(0);
+        o.visible = true;
+      }
+      this.onceShown = next;
+      this.onceQueue.shift();
+    }
+  }
+
+  /** The kind of the next kit figure to build ahead of the swap: a near pedestrian the mannequin draws whose kind is not built yet. */
+  private wantedKind(kit: PedKit): { key: string; outfit: number; kind: string } | null {
+    const have = new Map<string, number>();
+    for (const p of this.prebuilt) have.set(p.kind, (have.get(p.kind) ?? 0) + 1);
+    const need = new Map<string, number>();
+    for (const s of this.near) {
+      if (s.handle === 0 || s.key === '') continue;
+      const kind = `${s.key}:${s.outfit % PED_PALETTE.length}`;
+      need.set(kind, (need.get(kind) ?? 0) + 1);
+      if ((need.get(kind) as number) > (have.get(kind) ?? 0)) return { key: s.key, outfit: s.outfit, kind };
+    }
+    if (this.prebuilt.length > 0) return null;
+    // nobody near: one figure of the first body and outfit, so the atlas page is uploaded ahead all the same
+    const key = kit.keys[0] as string;
+    return { key, outfit: 0, kind: `${key}:0` };
+  }
+
   /** M10d4: the kit has loaded (or failed, `null`): the far bodies take its figures, the near slots are rebuilt on their next frame. */
   private useKit(kit: PedKit | null): void {
     if (this.disposed) {
+      this.dropPrepared();
       kit?.dispose();
       return;
     }
@@ -261,14 +385,19 @@ export class PedRenderer {
     this.kit = kit;
     this.artState = 'ready';
     this.bodies.forEach((body, b) => {
-      const g = kit.far(PED_ASSETS[b] as string).clone();
-      g.setAttribute('aTint', body.tint);
-      g.setAttribute('aGait', body.gait);
+      let g = this.farNext[b];
+      if (!g) {
+        g = kit.far(PED_ASSETS[b] as string).clone();
+        g.setAttribute('aTint', body.tint);
+        g.setAttribute('aGait', body.gait);
+      }
       const old = body.mesh.geometry;
       body.mesh.geometry = g;
       old.dispose();
     });
-    // the mannequins in use go; every near pedestrian takes a kit figure on its next frame
+    this.farNext = [];
+    // the mannequins in use go; the kit figures built ahead become free slots of their kinds, and every near pedestrian takes a kit
+    // figure on its next frame (one built ahead when its kind is there, built then otherwise)
     for (const s of this.near) {
       this.group.remove(s.fig.root);
       s.anim.dispose();
@@ -276,6 +405,28 @@ export class PedRenderer {
     }
     this.near.length = 0;
     this.nearBy.clear();
+    for (const p of this.prebuilt.splice(0)) {
+      p.fig.root.visible = false;
+      this.group.add(p.fig.root);
+      this.near.push(p);
+    }
+    if (this.aheadSet) {
+      this.group.remove(this.aheadSet);
+      this.aheadSet = null;
+    }
+  }
+
+  /** Disposes what `prepare` built when the load ends before the swap (the far geometries already swapped in are the meshes' own). */
+  private dropPrepared(): void {
+    for (const p of this.prebuilt.splice(0)) {
+      p.anim.dispose();
+      p.fig.dispose();
+    }
+    for (const g of this.farNext.splice(0)) g.dispose();
+    if (this.aheadSet) {
+      this.group.remove(this.aheadSet);
+      this.aheadSet = null;
+    }
   }
 
   /** `world.peds().art` (QA). */
@@ -323,6 +474,7 @@ export class PedRenderer {
     this.lastT = timeSec;
     // the kit's gate reads the world once a frame while the kit loads (BD-REPAIR-M10d4-03)
     if (this.artStarted && this.artState === 'loading') this.gate.frame();
+    this.stepDrawOnce();
     const poses = f.poses;
     const keys = f.poseKeys;
     const count = f.poseCount ?? 0;
@@ -442,6 +594,7 @@ export class PedRenderer {
     }
     if (!s) {
       s = this.near.find((n) => n.handle === 0 && n.kind === kind) ?? this.makeNear(key, outfit, kind);
+      s.key = key;
       s.handle = p.handle;
       s.pending = 0;
       s.outfit = -1;
@@ -479,7 +632,7 @@ export class PedRenderer {
     const fig = this.kit && kind !== ''
       ? this.kit.near(key, outfit, PED_PALETTE[((outfit % PED_PALETTE.length) + PED_PALETTE.length) % PED_PALETTE.length] as number, b)
       : buildNearFigure();
-    const slot: NearSlot = { fig, kind, anim: new MannequinAnimator(fig), handle: 0, pending: 0, outfit: -1 };
+    const slot: NearSlot = { fig, kind, key, anim: new MannequinAnimator(fig), handle: 0, pending: 0, outfit: -1 };
     this.group.add(fig.root);
     this.near.push(slot);
     return slot;
@@ -536,6 +689,9 @@ export class PedRenderer {
     this.disposed = true;
     // ends the load: a step waiting for the gate rejects and a request in flight stops at its next file (a built kit is disposed in `useKit`)
     this.gate.dispose();
+    for (const x of [...this.onceQueue.splice(0), this.onceShown]) x?.done();
+    this.onceShown = null;
+    this.dropPrepared();
     this.o.parent.remove(this.group);
     for (const b of this.bodies) {
       b.mesh.geometry.dispose();

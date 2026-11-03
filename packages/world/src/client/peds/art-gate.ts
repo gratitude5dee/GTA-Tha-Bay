@@ -18,7 +18,8 @@
  * asks for more: it holds at most one of the two `idle` fetch slots, for one file, when a `want` pass asks for a batch. It does not wait
  * for the whole ring: on software GL at desktop the outer L1/L2 rings take minutes to fill (BD-REPAIR-M10d4-03 measured 172 s on
  * webkit-webgl2, and more than the 300 s of `@art-peds` on chromium-webgl2), and all that time the kit would draw mannequins.
- * `dispose` rejects every waiter and aborts the step in flight.
+ * `dispose` rejects every waiter and aborts the step in flight. `next` hands out one quiet frame at a time: the kit builds its swap in
+ * pieces, one per quiet frame (BD-REPAIR-M10d4-04).
  */
 
 /** One frame's reading of the world (all counts at the moment of the frame). */
@@ -55,6 +56,11 @@ export interface KitGate {
   wait(): Promise<void>;
   /** A signal that aborts on the first frame the world is not quiet (already aborted when the gate is shut). */
   signal(): AbortSignal;
+  /**
+   * Resolves on the next frame that leaves the gate open (at once without a world to read); rejects when the gate is disposed. A step
+   * spread over frames takes one piece per call, so each piece runs on a quiet frame of its own (BD-REPAIR-M10d4-04).
+   */
+  next(): Promise<void>;
 }
 
 /** A gate that is always open (no world to wait for: the unit tests' default, a renderer without `worldLoad`). */
@@ -62,6 +68,7 @@ export const OPEN_GATE: KitGate = {
   open: true,
   wait: () => Promise.resolve(),
   signal: () => new AbortController().signal,
+  next: () => Promise.resolve(),
 };
 
 const quietOf = (w: WorldLoad): boolean => !w.held && w.unsettled === 0 && w.meshing === 0 && w.landmarksIdle && !w.artLoading;
@@ -71,6 +78,7 @@ export class ArtGate implements KitGate {
   private quietFrames = 0;
   private lastRequests: number | null = null;
   private readonly waiters: { resolve: () => void; reject: (e: Error) => void }[] = [];
+  private readonly nextWaiters: { resolve: () => void; reject: (e: Error) => void }[] = [];
   private step: AbortController | null = null;
   private disposed = false;
 
@@ -101,12 +109,19 @@ export class ArtGate implements KitGate {
       this.step = null;
     }
     if (this.open && this.waiters.length > 0) for (const x of this.waiters.splice(0)) x.resolve();
+    if (this.open && this.nextWaiters.length > 0) for (const x of this.nextWaiters.splice(0)) x.resolve();
   }
 
   wait(): Promise<void> {
     if (this.disposed) return Promise.reject(new Error('the art gate is disposed'));
     if (this.open) return Promise.resolve();
     return new Promise<void>((resolve, reject) => this.waiters.push({ resolve, reject }));
+  }
+
+  next(): Promise<void> {
+    if (this.disposed) return Promise.reject(new Error('the art gate is disposed'));
+    if (this.read === null) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => this.nextWaiters.push({ resolve, reject }));
   }
 
   signal(): AbortSignal {
@@ -125,6 +140,6 @@ export class ArtGate implements KitGate {
     this.step?.abort();
     this.step = null;
     const e = new Error('the art gate is disposed');
-    for (const x of this.waiters.splice(0)) x.reject(e);
+    for (const x of [...this.waiters.splice(0), ...this.nextWaiters.splice(0)]) x.reject(e);
   }
 }

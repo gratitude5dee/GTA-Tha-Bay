@@ -47,6 +47,11 @@ export interface PedKitAssets {
    * file and answers the files it has: a prefix of `refs`, possibly empty. Absent: `bytes` per ref, one after another.
    */
   group?(refs: string[], signal?: AbortSignal): Promise<(ArrayBuffer | Uint8Array)[]>;
+  /**
+   * As `group`, but the files come back parsed (the asset worker parses them, BD-REPAIR-M10d4-04), so the page does no parse. Absent:
+   * `group` (or `bytes`) and a parse on the page, one file per step of the gate.
+   */
+  meshes?(refs: string[], signal?: AbortSignal): Promise<PersonMesh[]>;
   /** The ped atlas page as a decoded image; null when it cannot be had (the ped draws untextured); rejects when `signal` aborts first. */
   image?(ref: string, signal?: AbortSignal): Promise<{ width: number; height: number; source: ImageBitmap | HTMLCanvasElement | OffscreenCanvas } | null>;
 }
@@ -59,35 +64,58 @@ let readSeq = 0;
 /**
  * The kit's asset port backed by the asset worker (`world.ped`, `ped-job.ts`): the bytes of the tier's variant, a group per job. When the
  * step's signal aborts (the world got busy) the port sends `{ stop: token }`, so the worker stops before its next file and answers what it
- * has read. The atlas page is decoded on this thread (`createImageBitmap`). A ref the catalog lacks rejects, so `loadPedKit` resolves
- * `null` and the mannequin stays; an atlas that cannot be had draws the kit untextured.
+ * has read. The worker parses the people files (`meshes`) and decodes the atlas page (BD-REPAIR-M10d4-04), so neither runs on this thread;
+ * `bytes` and `group` answer raw bytes. A ref the catalog lacks rejects, so `loadPedKit` resolves `null` and the mannequin stays; an atlas
+ * that cannot be had draws the kit untextured.
  */
 export function pedKitAssets(client: { job(name: string, args: unknown): Promise<unknown> }, variant: PedJobArgs['variant']): PedKitAssets {
-  const group = async (refs: string[], signal?: AbortSignal): Promise<ArrayBuffer[]> => {
-    if (signal?.aborted) return [];
+  const read = async (refs: string[], mode: 'files' | 'parse' | 'decode', signal?: AbortSignal): Promise<PedJobResult> => {
     const token = `ped-${++readSeq}`;
     const stop = (): void => void client.job('world.ped', { stop: token } satisfies PedStopArgs).catch(() => undefined);
     signal?.addEventListener('abort', stop, { once: true });
     try {
-      const r = (await client.job('world.ped', { refs, variant, token } satisfies PedJobArgs)) as PedJobResult;
+      const how = mode === 'parse' ? { parse: true } : mode === 'decode' ? { decode: true } : {};
+      const r = (await client.job('world.ped', { refs, variant, token, ...how } satisfies PedJobArgs)) as PedJobResult;
       if ('missing' in r) throw new Error(`${refs.join(', ')}: not in the asset catalog`);
-      if (!('files' in r)) throw new Error('world.ped: no files');
-      return r.files;
+      return r;
     } finally {
       signal?.removeEventListener('abort', stop);
     }
   };
-  const read = async (ref: string, signal?: AbortSignal): Promise<ArrayBuffer> => {
+  const group = async (refs: string[], signal?: AbortSignal): Promise<ArrayBuffer[]> => {
+    if (signal?.aborted) return [];
+    const r = await read(refs, 'files', signal);
+    if (!('files' in r)) throw new Error('world.ped: no files');
+    return r.files;
+  };
+  const meshes = async (refs: string[], signal?: AbortSignal): Promise<PersonMesh[]> => {
+    if (signal?.aborted) return [];
+    const r = await read(refs, 'parse', signal);
+    if (!('meshes' in r)) throw new Error('world.ped: no meshes');
+    return r.meshes;
+  };
+  const one = async (ref: string, signal?: AbortSignal): Promise<ArrayBuffer> => {
     const [b] = await group([ref], signal);
     if (!b) throw stopped();
     return b;
   };
   return {
-    bytes: read,
+    bytes: one,
     group,
+    meshes,
     image: async (ref, signal) => {
-      // a stopped read rejects (the loader asks again after the next quiet window); a file that does not decode draws untextured
-      const bytes = await read(ref, signal);
+      // a stopped read rejects (the loader asks again after the next quiet window); a file that does not decode draws untextured. The
+      // worker decodes the page (BD-REPAIR-M10d4-04); a worker that cannot answers its bytes, decoded here.
+      if (signal?.aborted) throw stopped();
+      const r = await read([ref], 'decode', signal);
+      if ('bitmaps' in r) {
+        const [bitmap] = r.bitmaps;
+        if (bitmap === undefined) throw stopped();
+        return bitmap ? { width: bitmap.width, height: bitmap.height, source: bitmap } : null;
+      }
+      if (!('files' in r)) throw new Error('world.ped: no files');
+      const [bytes] = r.files;
+      if (!bytes) throw stopped();
       try {
         const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
         return { width: bitmap.width, height: bitmap.height, source: bitmap };
@@ -171,8 +199,9 @@ async function oneByOne(assets: PedKitAssets, refs: string[], signal: AbortSigna
 
 /**
  * The files of one group, parsed. Each request starts only while the gate is open and carries its signal: when the world gets busy the
- * worker stops before its next file and answers the files it has, and the rest is asked for after the next quiet window. Each file is
- * parsed (main-thread work) only while the gate is open.
+ * worker stops before its next file and answers the files it has, and the rest is asked for after the next quiet window. A port with
+ * `meshes` (the app's) has them parsed in the asset worker; otherwise each file is parsed here (main-thread work) only while the gate is
+ * open.
  */
 async function readGroup(assets: PedKitAssets, refs: string[], gate: KitGate): Promise<PersonMesh[]> {
   const out: PersonMesh[] = [];
@@ -180,6 +209,13 @@ async function readGroup(assets: PedKitAssets, refs: string[], gate: KitGate): P
     await gate.wait();
     const rest = refs.slice(out.length);
     const signal = gate.signal();
+    if (assets.meshes) {
+      // parsed in the asset worker: nothing to parse here
+      const got = await assets.meshes(rest, signal);
+      if (got.length === 0 && !signal.aborted) throw new Error(`${rest[0] ?? ''}: no bytes`);
+      out.push(...got.slice(0, rest.length));
+      continue;
+    }
     const got = assets.group ? await assets.group(rest, signal) : await oneByOne(assets, rest, signal);
     if (got.length === 0 && !signal.aborted) throw new Error(`${rest[0] ?? ''}: no bytes`);
     for (const b of got.slice(0, rest.length)) {
@@ -250,6 +286,8 @@ function buildKit(
     }
     return m;
   };
+  // built like the mannequin's material (mannequin.ts), so the two draw with one render program and the swap links none
+  // (BD-REPAIR-M10d4-04): opaque, vertex colours, a colour map in sRGB, and the same vertex attributes
   const material = new MeshStandardNodeMaterial({ vertexColors: true, roughness: 0.78, metalness: 0.02 });
   if (texture) material.map = texture;
   const skinTones = cfg.skinTones.map(toHex);
