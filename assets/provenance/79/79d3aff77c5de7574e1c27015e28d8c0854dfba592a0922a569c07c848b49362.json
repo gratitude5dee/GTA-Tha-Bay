@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "79d3aff77c5de7574e1c27015e28d8c0854dfba592a0922a569c07c848b49362",
+  "paths": [
+    "assets/src/portrait/pc-hair-buzz/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "c988d3fb3ebc3dcd7320d6e1a69bcd40f87cc677db49922f957be9a3f944423b"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "b4ad386374f72194fd067340915da84cbe65894f5266587b3ba07c00de9c4d78"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

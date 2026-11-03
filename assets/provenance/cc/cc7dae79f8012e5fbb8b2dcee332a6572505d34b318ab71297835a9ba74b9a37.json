@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "cc7dae79f8012e5fbb8b2dcee332a6572505d34b318ab71297835a9ba74b9a37",
+  "paths": [
+    "assets/src/character/pc-hair-braids/mobile.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "7a6787dc4a21e27a422b326825d0c5431885c8e07388f3c8f528ec94d488fdf4"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import type { NpcBridge } from '../../packages/npc/src/debug/overlay.ts';
+import type { DebugSubtitleCue, NpcBridge } from '../../packages/npc/src/debug/overlay.ts';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
 import { HOME, NO_BYPASS, passGates, waitForEngineReady } from './ui/helpers.ts';
 
@@ -174,6 +174,50 @@ type Bridge = { __dvBridge: { npc: NpcBridge; engine: { modes: { vm(k: string): 
 const HAPPY = 'Welcome to the lot. The checklist is open, so go ahead.';
 const subtitle = (page: Page): Promise<unknown> => page.evaluate(() => (window as unknown as Bridge).__dvBridge.engine.modes.vm('hud.subtitle') ?? null);
 
+/** One state of the dialogue panel as the page rendered it. */
+type PanelFrame = { speaker: string; line: string; badge: boolean; report: boolean };
+type Frames = { __dvPanelFrames?: PanelFrame[] };
+
+/**
+ * Records, in the page, every state the dialogue panel renders from now on (a MutationObserver; a state is kept when it differs from the
+ * one before): the speaker, the line, whether the AI badge is visible (a box and not `visibility: hidden`, as `toBeVisible` reads it)
+ * and whether a report control is in the page. A line that ends the conversation and its `hud.subtitle` cue are up for
+ * max(1.5 s, 60 ms per character) only (3.36 s for HAPPY, by design), and on a loaded runner one click or one expect round trip can
+ * take longer than that (10 s for the Greet click in the traces of BD-FIX-DIALOGUE-SUBTITLE-01), so AC-1 reads what was shown from
+ * this record and from `npc.subtitles()` (every `hud.subtitle` cue the page's view model received) instead of racing the panel's close.
+ */
+async function recordPanel(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const frames: PanelFrame[] = [];
+    (window as unknown as Frames).__dvPanelFrames = frames;
+    const byId = (id: string): HTMLElement | null => document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+    const visible = (el: HTMLElement | null): boolean => {
+      if (el === null) return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
+    };
+    let last = '';
+    const snap = (): void => {
+      if (byId('dialogue-panel') === null) return;
+      const frame: PanelFrame = {
+        speaker: byId('dialogue-speaker')?.textContent ?? '',
+        line: byId('dialogue-line')?.textContent ?? '',
+        badge: visible(byId('dialogue-ai-badge')),
+        report: byId('dialogue-report') !== null || byId('report-button') !== null,
+      };
+      const key = JSON.stringify(frame);
+      if (key === last) return;
+      last = key;
+      frames.push(frame);
+    };
+    new MutationObserver(snap).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+    snap();
+  });
+}
+/** The panel states recorded so far and every `hud.subtitle` cue, in one round trip. */
+const shown = (page: Page): Promise<{ frames: PanelFrame[]; cues: DebugSubtitleCue[] }> =>
+  page.evaluate(() => ({ frames: [...((window as unknown as Frames).__dvPanelFrames ?? [])], cues: [...(window as unknown as Bridge).__dvBridge.npc.subtitles()] }));
+
 test.describe('dialogue panel @npc', () => {
   test.describe.configure({ timeout: 180_000 });
   test.use({ storageState: { cookies: [], origins: [] } });
@@ -189,6 +233,7 @@ test.describe('dialogue panel @npc', () => {
       await route.fulfill({ status: 200, headers: { 'content-type': 'text/event-stream', 'x-dv-npc-mode': 'fixture' }, body: sse });
     });
     await page.evaluate(() => (window as unknown as W).__dvBridge.npc.setAuthHeader('PlayToken e2e'));
+    await recordPanel(page);
 
     // the player opens a conversation: the panel, the speaker and the badge; the QA box steps aside
     await page.evaluate(() => (window as unknown as W).__dvBridge.npc.open('npc_test'));
@@ -200,12 +245,16 @@ test.describe('dialogue panel @npc', () => {
     await expect(page.locator('html')).toHaveAttribute('data-dv-dialogue', 'open');
     await expect(page.getByTestId('dialogue-speaker')).toBeFocused();
 
-    // "Greet": the streamed line, the badge for the whole exchange, a matching hud.subtitle cue
+    // "Greet": the panel showed the speaker, the streamed line and the badge, with no report control (it exists only once route 41
+    // does: dialogueCapabilities.reports is false in this milestone), and a matching hud.subtitle cue was set. Read from the records:
+    // the panel and the cue go 3.36 s after this line is shown (BD-FIX-DIALOGUE-SUBTITLE-01).
     await page.getByTestId('dialogue-intent-greet').click();
-    await expect(page.getByTestId('dialogue-line')).toHaveText(HAPPY);
-    await expect(page.getByTestId('dialogue-ai-badge')).toBeVisible();
-    await expect.poll(() => subtitle(page)).toMatchObject({ speaker: 'Tester Nine', text: HAPPY });
-    // the report button exists only once route 41 does (dialogueCapabilities.reports is false in this milestone)
+    await expect
+      .poll(() => shown(page))
+      .toEqual({
+        frames: expect.arrayContaining([{ speaker: 'Tester Nine', line: HAPPY, badge: true, report: false }]),
+        cues: expect.arrayContaining([expect.objectContaining({ speaker: 'Tester Nine', text: HAPPY })]),
+      });
     await expect(page.getByTestId('dialogue-report')).toHaveCount(0);
     await expect(page.getByTestId('report-button')).toHaveCount(0);
     expect(calls).toBe(1);
@@ -217,6 +266,13 @@ test.describe('dialogue panel @npc', () => {
     await expect(page.locator('html')).not.toHaveAttribute('data-dv-dialogue', 'open');
     await expect(page.getByTestId('npc-overlay')).toBeVisible();
     await expect.poll(() => subtitle(page), { timeout: 10_000 }).toBeNull();
+    // the AI badge was visible in every state the panel showed, from open to close, no state had a report control, and the line's
+    // cue was set to stay at least max(1.5 s, 60 ms per character)
+    const { frames, cues } = await shown(page);
+    expect(frames.filter((f) => !f.badge || f.report)).toEqual([]);
+    expect(frames.map((f) => f.line)).toContain(HAPPY);
+    const cue = cues.find((c) => c.speaker === 'Tester Nine' && c.text === HAPPY);
+    expect((cue?.endMs ?? 0) - (cue?.startMs ?? 0)).toBeGreaterThanOrEqual(Math.max(1500, 60 * HAPPY.length));
     expect(errors).toEqual([]);
   });
 

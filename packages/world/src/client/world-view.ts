@@ -37,8 +37,8 @@ import type { TreeSet } from './chunks/tree-forms.ts';
 import { LookView, markingsReportOf, type LookReport, type ShotCamera } from './look/look-view.ts';
 import { lookShot, shotQuaternion, type LookShot } from './look/shots.ts';
 // art-hook:textures begin (M10d0)
-import { TEXTURES_FLAG } from './textures/config.ts';
-import { SurfaceTextures, installSurfaceTextures, installedSurfaceTextures } from './textures/surface-textures.ts';
+import { TEXTURES_FLAG, bakesEnvMap, groundReservedTextures } from './textures/config.ts';
+import { SurfaceTextures, fragmentTextureLimit, installSurfaceTextures, installedSurfaceTextures } from './textures/surface-textures.ts';
 // art-hook:textures end
 import { createSkyNodes, type SkyNodes } from './sky/nodes.ts';
 import { SkyView, type LumaOptions, type LumaSample, type SkyInfo } from './sky/sky-view.ts';
@@ -53,6 +53,7 @@ import { artVariantOf, type VehicleJobArgs, type VehicleJobResult } from './vehi
 import { NEAR_PED_CAP, pedCap } from '../sim/peds/density.ts';
 import { PED_ASSETS } from '../sim/peds/components.ts';
 import { PedRenderer, type PedInfo } from './peds/instances.ts';
+import { pedKitAssets, unsettledUnits } from './peds/kit.ts'; // art-hook:peds (M10d4)
 import { TransitRenderer, isTransitKey, type TransitInfo } from './transit/render.ts';
 import { MapLayer } from './map/layer.ts';
 import type { AreaBannerPatch } from './map/banner.ts';
@@ -275,6 +276,8 @@ export class WorldView implements WorldLayer {
   private offline: HTMLElement | null = null;
   private simStatus = { unavailable: 0, failed: 0, ready: 0, reason: 'ok' };
   private revealed = false;
+  /** M10d4 repair: the reveal and its boot figures are done, so the pedestrian kit may load (`PedRenderer.startArt`). */
+  private artAfterReveal = false;
   private revealMs: number | null = null;
   private readonly revealWaiters: (() => void)[] = [];
   private startMs = 0;
@@ -324,7 +327,18 @@ export class WorldView implements WorldLayer {
       const off = qaTextures === '0';
       // QA `?textures=albedo` (BD-REPAIR-M02h3-02): the albedo maps alone, whatever the tier's mode
       const albedoOnly = qaTextures === 'albedo';
-      this.textures = new SurfaceTextures({ tier: this.o.tier, profile, enabled: TEXTURES_FLAG && !off, albedoOnly, backend: this.o.look.backend, browser: this.o.look.browser });
+      // BD-FIX-WEBGPU-TREES-01: the ground material binds the sets' maps beside the DFG table, the environment map and the shadow cascades,
+      // so the sets get what the device's per-fragment texture limit leaves (WebGPU's 16 is one short of the full `desktop` set)
+      const limit = host.ready ? fragmentTextureLimit(host.renderer) : null;
+      const shadows = host.tier?.features.shadows.mode;
+      const reserved = groundReservedTextures({
+        envMap: bakesEnvMap(profile, this.o.look.browser),
+        shadows: shadows === undefined || LOOK.shadowsOff.includes(this.o.tier) ? 'none' : shadows,
+      });
+      this.textures = new SurfaceTextures({
+        tier: this.o.tier, profile, enabled: TEXTURES_FLAG && !off, albedoOnly, backend: this.o.look.backend, browser: this.o.look.browser,
+        ...(limit === null ? {} : { textureSlots: limit - reserved }),
+      });
       installSurfaceTextures(this.textures);
       host.register({
         onRendererReplaced: () => {
@@ -495,6 +509,7 @@ export class WorldView implements WorldLayer {
     this.peds = new PedRenderer({
       parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier],
       lift: (x, z) => this.renderer.walkLiftAt(x, z),
+      ...(artLoader ? { art: pedKitAssets(this.o.assets, artVariantOf(this.o.tier)), artWaits: !this.artAfterReveal, worldLoad: () => ({ held: host.worldHeld, unsettled: unsettledUnits(this.store.units.values()), requests: this.store.stats.requests, meshing: this.inflight, landmarksIdle: this.landmarks?.idle ?? true, artLoading: this.textures?.active === true && !this.textures.report().settled }) } : {}), // art-hook:peds (M10d4): the kit's gate reads what the world is doing once a frame (BD-REPAIR-M10d4-03); `?art=0` keeps the mannequin
     });
     this.transit = new TransitRenderer({
       parent: host.scene,
@@ -956,7 +971,12 @@ export class WorldView implements WorldLayer {
     document.documentElement.dataset.dvWorld = 'revealed';
     if (this.o.bootStartMs !== undefined) this.bootRevealMs = Math.max(1, Math.round(this.now() - this.o.bootStartMs));
     // art-hook:textures begin (M10d0): after the boot figures are read, so the textures add nothing to the boot's request counts
-    void this.readBootFigures().finally(() => this.startTextures());
+    // art-hook:peds (M10d4): the pedestrian kit loads at the same moment, for the same reason (BD-REPAIR-M10d4-02)
+    void this.readBootFigures().finally(() => {
+      this.startTextures();
+      this.artAfterReveal = true;
+      this.peds?.startArt();
+    });
     // art-hook:textures end
     for (const w of this.revealWaiters.splice(0)) w();
   }
