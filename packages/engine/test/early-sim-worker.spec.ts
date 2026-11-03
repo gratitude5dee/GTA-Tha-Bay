@@ -68,4 +68,23 @@ describe('earlySimWorker (BD-FIX-WEBKIT-ATTACH-01: sim.worker spawns before the 
     // the running engine owns its worker: dispose leaves it alone
     expect(g.terminated).toEqual([]);
   });
+
+  it('a Worker constructor that throws in start leaves no early worker; the engine spawn tries again (BD-FIX-WEBKIT-ATTACH-02)', () => {
+    let fail = true;
+    const f = fakeSpawn();
+    const sim = earlySimWorker(() => {
+      if (fail) throw new Error('Worker constructor failed');
+      return f.spawn();
+    });
+    expect(() => sim.start()).not.toThrow();
+    expect(f.made).toEqual([]);
+    // dispose has nothing to terminate
+    sim.dispose();
+    expect(f.terminated).toEqual([]);
+    // the engine's own spawn tries again: it fails where it always failed, or succeeds now
+    expect(() => sim.spawn()).toThrow('Worker constructor failed');
+    fail = false;
+    expect(idOf(sim.spawn())).toBe(1);
+  });
 });
+

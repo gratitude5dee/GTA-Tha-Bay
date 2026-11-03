@@ -280,6 +280,61 @@ test.describe('pause and phone on the synth world @ui-pause', () => {
     expect(JSON.stringify(state)).toContain('modeExit');
   });
 
+  test('the pause page and the phone over the game never hold its frames or restart its clocks @ui-pause', async ({ page }) => {
+    // BD-FIX-MENU-BOOT-01, second round (CI run 41518357422): the menus' UiHold skips whole frame callbacks, the engine hand-off that sends
+    // the sim its frame signal included, and the first frame after a hold restarts the clocks (FramePacer, governor, sampler, the engine's
+    // dt). With the pause page and the phone noting it, a weather change made in the phone's Sandbox app reached the sky three heavy frames
+    // after Resume instead of two (sandbox-world.spec.ts:50). The pacer counts the callbacks it sees since its last reset, and only that
+    // restart resets it in a visible page, so every frame from the HUD through Pause, the phone and back must count on from the last.
+    await hideQaPanels(page);
+    await bootSynth(page);
+    await expect(page.getByTestId('hud')).toBeVisible();
+    const notes = (): Promise<number | null> =>
+      page.evaluate(() => (window as unknown as { __dvBridge: { uiHold?: { notes(): number } } }).__dvBridge.uiHold?.notes() ?? null);
+    const notes0 = await notes();
+    await page.evaluate(() => {
+      type W = { __dvBridge: { platform: { governor: { pacer(): { seen: number } } } }; __dvPacerSeen?: { n: number; restarts: number[][]; stop: boolean } };
+      const w = window as unknown as W;
+      const rec = { n: 0, restarts: [] as number[][], stop: false };
+      w.__dvPacerSeen = rec;
+      let last = -1;
+      const step = (): void => {
+        if (rec.stop) return;
+        const seen = w.__dvBridge.platform.governor.pacer().seen;
+        if (last >= 0 && seen < last) rec.restarts.push([last, seen]);
+        last = seen;
+        rec.n += 1;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+    const frames = (): Promise<number> => page.evaluate(() => (window as unknown as { __dvBridge: { platform: { pacing(): { frames: number } } } }).__dvBridge.platform.pacing().frames);
+
+    // Pause, the phone, its Sandbox app, the phone's home, close, Resume: the steps of sandbox-world.spec.ts.
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('btn-pause-resume')).toBeVisible();
+    await page.getByTestId('btn-pause-phone').click();
+    await expect(page.getByTestId('list-phone-apps')).toBeVisible();
+    await page.getByTestId('row-phone-apps-sandbox').click();
+    await page.getByTestId('tab-sandbox-tabs-weather').click();
+    await page.getByTestId('btn-phone-home').click();
+    await page.getByTestId('btn-phone-close').click();
+    await page.getByTestId('btn-pause-resume').click();
+    await expect(page.getByTestId('hud')).toBeVisible();
+    // A few frames of play after Resume: a hold noted by the last page change would end in one of them and restart the clocks.
+    const resumed = await frames();
+    await expect.poll(frames, { timeout: 60_000 }).toBeGreaterThanOrEqual(resumed + 3);
+    const rec = await page.evaluate(() => {
+      const r = (window as unknown as { __dvPacerSeen: { n: number; restarts: number[][]; stop: boolean } }).__dvPacerSeen;
+      r.stop = true;
+      return { n: r.n, restarts: r.restarts };
+    });
+    expect(rec.n).toBeGreaterThan(3);
+    expect(rec.restarts, 'the clocks restarted in play: a frame was held').toEqual([]);
+    expect(typeof notes0).toBe('number');
+    expect(await notes(), 'the shell noted a hold in play').toBe(notes0);
+  });
+
   test('the sandbox heat toggle shows its stars on the HUD @ui-pause', async ({ page }, testInfo) => {
     await bootSynth(page);
     await expect(page.getByTestId('hud-heat')).toHaveAttribute('data-level', '0');

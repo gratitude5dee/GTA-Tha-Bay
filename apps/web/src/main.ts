@@ -1,4 +1,4 @@
-import { collectDiagnosticSignals, createPlatform, fetchBootRegion, formatDiagnostics, parseQaFlags } from '@dv/engine';
+import { collectDiagnosticSignals, createPlatform, fetchBootRegion, formatDiagnostics, parseQaFlags, UiHold } from '@dv/engine';
 import { storyBoot } from './story-content.ts';
 import { bootEngine, type EngineHandle } from '@dv/engine/client/boot';
 import { earlySimWorker, type EarlySimWorker } from '@dv/engine/client/boot/spawn-worker';
@@ -17,6 +17,7 @@ import type { CutsceneGlue } from './cutscene.ts';
 import { createEnginePort, createPlatformPort, createSavesPort } from './shell-ports.ts';
 import './engine.css';
 import { afterWindowLoad, createPwaUpdateController, isRegistration } from './pwa-update.ts';
+import { wireUiHold } from './ui-hold.ts';
 import { catalogFailureCode, worldIndexFailureCode } from './world-failure.ts';
 import { bodyAssets } from './body-assets.ts';
 // The M01f gray-box fixture packs, as hashed static files (M01e replaces this with the pack store).
@@ -116,6 +117,10 @@ const shellProps = (unsupported: boolean): ShellProps => ({
 });
 const shell: ShellHandle = mountShell(root, shellProps(flags.unsupported));
 applyView();
+// The shell's pages and the gates' input go before the next frame of the tier benchmark or of the world behind the menus
+// (BD-FIX-MENU-BOOT-01): each such frame is one long main-thread task on a slow GPU.
+const uiHold = new UiHold();
+wireUiHold({ core: shell.core, root, hold: uiHold });
 if (QA) installIdentityBridge(identity);
 
 /** The reload prompt after a second device loss (11-platform.md section 5.8). */
@@ -155,6 +160,23 @@ function showReadOnlyNotice(): void {
 // The platform (device probe, tier decision, renderer host, telemetry) and the engine (sim.worker, Rapier, the debug cube
 // view on the host's scene). Skipped on the unsupported screen. WebGL2 failing as well shows the unsupported page.
 async function boot(): Promise<void> {
+  // The composed sim worker: the engine sim plus the world streaming module (M02b1, DL-651); the literal form Vite bundles. It spawns right
+  // after asset.worker, before the tier benchmark (01-engine.md section 5 boot order: both workers before heavy work), and loads its script
+  // while the benchmark runs; its `init` still waits for the tier and the world (BD-FIX-WEBKIT-ATTACH-01).
+  const simWorker: EarlySimWorker = earlySimWorker(
+    () => new Worker(new URL('./workers/sim.worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike,
+  );
+  try {
+    await bootPlatformAndEngine(simWorker);
+  } catch (error) {
+    // A failure anywhere before the engine took the early worker leaves no worker running; one the engine took is the engine's
+    // (BD-FIX-WEBKIT-ATTACH-02).
+    simWorker.dispose();
+    throw error;
+  }
+}
+
+async function bootPlatformAndEngine(simWorker: EarlySimWorker): Promise<void> {
   const container = document.createElement('div');
   container.id = 'dv-engine';
   // Translators and accessibility tools skip the canvas container (M04b5, 10-ui-hud-xr.md section 2.14 rule 5).
@@ -175,12 +197,6 @@ async function boot(): Promise<void> {
     await installIwer();
   }
 
-  // The composed sim worker: the engine sim plus the world streaming module (M02b1, DL-651); the literal form Vite bundles. It spawns right
-  // after asset.worker, before the tier benchmark (01-engine.md section 5 boot order: both workers before heavy work), and loads its script
-  // while the benchmark runs; its `init` still waits for the tier and the world (BD-FIX-WEBKIT-ATTACH-01).
-  const simWorker: EarlySimWorker = earlySimWorker(
-    () => new Worker(new URL('./workers/sim.worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike,
-  );
   let platform;
   try {
     platform = await createPlatform({
@@ -188,11 +204,11 @@ async function boot(): Promise<void> {
       flags,
       build: BUILD,
       // The composed asset worker: the engine's pack store plus the world jobs (M02b1).
-      spawnAssetWorker: () => {
-        const assetWorker = new Worker(new URL('./workers/asset.worker.ts', import.meta.url), { type: 'module', name: 'asset' }) as unknown as WorkerPort;
-        simWorker.start();
-        return assetWorker;
-      },
+      spawnAssetWorker: () => new Worker(new URL('./workers/asset.worker.ts', import.meta.url), { type: 'module', name: 'asset' }) as unknown as WorkerPort,
+      // sim.worker right after it, outside the asset worker's error handling: a sim worker that cannot be made costs neither the pack store
+      // nor a leaked asset worker (BD-FIX-WEBKIT-ATTACH-02).
+      afterAssetWorker: () => simWorker.start(),
+      uiHold,
       // Before the Terms are accepted nothing is sent: consent starts off and the Terms card sets it (10-ui-pages.md 2.4 rule 6).
       ...(termsOk ? {} : { consent: { diagnostics: false, analytics: false } }),
       // The region probe (`GET /api/v1/boot`) waits for the age screen to pass; a device that is blocked never asks (BD-M04b1-04).
@@ -537,6 +553,11 @@ async function boot(): Promise<void> {
     const npcAudio = !engine?.audioService ? null : { host: engine.audioService as unknown as TtsAudioHost, unlock: () => engine.audioUnlock() };
     void import('./qa/npc.ts').then((m) => m.installNpcQa(identity, npcAudio, attestedGate, engine ? (engine.vm as never) : null, (name, props) => platform.telemetry.emit(name, props))).catch((e: unknown) => console.warn('npc qa panel failed', e));
     if (assets) installAssetsBridge(assets);
+    // window.__dvBridge.uiHold: what the menus' hold has done (BD-FIX-MENU-BOOT-01); the in-play spec reads that play notes nothing.
+    {
+      const w = window as unknown as { __dvBridge?: Record<string, unknown> };
+      w.__dvBridge = { ...(w.__dvBridge ?? {}), uiHold: { notes: () => uiHold.notes, releases: () => uiHold.releases } };
+    }
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});
     if (prepared && qaChunks.world) (await qaChunks.world).installWorldBridge(prepared.view, platform.quality.tier.id, prepared.prefetch);

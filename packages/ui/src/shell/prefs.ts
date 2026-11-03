@@ -142,17 +142,20 @@ export async function loadPrefs(o: PrefsOptions = {}): Promise<PrefsStore> {
 
   const subs = new Set<(p: UiPrefs) => void>();
   let chain: Promise<void> = Promise.resolve();
+  const mirrorBlock = (): void => {
+    try {
+      storage?.setItem(BLOCK_MIRROR, '1');
+    } catch {
+      // storage may be blocked
+    }
+  };
   const persist = (): void => {
     const snapshot = prefs;
     chain = chain.then(async () => {
       await write(CURRENT, snapshot);
       if (snapshot.age.blocked) {
         await write(BLOCK_KEY, true);
-        try {
-          storage?.setItem(BLOCK_MIRROR, '1');
-        } catch {
-          // storage may be blocked
-        }
+        mirrorBlock();
       }
     });
   };
@@ -164,6 +167,9 @@ export async function loadPrefs(o: PrefsOptions = {}): Promise<PrefsStore> {
       // A block is sticky: nothing in this store lifts it.
       if (prefs.age.blocked) next.age = { ...next.age, blocked: true };
       prefs = next;
+      // The block's mirror is written in this call, before the blocked page can show: that page renders in the task that blocks once
+      // its chunk is loaded ahead (BD-FIX-MENU-BOOT-01), ahead of the IndexedDB writes below.
+      if (prefs.age.blocked) mirrorBlock();
       persist();
       for (const cb of [...subs]) cb(prefs);
     },

@@ -14,6 +14,11 @@
  * without the frame. On WebKit timers and frames keep running through a chain of them (unlike Chromium's native `scheduler.yield`,
  * whose continuations run ahead of timers). A browser that has `scheduler.yield` keeps its own. Only three reads `scheduler.yield` in
  * the client bundle; nothing in it reads `scheduler.postTask`.
+ *
+ * Where it installs: Safari and every WebKit browser (no `scheduler` at all), and Chromium 94 to 128, which have `scheduler` (with
+ * `postTask`) but not `scheduler.yield`: there the stand-in is added beside `postTask` on the browser's own object
+ * (BD-FIX-WEBKIT-ATTACH-02). The install never throws: a scope where it cannot be added (a frozen
+ * or read-only `scheduler`, a `MessageChannel` that throws) is left as it was and three keeps its frame yield.
  */
 
 /** The part of `scheduler` this module reads and writes. */
@@ -49,18 +54,23 @@ export function messageChannelYield(Channel: NonNullable<YieldScope['MessageChan
 
 /**
  * Installs `scheduler.yield` on `scope` when it has none. Returns `native` when the scope already had one (left as it is), `installed`
- * when this added it, `unavailable` when the scope has no `MessageChannel` (three keeps its frame yield there).
+ * when this added it, `unavailable` when the scope has no `MessageChannel`, and `failed` when adding it threw (three keeps its frame
+ * yield in both).
  */
-export function installSchedulerYield(scope: YieldScope): 'native' | 'installed' | 'unavailable' {
-  if (typeof scope.scheduler?.yield === 'function') return 'native';
-  if (typeof scope.MessageChannel !== 'function') return 'unavailable';
-  const yieldNow = messageChannelYield(scope.MessageChannel);
-  if (scope.scheduler && typeof scope.scheduler === 'object') {
-    Object.defineProperty(scope.scheduler, 'yield', { value: yieldNow, configurable: true, writable: true, enumerable: false });
-  } else {
-    const scheduler: YieldScheduler = {};
-    Object.defineProperty(scheduler, 'yield', { value: yieldNow, configurable: true, writable: true, enumerable: false });
-    Object.defineProperty(scope, 'scheduler', { value: scheduler, configurable: true, writable: true, enumerable: false });
+export function installSchedulerYield(scope: YieldScope): 'native' | 'installed' | 'unavailable' | 'failed' {
+  try {
+    if (typeof scope.scheduler?.yield === 'function') return 'native';
+    if (typeof scope.MessageChannel !== 'function') return 'unavailable';
+    const yieldNow = messageChannelYield(scope.MessageChannel);
+    if (scope.scheduler && typeof scope.scheduler === 'object') {
+      Object.defineProperty(scope.scheduler, 'yield', { value: yieldNow, configurable: true, writable: true, enumerable: false });
+    } else {
+      const scheduler: YieldScheduler = {};
+      Object.defineProperty(scheduler, 'yield', { value: yieldNow, configurable: true, writable: true, enumerable: false });
+      Object.defineProperty(scope, 'scheduler', { value: scheduler, configurable: true, writable: true, enumerable: false });
+    }
+    return 'installed';
+  } catch {
+    return 'failed';
   }
-  return 'installed';
 }

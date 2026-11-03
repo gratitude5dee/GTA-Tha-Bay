@@ -11,6 +11,7 @@ import {
 import type { BenchmarkResult, QualityTier } from '@dv/shared';
 import type { RendererHost } from './renderer-host.ts';
 import { BENCHMARK_TOLERANCE } from './tier-select.ts';
+import type { UiHoldGate } from './ui-hold.ts';
 
 /**
  * Tier benchmark (11-platform.md section 5.3): 3 s (at most 180 frames) of a synthetic TSL chunk group sized to 80 % of the
@@ -112,6 +113,58 @@ export function buildBenchmarkScene(tier: QualityTier): BenchmarkScene {
 export interface BenchmarkOptions {
   durationMs?: number;
   maxFrames?: number;
+  /**
+   * The page's UI goes first (BD-FIX-MENU-BOOT-01): while it holds, the run draws nothing, and the interval that spans the hold is left
+   * out of the measurement and of the 3 s window. Without a hold the run is the same as without this option.
+   */
+  hold?: UiHoldGate | null;
+}
+
+/** The part of the renderer the measured loop drives (`WebGPURenderer`; tests pass a fake). */
+export interface BenchmarkRenderer {
+  info: { reset(): void };
+  setAnimationLoop(cb: ((t: number) => void) | null): unknown;
+  render(scene: Scene, camera: PerspectiveCamera): unknown;
+}
+
+/**
+ * The measured part of a run: one frame per animation-frame callback until the window (`durationMs` of drawing), `maxFrames` measured
+ * frames or a hopeless start ends it. Returns the intervals between consecutive drawn frames, warm-up frames included. A callback that
+ * comes while `hold` holds draws nothing and forgets the last frame, so no interval spans a hold: the frame drawn after the hold starts a
+ * new interval, and the camera path and the window go on from where they stopped.
+ */
+export function measureFrames(
+  renderer: BenchmarkRenderer,
+  bench: Pick<BenchmarkScene, 'scene' | 'camera' | 'update'>,
+  o: { durationMs: number; maxFrames: number; limitMs: number; hold?: UiHoldGate | null },
+): Promise<number[]> {
+  const deltas: number[] = [];
+  return new Promise<number[]>((resolve) => {
+    let first = -1;
+    let last = -1;
+    let lastDrawn = -1;
+    // The intervals left out because they span a hold; the window is `t - first - skipped`, exactly `t - first` when nothing held.
+    let skipped = 0;
+    renderer.setAnimationLoop((t: number) => {
+      if (o.hold?.held(t)) {
+        last = -1;
+        return;
+      }
+      if (first < 0) first = t;
+      if (last >= 0) deltas.push(t - last);
+      else if (lastDrawn >= 0) skipped += t - lastDrawn;
+      last = t;
+      lastDrawn = t;
+      const elapsed = t - first - skipped;
+      renderer.info.reset();
+      bench.update(elapsed / 1000);
+      renderer.render(bench.scene, bench.camera);
+      if (elapsed >= o.durationMs || deltas.length >= o.maxFrames + WARMUP_FRAMES || hopeless(deltas, o.limitMs)) {
+        renderer.setAnimationLoop(null);
+        resolve(deltas);
+      }
+    });
+  });
 }
 
 /** Runs the synthetic benchmark on the host's renderer. The host's own loop must not be running. */
@@ -127,24 +180,8 @@ export async function runSyntheticBenchmark(host: RendererHost, tier: QualityTie
     bench.camera.aspect = Math.max(1, canvas.clientWidth || 640) / Math.max(1, canvas.clientHeight || 360);
     bench.camera.updateProjectionMatrix();
     await renderer.compileAsync(bench.scene, bench.camera);
-    const deltas: number[] = [];
     const limitMs = tier.budget.frame.frameBudgetMs * BENCHMARK_TOLERANCE;
-    await new Promise<void>((resolve) => {
-      let first = -1;
-      let last = -1;
-      renderer.setAnimationLoop((t: number) => {
-        if (first < 0) first = t;
-        if (last >= 0) deltas.push(t - last);
-        last = t;
-        renderer.info.reset();
-        bench.update((t - first) / 1000);
-        renderer.render(bench.scene, bench.camera);
-        if (t - first >= durationMs || deltas.length >= maxFrames + WARMUP_FRAMES || hopeless(deltas, limitMs)) {
-          renderer.setAnimationLoop(null);
-          resolve();
-        }
-      });
-    });
+    const deltas = await measureFrames(renderer as unknown as BenchmarkRenderer, bench, { durationMs, maxFrames, limitMs, hold: opts.hold ?? null });
     const measured = deltas.slice(WARMUP_FRAMES);
     const total = measured.reduce((a, b) => a + b, 0);
     const s = measured.length >= MIN_FRAMES ? summarizeFrames(measured) : { medianMs: Math.max(0, ...measured), p90Ms: Math.max(0, ...measured) };
