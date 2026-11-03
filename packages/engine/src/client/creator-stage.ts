@@ -60,10 +60,19 @@ export interface CreatorStage {
   /** Current state for the QA bridge and tests. */
   readonly state: {
     shown: boolean; yaw: number; zoom: 'full' | 'head'; autoRotate: boolean; params: StageParams | null;
-    /** `models` once the assembled figure is on stage; `mannequin` for the variant figure (also while models load). */
+    /**
+     * `models` while an assembled figure is on stage; `mannequin` for the variant figure (also while the first models load). While
+     * `pending`, this is the figure of an earlier `show`: a figure stays on stage until the next one is assembled.
+     */
     figure: 'models' | 'mannequin';
-    /** The parts of the current avatar and how each draws. */
+    /** The parts of the current avatar (the latest `show`) and how each draws. */
     parts: readonly StagePart[];
+    /**
+     * True from a `show` until the stage draws what that show asked for: the figure assembled from exactly `parts`, or the mannequin
+     * (the body or the face on the mannequin path, or a part that failed to load). `figure`, `triangles` and `textures` describe
+     * `parts` only once this is false (BD-FIX-CREATOR-SHOES-01).
+     */
+    pending: boolean;
     /** Triangles and textures of the assembled figure (0 on the mannequin). */
     triangles: number;
     textures: number;
@@ -121,7 +130,9 @@ export function createCreatorStage(host: StageHost, assets?: StageAssets): Creat
   cap.position.set(0, 0.2, -0.04);
   head?.add(cap);
 
-  const state: CreatorStage['state'] = { shown: false, yaw: 0.35, zoom: 'full', autoRotate: true, params: null, figure: 'mannequin', parts: [], triangles: 0, textures: 0 };
+  const state: CreatorStage['state'] = {
+    shown: false, yaw: 0.35, zoom: 'full', autoRotate: true, params: null, figure: 'mannequin', parts: [], pending: false, triangles: 0, textures: 0,
+  };
   const models = createModelCache(assets);
   let figure: Assembly | null = null;
   let figureKey = '';
@@ -151,23 +162,31 @@ export function createCreatorStage(host: StageHost, assets?: StageAssets): Creat
     state.textures = 0;
   };
 
-  /** Draws the avatar from its part models when the app can load them and the body and face are models; otherwise the mannequin stays. */
+  /**
+   * Draws the avatar from its part models when the app can load them and the body and face are models; otherwise the mannequin stays.
+   * Every call takes a new ticket, the mannequin path included, so a load started for an earlier avatar never draws over a later one.
+   */
   const syncFigure = async (p: StageParams): Promise<void> => {
+    const ticket = ++want;
     const parts = p.parts ?? [];
     const slotPath = (slot: AssemblySlot): StagePart | undefined => parts.find((x) => x.slot === slot);
     const body = slotPath('body');
     const face = slotPath('face');
     if (!assets || !body || !face || body.path === 'mannequin' || face.path === 'mannequin') {
       dropFigure();
+      state.pending = false;
       return;
     }
-    const ticket = ++want;
+    state.pending = true;
     const draw = parts.filter((x) => x.ref !== '' && x.path !== 'mannequin');
     let meshes: PersonMesh[];
     try {
       meshes = await Promise.all(draw.map((x) => models.mesh(x.ref)));
     } catch {
-      if (ticket === want) dropFigure();
+      if (ticket === want) {
+        dropFigure();
+        state.pending = false;
+      }
       return;
     }
     if (ticket !== want || !state.shown) return;
@@ -190,10 +209,10 @@ export function createCreatorStage(host: StageHost, assets?: StageAssets): Creat
       state.textures = figure.textures;
     } else {
       figure.setColors(colors);
-      if (p.morphs) figure.setMorphs(p.morphs);
     }
     if (p.morphs) figure.setMorphs(p.morphs);
     figure.root.scale.set(p.buildScale, (p.heightScale * figure.heightM) / 1.8, p.buildScale);
+    state.pending = false;
   };
 
   const place = (): void => {
@@ -249,6 +268,7 @@ export function createCreatorStage(host: StageHost, assets?: StageAssets): Creat
       if (!state.shown) return;
       state.shown = false;
       want++;
+      state.pending = false;
       cancelAnimationFrame(raf);
       host.clearMenuScene();
     },
