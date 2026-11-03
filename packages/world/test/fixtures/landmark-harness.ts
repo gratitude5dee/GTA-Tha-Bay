@@ -38,18 +38,27 @@ export interface Harness {
   /** Gate tasks waiting for their frame, and the ones that ran. */
   queued: SwapTask[];
   ran: { id: string; uploads: number }[];
-  /** Holds the staged chunk meshes until `releasePrepared()` (a slow worker). */
+  /** The worker holds the staged chunk meshes it takes up (their read is slow) until `releasePrepared()`. */
   hold: { on: boolean; pending: (() => void)[] };
   releasePrepared(): void;
   /**
-   * The page's queue of worker replies: while `on`, what the worker posts (prepared meshes, round-trip answers) waits here, in the
-   * order posted, until `drain()` (a page busy with long frames). Off: a reply is handled as soon as the worker posts it.
+   * asset.worker as the layer sees it (BD-FIX-LANDMARK-PREPARE-01), on the worker's clock (`clock`, the same machine). Requests (the
+   * prepares and the layer's `held` questions) come in in the order sent: while `busy` they wait in the worker's queue, not taken up,
+   * until `run()` takes them up in order; otherwise at once. A question is answered as soon as it is taken up, with what the worker
+   * holds then (a prepare taken up and not answered: ms since it was taken up). While `lose` is on, a prepared mesh the worker posts is
+   * lost on the way (the worker no longer holds it, the page never gets it). While `dead`, nothing is taken up and nothing answered (a
+   * blocked event loop, or a worker that is gone without a word). While `gone`, a question is refused (the client knows it failed).
+   */
+  worker: { busy: boolean; lose: boolean; dead: boolean; gone: boolean; queue: (() => void)[]; run(): void };
+  /**
+   * The page's queue of worker messages: while `on`, what the worker posts waits here, in the order posted, until `drain()` (a page
+   * busy with long frames). Off: a message is handled as soon as the worker posts it.
    */
   inbox: { on: boolean; queue: (() => void)[] };
-  /** Handles every reply waiting in the inbox, oldest first, and lets later ones through at once. */
+  /** Handles every message waiting in the inbox, oldest first, and lets later ones through at once. */
   drain(): void;
-  /** Round trips the layer asked the worker for. */
-  trips: number;
+  /** Messages from the worker handled on the page so far (the port's `heard`). */
+  heard: number;
   /** Runs every queued gate task (the model joins the scene). */
   runTasks(): void;
   /** Commits every requested direct remesh and every applied staged mesh the way the upload gate would (one re-record each). */
@@ -76,7 +85,14 @@ export function harness(tier: QualityTierId, xs: number[], opts: HarnessOpts = {
   spots.forEach((_s, i) => chunks.set(`9/${i}/0` as ChunkKey, { proxies: [proxyIdOf(i)], masked: [], rerecords: 0 }));
   const h: Harness = {
     layer: null as never, spots, clock: { ms: 1000 }, chunks, remeshes: [], mounted: [], disposed: [], loads: [], skyLoads: [], fail: new Set(), ground: { ready: true, exact: true, exactY: 12.5 }, heights: new Map(),
-    revealed: { value: true }, visible: new Map(), queued: [], ran: [], hold: { on: false, pending: [] }, inbox: { on: false, queue: [] }, trips: 0,
+    revealed: { value: true }, visible: new Map(), queued: [], ran: [], hold: { on: false, pending: [] }, inbox: { on: false, queue: [] }, heard: 0,
+    worker: {
+      busy: false, lose: false, dead: false, gone: false, queue: [],
+      run() {
+        this.busy = false;
+        for (const f of this.queue.splice(0)) f();
+      },
+    },
     releasePrepared() {
       this.hold.on = false;
       for (const f of this.hold.pending.splice(0)) f();
@@ -114,11 +130,24 @@ export function harness(tier: QualityTierId, xs: number[], opts: HarnessOpts = {
       }
     },
   };
-  /** The worker posts a reply: handled now, or after the replies already waiting on a busy page. */
+  /** The worker posts a message: handled now, or after the messages already waiting on a busy page. */
   const post = (deliver: () => void): void => {
-    if (h.inbox.on) h.inbox.queue.push(deliver);
-    else deliver();
+    const handle = (): void => {
+      h.heard++;
+      deliver();
+    };
+    if (h.inbox.on) h.inbox.queue.push(handle);
+    else handle();
   };
+  /** A request reaches the worker: taken up now, after what waits in a busy worker's queue, or never by a dead one. */
+  const arrive = (takeUp: () => void): void => {
+    if (h.worker.dead) return;
+    if (h.worker.busy) h.worker.queue.push(takeUp);
+    else takeUp();
+  };
+  /** Requests the worker has taken up and not answered, by id: when it took each up (the worker's clock). */
+  const takenAt = new Map<number, number>();
+  let nextJob = 1;
   const cfg: LandmarksRuntimeConfig | undefined = opts.skyline ? { ...LANDMARKS_RUNTIME, skyline: { ...LANDMARKS_RUNTIME.skyline, ids: opts.skyline.ids } } : undefined;
   const deps: LandmarkDeps = {
     tier,
@@ -152,11 +181,20 @@ export function harness(tier: QualityTierId, xs: number[], opts: HarnessOpts = {
       prepare: (key, mask) => {
         h.remeshes.push({ key, mask, staged: true });
         const p: PreparedRemesh = { key, mask };
-        return new Promise((res) => {
-          const answer = (): void => post(() => res(p));
-          if (h.hold.on) h.hold.pending.push(answer);
-          else answer();
+        const job = nextJob++;
+        const result = new Promise<PreparedRemesh | null>((res) => {
+          const answer = (): void => {
+            if (h.worker.dead) return;
+            takenAt.delete(job);
+            if (!h.worker.lose) post(() => res(p));
+          };
+          arrive(() => {
+            takenAt.set(job, h.clock.ms);
+            if (h.hold.on) h.hold.pending.push(answer);
+            else answer();
+          });
         });
+        return { job, result };
       },
       apply: (p) => {
         const rec = h.remeshes.find((r) => r.staged && !r.applied && r.key === p.key);
@@ -164,11 +202,20 @@ export function harness(tier: QualityTierId, xs: number[], opts: HarnessOpts = {
       },
       remesh: (key, mask) => void h.remeshes.push({ key, mask }),
       rerecords: (key) => chunks.get(key)?.rerecords ?? 0,
-      // the worker answers at once; the answer is posted behind every reply it posted before
-      roundTrip: () => {
-        h.trips++;
-        return new Promise((res) => post(() => res(null)));
+      // answered when the worker takes the question up, behind every message it posted before
+      held: (jobs) => {
+        if (h.worker.gone) return Promise.reject(new Error('asset worker failed'));
+        return new Promise((res) => {
+          arrive(() => {
+            const answer = jobs.map((j) => {
+              const at = takenAt.get(j);
+              return at === undefined ? null : h.clock.ms - at;
+            });
+            post(() => res(answer));
+          });
+        });
       },
+      heard: () => h.heard,
     },
     queue: (task) => void h.queued.push(task),
     groundY: (_x, _z, exact) => (exact ? (h.ground.ready && h.ground.exact ? h.ground.exactY : null) : h.ground.ready ? 12.5 : null),

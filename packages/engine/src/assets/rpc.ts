@@ -83,6 +83,12 @@ export interface RpcOps {
   qa: [{ name: string; args: unknown }, unknown];
   /** A domain job registered by the composed worker (`runAssetWorker(scope, jobs)`, M02b1: the world mesher and pack channel). */
   job: [{ name: string; args: unknown }, unknown];
+  /**
+   * For each request id: the milliseconds the worker has held that request unanswered, on its own clock from when it took the request
+   * up, or null when it does not hold it (its reply is posted, or the id is unknown). Answered at once, in order with every other reply
+   * (BD-FIX-LANDMARK-PREPARE-01).
+   */
+  held: [{ ids: number[] }, (number | null)[]];
 }
 export type OpName = keyof RpcOps;
 
