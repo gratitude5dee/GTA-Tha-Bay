@@ -57,6 +57,8 @@ async function treesSettled(page: Page): Promise<void> {
   // one visibility pass after the settle (every 8 frames), so every unit has its drawM state for this camera
   await frames(page, 10);
   await expect.poll(async () => (await veg(page)).pendingCrossings, { timeout: 180_000, intervals: [500] }).toBe(0);
+  // M02h5: and the scatter's band writes (capped per frame) have all landed, so the pools draw the bands the units hold
+  await expect.poll(async () => ((await veg(page)).scatter as { bandWrites?: { pending: number } } | undefined)?.bandWrites?.pending ?? 0, { timeout: 180_000, intervals: [500] }).toBe(0);
 }
 
 test.describe('world trees @world-trees', () => {
