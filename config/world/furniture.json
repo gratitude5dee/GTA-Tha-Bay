@@ -1,0 +1,46 @@
+{
+  "$comment": "M02h6 street furniture and parked dressing (02-world.md section 5.4, C08 1.1 rule 12, DL-740, DL-741). `types` is the u8 table of RenderChunk.furniture records (index = type; append-only). `place` holds the placement rules of packages/shared/src/world/furniture.ts; every number is a design value. `bakeFill` false keeps the S13 FURNITURE section empty and the mesher places the records at mesh time (DL-740); a later re-bake that turns it on also adds this file to the bake's config hashes. `signal` and `wires` are the graph-bound items the mesher adds (one signal assembly per approach of a Signal junction, trolley wires over BusLane and TramEmbedded lanes). `pools` are the global instanced pools per look profile with their instance caps (farthest units dropped first); `parked` is the render-only dressing of parked slots the sim never fills on the tier (C01 prefix rule): drawn between ghostM and dressFarM from the player and the camera with fadeM dithered fades, thinned to dressShare, skipped within skipCarLengths car lengths of a live pose.",
+  "schema": "world-furniture/1",
+  "types": ["stop", "hydrant", "meter", "shelter", "bench", "pole", "oneway"],
+  "bakeFill": false,
+  "place": {
+    "inset": { "stop": 0.6, "hydrant": 0.7, "meter": 0.5, "shelter": 1.2, "bench": 1.0, "pole": 0.8, "oneway": 0.6 },
+    "centreClearM": 0.4,
+    "stopLineM": 3.5,
+    "stopBeforeLineM": 1.5,
+    "hydrantPitchM": 90,
+    "junctionBoxM": 8,
+    "hydrantJunctionM": 6,
+    "meterPitchM": 14,
+    "meterEndM": 10,
+    "polePitchM": 40,
+    "poleEndM": 10,
+    "benchPitchM": 40,
+    "benchOffsetM": 1.2,
+    "shelterBenchM": 2.6,
+    "onewayM": 6,
+    "clearM": 1.0,
+    "shiftsM": [1.5, -1.5, 3, -3]
+  },
+  "signal": { "inset": 0.6, "armM": 4.5, "poleM": 5.6 },
+  "wires": { "heightM": 5.5, "gapM": 0.6, "lane": { "bus": "outer", "tram": "inner" } },
+  "pools": {
+    "full": { "signal": 256, "post": 2048, "shelter": 128, "pole": 512, "wire": 2048 },
+    "lite": { "signal": 192, "post": 1024, "shelter": 64 },
+    "min": { "signal": 128, "post": 512 }
+  },
+  "headsM": 200,
+  "headsHz": 10,
+  "parked": {
+    "families": { "full": ["car", "robotaxi", "pickup", "box"], "lite": ["car", "pickup", "box"], "min": ["car"] },
+    "caps": { "full": 192, "lite": 96, "min": 48 },
+    "ghostM": { "full": 30, "lite": 28, "min": 25 },
+    "dressFarM": { "full": 300, "lite": 200, "min": 140 },
+    "fadeM": 8,
+    "dressShare": { "full": 0.85, "lite": 0.7, "min": 0.55 },
+    "skipCarLengths": 0.6,
+    "carLengthM": 4.6,
+    "rebandM": 12,
+    "everyFrames": 6
+  }
+}

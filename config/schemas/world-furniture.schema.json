@@ -1,0 +1,488 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/world-furniture.schema.json",
+  "title": "config/world/furniture.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "types",
+    "bakeFill",
+    "place",
+    "signal",
+    "wires",
+    "pools",
+    "headsM",
+    "headsHz",
+    "parked"
+  ],
+  "properties": {
+    "$comment": {
+      "type": "string"
+    },
+    "schema": {
+      "const": "world-furniture/1"
+    },
+    "types": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "stop",
+          "hydrant",
+          "meter",
+          "shelter",
+          "bench",
+          "pole",
+          "oneway"
+        ]
+      },
+      "minItems": 7,
+      "maxItems": 255,
+      "uniqueItems": true
+    },
+    "bakeFill": {
+      "type": "boolean"
+    },
+    "place": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inset",
+        "centreClearM",
+        "stopLineM",
+        "stopBeforeLineM",
+        "hydrantPitchM",
+        "junctionBoxM",
+        "hydrantJunctionM",
+        "meterPitchM",
+        "meterEndM",
+        "polePitchM",
+        "poleEndM",
+        "benchPitchM",
+        "benchOffsetM",
+        "shelterBenchM",
+        "onewayM",
+        "clearM",
+        "shiftsM"
+      ],
+      "properties": {
+        "inset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stop",
+            "hydrant",
+            "meter",
+            "shelter",
+            "bench",
+            "pole",
+            "oneway"
+          ],
+          "properties": {
+            "stop": {
+              "type": "number",
+              "minimum": 0
+            },
+            "hydrant": {
+              "type": "number",
+              "minimum": 0
+            },
+            "meter": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shelter": {
+              "type": "number",
+              "minimum": 0
+            },
+            "bench": {
+              "type": "number",
+              "minimum": 0
+            },
+            "pole": {
+              "type": "number",
+              "minimum": 0
+            },
+            "oneway": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "centreClearM": {
+          "type": "number",
+          "minimum": 0.4
+        },
+        "stopLineM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "stopBeforeLineM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "hydrantPitchM": {
+          "type": "number",
+          "minimum": 10
+        },
+        "junctionBoxM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "hydrantJunctionM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "meterPitchM": {
+          "type": "number",
+          "minimum": 2
+        },
+        "meterEndM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "polePitchM": {
+          "type": "number",
+          "minimum": 5
+        },
+        "poleEndM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "benchPitchM": {
+          "type": "number",
+          "minimum": 5
+        },
+        "benchOffsetM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shelterBenchM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "onewayM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "clearM": {
+          "type": "number",
+          "minimum": 1
+        },
+        "shiftsM": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 8
+        }
+      }
+    },
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inset",
+        "armM",
+        "poleM"
+      ],
+      "properties": {
+        "inset": {
+          "type": "number",
+          "minimum": 0.4
+        },
+        "armM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "poleM": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "wires": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "heightM",
+        "gapM",
+        "lane"
+      ],
+      "properties": {
+        "heightM": {
+          "type": "number",
+          "minimum": 4
+        },
+        "gapM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "lane": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bus",
+            "tram"
+          ],
+          "properties": {
+            "bus": {
+              "enum": [
+                "outer",
+                "inner"
+              ]
+            },
+            "tram": {
+              "enum": [
+                "outer",
+                "inner"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "pools": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "full",
+        "lite",
+        "min"
+      ],
+      "properties": {
+        "full": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 8192
+          },
+          "propertyNames": {
+            "enum": [
+              "signal",
+              "post",
+              "shelter",
+              "pole",
+              "wire"
+            ]
+          }
+        },
+        "lite": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 8192
+          },
+          "propertyNames": {
+            "enum": [
+              "signal",
+              "post",
+              "shelter",
+              "pole",
+              "wire"
+            ]
+          }
+        },
+        "min": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 8192
+          },
+          "propertyNames": {
+            "enum": [
+              "signal",
+              "post",
+              "shelter",
+              "pole",
+              "wire"
+            ]
+          }
+        }
+      }
+    },
+    "headsM": {
+      "type": "number",
+      "minimum": 10
+    },
+    "headsHz": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 60
+    },
+    "parked": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "families",
+        "caps",
+        "ghostM",
+        "dressFarM",
+        "fadeM",
+        "dressShare",
+        "skipCarLengths",
+        "carLengthM",
+        "rebandM",
+        "everyFrames"
+      ],
+      "properties": {
+        "families": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "full",
+            "lite",
+            "min"
+          ],
+          "properties": {
+            "full": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "uniqueItems": true
+            },
+            "lite": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "uniqueItems": true
+            },
+            "min": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "uniqueItems": true
+            }
+          }
+        },
+        "caps": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "full",
+            "lite",
+            "min"
+          ],
+          "properties": {
+            "full": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "lite": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "min": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            }
+          }
+        },
+        "ghostM": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "full",
+            "lite",
+            "min"
+          ],
+          "properties": {
+            "full": {
+              "type": "number",
+              "minimum": 0
+            },
+            "lite": {
+              "type": "number",
+              "minimum": 0
+            },
+            "min": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "dressFarM": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "full",
+            "lite",
+            "min"
+          ],
+          "properties": {
+            "full": {
+              "type": "number",
+              "minimum": 0
+            },
+            "lite": {
+              "type": "number",
+              "minimum": 0
+            },
+            "min": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "fadeM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "dressShare": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "full",
+            "lite",
+            "min"
+          ],
+          "properties": {
+            "full": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "lite": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "min": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "skipCarLengths": {
+          "type": "number",
+          "minimum": 0
+        },
+        "carLengthM": {
+          "type": "number",
+          "minimum": 1
+        },
+        "rebandM": {
+          "type": "number",
+          "minimum": 0
+        },
+        "everyFrames": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}
