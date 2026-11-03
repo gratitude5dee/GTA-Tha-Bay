@@ -148,6 +148,11 @@ test.describe('xr art peds @xr @art-peds', () => {
 const LEDGER = 'docs/look/M10d4-render-ledger.json';
 /** The latest merged ledger first: its `after` is this one's baseline (`_PLAN-3.md` Look program rule 5). */
 const PRIORS = ['docs/look/M02h4-render-ledger.json', 'docs/look/M02h3-render-ledger.json', 'docs/look/M02h2-render-ledger.json'];
+/**
+ * Rows merged after M10d4 whose ledgers measured a scene that carries M10d4 (BD-INTEG-M02h5-02). The live frame of this checkout
+ * holds their layers too, so its render objects are bounded by the latest of them; the committed ledger keeps M10d4's own prior.
+ */
+const LATER = ['docs/look/M02h5-render-ledger.json'];
 const LEDGER_TIERS = ['desktop', 'mobile', 'mobile-low'] as const;
 interface TierRow {
   baseline: number;
@@ -171,6 +176,12 @@ const commitOf = (): string => process.env['GITHUB_SHA'] ?? process.env['DV_COMM
 function prior(): { file: string; ledger: { tiers: Record<string, { after: number }>; xr?: { after: number } } } {
   for (const file of PRIORS) if (existsSync(file)) return { file, ledger: read(file) };
   throw new Error(`no ledger before M10d4 in docs/look (${PRIORS.join(', ')})`);
+}
+
+/** The latest merged ledger whose scene this checkout draws: a later row's if one is merged, else `prior()`. */
+function latest(): ReturnType<typeof prior> {
+  for (const file of LATER) if (existsSync(file)) return { file, ledger: read(file) };
+  return prior();
 }
 
 /** The crowd's frame under the hold: the pedestrians' report and their scene objects, both of the frame shown. */
@@ -217,7 +228,8 @@ test.describe('peds ledger @peds-ledger', () => {
       await world(page, (w) => w.hold(false));
       const baseline = prior().ledger.tiers[tier]?.after;
       expect(baseline, `${prior().file} holds ${tier}`).toBeDefined();
-      expect(after, `${tier}: render objects against the after (${baseline}) of ${prior().file}`).toBeLessThanOrEqual(baseline ?? 0);
+      const bound = latest().ledger.tiers[tier]?.after ?? baseline;
+      expect(after, `${tier}: render objects against the after (${bound}) of ${latest().file}`).toBeLessThanOrEqual(bound ?? 0);
       if (tier === 'mobile-low') expect(after + crowdMax(tier), `mobile-low after ${after} + crowd max ${crowdMax(tier)}`).toBeLessThanOrEqual(100);
       measured[tier] = {
         baseline: baseline ?? after,
@@ -292,8 +304,9 @@ test.describe('xr peds ledger @xr @peds-ledger', () => {
     const objects = (await live(page)).renderObjects;
     await world(page, (w) => w.hold(false));
     const priorXr = prior().ledger.xr?.after;
-    console.log(`peds ledger xr: ${objects} render objects, ${p.near} near (prior after ${String(priorXr)})`);
-    if (priorXr !== undefined) expect(objects, 'the Quest count against the prior ledger').toBeLessThanOrEqual(priorXr);
+    const boundXr = latest().ledger.xr?.after ?? priorXr;
+    console.log(`peds ledger xr: ${objects} render objects, ${p.near} near (prior after ${String(priorXr)}, latest ${String(boundXr)})`);
+    if (boundXr !== undefined) expect(objects, 'the Quest count against the latest merged ledger').toBeLessThanOrEqual(boundXr);
     if (write && existsSync(LEDGER)) {
       const l = read<Ledger>(LEDGER);
       l.xr = { baseline: priorXr ?? objects, after: objects, near: p.near };
