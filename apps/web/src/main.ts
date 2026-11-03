@@ -19,6 +19,7 @@ import './engine.css';
 import { afterWindowLoad, createPwaUpdateController, isRegistration } from './pwa-update.ts';
 import { wireUiHold } from './ui-hold.ts';
 import { catalogFailureCode, worldIndexFailureCode } from './world-failure.ts';
+import { bodyAssets } from './body-assets.ts';
 // The M01f gray-box fixture packs, as hashed static files (M01e replaces this with the pack store).
 import grayboxL0Url from '../../../tests/fixtures/world/civic-graybox/l0-64-64.pack?url';
 import grayboxP0Url from '../../../tests/fixtures/world/civic-graybox/p0-64-64.pack?url';
@@ -401,6 +402,8 @@ async function bootPlatformAndEngine(simWorker: EarlySimWorker): Promise<void> {
     onPhone: () => shell.core.togglePhone(),
     // Toasts the sim raises (unlocks, refused modes, boundary notices) are drawn by the shell.
     onToast: (toast) => shell.onToast(toast),
+    // M10d5: the on-foot bodies of the streamed world (the player's creator parts, the mission actors' ped kit)
+    ...(prepared && assets && !(QA && new URLSearchParams(location.search).get('art') === '0') ? { bodies: bodyAssets(assets, prepared.view.whenRevealed()) } : {}),
   }).catch((error: unknown) => {
     console.error('engine failed to start', error);
     simWorker.dispose();

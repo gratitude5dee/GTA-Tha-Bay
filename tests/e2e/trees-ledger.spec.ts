@@ -16,7 +16,7 @@ import { veg } from './trees-helpers.ts';
 
 const LEDGER = 'docs/look/M02h4-render-ledger.json';
 /** The latest merged ledger first (its `after` is this one's baseline). */
-const PRIORS = ['docs/look/M10d5-render-ledger.json', 'docs/look/M02h3-render-ledger.json', 'docs/look/M02h2-render-ledger.json'];
+const PRIORS = ['docs/look/M02h3-render-ledger.json', 'docs/look/M02h2-render-ledger.json'];
 const LEDGER_TIERS = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low'] as const;
 /** The trees' delta allowed per row: `mobile-low` +2, `desktop` +40 (shadow passes counted), the legacy look and the Quest tier 0. */
 const TREE_DELTA_MAX: Record<string, number> = { 'desktop-ultra': 40, desktop: 40, mobile: 40, 'mobile-low': 2, legacy: 0, xr: 0 };

@@ -21,7 +21,7 @@ import { bakeIdOf, bootWorld, live, read, setSky, world, type W } from './markin
  */
 const LEDGER = 'docs/look/M02h1-render-ledger.json';
 /** The ledgers that come before this row in the chain, newest first; the first one that exists is the baseline. */
-const PRIORS = ['docs/look/M10d5-render-ledger.json', 'docs/look/M10d1-render-ledger.json', 'docs/look/M10d0-render-ledger.json', 'docs/look/M02g2-render-ledger.json', 'docs/look/M02g1-render-ledger.json'];
+const PRIORS = ['docs/look/M10d1-render-ledger.json', 'docs/look/M10d0-render-ledger.json', 'docs/look/M02g2-render-ledger.json', 'docs/look/M02g1-render-ledger.json'];
 const TIERS = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low'] as const;
 interface TierRow {
   baseline: number;
