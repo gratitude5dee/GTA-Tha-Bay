@@ -72,7 +72,7 @@
       "paths": [
         "tests/golden/"
       ],
-      "sha256": "776c5506dfae11d36a51ab6d7bf1ed3d9449cef7924c3fb54d49e29a33b1f7f8",
+      "sha256": "f6c084db584d91d17058b81197a017f89663cf7221e11c0501542304a1dd0407",
       "subjects": [
         "packages/engine/src/sim/",
         "packages/shared/src/",
