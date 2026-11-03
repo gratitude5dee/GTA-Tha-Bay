@@ -9,7 +9,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { GRID_MIN_M, M_PER_DEG_LAT, M_PER_DEG_LNG, ORIGIN, Rng, canonicalize, fnv32, latLngFromEnu, sha256Hex, splitmix32 } from '../../../../packages/shared/src/index.ts';
+import { GRID_MIN_M, M_PER_DEG_LAT, M_PER_DEG_LNG, ORIGIN, Rng, canonicalize, enuFromLatLng, fnv32, latLngFromEnu, sha256Hex, splitmix32 } from '../../../../packages/shared/src/index.ts';
 import { areaGridOf, type AreaId, type EnuBox, type SourcesConfig, type SynthConfig } from '../config.ts';
 import { writeRawLock, type RawLockFile, type RawSourceLock, RAW_LOCK_NAME } from '../raw-lock.ts';
 import { distToRing } from '../geom/rings.ts';
@@ -407,6 +407,25 @@ export function generateSynth(cfg: SynthConfig, sources: SourcesConfig, area: Ar
       }
     }
   }
+  // M02h5: DataSF rows the bake drops by `skipSpecies` (stumps, planting sites), and the positions OSM duplicates stand beside
+  const veg = cfg.vegetation;
+  const dupOf: { x: number; z: number }[] = [];
+  if (veg) {
+    veg.skipRows.forEach((r, i) => {
+      if (!inBox(box, r.x, r.z)) return;
+      const p = latLngFromEnu(r.x, r.z);
+      treeRows.push(`{"treeid":"skip${i}","species":${JSON.stringify(r.species)},"latitude":"${f9(p.lat)}","longitude":"${f9(p.lng)}"}`);
+    });
+    // the DataSF trees of the chunk at (nearX, nearZ), in their row order: the first `count` get an OSM twin 1.5 m east
+    const cx = Math.floor((veg.duplicates.nearX - GRID_MIN_M) / 256), cy = Math.floor((veg.duplicates.nearZ - GRID_MIN_M) / 256);
+    const prefix = `"treeid":"${cx}${String(cy).padStart(3, '0')}`;
+    for (const row of treeRows) {
+      if (dupOf.length >= veg.duplicates.count || !row.includes(prefix)) continue;
+      const lat = Number(/"latitude":"([^"]+)"/.exec(row)?.[1]), lng = Number(/"longitude":"([^"]+)"/.exec(row)?.[1]);
+      const e = enuFromLatLng(lat, lng);
+      dupOf.push({ x: e.x + 1.5, z: e.z });
+    }
+  }
   writeFileSync(path.join(o.outDir, 'tkzw-k3nq.jsonl'), treeRows.length ? `${treeRows.join('\n')}\n` : '');
   rows['datasf-trees'] = treeRows.length;
 
@@ -449,6 +468,17 @@ export function generateSynth(cfg: SynthConfig, sources: SourcesConfig, area: Ar
     const xs = d.pts.filter((_, i) => i % 2 === 0), zs = d.pts.filter((_, i) => i % 2 === 1);
     if (restricted && !(Math.max(...xs) > box.minX && Math.min(...xs) < box.maxX && Math.max(...zs) > box.minZ && Math.min(...zs) < box.maxZ)) continue;
     osm.push(osmLine(`w${wid++}`, d.pts, { highway: 'service', service: 'driveway' }));
+  }
+  // M02h5: the vegetation scatter's sources and the street-tree cases (boxes and lines outside the area are left out when restricted)
+  if (veg) {
+    const meets = (xs: number[], zs: number[]): boolean => !restricted || (Math.max(...xs) > box.minX && Math.min(...xs) < box.maxX && Math.max(...zs) > box.minZ && Math.min(...zs) < box.maxZ);
+    for (const a of veg.areas) if (meets([a.minX, a.maxX], [a.minZ, a.maxZ])) osm.push(osmPolygon(`w${wid++}`, [boxRing(a)], a.tags));
+    const xsOf = (pts: number[]): number[] => pts.filter((_, i) => i % 2 === 0), zsOf = (pts: number[]): number[] => pts.filter((_, i) => i % 2 === 1);
+    for (const h of veg.hedges) if (meets(xsOf(h.pts), zsOf(h.pts))) osm.push(osmLine(`w${wid++}`, h.pts, { barrier: 'hedge' }));
+    for (const r of veg.treeRows) if (meets(xsOf(r.pts), zsOf(r.pts))) osm.push(osmLine(`w${wid++}`, r.pts, { natural: 'tree_row', species: r.species }));
+    let nid = 900000;
+    for (const t of veg.osmTrees) if (inBox(box, t.x, t.z)) osm.push(osmPoint(`n${nid++}`, t.x, t.z, { natural: 'tree', species: t.species }));
+    for (const d of dupOf) if (inBox(box, d.x, d.z)) osm.push(osmPoint(`n${nid++}`, d.x, d.z, { natural: 'tree' }));
   }
   osm.push(...b.osm);
 

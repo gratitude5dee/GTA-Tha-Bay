@@ -142,7 +142,9 @@ describe('vertex ambient occlusion (AC-2)', () => {
           const x = i * stride * s.sim.height.cellM, z = j * stride * s.sim.height.cellM;
           const d = rings.reduce((best, r) => Math.min(best, distToRing(r, x, z)), Infinity);
           const ao = t.ao[j * verts + i] as number;
-          if (d < ring - 1e-6) {
+          // a post a hair inside the ring has ao 1 - strength x (a hair)^2, which the mesher's Float32Array stores as 1: within 1 mm of
+          // the ring either value is right (BD-M02h5-13; the scatter bake put a post 3.0000 m from a footprint)
+          if (d < ring - 1e-3) {
             near++;
             expect(ao, `${s.sim.key} post ${i},${j} at ${d.toFixed(2)} m`).toBeLessThan(1);
             // a post a hair inside the ring is a hair under 1 (rounding of the footprint to a decimetre aside)
@@ -409,8 +411,16 @@ describe('trees (AC-3)', () => {
         expect(y!, `${s.sim.key} tree ${i}: at or below the heightfield`).toBeLessThanOrEqual(fieldMin + 1e-6);
         expect(y!, `${s.sim.key} tree ${i}: at or below the mesh`).toBeLessThanOrEqual(meshMin + 1e-6);
         expect(y!, `${s.sim.key} tree ${i}: within 0.15 m of the lowest ground`).toBeGreaterThanOrEqual(Math.min(fieldMin, meshMin) - 0.15);
-        // the height: the form's draw, between the minimum and the cap under the nearest eave within eaveRadiusM
-        const formMax = formHeights(treeFormOfByte((lane as number) & 7))[2];
+        // the height: the form's draw, between the minimum and the cap under the nearest eave within eaveRadiusM (M02h5: a shrub or a
+        // hedge keeps its own draw, with no eave cap and no tree minimum)
+        const f = treeFormOfByte((lane as number) & 7);
+        if (f === 5 || f === 6) {
+          const [lo, , hi] = formHeights(f);
+          expect(height!).toBeGreaterThanOrEqual(lo - 1e-4);
+          expect(height!).toBeLessThanOrEqual(hi + 1e-4);
+          continue;
+        }
+        const formMax = formHeights(f)[2];
         let eave = Infinity;
         let nearest = Infinity;
         for (const b of rings) {

@@ -37,6 +37,19 @@ export interface VegetationLook {
   waveK: number;
   /** The wind's bearing in plan, degrees from east toward south (+z). */
   dirDeg: number;
+  /** M02h5: the scatter's bands, re-banding and thinning on the client (`chunks/vegetation-pool.ts`). */
+  scatter: ScatterLook;
+}
+
+/** M02h5: `look.json` `vegetation.scatter`. Distances per mesher profile id; keeps per look profile. */
+export interface ScatterLook {
+  impostorM: Record<'desktop' | 'visionpro' | 'mobile' | 'low', number>;
+  shrubDrawM: Record<'desktop' | 'visionpro' | 'mobile' | 'low', number>;
+  hysteresis: number;
+  rebandM: number;
+  writeCap: number;
+  scatterKeep: Record<'full' | 'lite' | 'min' | 'legacy', number>;
+  shrubKeep: Record<'full' | 'lite' | 'min' | 'legacy', number>;
 }
 
 export function createWindNodes(v: VegetationLook): WindNodes {

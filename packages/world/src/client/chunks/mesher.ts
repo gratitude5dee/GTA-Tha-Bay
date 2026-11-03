@@ -23,8 +23,8 @@
  */
 import earcut from 'earcut';
 import {
-  NodeControl, PedEdgeKind, PedNodeFlag, TERRAIN_POSTS, TREE_FORM_NAMES, chunkBounds, sampleHeight, treeFormOfByte, triangularQuantile, type BuildingRecord, type ChunkKey,
-  type QualityTierId, type RenderChunk, type SimChunk, type TreeForm, type TreeFormName, type TreeFormTable,
+  NodeControl, PedEdgeKind, PedNodeFlag, TERRAIN_POSTS, VEG_FORM_NAMES, chunkBounds, isScatterByte, isUnderstoryForm, sampleHeight, treeFormOfByte, triangularQuantile, type BuildingRecord, type ChunkKey,
+  type QualityTierId, type RenderChunk, type SimChunk, type TreeForm, type TreeFormTable, type VegFormName,
 } from '@dv/shared';
 import mesherJson from '../../../../../config/world/mesher.json';
 import treeFormsJson from '../../../../../config/world/tree-forms.json';
@@ -1171,14 +1171,23 @@ export function treeHeightCap(x: number, z: number, buildings: readonly { ring: 
   return Math.max(T.minHeightM, Math.min(max, eave - T.eaveClearM));
 }
 
-/** Floats per tree record (M02h4): local x, y, z, height in metres, yaw in radians, `form + 8 x tint`. */
+/**
+ * Floats per tree record (M02h4): local x, y, z, height in metres, yaw in radians, `form + 8 x tint` (M02h5: `+ 64` on a scatter record,
+ * the TREE byte's bit 7; `laneForm`, `laneTint`, `laneScatter` read it back).
+ */
 export const TREE_STRIDE = 6;
+/** M02h5: the parts of a record's lane. */
+export const laneForm = (lane: number): TreeForm => (lane & 7) as TreeForm;
+export const laneTint = (lane: number): number => (lane >> 3) & 7;
+export const laneScatter = (lane: number): boolean => (lane & 64) !== 0;
 /** Tints per form (the record's `tint`, 0..7; `chunks/tree-forms.ts` turns it into a crown colour). */
 export const TREE_TINTS = 8;
 
 /** The height draw of a form: the triangular `[min, mode, max]` of `config/world/tree-forms.json`. */
 export function formHeights(form: TreeForm): readonly [number, number, number] {
-  return TREE_FORM_TABLE.forms[TREE_FORM_NAMES[form] as TreeFormName].heightM;
+  const f = (TREE_FORM_TABLE.forms as Partial<Record<VegFormName, { heightM: [number, number, number] }>>)[VEG_FORM_NAMES[form] as VegFormName];
+  // M02h5: a table without the understory rows (an older config) draws a shrub or a hedge 1 m tall
+  return f ? f.heightM : [0.8, 1, 1.2];
 }
 
 /**
@@ -1204,7 +1213,7 @@ function hash01(x: number, z: number, salt: number): number {
 export const trunkRadiusOf = (heightM: number): number => MESHER.tree.trunkRadiusM * Math.min(2.5, Math.max(0.6, heightM / MESHER.tree.heightM));
 
 /**
- * One record per tree (M02h4): local x, y, z, height in metres, yaw in radians and `form + 8 x tint`. The form is the TREE byte of a C08
+ * One record per tree (M02h4): local x, y, z, height in metres, yaw in radians and `form + 8 x tint` (+ 64 on a scatter record, M02h5). The form is the TREE byte of a C08
  * 1.1 index (`treeFormOfByte`: a reserved value draws as `Plane`; a 1.0 index's species hash is read the same way). The height is the
  * form's draw (`treeHeightOf`) under M02g2's eave cap (`min(max, eave - 0.5)` within 8 m, never under 3.5 m). The foot is the lowest
  * terrain under the trunk (the heightfield and the mesh the player sees, nine points over the trunk disc) minus `tree.sinkM`, so no root
@@ -1220,9 +1229,11 @@ function treeRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: 
     const x = render.trees[i * 4] as number, z = render.trees[i * 4 + 1] as number;
     const lx = Math.min(256, Math.max(0, x - ox)), lz = Math.min(256, Math.max(0, z - oz));
     const s0 = (render.trees[i * 4 + 2] as number) || 1;
-    const form = treeFormOfByte(render.trees[i * 4 + 3] as number);
+    const byte = render.trees[i * 4 + 3] as number;
+    const form = treeFormOfByte(byte);
     const draw = treeHeightOf(form, s0, hash01(x, z, 1));
-    const height = Math.max(T.minHeightM, Math.min(treeHeightCap(lx, lz, ctx.buildings, formHeights(form)[2]), draw));
+    // M02h5: a shrub or a hedge keeps its own draw (no eave cap, no tree minimum)
+    const height = isUnderstoryForm(form) ? draw : Math.max(T.minHeightM, Math.min(treeHeightCap(lx, lz, ctx.buildings, formHeights(form)[2]), draw));
     const r = trunkRadiusOf(height);
     let low = Infinity;
     for (let k = 0; k < 9; k++) {
@@ -1237,7 +1248,7 @@ function treeRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: 
     trees[o + 2] = lz;
     trees[o + 3] = height;
     trees[o + 4] = hash01(x, z, 2) * Math.PI * 2;
-    trees[o + 5] = form + 8 * Math.floor(hash01(x, z, 3) * TREE_TINTS);
+    trees[o + 5] = form + 8 * Math.floor(hash01(x, z, 3) * TREE_TINTS) + (isScatterByte(byte) ? 64 : 0);
   }
   return trees;
 }

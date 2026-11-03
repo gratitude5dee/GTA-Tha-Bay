@@ -3,7 +3,7 @@
  *
  *   tsx tools/map/src/cli.ts fixture graybox [--check] [--out <dir>] [--hashes <file>]   (M01f)
  *   tsx tools/map/src/cli.ts build [--area sf|civic-excerpt|synth] [--stage <ids>] [--force] [--repro]   (M02a1)
- *   tsx tools/map/src/cli.ts fetch [--area sf|civic-excerpt] [--archive] [--fixture]
+ *   tsx tools/map/src/cli.ts fetch [--area sf|civic-excerpt] [--archive] [--fixture] [--only <id,...>] [--no-download]   (M02h5: --only, --no-download)
  *   tsx tools/map/src/cli.ts pack [--bake <bakeId> | --area <id>] --target dir:<path>|r2:<env>
  *   tsx tools/map/src/cli.ts verify [--bake <bakeId> | --area <id>]            (M02a2: the S14 gates on a finished bake)
  *   tsx tools/map/src/cli.ts landmarks [--bake <bakeId> | --area <id>]         (M02a2)
@@ -92,13 +92,17 @@ export async function runFetchCommand(argv: readonly string[]): Promise<number> 
   const { values } = parseArgs({
     args: [...argv],
     allowPositionals: true,
-    options: { area: { type: 'string', default: 'sf' }, archive: { type: 'boolean', default: false }, fixture: { type: 'boolean', default: false } },
+    options: {
+      area: { type: 'string', default: 'sf' }, archive: { type: 'boolean', default: false }, fixture: { type: 'boolean', default: false },
+      only: { type: 'string' }, 'no-download': { type: 'boolean', default: false },
+    },
   });
   if (!isAreaId(values.area)) {
     console.error(`map:fetch: unknown area ${values.area} (sf, civic-excerpt or synth)`);
     return 2;
   }
-  return runFetch({ area: values.area, archive: values.archive, fixture: values.fixture });
+  const only = values.only ? values.only.split(',').map((x) => x.trim()).filter((x) => x.length > 0) : undefined;
+  return runFetch({ area: values.area, archive: values.archive, fixture: values.fixture, only, noDownload: values['no-download'] });
 }
 
 /** The bake directory a bake id, an area name (its latest bake) or nothing (the latest bake) names. */

@@ -7,6 +7,8 @@
  * Landuse classes land in the p0 GROUND grid (Grass, Park, Sand, Paved, Rock, Pier, shallow and deep Water; Asphalt and
  * Sidewalk where the road graph runs). M02h3: with `cover` the S13 cover stage (`s13-cover.ts`) sorts the land cells into cover
  * classes first, rewrites GROUND on base-`Paved` cells, and l0 carries section 21 LANDUSE with the cover rectangles (C08 1.1).
+ * M02h5: with `scatter` the vegetation scatter (`s13-scatter.ts`) runs after the cover; its records (bit 7 of the TREE byte) join the
+ * street trees in the l0 TREE section.
  */
 import {
   C08_VERSION, GroundClass, TERRAIN_POSTS, chunkBounds, chunkKeyAt, encodeCoverRects, parseChunkKey, encodeGraph,
@@ -19,7 +21,8 @@ import type { Raster } from '../geom/raster.ts';
 import { cmp } from '../util.ts';
 import type { BuildingsProduct } from './s4-buildings.ts';
 import { applyCoverToGround, runCover, type CoverReport } from './s13-cover.ts';
-import type { CoverConfig } from '../config.ts';
+import type { CoverConfig, VegetationConfig } from '../config.ts';
+import { pedSegments, runScatter, type ScatterReport } from './s13-scatter.ts';
 import type { OsmFeature } from '../sources/geo.ts';
 import { bufferLine, cellRaster, type LanduseClass, type WaterProduct } from './s3-water.ts';
 import { heightGridOf, type TerrainProduct } from './s2-terrain.ts';
@@ -65,6 +68,8 @@ export interface PackOutput {
   /** M02h3: the cover per chunk (absent without cover) and the stage report with the l0 bytes section 21 added. */
   covers?: Map<ChunkKey, Uint8Array>;
   cover?: CoverReport & { groundChanged: number; sectionBytes: number; sectionRecords: number };
+  /** M02h5: the scatter's report (absent without scatter). */
+  scatter?: ScatterReport;
 }
 
 export interface PackInputs {
@@ -93,6 +98,8 @@ export interface PackInputs {
   far: readonly { name: string; bytes: Uint8Array }[];
   /** M02h3: the ground cover rules and the OSM features they read; absent or `enabled: false` bakes no cover. */
   cover?: { cfg: CoverConfig; osm: readonly OsmFeature[] } | null | undefined;
+  /** M02h5: the vegetation scatter's rules; absent or `enabled: false` bakes no scatter. */
+  scatter?: { cfg: VegetationConfig } | null | undefined;
 }
 
 const q1 = (v: number): number => Math.round(v * 10) / 10;
@@ -126,15 +133,30 @@ export function buildPacks(inp: PackInputs): PackOutput {
   });
   const keySet = new Set(keys);
 
-  // trees by chunk, only on land and off the asphalt
+  // M02h5: the scatter, over the ground and the cover just written
+  let scatter: ReturnType<typeof runScatter> | null = null;
+  if (inp.scatter && inp.scatter.cfg.enabled) {
+    const footprints: { prism: readonly number[]; proxy: boolean }[] = [];
+    for (const list of buildings.byChunk.values()) for (const bd of list) footprints.push({ prism: bd.prism, proxy: inp.places.proxies.has(bd.sid) });
+    scatter = runScatter({
+      grid, cfg: inp.scatter.cfg, ground, cover: cover ? cover.cover : null,
+      polys: water.vegetationPolys ?? [], hedges: water.hedgeLines ?? [], excluded: water.excludedPolys ?? [],
+      footprints, roads: inp.segs.filter((s) => !s.tunnel).map((s) => ({ pts: s.pts, widthM: s.widthM })), peds: pedSegments(inp.ped.chunks.values()),
+      chunkExists: (k) => keySet.has(k),
+    });
+  }
+
+  // trees by chunk, only on land and off the asphalt: the street trees, then the scatter (M02h5)
   const treesBy = new Map<ChunkKey, number[]>();
-  for (let i = 0; i + 3 < water.trees.length; i += 4) {
-    const x = q1(water.trees[i] as number), z = q1(water.trees[i + 1] as number);
-    const g = ground.at(x, z, GroundClass.Water);
-    if (g === GroundClass.Water || g === GroundClass.WaterShallow || g === GroundClass.Pier || g === GroundClass.Asphalt) continue;
-    const key = chunkKeyAt(9, x, z);
-    if (!terrain.grids.has(key)) continue;
-    (treesBy.get(key) ?? treesBy.set(key, []).get(key)!).push(x, z, water.trees[i + 2] as number, water.trees[i + 3] as number);
+  for (const list of scatter ? [water.trees, scatter.records] : [water.trees]) {
+    for (let i = 0; i + 3 < list.length; i += 4) {
+      const x = q1(list[i] as number), z = q1(list[i + 1] as number);
+      const g = ground.at(x, z, GroundClass.Water);
+      if (g === GroundClass.Water || g === GroundClass.WaterShallow || g === GroundClass.Pier || g === GroundClass.Asphalt) continue;
+      const key = chunkKeyAt(9, x, z);
+      if (!terrain.grids.has(key)) continue;
+      (treesBy.get(key) ?? treesBy.set(key, []).get(key)!).push(x, z, list[i + 2] as number, list[i + 3] as number);
+    }
   }
 
   // road data by owning chunk
@@ -265,12 +287,13 @@ export function buildPacks(inp: PackInputs): PackOutput {
     transit: inp.places.transit,
     sources: [...inp.stamps].sort((a, b) => cmp(a.id, b.id)),
   };
-  if (!cover || !covers) return { files, index, sims, renders };
+  const scatterReport = scatter ? { scatter: scatter.report } : {};
+  if (!cover || !covers) return { files, index, sims, renders, ...scatterReport };
   let sectionBytes = 0, sectionRecords = 0;
   for (const cv of covers.values()) {
     const s = encodeCoverRects(cv);
     sectionBytes += s.data.length + 12;
     sectionRecords += s.count;
   }
-  return { files, index, sims, renders, covers, cover: { ...cover.report, groundChanged, sectionBytes, sectionRecords } };
+  return { files, index, sims, renders, covers, cover: { ...cover.report, groundChanged, sectionBytes, sectionRecords }, ...scatterReport };
 }

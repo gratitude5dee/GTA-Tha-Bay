@@ -86,13 +86,22 @@ describe('tree records (AC-3)', () => {
         trees++;
         const o = i * TREE_STRIDE;
         const lane = a.trees[o + 5] as number;
+        // M02h5: + 64 on a scatter record (bit 7 of the byte)
+        const byte = s.render.trees[i * 4 + 3] as number;
         const form = lane % 8;
-        const tint = Math.floor(lane / 8);
-        expect(form).toBe(treeFormOfByte(s.render.trees[i * 4 + 3] as number));
+        const tint = Math.floor(lane / 8) % 8;
+        expect(lane >= 64).toBe(byte >= 128);
+        expect(form).toBe(treeFormOfByte(byte));
         expect(tint >= 0 && tint < TREE_TINTS).toBe(true);
         seen.add(form);
         const h = a.trees[o + 3] as number;
         const [min, , max] = formHeights(form as TreeForm);
+        if (form === TreeForm.Shrub || form === TreeForm.Hedge) {
+          // the understory keeps its own draw: no eave cap, no tree minimum
+          expect(h, `${s.sim.key} shrub ${i}`).toBeGreaterThanOrEqual(min - 1e-4);
+          expect(h, `${s.sim.key} shrub ${i}`).toBeLessThanOrEqual(max + 1e-4);
+          continue;
+        }
         expect(h, `${s.sim.key} tree ${i}`).toBeGreaterThanOrEqual(Math.min(min, MESHER.tree.minHeightM) - 1e-4);
         expect(h, `${s.sim.key} tree ${i}`).toBeLessThanOrEqual(max + 1e-4);
         expect(h).toBeGreaterThanOrEqual(MESHER.tree.minHeightM - 1e-4);
@@ -106,8 +115,12 @@ describe('tree records (AC-3)', () => {
     }
   });
 
-  it('a 1.0 index species hash 5..7 and any reserved byte draw as Plane', () => {
-    for (const b of [5, 6, 7, 8, 127, 255]) expect(treeFormOfByte(b)).toBe(TreeForm.Plane);
+  // M02h5 (BD-M02h5-03): 5 and 6 are Shrub and Hedge, bit 7 the scatter flag; a reserved low value (7..127) still draws as Plane
+  it('a reserved byte draws as Plane; 5 and 6 are the understory, bit 7 is ignored by the form', () => {
+    for (const b of [7, 8, 127, 255, 135]) expect(treeFormOfByte(b)).toBe(TreeForm.Plane);
     for (const f of FORMS) expect(treeFormOfByte(f)).toBe(f);
+    for (const f of FORMS) expect(treeFormOfByte(f | 0x80)).toBe(f);
+    expect(treeFormOfByte(5)).toBe(TreeForm.Shrub);
+    expect(treeFormOfByte(6 | 0x80)).toBe(TreeForm.Hedge);
   });
 });

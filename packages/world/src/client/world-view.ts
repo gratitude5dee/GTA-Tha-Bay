@@ -31,7 +31,7 @@ import { mountLandmark } from './chunks/landmark-view.ts';
 import { MESHER, profileOf, wantNearStride } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
-import { COVER_FLAG, LOOK, LOOK_LAYERS, TREE_FORMS_FLAG, lookProfileFor, type LookLayer } from './look/config.ts';
+import { COVER_FLAG, LOOK, LOOK_LAYERS, SCATTER_FLAG, TREE_FORMS_FLAG, lookProfileFor, type LookLayer } from './look/config.ts';
 import { windAmplitude } from './look/wind.ts';
 import type { TreeSet } from './chunks/tree-forms.ts';
 import { LookView, markingsReportOf, type LookReport, type ShotCamera } from './look/look-view.ts';
@@ -369,6 +369,15 @@ export class WorldView implements WorldLayer {
     // M02h4: the trees' geometry set follows the look profile; `world.treeForms: false` (or QA `?treeForms=0`) draws M02b1's cone, one pool
     const qaCone = this.o.qa === true && new URLSearchParams(globalThis.location?.search ?? '').get('treeForms') === '0';
     this.treeSet = !TREE_FORMS_FLAG || qaCone ? 'cone' : profile === 'full' ? 'full' : profile === 'lite' ? 'lite' : 'low';
+    // M02h5: the scatter (`world.scatter`, QA `?scatter=0`): thinned per look profile; impostors on every look profile but `legacy`
+    const qaNoScatter = this.o.qa === true && new URLSearchParams(globalThis.location?.search ?? '').get('scatter') === '0';
+    const sc = LOOK.vegetation.scatter;
+    const mp = profileOf(this.o.tier).id;
+    const scatter = {
+      enabled: SCATTER_FLAG && !qaNoScatter, impostors: profile !== 'legacy' && this.treeSet !== 'cone',
+      keepTree: sc.scatterKeep[profile], keepShrub: sc.shrubKeep[profile], impostorM: sc.impostorM[mp], shrubDrawM: sc.shrubDrawM[mp],
+      hysteresis: sc.hysteresis, rebandM: sc.rebandM, writeCap: sc.writeCap,
+    };
     this.renderer = new ChunkRenderer({
       parent: host.scene,
       materials: this.materials,
@@ -377,6 +386,7 @@ export class WorldView implements WorldLayer {
       treeDrawM: MESHER.tree.drawM[profileOf(this.o.tier).id],
       treeHysteresis: MESHER.tree.drawHysteresis,
       treeSet: this.treeSet,
+      scatter,
     });
     host.register(this.renderer);
     // A renderer replaced after a device loss may have the other depth buffer: the polygon offsets follow it (M02g2).
@@ -1257,7 +1267,10 @@ export class WorldView implements WorldLayer {
 
   /** M02e QA: the look on or off at runtime; false when the tier has none. */
   setLook(on: boolean): boolean {
-    return this.lookView ? this.lookView.setOn(on) : !on;
+    const ok = this.lookView ? this.lookView.setOn(on) : !on;
+    // M02h5: the legacy look has no impostors: the far trees go back to their meshes within drawM (as in M02h4)
+    if (ok && this.renderer) this.renderer.vegetation.setLookOn(on);
+    return ok;
   }
 
   /** M02g1 QA: one layer of the look's profile on or off; false when the profile has no such layer (or the look is off). */
@@ -1273,6 +1286,9 @@ export class WorldView implements WorldLayer {
       this.renderer.windNow = on ? this.materials.wind.uWindAmp.value : 0;
       return true;
     }
+    // M02h5: the scatter records (bit 7) and the far-tree impostors (render only: the pools are filled again or re-banded)
+    if (id === 'scatter') return this.renderer.vegetation.setScatterLayer(on);
+    if (id === 'impostors') return this.renderer.vegetation.setImpostorLayer(on);
     // art-hook:textures begin (M10d0): the surface textures are a layer of the look that has no entry in look.json
     if (id === 'textures') return this.textures?.setOn(on) ?? false;
     // art-hook:textures end

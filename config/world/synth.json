@@ -117,6 +117,18 @@
     { "id": "dw-09", "pts": [-1566, 610, -1566, 582] }
   ],
   "trees": { "perChunk": 16 },
+  "vegetation": {
+    "areas": [
+      { "id": "ggp-east-wood", "tags": { "natural": "wood" }, "minX": -4400, "minZ": 720, "maxX": -3790, "maxZ": 1395 },
+      { "id": "presidio-forest", "tags": { "landuse": "forest" }, "minX": -3600, "minZ": -2500, "maxX": -2900, "maxZ": -1900 },
+      { "id": "ggp-west-scrub", "tags": { "natural": "scrub" }, "minX": -6800, "minZ": 1100, "maxX": -6400, "maxZ": 1380 }
+    ],
+    "hedges": [{ "id": "hedge-ggp-yard", "pts": [-3790, 1440, -3700, 1440] }],
+    "treeRows": [{ "id": "row-ggp-south", "pts": [-3770, 1396, -3630, 1396], "species": "Cupressus macrocarpa" }],
+    "osmTrees": [{ "id": "lone-ggp", "x": -3650, "z": 1380, "species": "Pinus radiata" }],
+    "duplicates": { "nearX": -3690, "nearZ": 1416, "count": 3 },
+    "skipRows": [{ "x": -3600, "z": 1440, "species": "Stump :: Stump" }, { "x": -3610, "z": 1442, "species": "Planting site :: Planting Site" }]
+  },
   "neighbourhoods": {
     "cols": 7,
     "rows": 6,

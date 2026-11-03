@@ -596,7 +596,18 @@
       "world-trees.spec.ts › world trees @world-trees › desktop: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 11,
       "world-trees.spec.ts › world trees @world-trees › mobile-low: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 1.5,
       "world-trees.spec.ts › world trees @world-trees › mobile-low: world.treeForms off (?treeForms=0) draws one cone pool @world-trees": 1,
-      "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 3
+      "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 3,
+      "world-scatter.spec.ts › world scatter @world-scatter › desktop: park-forest draws impostors, shrubs and hedges within the write cap; the scatter layer changes the frame @world-scatter": 12,
+      "world-scatter.spec.ts › world scatter @world-scatter › mobile: park-forest draws impostors, shrubs and hedges within the write cap; the scatter layer changes the frame @world-scatter": 3.5,
+      "world-scatter.spec.ts › world scatter @world-scatter › mobile-low: park-forest draws impostors, shrubs and hedges within the write cap; the scatter layer changes the frame @world-scatter": 2.5,
+      "world-scatter.spec.ts › world scatter @world-scatter › mobile-low: world.scatter off (?scatter=0) reports no scatter instance and no impostor pool @world-scatter": 1,
+      "world-scatter.spec.ts › scatter goldens @look-golden › desktop park-forest is within the tolerance of its golden and a second capture is byte-identical @look-golden": 9,
+      "world-scatter.spec.ts › scatter goldens @look-golden › mobile-low park-forest is within the tolerance of its golden and a second capture is byte-identical @look-golden": 1.5,
+      "scatter-ledger.spec.ts › scatter ledger @scatter-ledger › desktop: the scatter's render objects against the latest merged ledger, and park-forest's vegetation triangles @scatter-ledger": 11,
+      "scatter-ledger.spec.ts › scatter ledger @scatter-ledger › mobile: the scatter's render objects against the latest merged ledger, and park-forest's vegetation triangles @scatter-ledger": 4.5,
+      "scatter-ledger.spec.ts › scatter ledger @scatter-ledger › mobile-low: the scatter's render objects against the latest merged ledger, and park-forest's vegetation triangles @scatter-ledger": 2,
+      "scatter-ledger.spec.ts › scatter ledger @scatter-ledger › legacy: the scatter's render objects against the latest merged ledger, and park-forest's vegetation triangles @scatter-ledger": 1.8,
+      "scatter-ledger.spec.ts › scatter ledger @scatter-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @scatter-ledger": 0
     },
     "webkit-webgl2": {
       "account-password.spec.ts › account island @account › an adult creates an account after reading the terms; no token is stored in the browser @account": 0.03,
@@ -852,7 +863,11 @@
       "world-trees.spec.ts › world trees @world-trees › desktop: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 14,
       "world-trees.spec.ts › world trees @world-trees › mobile-low: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 2,
       "world-trees.spec.ts › world trees @world-trees › mobile-low: world.treeForms off (?treeForms=0) draws one cone pool @world-trees": 1.2,
-      "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 4
+      "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 4,
+      "world-scatter.spec.ts › world scatter @world-scatter › desktop: park-forest draws impostors, shrubs and hedges within the write cap; the scatter layer changes the frame @world-scatter": 15,
+      "world-scatter.spec.ts › world scatter @world-scatter › mobile: park-forest draws impostors, shrubs and hedges within the write cap; the scatter layer changes the frame @world-scatter": 4.5,
+      "world-scatter.spec.ts › world scatter @world-scatter › mobile-low: park-forest draws impostors, shrubs and hedges within the write cap; the scatter layer changes the frame @world-scatter": 3,
+      "world-scatter.spec.ts › world scatter @world-scatter › mobile-low: world.scatter off (?scatter=0) reports no scatter instance and no impostor pool @world-scatter": 1.2
     },
     "xr-quest3": {
       "art-city.spec.ts › xr art @xr @art-city › the Quest tier is legacy with one family and standard paint @xr @art-city": 0.21,
@@ -866,7 +881,8 @@
       "world-markings.spec.ts › xr markings @xr @world-markings › the Quest tier draws the flat paint on its legacy roads, and the layer switches it @xr @world-markings": 0.25,
       "world-sky-look-fixes.spec.ts › xr fixes ledger @fixes-ledger › the Quest tier holds its render objects on a held frame, against M10d0 @xr @fixes-ledger": 0.19,
       "xr-smoke.spec.ts › XR smoke @xr @xr-smoke › Enter VR (smoke) presents, renders XR frames, runs the sim, and exiting returns to the flat page @xr @xr-smoke": 0.55,
-      "xr/xr-panel.spec.ts › XR UI panel skeleton @xr @xr-panel › a ScreenDef panel opens 1.2 m away on a world anchor, a ray press works, text is 1.5 degrees, it redraws only after a view-model change @xr @xr-panel": 0.44
+      "xr/xr-panel.spec.ts › XR UI panel skeleton @xr @xr-panel › a ScreenDef panel opens 1.2 m away on a world anchor, a ray press works, text is 1.5 degrees, it redraws only after a view-model change @xr @xr-panel": 0.44,
+      "scatter-ledger.spec.ts › xr scatter ledger @xr @scatter-ledger › the Quest tier: no impostor or understory pool, its render objects equal its baseline @xr @scatter-ledger": 3
     }
   }
 }
