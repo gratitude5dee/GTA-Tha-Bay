@@ -22,6 +22,7 @@ import { vehicleReflectHook } from './sky-reflect.ts';
 import { LIT_RANGE_FIXED, litRange } from './windows.ts';
 import { PhysicalSky } from './sky-physical.ts';
 import { ShadowRig } from './shadows.ts';
+import { bakesEnvMap } from '../textures/config.ts';
 import { lookShot, shotQuaternion, type LookShot } from './shots.ts';
 import { sunState, type SunState } from './sun.ts';
 
@@ -288,7 +289,7 @@ export class LookView {
     }
     // The physical sky and its environment: the desktop tiers; WebKit never bakes (bug 303203).
     if (this.profile === 'full') {
-      const envMap = browser !== 'safari';
+      const envMap = bakesEnvMap(this.profile, browser);
       this.sky = new PhysicalSky({ backdrop: this.o.backdrop.scene, renderer: host.renderer, look, envMap });
     }
     // M02g1: the blob shadows (one instanced quad), the vehicles' analytic sky reflection, and the layers' switches.

@@ -88,7 +88,12 @@ test.describe('surface textures @art-textures', () => {
         expect([...requested]).toEqual([]);
         return;
       }
-      const refs = refsFor(MODE_OF[tier]);
+      // BD-FIX-WEBGPU-TREES-01: the maps a fragment cannot bind on this device are left out (`capped`). WebGPU's 16 sampled textures per
+      // stage hold all but the grass-dirt orm map at `desktop` (12 maps beside the DFG table, the environment map and three cascades);
+      // the WebGL2 projects bind them all.
+      const capped = look?.backend === 'webgpu' && tier === 'desktop' ? ['texture/pbr.grass-dirt.orm'] : [];
+      expect(t.capped).toEqual(capped);
+      const refs = refsFor(MODE_OF[tier]).filter((r) => !capped.includes(r));
       expect(t.mode).toBe(MODE_OF[tier]);
       expect([...t.refs].sort()).toEqual(refs);
       expect(t.failed).toEqual([]);

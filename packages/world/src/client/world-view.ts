@@ -37,8 +37,8 @@ import type { TreeSet } from './chunks/tree-forms.ts';
 import { LookView, markingsReportOf, type LookReport, type ShotCamera } from './look/look-view.ts';
 import { lookShot, shotQuaternion, type LookShot } from './look/shots.ts';
 // art-hook:textures begin (M10d0)
-import { TEXTURES_FLAG } from './textures/config.ts';
-import { SurfaceTextures, installSurfaceTextures, installedSurfaceTextures } from './textures/surface-textures.ts';
+import { TEXTURES_FLAG, bakesEnvMap, groundReservedTextures } from './textures/config.ts';
+import { SurfaceTextures, fragmentTextureLimit, installSurfaceTextures, installedSurfaceTextures } from './textures/surface-textures.ts';
 // art-hook:textures end
 import { createSkyNodes, type SkyNodes } from './sky/nodes.ts';
 import { SkyView, type LumaOptions, type LumaSample, type SkyInfo } from './sky/sky-view.ts';
@@ -324,7 +324,18 @@ export class WorldView implements WorldLayer {
       const off = qaTextures === '0';
       // QA `?textures=albedo` (BD-REPAIR-M02h3-02): the albedo maps alone, whatever the tier's mode
       const albedoOnly = qaTextures === 'albedo';
-      this.textures = new SurfaceTextures({ tier: this.o.tier, profile, enabled: TEXTURES_FLAG && !off, albedoOnly, backend: this.o.look.backend, browser: this.o.look.browser });
+      // BD-FIX-WEBGPU-TREES-01: the ground material binds the sets' maps beside the DFG table, the environment map and the shadow cascades,
+      // so the sets get what the device's per-fragment texture limit leaves (WebGPU's 16 is one short of the full `desktop` set)
+      const limit = host.ready ? fragmentTextureLimit(host.renderer) : null;
+      const shadows = host.tier?.features.shadows.mode;
+      const reserved = groundReservedTextures({
+        envMap: bakesEnvMap(profile, this.o.look.browser),
+        shadows: shadows === undefined || LOOK.shadowsOff.includes(this.o.tier) ? 'none' : shadows,
+      });
+      this.textures = new SurfaceTextures({
+        tier: this.o.tier, profile, enabled: TEXTURES_FLAG && !off, albedoOnly, backend: this.o.look.backend, browser: this.o.look.browser,
+        ...(limit === null ? {} : { textureSlots: limit - reserved }),
+      });
       installSurfaceTextures(this.textures);
       host.register({
         onRendererReplaced: () => {
