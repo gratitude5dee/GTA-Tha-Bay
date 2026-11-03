@@ -59,7 +59,8 @@ export interface FurniturePoolsReport {
   objects: number;
   /** Records the caps left out since the last report reset. */
   dropped: number;
-  heads: { n: number; aspects: Record<Aspect, number>; total: number };
+  /** The heads of the last 10 Hz pass, their aspects and the sim tick it evaluated; `total` the heads of the resident units. */
+  heads: { n: number; aspects: Record<Aspect, number>; total: number; tick: number };
   layer: boolean;
   /** Triangles the drawn instances cost. */
   triangles: number;
@@ -287,7 +288,7 @@ export class FurniturePools {
     let total = 0;
     for (const u of this.units.values()) total += u.heads.length;
     const h = this.clock.info();
-    return { profile: this.profile, pools, objects: this.objects, dropped: this.dropped, heads: { n: h.n, aspects: h.aspects, total }, layer: this.layerOn, triangles };
+    return { profile: this.profile, pools, objects: this.objects, dropped: this.dropped, heads: { n: h.n, aspects: h.aspects, total, tick: h.tick }, layer: this.layerOn, triangles };
   }
 
   /** The aspect codes of the heads in the signal pool (tests and the QA bridge). */
