@@ -499,7 +499,8 @@ export class WorldView implements WorldLayer {
       ...(this.o.atmosphereLevel !== undefined ? { atmosphereLevel: this.o.atmosphereLevel } : {}),
       lights: { hemi: this.lights[0], sun: this.lights[1] },
       backdrop: { scene: this.backdrop.scene, camera: this.backdrop.camera, hemi: this.backdrop.lights[0], sun: this.backdrop.lights[1] },
-      flags: { rain: this.o.sky?.rain ?? true, atmosphere: this.o.sky?.atmosphere ?? false },
+      // M10d2: QA builds also take `?atmosphere=1` (the desktop-ultra takram adapter; it falls back on WebGL2)
+      flags: { rain: this.o.sky?.rain ?? true, atmosphere: (this.o.sky?.atmosphere ?? false) || (this.o.qa === true && new URLSearchParams(globalThis.location?.search ?? '').get('atmosphere') === '1') },
       lamps: () => this.collectLamps(),
       disabled: this.o.sky?.enabled === false,
       now: () => this.now(),
