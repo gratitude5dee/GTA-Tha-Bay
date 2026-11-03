@@ -14,8 +14,8 @@ import {
 import type { QualityTierId } from '@dv/shared';
 import { backdropOf } from '../../sim/streaming/boot.ts';
 import { hexToLinear } from '../chunks/mesher.ts';
-import { atlasTexture, createCards } from './cards.ts';
-import { BACKDROP, cardsLayout, type MassingInstances, type RingMesh } from './far-mesh.ts';
+import { atlasTexture, createCards, ktx2Atlas } from './cards.ts';
+import { BACKDROP, cardsFormat, cardsLayout, type FarCardsResult, type MassingInstances, type RingMesh } from './far-mesh.ts';
 import { createMassing } from './massing.ts';
 import { createRing, ringMaterial } from './ring.ts';
 
@@ -29,6 +29,8 @@ export interface BackdropInfo {
   massing: boolean;
   renderObjects: number;
   bootUploads: number;
+  /** The atlas the cards draw (M10d2): its AssetRef and the file format it came in, null without cards. */
+  cardsAtlas: { asset: string; format: 'ktx2' | 'png' } | null;
 }
 
 export interface BackdropOptions {
@@ -38,6 +40,8 @@ export interface BackdropOptions {
   flags: { cards: boolean; massing: boolean };
   /** Where the player starts: the cards face it. */
   spawn: { x: number; z: number };
+  /** Transcodes a KTX2 file (the page's KTX2 decoder bound to the renderer, M10d0); without it a KTX2 atlas draws no cards. */
+  decodeKtx2?: (bytes: ArrayBuffer) => Promise<Texture>;
 }
 
 export const BACKDROP_NEAR_M = 60;
@@ -54,6 +58,7 @@ export class BackdropLayer {
   private ring = false;
   private cards = false;
   private massing = false;
+  private atlasFormat: 'ktx2' | 'png' | null = null;
 
   constructor(private readonly o: BackdropOptions) {
     const sky = new Color().setRGB(...hexToLinear(BACKDROP.colors.sky));
@@ -83,8 +88,18 @@ export class BackdropLayer {
         }
       }
     } else if (this.o.flags.cards && mode.cardsKm !== null) {
-      const { png } = (await this.o.jobs.job('world.far', { name: 'cards', tier: this.o.tier })) as { png: ArrayBuffer };
-      const atlas = await atlasTexture(png);
+      const { bytes } = (await this.o.jobs.job('world.far', { name: 'cards', tier: this.o.tier })) as FarCardsResult;
+      const format = cardsFormat(bytes);
+      let atlas: Texture;
+      if (format === 'ktx2') {
+        if (!this.o.decodeKtx2) throw new Error(`${BACKDROP.atlas.asset}: a KTX2 atlas and no KTX2 decoder`);
+        atlas = ktx2Atlas(await this.o.decodeKtx2(bytes));
+      } else if (format === 'png') {
+        atlas = await atlasTexture(bytes);
+      } else {
+        throw new Error(`${BACKDROP.atlas.asset}: neither KTX2 nor PNG`);
+      }
+      this.atlasFormat = format;
       this.textures.push(atlas);
       built.push(createCards(cardsLayout(this.o.spawn, mode.cardsKm), atlas));
       this.cards = true;
@@ -122,6 +137,7 @@ export class BackdropLayer {
       massing: this.massing,
       renderObjects: this.meshes.length,
       bootUploads: this.bootUploads,
+      cardsAtlas: this.cards && this.atlasFormat ? { asset: BACKDROP.atlas.asset, format: this.atlasFormat } : null,
     };
   }
 

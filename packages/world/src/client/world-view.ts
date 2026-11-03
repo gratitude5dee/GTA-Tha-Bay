@@ -54,6 +54,7 @@ import { NEAR_PED_CAP, pedCap } from '../sim/peds/density.ts';
 import { PED_ASSETS } from '../sim/peds/components.ts';
 import { PedRenderer, type PedInfo } from './peds/instances.ts';
 import { pedKitAssets, unsettledUnits } from './peds/kit.ts'; // art-hook:peds (M10d4)
+import { decodeKtx2Once } from './textures/ktx2.ts'; // art-hook:cards (M10d2)
 import { TransitRenderer, isTransitKey, type TransitInfo } from './transit/render.ts';
 import { MapLayer } from './map/layer.ts';
 import type { AreaBannerPatch } from './map/banner.ts';
@@ -442,7 +443,12 @@ export class WorldView implements WorldLayer {
       });
     }
 
-    this.backdrop = new BackdropLayer({ tier: this.o.tier, jobs: this.o.assets, flags: this.o.flags, spawn: this.o.spawn });
+    this.backdrop = new BackdropLayer({
+      tier: this.o.tier, jobs: this.o.assets, flags: this.o.flags, spawn: this.o.spawn,
+      // art-hook:cards begin (M10d2): the KTX2 skyline atlas is transcoded for the renderer the page runs on
+      decodeKtx2: (bytes) => decodeKtx2Once(host.ready ? host.renderer : null, bytes),
+      // art-hook:cards end
+    });
     host.backdrop = { scene: this.backdrop.scene, camera: this.backdrop.camera };
     // The look pass (M02e) starts before the sky: the dome of the `full` profile is blended over the physical sky it builds.
     if (this.o.look && profile !== 'legacy') {

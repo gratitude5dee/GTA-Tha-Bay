@@ -22,7 +22,7 @@ import { rasterTile, type CanvasFactory } from './map/raster.ts';
 import type { LayerMask, MapPalette } from './map/views.ts';
 import type { PackErrorReason, PackReply, PackRequest } from '../sim/streaming/channel.ts';
 import { basePlan } from '../sim/streaming/plan.ts';
-import { massingInstances, ringMesh } from './backdrop/far-mesh.ts';
+import { BACKDROP, massingInstances, ringMesh, type FarCardsResult } from './backdrop/far-mesh.ts';
 import { meshLod } from './chunks/lod-mesher.ts';
 import { landmarkTransferList, readLandmarkGlb, type LandmarkModelData } from './chunks/landmark-glb.ts';
 import { meshChunk } from './chunks/mesher.ts';
@@ -313,8 +313,9 @@ const far: AssetJob = async (svc, raw, signal) => {
     const inst = massingInstances(m, await dem().catch(() => null));
     return { result: inst, transfer: [inst.matrices.buffer as ArrayBuffer] };
   }
-  const png = await readPack(svc, 'texture/far-bay-cards', a.tier, 'soon', signal);
-  return { result: { png }, transfer: [png] };
+  // The card atlas: a KTX2 since M10d2 (an older bake still serves the M02a2 PNG); the page decodes either (`backdrop/cards.ts`).
+  const bytes = await readPack(svc, BACKDROP.atlas.asset, a.tier, 'soon', signal);
+  return { result: { bytes } satisfies FarCardsResult, transfer: [bytes] };
 };
 
 // ---- the maps (M02c2) -------------------------------------------------------------------------------------------------------
