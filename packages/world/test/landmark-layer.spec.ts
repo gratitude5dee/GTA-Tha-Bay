@@ -174,16 +174,51 @@ describe('LandmarkLayer', () => {
     expect(h.loads).toEqual(['lm.s0', 'lm.s0']);
   });
 
-  it('a landmark that is released before its chunks answer is removed after the timeout, not held forever', async () => {
+  // BD-FIX-LANDMARK-PREPARE-01: the leave waits on the worker's account too. Removing the model before the chunk is back leaves the proxy
+  // masked with nothing drawn (a hole the frame counters do not see, the model's handle is gone).
+  it('a leaving landmark keeps its model while its chunks are on their way, however long that takes while the worker answers: never a hole', async () => {
     const swap = LANDMARKS_RUNTIME.tiers.mobile.swapM;
     const h = harness('mobile', [0], { auto: false });
     await h.step(0, 10);
     h.settle();
     await h.step(swap * 2, 5);
     expect(h.layer.report().resident[0]?.phase).toBe('leaving');
-    h.clock.ms += 3000;
+    // the meshed-back chunk is slow (in the worker, on a page busy with long frames, in the upload gate): 30 s go by
+    for (let i = 0; i < 10; i++) {
+      h.clock.ms += 3000;
+      await h.step(swap * 2, 2);
+    }
+    expect(h.chunks.get('9/0/0' as ChunkKey)!.masked).toEqual([1]);
+    expect(h.disposed).toEqual([]);
+    expect(h.layer.report().resident[0]?.phase).toBe('leaving');
+    // the chunk lands: the model goes in the same reconciliation
+    h.commit();
     await h.step(swap * 2, 2);
+    expect(h.chunks.get('9/0/0' as ChunkKey)!.masked).toEqual([]);
     expect(h.disposed).toEqual(['lm.s0']);
+    expect(h.layer.report().resident).toEqual([]);
+  });
+
+  it('a leaving landmark whose worker stopped answering is removed once its silence passes the limit, not held forever', async () => {
+    const swap = LANDMARKS_RUNTIME.tiers.mobile.swapM;
+    const h = harness('mobile', [0], { auto: false });
+    await h.step(0, 10);
+    h.settle();
+    await h.step(swap * 2, 5);
+    expect(h.layer.report().resident[0]?.phase).toBe('leaving');
+    h.worker.dead = true;
+    // frames of 1 s: the layer asks after 2.5 s and nothing comes back; 20 frames are 5 s of silence (each frame counts 250 ms at most)
+    for (let i = 0; i < 23; i++) {
+      h.clock.ms += 1000;
+      await h.step(swap * 2, 1);
+    }
+    expect(h.disposed).toEqual([]);
+    for (let i = 0; i < 14; i++) {
+      h.clock.ms += 1000;
+      await h.step(swap * 2, 1);
+    }
+    expect(h.disposed).toEqual(['lm.s0']);
+    expect(h.layer.report().resident).toEqual([]);
   });
 
   it('coming back inside the swap distance while leaving keeps the model', async () => {

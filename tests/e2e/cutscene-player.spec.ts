@@ -1,11 +1,9 @@
-import { readFileSync } from 'node:fs';
-import { createServer } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import type { MissionBridge } from '../../packages/modes/story/src/debug/bridge.ts';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
 import { serveMediaRanges } from './media-ranges.ts';
+import { slowClipHost } from './slow-clip-host.ts';
 
 /**
  * M05b2 AC-8 and AC-9 (@cutscene): the CutscenePlayer on the game page. The intro beat of the sample mission is a generated cutscene with
@@ -107,62 +105,15 @@ async function canPlayFixture(page: Page): Promise<boolean> {
   });
 }
 
+/** The built fixture clip that `slowClipHost` serves (BD-FIX-CUTFLAKE-01, BD-FIX-CUTSCENE-START-01). */
 const FIXTURE_DIR = fileURLToPath(new URL('../../apps/web/dist/media-local/cutscenes/fixture-a/', import.meta.url));
-const FIXTURE_TYPES: Record<string, string> = { json: 'application/json', mp4: 'video/mp4', webm: 'video/webm', webp: 'image/webp', vtt: 'text/vtt' };
-
-/**
- * A second origin that serves the built fixture clip as a loaded runner's local Worker does (BD-FIX-CUTFLAKE-01): it ignores `Range`
- * (200 and the whole file, like the static-asset server of `wrangler dev`) and sends each file in 64 KB pieces 30 ms apart, so the
- * clip is still arriving after the browser has parsed its `moov`. It records every `Range` header it is sent.
- */
-async function slowClipHost(): Promise<{ origin: string; ranges: string[]; close: () => Promise<void> }> {
-  const ranges: string[] = [];
-  const server = createServer((req, res) => {
-    const name = (req.url ?? '/').split('?')[0]?.replace(/^\/+/, '') ?? '';
-    const type = FIXTURE_TYPES[name.split('.').pop() ?? ''];
-    const cors = { 'Access-Control-Allow-Origin': '*', 'Cross-Origin-Resource-Policy': 'cross-origin' };
-    if (req.method === 'OPTIONS') {
-      res.writeHead(204, { ...cors, 'Access-Control-Allow-Headers': 'Range' }).end();
-      return;
-    }
-    if (!/^[\w.-]+$/.test(name) || type === undefined) {
-      res.writeHead(404, cors).end();
-      return;
-    }
-    if (typeof req.headers.range === 'string') ranges.push(req.headers.range);
-    const body = readFileSync(`${FIXTURE_DIR}${name}`);
-    res.writeHead(200, { ...cors, 'Content-Type': type, 'Content-Length': String(body.length) });
-    let at = 0;
-    const next = (): void => {
-      if (res.destroyed) return;
-      if (at >= body.length) {
-        res.end();
-        return;
-      }
-      res.write(body.subarray(at, at + 65_536));
-      at += 65_536;
-      setTimeout(next, 30);
-    };
-    next();
-  });
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const { port } = server.address() as AddressInfo;
-  return {
-    origin: `http://127.0.0.1:${port}`,
-    ranges,
-    close: () =>
-      new Promise<void>((resolve) => {
-        server.closeAllConnections();
-        server.close(() => resolve());
-      }),
-  };
-}
 
 test.describe('cutscene player @cutscene', () => {
   // A clip that is slow to its first frame on a loaded runner falls back (start_stall, section D7); one retry keeps the video tests honest.
   test.describe.configure({ timeout: 240_000, retries: 1 });
-  // The clip renditions answer `Range` as the production media route does; the local Worker's asset server does not (BD-FIX-CUTFLAKE-01).
-  // Registered before each test's own routes, which take precedence and reach it through `route.fallback()`.
+  // The clip renditions answer `Range` as the production media route does, from the built files; the local Worker's asset server does not
+  // (BD-FIX-CUTFLAKE-01, BD-FIX-CUTSCENE-START-01). Registered before each test's own routes, which take precedence and reach it through
+  // `route.fallback()`.
   test.beforeEach(async ({ page }) => serveMediaRanges(page));
   // A failed try keeps what the player did (requests, answers, telemetry) and its state beside the trace, which records neither.
   test.afterEach(async ({ page }, info) => {
@@ -318,18 +269,24 @@ test.describe('cutscene player @cutscene', () => {
     await page.goto('about:blank');
     test.skip(!(await canPlayFixture(page)), 'this browser plays neither fixture codec');
     // WebKit's demuxer reads the `mfro` box at the end of the fragmented MP4 with `Range: bytes=<size-16>-` while the file is still
-    // arriving; a 200 with the whole file fails the load (`codec`), as on CI run 40368522267 (BD-FIX-CUTFLAKE-01).
-    const host = await slowClipHost();
+    // arriving; a 200 with the whole file fails the load (`codec`), as on CI run 40368522267 (BD-FIX-CUTFLAKE-01). The range layer answers
+    // the ranged reads of the host's clip from its file, as the media route answers them with a ranged R2 read, without waiting on that
+    // download or moving the whole clip through the Playwright worker (BD-FIX-CUTSCENE-START-01).
+    const host = await slowClipHost(FIXTURE_DIR);
     try {
+      const ranged = await serveMediaRanges(page, host.file);
       const errors = await boot(page, 'ready', '', { manifestUrl: `${host.origin}/manifest.json` });
       await expect.poll(() => cut(page, (c) => c.hasVideo()), { timeout: 60_000, intervals: [100] }).toBe(true);
+      await noteVideoMs(page);
+      test.info().annotations.push({ type: 'reads', description: host.reads.map((r) => `${r.name}${r.range === null ? '' : `[${r.range}]`}x${r.pieces}`).join(' ') });
       const entries = await log(page);
       expect(answer(entries, 'video')).toBeDefined();
       expect(answer(entries, 'fallback')).toBeUndefined();
       expect(entries.filter((e) => e.k === 'next-host')).toEqual([]);
-      // the browser did read the clip in ranges (Chromium from byte 0, WebKit the tail), so the case above was exercised
-      expect(host.ranges.length).toBeGreaterThan(0);
-      test.info().annotations.push({ type: 'ranges', description: host.ranges.join(' ') });
+      // the browser did read the host's clip in ranges (Chromium from byte 0, WebKit the tail), so the case above was exercised
+      const reads = ranged.filter((r) => r.url.startsWith(`${host.origin}/`));
+      expect(reads.length).toBeGreaterThan(0);
+      test.info().annotations.push({ type: 'ranges', description: reads.map((r) => `${r.range}=${r.status}`).join(' ') });
       await page.keyboard.press('Escape');
       await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
       expect(answer(await log(page), 'done')?.cmd?.outcome).toMatchObject({ path: 'video', skipped: true });
