@@ -69,6 +69,24 @@ export interface CurbsReport {
   rampCount: number;
 }
 
+/** M02h6: `look().furniture`. */
+export interface FurnitureLookReport {
+  /** Where the resident units' records came from: the pack (bake fill), the mesher (DL-740), both, or none (`legacy`). */
+  source: 'bake' | 'mesher' | 'mixed' | 'none';
+  profile: 'full' | 'lite' | 'min' | 'legacy';
+  /** Per pool of the profile: instances in use and the cap. */
+  pools: Record<string, { instances: number; cap: number }>;
+  /** Render objects the pools and the dressing add now. */
+  objects: number;
+  poolObjects: number;
+  parked: { instances: number; cap: number; objects: number; candidates: number; families: string[]; drawn?: { key: string; x: number; z: number; fade: number; arch: number }[] };
+  /** The heads evaluated in the last 10 Hz pass (within 200 m), their aspects, and the heads of the resident units. */
+  heads: { n: number; aspects: Record<'green' | 'amber' | 'red' | 'dark', number>; total: number };
+  layers: { furniture: boolean; parked: boolean };
+  dropped: number;
+  triangles: number;
+}
+
 export interface LookReport {
   /** `legacy` while the look is off. */
   profile: LookProfile;
@@ -118,6 +136,8 @@ export interface LookReport {
    * (`none`, `yard`, `dirt`, `mixed`, `driveway`, `vacant`, `scrub`, `park`). Filled by the world view.
    */
   cover?: CoverReport;
+  /** M02h6: the street furniture pools, the parked dressing and the signal heads (`WorldView.furnitureReport`). */
+  furniture?: FurnitureLookReport;
 }
 
 /** M02h3: `look().cover`. */
@@ -481,11 +501,17 @@ export class LookView {
   }
 
   /** M02g1: the pose loop for the blob shadows, once a frame after the traffic and the pedestrians drew (`ambientShown`: `BlobShadows.feed`). */
-  feedBlobs(f: Pick<WorldFrame, 'poses' | 'poseCount' | 'poseKeys' | 'camera'>, ambientShown?: (key: string) => boolean): void {
+  feedBlobs(
+    f: Pick<WorldFrame, 'poses' | 'poseCount' | 'poseKeys' | 'camera'>,
+    ambientShown?: (key: string) => boolean,
+    /** M02h6: more blobs after the poses' (the parked dressing's cars). */
+    extra?: (push: (x: number, groundY: number, z: number, yaw: number, halfW: number, halfL: number) => void) => void,
+  ): void {
     const b = this.blobs;
     if (!b || !this.on || !b.enabled) return;
     b.begin();
     b.feed(f, ambientShown);
+    extra?.((x, y, z, yaw, hw, hl) => b.push(x, y, z, yaw, hw, hl));
     b.commit();
   }
 

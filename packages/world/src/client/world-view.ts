@@ -55,6 +55,8 @@ import { PED_ASSETS } from '../sim/peds/components.ts';
 import { PedRenderer, type PedInfo } from './peds/instances.ts';
 import { pedKitAssets, unsettledUnits } from './peds/kit.ts'; // art-hook:peds (M10d4)
 import { TransitRenderer, isTransitKey, type TransitInfo } from './transit/render.ts';
+import { ParkedDressing } from './traffic/parked-dressing.ts';
+import type { FurnitureLookReport } from './look/look-view.ts';
 import { MapLayer } from './map/layer.ts';
 import type { AreaBannerPatch } from './map/banner.ts';
 
@@ -231,6 +233,8 @@ export class WorldView implements WorldLayer {
   peds: PedRenderer | null = null;
   /** Buses, trains, cable cars, ferries, airliners and station entrances (M03b2); set in `attach`. */
   transit: TransitRenderer | null = null;
+  /** M02h6: the render-only parked dressing on the slots the sim leaves empty on this tier; null on the `legacy` look. */
+  parked: ParkedDressing | null = null;
   /**
    * M02h2 repair: whether the renderer group that draws an ambient record of this render key is shown (pedestrian bodies: `peds`; transit
    * assets: `transit`; every other ambient record: `traffic`). The blob shadows skip an actor whose group is hidden.
@@ -387,6 +391,8 @@ export class WorldView implements WorldLayer {
       treeHysteresis: MESHER.tree.drawHysteresis,
       treeSet: this.treeSet,
       scatter,
+      // M02h6: the street furniture pools of the look profile (none on `legacy`)
+      furniture: profile === 'legacy' ? null : { profile, sky: this.skyNodes },
     });
     host.register(this.renderer);
     // A renderer replaced after a device loss may have the other depth buffer: the polygon offsets follow it (M02g2).
@@ -530,6 +536,18 @@ export class WorldView implements WorldLayer {
       lift: (x, z) => this.renderer.walkLiftAt(x, z),
       ...(artLoader ? { art: pedKitAssets(this.o.assets, artVariantOf(this.o.tier)), artWaits: !this.artAfterReveal, worldLoad: () => ({ held: host.worldHeld, unsettled: unsettledUnits(this.store.units.values()), requests: this.store.stats.requests, meshing: this.inflight, landmarksIdle: this.landmarks?.idle ?? true, artLoading: this.textures?.active === true && !this.textures.report().settled }) } : {}), // art-hook:peds (M10d4): the kit's gate reads what the world is doing once a frame (BD-REPAIR-M10d4-03); `?art=0` keeps the mannequin
     });
+    // M02h6: the parked dressing on the M10d1 families (their models through the same loader), fed with the L0 units' parked slots
+    if (profile !== 'legacy') {
+      this.parked = new ParkedDressing({ parent: host.scene, sky: this.skyNodes, profile, bakeId: this.o.index.bakeId, ...(artLoader ? { load: artLoader } : {}) });
+      const parked = this.parked;
+      this.renderer.onL0 = (id, mesh) => (mesh ? parked.addUnit(id, mesh) : parked.removeUnit(id));
+      host.register({
+        onRendererReplaced: () => {
+          parked.rebuild();
+          return Promise.resolve();
+        },
+      });
+    }
     this.transit = new TransitRenderer({
       parent: host.scene,
       trafficCap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier),
@@ -604,9 +622,13 @@ export class WorldView implements WorldLayer {
     this.lastPoseKeys = f.poseKeys ?? null; // art-hook:vehicles (M10d1)
     if (this.lookView && this.host) this.lookView.frame(f.dtSec, this.host.camera as PerspectiveCamera);
     this.peds?.update(f, tSec);
+    // M02h6: the signal heads at the snapshot's tick, and the parked dressing between its fades
+    this.renderer.furniture?.update(f.simTick ?? -1, f.blackout, f.camera.pos[0], f.camera.pos[2], f.nowMs);
+    this.parked?.update(f);
     // M02g1: the blob shadows follow the poses the traffic, the pedestrians and the object pool just drew.
     // M02h2 repair: an ambient actor whose renderer group is hidden (the goldens hide traffic, pedestrians and transit) casts no blob.
-    this.lookView?.feedBlobs(f, this.ambientShown);
+    const parked = this.parked;
+    this.lookView?.feedBlobs(f, this.ambientShown, parked && this.traffic?.group.visible !== false ? (push) => parked.feedBlobs(push) : undefined);
     this.transit?.update(f);
     this.updateOverlays();
     this.map?.frame(f);
@@ -705,6 +727,8 @@ export class WorldView implements WorldLayer {
     this.sky = null;
     this.traffic?.dispose();
     this.traffic = null;
+    this.parked?.dispose();
+    this.parked = null;
     art.reset(); // art-hook:vehicles (M10d1)
     this.peds?.dispose();
     this.peds = null;
@@ -1191,7 +1215,29 @@ export class WorldView implements WorldLayer {
 
   lookReport(): LookReport | null {
     const r = this.lookReportOf();
-    return r ? { ...r, cover: { enabled: this.coverOn, cells: this.renderer.coverCounts(), ...this.coverPending() } } : null;
+    return r ? { ...r, cover: { enabled: this.coverOn, cells: this.renderer.coverCounts(), ...this.coverPending() }, furniture: this.furnitureReport() } : null;
+  }
+
+  /** M02h6: `look().furniture`: where the records came from, the pools, their render objects, the parked dressing and the signal heads. */
+  furnitureReport(qa = false): FurnitureLookReport {
+    const f = this.renderer?.furniture?.report() ?? null;
+    const p = this.parked?.report(qa) ?? null;
+    const sources = new Set<string>();
+    for (const u of this.renderer?.units.values() ?? []) if (u.level === 'l0' && u.mesh.stats.furniture) sources.add(u.mesh.stats.furniture.source);
+    sources.delete('none');
+    const source = sources.size === 0 ? 'none' : sources.size > 1 ? 'mixed' : ([...sources][0] as 'bake' | 'mesher');
+    return {
+      source,
+      profile: f?.profile ?? 'legacy',
+      pools: f?.pools ?? {},
+      objects: (f?.objects ?? 0) + (p?.objects ?? 0),
+      poolObjects: f?.objects ?? 0,
+      parked: { instances: p?.instances ?? 0, cap: p?.cap ?? 0, objects: p?.objects ?? 0, candidates: p?.candidates ?? 0, families: p?.families ?? [], ...(p?.drawn ? { drawn: p.drawn } : {}) },
+      heads: { n: f?.heads.n ?? 0, aspects: f?.heads.aspects ?? { green: 0, amber: 0, red: 0, dark: 0 }, total: f?.heads.total ?? 0 },
+      layers: { furniture: f?.layer ?? false, parked: p?.layer ?? false },
+      dropped: f?.dropped ?? 0,
+      triangles: f?.triangles ?? 0,
+    };
   }
 
   private lookReportOf(): LookReport | null {
@@ -1270,6 +1316,11 @@ export class WorldView implements WorldLayer {
     const ok = this.lookView ? this.lookView.setOn(on) : !on;
     // M02h5: the legacy look has no impostors: the far trees go back to their meshes within drawM (as in M02h4)
     if (ok && this.renderer) this.renderer.vegetation.setLookOn(on);
+    // M02h6: the legacy look has no street furniture and no parked dressing
+    if (ok) {
+      this.renderer?.furniture?.setLookOn(on);
+      this.parked?.setLookOn(on);
+    }
     return ok;
   }
 
@@ -1288,6 +1339,17 @@ export class WorldView implements WorldLayer {
     }
     // M02h5: the scatter records (bit 7) and the far-tree impostors (render only: the pools are filled again or re-banded)
     if (id === 'scatter') return this.renderer.vegetation.setScatterLayer(on);
+    // M02h6: the street furniture pools and the parked dressing (render only; false where the profile has none)
+    if (id === 'furniture') {
+      if (!this.renderer.furniture) return false;
+      this.renderer.furniture.setLayer(on);
+      return true;
+    }
+    if (id === 'parked') {
+      if (!this.parked) return false;
+      this.parked.setLayer(on);
+      return true;
+    }
     if (id === 'impostors') return this.renderer.vegetation.setImpostorLayer(on);
     // art-hook:textures begin (M10d0): the surface textures are a layer of the look that has no entry in look.json
     if (id === 'textures') return this.textures?.setOn(on) ?? false;

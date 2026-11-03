@@ -5,7 +5,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
-import { CHUNK_EDGE_M, GRID_MIN_M, TERRAIN_POSTS, sha256Hex, canonicalize, type ChunkKey, type TreeFormTable, type WorldBounds } from '../../../packages/shared/src/index.ts';
+import { CHUNK_EDGE_M, GRID_MIN_M, TERRAIN_POSTS, sha256Hex, canonicalize, type ChunkKey, type FurnitureFile, type TreeFormTable, type WorldBounds } from '../../../packages/shared/src/index.ts';
 import { toolsRoot } from '../../ci/lib/common.ts';
 import { contentWorldSha } from './content.ts';
 import type { BridgesConfig } from './stages/s7-grading.ts';
@@ -69,6 +69,8 @@ export const DENSITY_PATH = path.join(toolsRoot, 'config', 'world', 'density.jso
 export const COVER_PATH = path.join(toolsRoot, 'config', 'world', 'cover.json');
 export const TREE_FORMS_PATH = path.join(toolsRoot, 'config', 'world', 'tree-forms.json');
 export const VEGETATION_PATH = path.join(toolsRoot, 'config', 'world', 'vegetation.json');
+/** M02h6: the street furniture rules (`config/world/furniture.json`, `config/schemas/world-furniture.schema.json`). */
+export const FURNITURE_PATH = path.join(toolsRoot, 'config', 'world', 'furniture.json');
 export const SCHEMAS_DIR =path.join(toolsRoot, 'tools', 'map', 'schemas');
 
 const readJson = <T>(file: string): T => JSON.parse(readFileSync(file, 'utf8')) as T;
@@ -181,6 +183,11 @@ export interface VegetationConfig {
   streetTrees: { dedupeM: number; treeRowM: number };
 }
 export const loadVegetation = (file = VEGETATION_PATH): VegetationConfig => loadChecked<VegetationConfig>(file, 'vegetation');
+/**
+ * M02h6: the street furniture rules. The S13 fill reads them only with `bakeFill` on (DL-740 keeps it off in v1); the schema check is the unit
+ * test `packages/shared/test/world-furniture.spec.ts`.
+ */
+export const loadFurniture = (file = FURNITURE_PATH): FurnitureFile => JSON.parse(readFileSync(file, 'utf8')) as FurnitureFile;
 
 export function loadBounds(): WorldBounds {
   return readJson<WorldBounds>(BOUNDS_PATH);
@@ -306,6 +313,8 @@ export function configHashesOf(cfg: SourcesConfig, area: AreaId): Record<string,
     cover: sha256Hex(canonicalize(loadCover())),
     treeForms: sha256Hex(canonicalize(loadTreeForms())),
     vegetation: sha256Hex(canonicalize(loadVegetation())),
+    // M02h6: the furniture rules change the bake only when its fill is on (DL-740: off in v1, so the bake id stays the same)
+    ...(loadFurniture().bakeFill ? { furniture: sha256Hex(canonicalize(loadFurniture())) } : {}),
     contentWorld: contentWorldSha(),
     sourcesDatabase: sha256Hex(canonicalize(cfg.database)),
   };

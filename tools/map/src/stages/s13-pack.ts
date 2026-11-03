@@ -1,6 +1,7 @@
 /**
  * S13 pack writer and world index. `p0` (sim: HEIGHT, PRISM, SLAB, HOOD, SEGMENT, NODE, EDGE, JUNCTION, PED, TAGS, SPAWN,
- * GROUND) and `l0` (render: BUILDING with landmark proxies, TREE, LAMP, LMREF; FURNITURE stays empty until its milestone)
+ * GROUND) and `l0` (render: BUILDING with landmark proxies, TREE, LAMP, LMREF; FURNITURE, M02h6: `placeFurniture` per chunk when the
+ * furniture rules' `bakeFill` is on, else empty and placed at mesh time, DL-740)
  * DVWP v1 packs per z=7 tile that holds at least one baked chunk, the S11 `l1`/`l2`/`far-bay-*` packs passed in, the
  * `map_data/sf-graph.v1` topology and `data/world-index`. The codec is M01f's; this stage only fills C08 structures.
  *
@@ -11,6 +12,7 @@
  * street trees in the l0 TREE section.
  */
 import {
+  placeFurniture, worldSeedOf, type FurnitureFile,
   C08_VERSION, GroundClass, TERRAIN_POSTS, chunkBounds, chunkKeyAt, encodeCoverRects, parseChunkKey, encodeGraph,
   type BuildingRecord, type ChunkKey, type ChunkTags, type Junction, type PedEdge, type PedNode, type Portal, type RenderChunk, type RoadEdge,
   type RoadNode, type RoadSegment, type SimChunk, type SourceStamp, type SpawnTable, type WorldIndex,
@@ -100,6 +102,8 @@ export interface PackInputs {
   cover?: { cfg: CoverConfig; osm: readonly OsmFeature[] } | null | undefined;
   /** M02h5: the vegetation scatter's rules; absent or `enabled: false` bakes no scatter. */
   scatter?: { cfg: VegetationConfig } | null | undefined;
+  /** M02h6: the street furniture rules; absent or `bakeFill: false` leaves FURNITURE empty (the mesher places the records, DL-740). */
+  furniture?: { cfg: FurnitureFile } | null | undefined;
 }
 
 const q1 = (v: number): number => Math.round(v * 10) / 10;
@@ -112,6 +116,25 @@ export function graphBytes(bakeId: string, nodes: readonly NodeB[], edges: reado
       from: e.from, to: e.to, lengthM: (segs[e.seg] as SegB).lengthM, cls: e.cls, lanes: e.lanes, flags: e.flags, dir: e.dir, layer: e.layer, speedMps: e.speedMps,
     })),
   });
+}
+
+/**
+ * M02h6: `RenderChunk.furniture` of every chunk from `placeFurniture` (the chunk's tile, its lamps and trees to keep clear of). Exported for
+ * the AC-2 test, which meshes a filled chunk against an empty one.
+ */
+export function fillFurniture(cfg: FurnitureFile, bakeId: string, tiles: ReadonlyMap<string, readonly ChunkKey[]>, sims: ReadonlyMap<ChunkKey, SimChunk>, renders: Map<ChunkKey, RenderChunk>): void {
+  for (const members of tiles.values()) {
+    const tile = members.map((k) => sims.get(k)).filter((s): s is SimChunk => s !== undefined);
+    for (const key of members) {
+      const sim = sims.get(key);
+      const r = renders.get(key);
+      if (!sim || !r) continue;
+      const avoid: number[] = [];
+      for (let i = 0; i + 2 < r.lamps.length; i += 3) avoid.push(r.lamps[i] as number, r.lamps[i + 1] as number);
+      for (let i = 0; i + 3 < r.trees.length; i += 4) avoid.push(r.trees[i] as number, r.trees[i + 1] as number);
+      renders.set(key, { ...r, furniture: placeFurniture(sim, { rules: cfg.place, worldSeed: worldSeedOf(bakeId), tile, avoid }) });
+    }
+  }
 }
 
 export function buildPacks(inp: PackInputs): PackOutput {
@@ -248,6 +271,8 @@ export function buildPacks(inp: PackInputs): PackOutput {
     const t = `${Math.floor(p.x / 4)}-${Math.floor(p.y / 4)}`;
     (tiles.get(t) ?? tiles.set(t, []).get(t)!).push(key);
   }
+  // M02h6: the bake fill of the furniture records, over each chunk's z7 tile as the mesh job decodes it (the same records the mesher places)
+  if (inp.furniture && inp.furniture.cfg.bakeFill) fillFurniture(inp.furniture.cfg, bakeId, tiles, sims, renders);
   const tileIds = [...tiles.keys()].sort((a, b) => {
     const [ax, ay] = a.split('-').map(Number) as [number, number];
     const [bx, by] = b.split('-').map(Number) as [number, number];

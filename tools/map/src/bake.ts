@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import path from 'node:path';
 import { canonicalize, chunkBounds, chunkKeyAt, enuFromLatLng, isScatterByte, sha256Hex, type ChunkKey, type RenderChunk, type SourceStamp } from '../../../packages/shared/src/index.ts';
 import {
-  CACHE_ROOT, DEFAULT_LAMP_PITCH_M, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadCover, loadDensity, loadBounds, loadTreeForms, loadRoadClass, loadSources, loadSynth, loadVegetation, mapSchema, rawDirOf,
+  CACHE_ROOT, DEFAULT_LAMP_PITCH_M, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadCover, loadDensity, loadBounds, loadTreeForms, loadRoadClass, loadSources, loadSynth, loadVegetation, loadFurniture, mapSchema, rawDirOf,
   type AreaGrid, type AreaId, type SourcesConfig, type SynthConfig,
 } from './config.ts';
 import { CONTENT_STAMP_AT, CONTENT_STAMP_ID, contentRows, contentStamp, loadContentWorld, type ContentWorld } from './content.ts';
@@ -408,6 +408,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       far: [{ name: 'far-bay-dem.pack', bytes: lodStage.far.dem }, { name: 'far-bay-massing.pack', bytes: lodStage.far.massing }, { name: 'far-bay-cards.png', bytes: lodStage.far.cards }],
       cover: { cfg: loadCover(), osm: osmOf(c) },
       scatter: { cfg: loadVegetation() },
+      furniture: { cfg: loadFurniture() },
     });
     // M02h5: what the scatter placed, and the street trees per km of sidewalk in each neighbourhood (one with sidewalks and no tree warns)
     const streetTrees = streetTreeDensity(outputs.renders, ped.product.sidewalkM, (x, z) => hoodAt(water.product.hoods, x, z));
