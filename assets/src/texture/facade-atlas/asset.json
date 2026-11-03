@@ -1,0 +1,27 @@
+{
+  "kind": "texture",
+  "id": "facade-atlas",
+  "variants": {
+    "desktop": "assets/src/texture/facade-atlas/desktop.ktx2",
+    "mobile": "assets/src/texture/facade-atlas/mobile.ktx2"
+  },
+  "deps": [],
+  "tags": [
+    "art:m10d2"
+  ],
+  "codec": {
+    "tex": "ktx2-etc1s"
+  },
+  "stats": {
+    "desktop": {
+      "texMaxPx": 1024,
+      "texGpuBytes": 1398128
+    },
+    "mobile": {
+      "texMaxPx": 512,
+      "texGpuBytes": 349552
+    }
+  },
+  "status": "active",
+  "visibility": "public"
+}

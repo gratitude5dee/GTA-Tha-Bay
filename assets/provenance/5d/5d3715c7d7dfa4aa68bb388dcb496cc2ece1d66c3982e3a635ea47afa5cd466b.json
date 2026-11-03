@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "5d3715c7d7dfa4aa68bb388dcb496cc2ece1d66c3982e3a635ea47afa5cd466b",
+  "paths": [
+    "assets/src/texture/facade-atlas/desktop.ktx2"
+  ],
+  "kind": "texture",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets facade-atlas",
+    "version": "1.0.0",
+    "args_sha256": "fda190f8b17ccb01749e1044f0eaefd3debe0d767e8f40e19040b9e2dcec40a6"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-11-03T00:00:00Z"
+}

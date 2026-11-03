@@ -3254,6 +3254,16 @@
       "approved_by": "gratitude5dee",
       "approved_at": "2026-10-18T23:14:39Z"
     },
+    "texture/facade-atlas": {
+      "rev": 1,
+      "variants": {
+        "desktop": "5d3715c7d7dfa4aa68bb388dcb496cc2ece1d66c3982e3a635ea47afa5cd466b",
+        "mobile": "0e708c2985e4051463910905df57dfffddc44c97e21cc17e7c342ac4d8efd204"
+      },
+      "root": "5d3715c7d7dfa4aa68bb388dcb496cc2ece1d66c3982e3a635ea47afa5cd466b",
+      "approved_by": "m10d2-builder",
+      "approved_at": "2026-11-03T19:54:39Z"
+    },
     "texture/pbr.asphalt.albedo": {
       "rev": 1,
       "variants": {

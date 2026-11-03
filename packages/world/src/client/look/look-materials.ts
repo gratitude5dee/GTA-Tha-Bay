@@ -34,6 +34,7 @@ import { windOffset, type WindNodes } from './wind.ts';
 // art-hook:textures begin (M10d0): the one import of the surface textures
 import { withSurfaceTextures } from '../textures/surface-textures.ts';
 // art-hook:textures end
+import { withFacadeAtlas } from '../chunks/facade.ts'; // art-hook:facade (M10d2)
 
 export type MaterialProfile = 'full' | 'lite' | 'min';
 
@@ -120,7 +121,9 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     const fac = facadeNodes();
     const vc = vertexColor(0);
     const isWall = step(Surf.WallBase - 0.5, s.id).mul(step(s.id, Surf.WallBase + 5.5));
-    const wall = wallNodes({ profile, look, n, kind: s.kind, pal: s.pal, flags: s.flags, fac, foundationM: o.foundationM, parapetM: o.parapetM });
+    // art-hook:facade begin (M10d2): the KTX2 facade atlas over the wall albedo on `full` (desktop tiers); M02h7's `albedo` seam takes it over
+    const wall = withFacadeAtlas(profile, wallNodes({ profile, look, n, kind: s.kind, pal: s.pal, flags: s.flags, fac, foundationM: o.foundationM, parapetM: o.parapetM }), { kind: s.kind, seed: fac.seed, u: fac.u, v: fac.v });
+    // art-hook:facade end
     let col: L;
     let rough: L;
     let metal: L = float(0);

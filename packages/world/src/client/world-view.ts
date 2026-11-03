@@ -55,6 +55,7 @@ import { PED_ASSETS } from '../sim/peds/components.ts';
 import { PedRenderer, type PedInfo } from './peds/instances.ts';
 import { pedKitAssets, unsettledUnits } from './peds/kit.ts'; // art-hook:peds (M10d4)
 import { decodeKtx2Once } from './textures/ktx2.ts'; // art-hook:cards (M10d2)
+import { FacadeAtlas, installFacadeAtlas, installedFacadeAtlas, type FacadeAtlasInfo } from './chunks/facade.ts'; // art-hook:facade (M10d2)
 import { TransitRenderer, isTransitKey, type TransitInfo } from './transit/render.ts';
 import { MapLayer } from './map/layer.ts';
 import type { AreaBannerPatch } from './map/banner.ts';
@@ -91,6 +92,8 @@ export interface ArtReport {
   loaded: number;
   pool: { variant: string; loaded: string[]; pending: string[]; failed: string[] };
   renderKeys: string[];
+  /** M10d2: the facade atlas of the tier (requested, loaded, format; `on` false off the desktop tiers). */
+  facadeAtlas: FacadeAtlasInfo | null;
 }
 // art-hook:vehicles end
 
@@ -222,6 +225,8 @@ export class WorldView implements WorldLayer {
   lookView: LookView | null = null;
   /** M10d0: the tiled PBR surface textures of the ground; null in a view built without `look`. */
   textures: SurfaceTextures | null = null;
+  /** M10d2: the KTX2 facade atlas of the desktop tiers (art-hook:facade). */
+  facadeAtlas: FacadeAtlas | null = null;
   /** The landmark models of the world (M02d1); null when the catalog holds none. */
   landmarks: LandmarkLayer | null = null;
   /** The sky of the world path (M02b2); set in `attach`. */
@@ -355,6 +360,13 @@ export class WorldView implements WorldLayer {
       });
     }
     // art-hook:textures end
+    // art-hook:facade begin (M10d2): installed before the materials, which read it; the file loads after the reveal with the surface sets
+    if (this.o.look) {
+      const q = this.o.qa === true ? new URLSearchParams(globalThis.location?.search ?? '') : null;
+      this.facadeAtlas = new FacadeAtlas(this.o.tier, TEXTURES_FLAG && q?.get('textures') !== '0' && q?.get('art') !== '0');
+      installFacadeAtlas(this.facadeAtlas);
+    }
+    // art-hook:facade end
     // M02h1: an XR tier (the look profile `legacy` in look.json) keeps the legacy materials and draws the flat street paint on its roads
     const xrMarkings = this.o.look?.enabled === true && lookProfileFor(this.o.tier, true) === 'legacy';
     this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK }, depthPolicy: host.depthPolicy, xrMarkings });
@@ -704,6 +716,9 @@ export class WorldView implements WorldLayer {
     this.lookView = null;
     // art-hook:textures begin (M10d0)
     if (installedSurfaceTextures() === this.textures) installSurfaceTextures(null);
+    if (installedFacadeAtlas() === this.facadeAtlas) installFacadeAtlas(null); // art-hook:facade (M10d2)
+    this.facadeAtlas?.dispose();
+    this.facadeAtlas = null;
     this.textures?.dispose();
     this.textures = null;
     // art-hook:textures end
@@ -908,6 +923,7 @@ export class WorldView implements WorldLayer {
       loaded: info.loaded,
       pool: { variant: st.variant, loaded: st.loaded, pending: st.pending, failed: st.failed },
       renderKeys: this.lastPoseKeys ? [...new Set(this.lastPoseKeys.values())].sort() : [],
+      facadeAtlas: this.facadeAtlas?.info() ?? null,
     };
   }
   // art-hook:vehicles end
@@ -1000,6 +1016,8 @@ export class WorldView implements WorldLayer {
     // art-hook:peds (M10d4): the pedestrian kit loads at the same moment, for the same reason (BD-REPAIR-M10d4-02)
     void this.readBootFigures().finally(() => {
       this.startTextures();
+      // art-hook:facade (M10d2)
+      void this.facadeAtlas?.load(this.o.assets, () => (this.host?.ready ? this.host.renderer : null));
       this.artAfterReveal = true;
       this.peds?.startArt();
     });
