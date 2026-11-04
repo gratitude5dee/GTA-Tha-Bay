@@ -81,7 +81,11 @@ describe('surf and facade arrays on the synth bake (AC-3)', () => {
               expect(u).toBeGreaterThanOrEqual(0);
               if (id >= Surf.WallBase && id < Surf.WallBase + 6) {
                 expect(v).toBeGreaterThanOrEqual(0);
-                expect(v).toBeLessThanOrEqual(wallH);
+                // M02h7: a bay cap or the cornice ring (kit parts, FLAG_BAY or FLAG_CORNICE) carries a `v` above the wall top, which the
+                // window grid draws plain; every other wall vertex stays within its wall
+                const kitPart = ((o.surf[i * 4 + 3] as number) & (FLAG_BAY | FLAG_CORNICE)) !== 0;
+                if (!kitPart) expect(v).toBeLessThanOrEqual(wallH);
+                else expect(v).toBeLessThanOrEqual(wallH + 40);
               }
               expect(wallH).toBeLessThanOrEqual(FACADE_SCALE);
             }
