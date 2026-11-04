@@ -72,6 +72,8 @@ export interface FurnitureFile {
     carLengthM: number;
     /** A live car counts for `skipCarLengths` only within this distance across the slot's centre line (its parking lane). */
     skipLateralM: number;
+    /** The width of a car's footprint in the turned-footprint overlap test of a live car against a dressing slot (BD-M02h6-15). */
+    bodyWidthM: number;
     rebandM: number;
     everyFrames: number;
   };

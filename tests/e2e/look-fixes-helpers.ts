@@ -160,6 +160,16 @@ export function registerFlickerPair(pairId: FlickerPairId): void {
       // moves by whole pixels near the camera (10 px at 1.5 m: parallax, not sparkle), so the layer is off here; the paint's own pair, with its
       // own region and threshold, is `markings-flicker-*.spec.ts` (@markings-golden). Tiers without the layer ignore the call.
       await page.evaluate(() => (window as unknown as W).__dvBridge.world.setLookLayer('markings', false));
+      // M02h6 (BD-M02h6-15): the street furniture is off here for the same reason. A utility pole 12 to 20 m from the camera is a thin
+      // vertical edge the 5 cm step moves by 2 px (parallax): on the synth bake of M10d2 one stands in `civic-hall-graze` and its edges
+      // alone read 0.13 % with the one-pixel window and under 0.02 % with a two-pixel one. These pairs count the depth fights and fades
+      // M02g2 fixed; the furniture has its own checks (@world-furniture, @furniture-ledger, the `junction-noon` goldens). The parked
+      // dressing is hidden with the traffic by `captureShot` (BD-M02h6-04); its layer goes off too.
+      await page.evaluate(() => {
+        const w = (window as unknown as W).__dvBridge.world;
+        w.setLookLayer('furniture', false);
+        w.setLookLayer('parked', false);
+      });
       const t1 = Date.now();
       const a = await captureShot(page, pair.id, 'shot');
       const t2 = Date.now();

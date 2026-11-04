@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { FURNITURE, PARKED_STRIDE, meshChunk, parkedDressingRecords } from '../src/client/chunks/mesher.ts';
 import { lookProfileFor } from '../src/client/look/config.ts';
 import { createSkyNodes } from '../src/client/sky/nodes.ts';
-import { ParkedDressing, dressFade, nearLive, parkedLook, type DressingProfile } from '../src/client/traffic/parked-dressing.ts';
+import { ParkedDressing, dressFade, footprintsOverlap, nearLive, parkedLook, type DressingProfile } from '../src/client/traffic/parked-dressing.ts';
 import { PALETTE, pickArchetype } from '../src/sim/traffic/components.ts';
 import { DENSITY, profileName } from '../src/sim/traffic/density.ts';
 import { parkedPose, slotUnit } from '../src/sim/traffic/spawn.ts';
@@ -76,9 +76,9 @@ describe('parked dressing on synth (AC-4)', () => {
     let maxDrawn = 0, frames = 0;
     rig.run(600, (tick) => {
       if (tick % 6 !== 0) return;
-      // the sim's live cars as the snapshot would carry them (ambient, flag 2), and the player at the focus
+      // the sim's live cars as the snapshot would carry them (ambient, flag 2, the sim's yaw quaternion), and the player at the focus
       const agents = rig.sim.agents.list();
-      const poses = agents.map((a) => ({ px: a.x, pz: a.z, flags: 2 }));
+      const poses = agents.map((a) => ({ px: a.x, pz: a.z, qx: 0, qy: Math.sin(a.yaw / 2), qz: 0, qw: Math.cos(a.yaw / 2), flags: 2 }));
       const filled = new Set(agents.map((a) => a.key));
       dressing.update({ camera: { pos: [focus.x, 8, focus.z + 6], dir: [0, 0, -1] }, player: { pos: [focus.x, 0, focus.z] } as never, poses: poses as never, poseCount: poses.length });
       const r = dressing.report(true);
@@ -95,10 +95,12 @@ describe('parked dressing on synth (AC-4)', () => {
         const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
         const bad: string[] = [];
         for (const a of agents) {
-          if (nearLive({ x: d.x, z: d.z, yaw }, a.x, a.z, cfg)) bad.push(`${d.key} by live car ${a.key}`);
+          if (nearLive({ x: d.x, z: d.z, yaw }, a.x, a.z, cfg, a.yaw)) bad.push(`${d.key} by live car ${a.key}`);
           // no overlap of the two bodies (a car of 4.6 by 1.9 m each way, in the slot's frame)
           const dx = a.x - d.x, dz = a.z - d.z;
           if (Math.abs(dx * fx + dz * fz) < cfg.carLengthM && Math.abs(dx * fz - dz * fx) < 1.9) bad.push(`${d.key} overlaps live car ${a.key}`);
+          // nor with the live body turned by its own yaw (a car on a corner slot of the cross street; BD-M02h6-15)
+          if (footprintsOverlap(dx, dz, yaw, a.yaw, cfg.carLengthM / 2, 0.95)) bad.push(`${d.key} overlaps turned live car ${a.key}`);
         }
         expect(bad).toEqual([]);
         expect(d.fade).toBeGreaterThan(0);
@@ -108,6 +110,23 @@ describe('parked dressing on synth (AC-4)', () => {
     expect(maxDrawn, `${tier}: dressing drawn`).toBeGreaterThan(0);
     expect(dressing.report().families.length).toBe(cfg.families[profile].length);
     dressing.dispose();
+  });
+
+  it('a live car on the cross street\'s corner slot hides the dressed slot it overlaps (BD-M02h6-15)', () => {
+    const cfg = FURNITURE.parked;
+    // the synth case: a dressed slot facing north at (1504.15, 6222), a sim-parked car facing east at (1506, 6220.15)
+    const slot = { x: 1504.15, z: 6222, yaw: 6.2731852531433105 };
+    expect(nearLive(slot, 1506, 6220.15, cfg, 4.75238898038469)).toBe(true);
+    // the same car turned along the slot, 2.6 m across (the next lane): no overlap, the slot stays
+    expect(nearLive(slot, slot.x + 2.6, slot.z, cfg, slot.yaw)).toBe(false);
+    // a car crossing 5.5 m ahead of the slot's centre (turned 90 degrees, past the along-the-curb band): no overlap
+    expect(nearLive(slot, slot.x, slot.z - 5.5, cfg, slot.yaw + Math.PI / 2)).toBe(false);
+    // and inside the slot's footprint at any yaw: hidden
+    for (const y of [0, 0.7, 1.6, 3.1]) expect(nearLive(slot, slot.x + 0.5, slot.z + 1.5, cfg, y)).toBe(true);
+    expect(footprintsOverlap(0, 4.5, 0, 0, 2.3, 0.95)).toBe(true);
+    expect(footprintsOverlap(0, 4.7, 0, 0, 2.3, 0.95)).toBe(false);
+    expect(footprintsOverlap(3.2, 0, 0, Math.PI / 2, 2.3, 0.95)).toBe(true);
+    expect(footprintsOverlap(3.3, 0, 0, Math.PI / 2, 2.3, 0.95)).toBe(false);
   });
 
   it('fades over fadeM past ghostM and before dressFarM', () => {

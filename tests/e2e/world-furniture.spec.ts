@@ -91,7 +91,27 @@ test.describe('street furniture @world-furniture', () => {
       expect(lastTick - tick0).toBeLessThanOrEqual(1800);
       await page.evaluate(() => (window as unknown as { __dvFurnRelease?: () => void }).__dvFurnRelease?.());
 
-      // the layers off: no render object; on again: back, and no request
+      // the layers off: no render object; on again: back, and no request. The other rows' art loads on its own after the reveal and, for
+      // the people kit, only while the world is quiet (M10d4's gate, closed while the draw was held above): on the tree with M10d2 the
+      // desktop case on webkit-webgl2 saw `texture/facade-atlas` (M10d2) and `texture/ped.atlas` (M10d4) arrive inside the switch's two
+      // frames (16 then 17 requests; BD-M02h6-15). The window opens once the facade atlas and the people kit have settled (loaded or
+      // failed) and no request has come in for two polls 3 s apart, so it holds only what the switch itself asks for
+      await expect
+        .poll(async () => {
+          const a = await world(page, (w) => ({ facade: w.art()?.facadeAtlas ?? null, peds: w.peds()?.art.state ?? 'off' }));
+          const facade = !a.facade || !a.facade.on || a.facade.loaded || a.facade.failed !== null;
+          return facade && a.peds !== 'loading';
+        }, { timeout: 900_000, intervals: [1000] })
+        .toBe(true);
+      let quiet = -1;
+      await expect
+        .poll(async () => {
+          const n = requests.length;
+          const same = n === quiet;
+          quiet = n;
+          return same;
+        }, { timeout: 300_000, intervals: [3000] })
+        .toBe(true);
       const before = requests.length;
       expect(await world(page, (w) => w.setLookLayer('furniture', false))).toBe(true);
       expect(await world(page, (w) => w.setLookLayer('parked', false))).toBe(true);
@@ -102,7 +122,7 @@ test.describe('street furniture @world-furniture', () => {
       expect(await world(page, (w) => w.setLookLayer('parked', true))).toBe(true);
       expect((await furniture(page)).objects).toBeGreaterThan(0);
       await frames(page, 2);
-      expect(requests.length, 'the layers fetch nothing').toBe(before);
+      expect(requests.slice(before), 'the layers fetch nothing').toEqual([]);
 
       // every image or texture request is a surface texture ref (M10d0), a vehicle art ref (M10d1), a people-kit ref (M10d4) or the
       // backdrop's skyline cards (M02c2, `texture/far-bay-cards`, on the tiers that draw them) or one of the player body's three creator atlas

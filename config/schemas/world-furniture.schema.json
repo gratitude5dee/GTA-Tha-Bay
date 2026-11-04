@@ -326,6 +326,7 @@
         "skipCarLengths",
         "carLengthM",
         "skipLateralM",
+        "bodyWidthM",
         "rebandM",
         "everyFrames"
       ],
@@ -478,6 +479,10 @@
         "skipLateralM": {
           "type": "number",
           "minimum": 0
+        },
+        "bodyWidthM": {
+          "type": "number",
+          "minimum": 1
         },
         "rebandM": {
           "type": "number",

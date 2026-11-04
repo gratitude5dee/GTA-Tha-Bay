@@ -13,8 +13,9 @@
  *  - drawn only between `ghostM` and `dressFarM` from the player and the camera, with dithered fades of `fadeM` at both ends, so the player
  *    never reaches a bodiless car; a slot is left out while a live car pose is within `skipCarLengths` car lengths of its body along the
  *    curb and within `skipLateralM` of its centre line across it (`nearLive`: a car in its parking lane, a pulled-over or parking one; a car
- *    passing in the next lane, 2.5 m away on narrow streets, does not hide it; BD-M02h6-03), checked every frame against the drawn cars;
- *    at most `caps[profile]`, nearest first;
+ *    passing in the next lane, 2.5 m away on narrow streets, does not hide it; BD-M02h6-03), or while the live car's footprint, turned by
+ *    its own yaw, overlaps the slot's (`carLengthM` by `bodyWidthM` each: a car on the cross street's corner slot, a turning car;
+ *    BD-M02h6-15), checked every frame against the drawn cars; at most `caps[profile]`, nearest first;
  *  - the dressed cars join M02g1's blob shadows (`blobs`), which adds no render object.
  */
 import { InstancedBufferAttribute, InstancedMesh, Group, type BufferGeometry, type Material, type Object3D } from 'three/webgpu';
@@ -25,6 +26,7 @@ import { ARCHETYPES, PALETTE, pickArchetype } from '../../sim/traffic/components
 import { profileName } from '../../sim/traffic/density.ts';
 import { PARKED_STRIDE, FURNITURE } from '../chunks/mesher.ts';
 import type { UnitMesh } from '../chunks/mesh-types.ts';
+import { poseYaw } from '../look/blob-shadows.ts';
 import type { SkyNodes } from '../sky/nodes.ts';
 import { attribute, clamp, dot, float, fract, select, sin, screenCoordinate, vec2, type L } from '../sky/tsl.ts';
 import { familyOf, mergeModel, placeholderGeometry, TRAFFIC_ART, type FamilyGeometry } from './archetype-mesh.ts';
@@ -68,14 +70,48 @@ export function dressFade(dPlayer: number, dCam: number, ghostM: number, farM: n
 
 /**
  * Whether a live car at (lx, lz) stands by the dressing slot `s` (yaw `s.yaw`, facing (-sin, -cos)): within `skipCarLengths` car lengths of
- * the slot's body along the curb (half a car length plus `skipCarLengths` car lengths from its centre) and within `skipLateralM` across.
+ * the slot's body along the curb (half a car length plus `skipCarLengths` car lengths from its centre) and within `skipLateralM` across;
+ * or, given the live car's yaw `lyaw`, when the two car footprints (`carLengthM` by `bodyWidthM`, each turned by its own yaw) overlap
+ * (separating axes), which also catches a car parked or turning across the slot at a corner (BD-M02h6-15).
  */
-export function nearLive(s: Pick<DressSlot, 'x' | 'z' | 'yaw'>, lx: number, lz: number, cfg: Pick<FurnitureFile['parked'], 'skipCarLengths' | 'carLengthM' | 'skipLateralM'>): boolean {
+export function nearLive(
+  s: Pick<DressSlot, 'x' | 'z' | 'yaw'>,
+  lx: number,
+  lz: number,
+  cfg: Pick<FurnitureFile['parked'], 'skipCarLengths' | 'carLengthM' | 'skipLateralM' | 'bodyWidthM'>,
+  lyaw?: number,
+): boolean {
   const dx = lx - s.x, dz = lz - s.z;
+  // beyond both rules' reach (the band's corner, or two footprints' half-diagonals): the common case, without a sine
+  const bandL = cfg.carLengthM * (0.5 + cfg.skipCarLengths);
+  const reach = Math.max(bandL * bandL + cfg.skipLateralM * cfg.skipLateralM, cfg.carLengthM * cfg.carLengthM + cfg.bodyWidthM * cfg.bodyWidthM);
+  if (dx * dx + dz * dz >= reach) return false;
   const fx = -Math.sin(s.yaw), fz = -Math.cos(s.yaw);
   const along = Math.abs(dx * fx + dz * fz);
   const across = Math.abs(dx * fz - dz * fx);
-  return across < cfg.skipLateralM && along < cfg.carLengthM * (0.5 + cfg.skipCarLengths);
+  if (across < cfg.skipLateralM && along < bandL) return true;
+  if (lyaw === undefined || Number.isNaN(lyaw)) return false;
+  return footprintsOverlap(dx, dz, s.yaw, lyaw, cfg.carLengthM / 2, cfg.bodyWidthM / 2);
+}
+
+/** Whether two `2 hl` by `2 hw` rectangles, the second `(dx, dz)` from the first, at yaws `ya` and `yb`, overlap (separating axis test). */
+export function footprintsOverlap(dx: number, dz: number, ya: number, yb: number, hl: number, hw: number): boolean {
+  const ax = -Math.sin(ya), az = -Math.cos(ya);
+  const bx = -Math.sin(yb), bz = -Math.cos(yb);
+  // the four axes: each rectangle's along (f) and across (f turned 90 degrees)
+  return !(
+    separated(dx, dz, ax, az, ax, az, bx, bz, hl, hw) ||
+    separated(dx, dz, az, -ax, ax, az, bx, bz, hl, hw) ||
+    separated(dx, dz, bx, bz, ax, az, bx, bz, hl, hw) ||
+    separated(dx, dz, bz, -bx, ax, az, bx, bz, hl, hw)
+  );
+}
+
+/** Whether the axis (nx, nz) separates the two rectangles (forward a and b, half sizes hl and hw, centres `(dx, dz)` apart). */
+function separated(dx: number, dz: number, nx: number, nz: number, ax: number, az: number, bx: number, bz: number, hl: number, hw: number): boolean {
+  const ra = hl * Math.abs(ax * nx + az * nz) + hw * Math.abs(az * nx - ax * nz);
+  const rb = hl * Math.abs(bx * nx + bz * nz) + hw * Math.abs(bz * nx - bx * nz);
+  return Math.abs(dx * nx + dz * nz) >= ra + rb;
 }
 
 interface Family {
@@ -135,7 +171,7 @@ export class ParkedDressing {
   private drawn: { key: string; x: number; y: number; z: number; yaw: number; fade: number; arch: number }[] = [];
   private loaded = 0;
   private disposed = false;
-  /** The live car poses of the last update (x, z pairs), reused. */
+  /** The live car poses of the last update (x, z, yaw triples), reused. */
   private readonly live: number[] = [];
 
   constructor(private readonly o: ParkedDressingOptions) {
@@ -282,15 +318,15 @@ export class ParkedDressing {
     const n = liveCars ? (f.poseCount ?? 0) : 0;
     for (let i = 0; i < n; i++) {
       const pose = f.poses?.[i];
-      if (pose && (pose.flags & 2) !== 0) live.push(pose.px, pose.pz);
+      if (pose && (pose.flags & 2) !== 0) live.push(pose.px, pose.pz, poseYaw(pose));
     }
     const moved = Math.hypot(cx - this.lastAt[0], cz - this.lastAt[1]) > cfg.rebandM;
     // every frame: a drawn car a live car now stands by is chosen again at once (the other slots keep their places)
     let blocked = false;
     for (let i = 0; i < this.drawn.length && !blocked; i++) {
       const d = this.drawn[i] as (typeof this.drawn)[number];
-      for (let k = 0; k + 1 < live.length; k += 2) {
-        if (nearLive(d, live[k] as number, live[k + 1] as number, cfg)) {
+      for (let k = 0; k + 2 < live.length; k += 3) {
+        if (nearLive(d, live[k] as number, live[k + 1] as number, cfg, live[k + 2] as number)) {
           blocked = true;
           break;
         }
@@ -310,8 +346,8 @@ export class ParkedDressing {
         const fade = dressFade(Math.hypot(s.x - px, s.z - pz), dCam, ghost, far, fadeM);
         if (fade <= 0) continue;
         let near = false;
-        for (let k = 0; k + 1 < live.length; k += 2) {
-          if (nearLive(s, live[k] as number, live[k + 1] as number, cfg)) {
+        for (let k = 0; k + 2 < live.length; k += 3) {
+          if (nearLive(s, live[k] as number, live[k + 1] as number, cfg, live[k + 2] as number)) {
             near = true;
             break;
           }
