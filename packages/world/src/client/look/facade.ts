@@ -115,6 +115,8 @@ export function wallNodes(i: WallInput): WallOut {
   const signTop = gfM.sub(kit.signTopBelowGfM);
   const signBot = gfM.sub(kit.signBottomBelowGfM);
   const transom = gfM.sub(kit.transomBelowGfM);
+  // the wall top above the ground (`v` is measured from the ground, `fac.top` from the foot of the foundation skirt)
+  const topG = fac.top.sub(i.foundationM);
 
   // Floors: the ground floor has its own height, the upper ones repeat.
   const isGround = select(v.lessThan(gfM), float(1), float(0));
@@ -185,7 +187,7 @@ export function wallNodes(i: WallInput): WallOut {
   let nrm: L | undefined;
   if (i.profile === 'full') {
     const reveal = inside.mul(kit.recessM).negate().mul(detailK).mul(n.uFacade);
-    const topBand = band(fac.top.sub(roofBand).sub(0.4), fac.top.sub(roofBand), v).mul(float(1).sub(corniceF)).mul(float(1).sub(isTower)).mul(n.uFacade);
+    const topBand = band(topG.sub(0.5), topG, v).mul(float(1).sub(corniceF)).mul(float(1).sub(isTower)).mul(n.uFacade);
     const upView = normalize((cameraViewMatrix as unknown as L).mul(vec4(0, 1, 0, 0)).xyz);
     nrm = normalize(mix(bumpNormal(reveal, float(1), normalView), upView, topBand.mul(kit.corniceTilt)));
   }
@@ -242,7 +244,7 @@ export function wallNodes(i: WallInput): WallOut {
   d = d.mul(around1(vnoise(vec2(fac.u.mul(0.21).add(seedI.mul(0.9)), v.mul(0.17))), 0.07));
 
   // M02h7: the wall top without cornice geometry takes a lighter tone (the tilt is on `full`)
-  d = d.add(notTower.mul(0.08).mul(float(1).sub(corniceF)).mul(n.uFacade).mul(band(fac.top.sub(roofBand).sub(0.4), fac.top.sub(roofBand), v)));
+  d = d.add(notTower.mul(0.08).mul(float(1).sub(corniceF)).mul(n.uFacade).mul(band(topG.sub(0.5), topG, v)));
   const wallBase = wallPal.mul(perBuilding).mul(d);
   // M02h7: the albedo seam (the atlas, brick and stucco) on the wall colour alone
   const wall = i.albedo ? i.albedo(wallBase) : wallBase;

@@ -823,6 +823,8 @@ function emitKit(b: MeshBuilder, ring: readonly number[], plan: KitPlan, rec: Pi
   const n = ring.length / 2;
   const gf = facadeClassOf(rec.kind).groundFloorM;
   const dm = (y: number): number => facadeSignedDm(y - nominalFoot);
+  // a facade `v` above the wall top: the shader's window grid leaves such a surface plain (the bay caps and the cornice ring)
+  const plainDm = Math.min(wallHdm + facadeDm(MESHER.foundationM + 1), 32767);
   const corner = (i: number): [number, number] => [ring[(i % n) * 2] as number, ring[(i % n) * 2 + 1] as number];
   const axis = (i: number): { x0: number; z0: number; tx: number; tz: number; nx: number; nz: number; len: number } => {
     const [x0, z0] = corner(i);
@@ -878,7 +880,7 @@ function emitKit(b: MeshBuilder, ring: readonly number[], plan: KitPlan, rec: Pi
         kitQuad(b, quad, nrm, scale(wallColor, 0.9), 0.9, (q, k) => [facadeDm(k === 0 || k === 3 ? u0 : u1), dm(q[1]), wallHdm, seed15]);
       }
       const plate = (y: number, nrm: Rgb, c: Rgb): void => {
-        const ids = [W0, F0, F1, W1].map((q) => b.vertex(q[0], y, q[1], nrm, c, 0.9, [0, wallHdm, wallHdm, seed15]));
+        const ids = [W0, F0, F1, W1].map((q) => b.vertex(q[0], y, q[1], nrm, c, 0.9, [0, plainDm, wallHdm, seed15]));
         b.triFacing(ids[0] as number, ids[1] as number, ids[2] as number, nrm[0], nrm[1], nrm[2]);
         b.triFacing(ids[0] as number, ids[2] as number, ids[3] as number, nrm[0], nrm[1], nrm[2]);
       };
@@ -899,8 +901,8 @@ function emitKit(b: MeshBuilder, ring: readonly number[], plan: KitPlan, rec: Pi
       const cx0 = c[i * 2] as number, cz0 = c[i * 2 + 1] as number, cx1 = c[j * 2] as number, cz1 = c[j * 2 + 1] as number;
       const [px0, pz0] = corner(i), [px1, pz1] = corner(j);
       const u1 = a.len;
-      kitQuad(b, [[cx0, y0, cz0], [cx1, y0, cz1], [cx1, y1, cz1], [cx0, y1, cz0]], [a.nx, 0, a.nz], scale(wallColor, 1.05), 0.95, (q, k) => [facadeDm(k === 0 || k === 3 ? 0 : u1), dm(q[1]), wallHdm, seed15]);
-      kitQuad(b, [[px0, y0, pz0], [px1, y0, pz1], [cx1, y0, cz1], [cx0, y0, cz0]], [0, -1, 0], scale(wallColor, 0.55), 0.7, (_q, k) => [facadeDm(k === 0 || k === 3 ? 0 : u1), dm(y0), wallHdm, seed15]);
+      kitQuad(b, [[cx0, y0, cz0], [cx1, y0, cz1], [cx1, y1, cz1], [cx0, y1, cz0]], [a.nx, 0, a.nz], scale(wallColor, 1.05), 0.95, (_q, k) => [facadeDm(k === 0 || k === 3 ? 0 : u1), plainDm, wallHdm, seed15]);
+      kitQuad(b, [[px0, y0, pz0], [px1, y0, pz1], [cx1, y0, cz1], [cx0, y0, cz0]], [0, -1, 0], scale(wallColor, 0.55), 0.7, (_q, k) => [facadeDm(k === 0 || k === 3 ? 0 : u1), plainDm, wallHdm, seed15]);
     }
     plan.stats.cornices++;
   }

@@ -196,6 +196,11 @@ describe.each(AREAS)('the kit on the %s bake (AC-2)', (area) => {
         expect(a.stats.maxBuildingTris).toBeLessThanOrEqual(cap);
         for (const o of a.objects) for (let k = 0; k < o.surf.length; k += 4) expect((o.surf[k] as number) < SURFACE_COUNT).toBe(true);
         if (KIT.trisPerBuilding[id] === 0 || tier.startsWith('xr')) expect(a.stats.kitTriangles ?? 0).toBe(0);
+        // the kit adds no render object: the unit's object list is the same without it (AC-6's +0 objects)
+        const plain = meshChunk(sim, t.renders.find((r) => r.key === sim.key) ?? null, { tier, distM: 0, tile: t.sims, facadeKit: false });
+        expect(a.objects.map((o) => o.kind)).toEqual(plain.objects.map((o) => o.kind));
+        const tris = (m: UnitMesh): number => m.objects.filter((o) => o.kind === 'buildings').reduce((n, o) => n + o.indices.length / 3, 0);
+        expect(tris(a) - tris(plain), `${sim.key} kit triangles`).toBe(a.stats.kitTriangles ?? 0);
       }
     }
   });

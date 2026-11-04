@@ -6,8 +6,9 @@ import type { WorldBridge } from '../../packages/world/src/client/world-bridge.t
  * M10d2 city surfaces in a real browser, on a `DV_WORLD=synth` QA build (AC-7).
  *
  *  - @art-skyline  `?tier=mobile-low`: the skyline cards come from the KTX2 asset `texture/far-bay-cards` (the rasterised atlas of
- *                  bake S11), and the facade atlas `texture/facade-atlas` is neither drawn nor requested. The `?tier=mobile` case
- *                  that binds the atlas's `mobile` variant belongs to M02h7 (its AC-11), which merges after this row (DL-740).
+ *                  bake S11), and the facade atlas `texture/facade-atlas` is neither drawn nor requested. M02h7 (AC-11, after this
+ *                  row as planned, `_PLAN-3.md` Look program rule 8) adds the `?tier=mobile` case: the walls take the atlas's `mobile`
+ *                  variant through the façade's `albedo` seam, and only that variant is requested.
  *  - @art-ultra    `?tier=desktop-ultra&gl=1&atmosphere=1`: with `world.atmosphere` on under WebGL2 the takram adapter falls back
  *                  to the M02e sky with no console error, and the facade atlas of the desktop tiers loads. The one line left out is
  *                  the browser's 503 for the play-token route, which the secret-less e2e Worker gives by design (`errorsOf`).
@@ -81,6 +82,34 @@ test.describe('art city surfaces @art-skyline', () => {
     const art = await page.evaluate(() => (window as unknown as W).__dvBridge.world.art());
     expect(art?.facadeAtlas).toMatchObject({ on: false, variant: null, requested: false, loaded: false });
     expect(requests.filter((u) => u.includes('facade-atlas'))).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe('art city surfaces on mobile @art-skyline', () => {
+  test.describe.configure({ timeout: 600_000 });
+  test('mobile (M02h7): the walls sample the facade atlas\'s mobile variant through the albedo seam, and only that variant is requested @art-skyline', async ({ page }) => {
+    const errors = errorsOf(page);
+    const requests = requestsOf(page);
+    await bootWorld(page, 'mobile');
+    await page.waitForFunction(
+      () => {
+        const a = (window as unknown as W).__dvBridge.world.art()?.facadeAtlas;
+        return !!a && (a.loaded || a.failed !== null);
+      },
+      undefined,
+      { timeout: 300_000, polling: 500 },
+    );
+    const art = await page.evaluate(() => (window as unknown as W).__dvBridge.world.art());
+    expect(art?.facadeAtlas).toMatchObject({ on: true, asset: 'texture/facade-atlas', variant: 'mobile', requested: true, loaded: true, failed: null });
+    expect(art?.facadeAtlas?.gpuBytes ?? 0).toBeGreaterThan(0);
+    // the `buildings` material of `lite` took the seam: the facade report says the kit's shading layer is on
+    const f = await page.evaluate(() => (window as unknown as W).__dvBridge.world.look()?.facade ?? null);
+    expect(f?.layer).toBe(true);
+    // the page's requests for the atlas name its mobile variant only (object keys `<root>/<variant>.<sha256[0:12]>.<ext>`)
+    const atlas = requests.filter((u) => u.includes('/texture/facade-atlas/'));
+    expect(atlas.length).toBeGreaterThan(0);
+    for (const u of atlas) expect(new URL(u).pathname, `${u} is the mobile variant`).toMatch(/\/texture\/facade-atlas\/mobile\.[0-9a-f]{12}\.ktx2$/);
     expect(errors).toEqual([]);
   });
 });
