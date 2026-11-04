@@ -23,7 +23,7 @@ import { MESHER } from '../chunks/mesher.ts';
 import type { ObjectKind } from '../chunks/mesh-types.ts';
 import { baseAttributes, coverMask, facadeNodes, fadeShown, surfNodes, type LookNodes } from './common.ts';
 import { FACADE_KEYS, type LookFile } from './config.ts';
-import { wallNodes } from './facade.ts';
+import { awningNodes, wallNodes } from './facade.ts';
 import { groundNodes } from './ground.ts';
 import { paintNodes } from './markings.ts';
 import { around1, bumpNormal, pickFloat, vnoise } from './noise.ts';
@@ -34,7 +34,8 @@ import { windOffset, type WindNodes } from './wind.ts';
 // art-hook:textures begin (M10d0): the one import of the surface textures
 import { withSurfaceTextures } from '../textures/surface-textures.ts';
 // art-hook:textures end
-import { withFacadeAtlas } from '../chunks/facade.ts'; // art-hook:facade (M10d2)
+import { facadeAtlasAlbedo } from '../chunks/facade.ts'; // art-hook:facade (M10d2; M02h7's albedo seam)
+import { wallTexturesAlbedo } from '../textures/surface-textures.ts'; // M02h7: brick and stucco on the walls through the seam
 
 export type MaterialProfile = 'full' | 'lite' | 'min';
 
@@ -121,9 +122,15 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     const fac = facadeNodes();
     const vc = vertexColor(0);
     const isWall = step(Surf.WallBase - 0.5, s.id).mul(step(s.id, Surf.WallBase + 5.5));
-    // art-hook:facade begin (M10d2): the KTX2 facade atlas over the wall albedo on `full` (desktop tiers); M02h7's `albedo` seam takes it over
-    const wall = withFacadeAtlas(profile, wallNodes({ profile, look, n, kind: s.kind, pal: s.pal, flags: s.flags, fac, foundationM: o.foundationM, parapetM: o.parapetM }), { kind: s.kind, seed: fac.seed, u: fac.u, v: fac.v });
+    // M02h7: the awning cloth of the facade kit
+    const isAwning = step(s.id.sub(Surf.Awning).abs(), 0.5);
+    // art-hook:facade begin (M10d2): the KTX2 facade atlas over the wall albedo, through M02h7's `albedo` seam on `full` and `lite`
+    const atlas = profile === 'min' ? null : facadeAtlasAlbedo(profile, { kind: s.kind, seed: fac.seed, u: fac.u, v: fac.v });
     // art-hook:facade end
+    // M02h7: brick and stucco (M10d0's sets, `surface-textures.json` wall bindings) through the same seam, before the atlas detail
+    const bricks = profile === 'min' ? null : wallTexturesAlbedo({ id: s.id, u: fac.u, v: fac.v });
+    const albedo = atlas || bricks ? (base: L): L => (atlas ? atlas(bricks ? bricks(base) : base) : (bricks as (b: L) => L)(base)) : undefined;
+    const wall = wallNodes({ profile, look, n, kind: s.kind, pal: s.pal, flags: s.flags, fac, foundationM: o.foundationM, parapetM: o.parapetM, albedo });
     let col: L;
     let rough: L;
     let metal: L = float(0);
@@ -131,6 +138,8 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     if (profile === 'min') {
       const classRough = pickFloat(s.kind, FACADE_KEYS.map((k) => look.facade[k].wallRoughness));
       col = vc.mul(shade);
+      // M02h7: the flat shopfront, awning-stripe and sign bands of `min`
+      if (wall.band) col = mix(col, wall.band.color.mul(shade), wall.band.k.mul(isWall));
       rough = mix(float(0.9), classRough, isWall);
       emis = wall.emissive.mul(isWall);
     } else {
@@ -139,6 +148,13 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
       rough = mix(roof.roughness, wall.roughness, isWall);
       metal = mix(roof.metalness, wall.metalness, isWall);
       emis = wall.emissive.mul(isWall);
+      // M02h7: the awning branch (no metal, no glow)
+      const awn = awningNodes(look, n, vc, fac);
+      col = mix(col, awn.color, isAwning);
+      rough = mix(rough, awn.roughness, isAwning);
+      metal = metal.mul(float(1).sub(isAwning));
+      // M02h7, `full`: the window reveal bump and the wall-top tilt on the walls
+      if (wall.normal) set(m, 'normalNode', normalize(mix(normalView, wall.normal, isWall)));
       // Rain darkens the surfaces; the roofs also gloss over where the tier has the form for it.
       const wetRoof = n.sky.uWet.mul(smoothstep(0.6, 0.9, normalWorld.y));
       col = col.mul(float(1).sub(n.sky.uWet.mul(0.1))).mul(float(1).sub(wetRoof.mul(0.25))).mul(shade);

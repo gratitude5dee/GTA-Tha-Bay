@@ -3,9 +3,10 @@
  * wall materials authored by `tools/assets/src/recipes/facade-atlas.ts`) over the wall albedo of M02e's façade node.
  *
  *  - Loading: after the reveal, like M10d0's surface sets (`world.texture` through the pack store, transcoded by the page's KTX2 loader),
- *    on `desktop-ultra` and `desktop` only. The `mobile` variant waits for M02h7's `albedo` seam (DL-740); `mobile-low` and XR never
- *    request it. The loaded texture fills M02e's `FacadeAtlasHook` (`look/facade.ts`), which M02h7's seam reads.
- *  - Shading (`full` profile only): each building picks one of its class's tiles by its seed (`config/world/facade-atlas.json`
+ *    the `desktop` variant on `desktop-ultra` and `desktop`, and (M02h7, `_PLAN-3.md` Look program rule 8) the `mobile` variant on
+ *    `mobile` through M02h7's `albedo` seam; `mobile-low` and XR never request it. The loaded texture fills M02e's `FacadeAtlasHook`
+ *    (`look/facade.ts`).
+ *  - Shading (`full` and `lite` profiles, through `wallNodes`' `albedo` seam since M02h7): each building picks one of its class's tiles by its seed (`config/world/facade-atlas.json`
  *    `classes`); the tile repeats every `tileM` metres along the wall (`fac.u`, `fac.v`), sampled at an explicit mip level from the
  *    pixel footprint so the atlas cells never bleed and tile seams never pick a coarse mip. The sample is grey detail around the
  *    config's `mean`: the class palette colour (the per-building tint) is multiplied by `sample / mean`, so the walls keep the
@@ -36,9 +37,11 @@ export interface FacadeAtlasConfig {
 }
 export const FACADE_ATLAS: FacadeAtlasConfig = atlasJson as unknown as FacadeAtlasConfig;
 
-/** The tiers that draw the atlas in this row (the `mobile` variant comes with M02h7's seam). */
-export const ATLAS_TIERS: readonly QualityTierId[] = ['desktop-ultra', 'desktop'];
+/** The tiers that draw the atlas: the desktop tiers (M10d2) and `mobile` through M02h7's `albedo` seam. */
+export const ATLAS_TIERS: readonly QualityTierId[] = ['desktop-ultra', 'desktop', 'mobile'];
 export const atlasTier = (tier: QualityTierId): boolean => ATLAS_TIERS.includes(tier);
+/** The variant a tier requests: `mobile` on `mobile`, `desktop` on the desktop tiers, none elsewhere. */
+export const atlasVariant = (tier: QualityTierId): 'desktop' | 'mobile' | null => (!atlasTier(tier) ? null : tier === 'mobile' ? 'mobile' : 'desktop');
 
 /** The deepest mip the shader reads: a tile is still 8 px there, so a cell never mixes with its neighbours. */
 export const MAX_LOD = 5;
@@ -47,8 +50,8 @@ export interface FacadeAtlasInfo {
   /** Whether this tier draws the atlas at all. */
   on: boolean;
   asset: string;
-  /** The variant the tier requests (`desktop`), or null when the tier requests none. */
-  variant: 'desktop' | null;
+  /** The variant the tier requests (`desktop`, or `mobile` since M02h7), or null when the tier requests none. */
+  variant: 'desktop' | 'mobile' | null;
   requested: boolean;
   loaded: boolean;
   failed: string | null;
@@ -143,10 +146,19 @@ export class FacadeAtlas {
   }
 
   /**
-   * The wall output with the atlas over its albedo (`full` profile; any other profile and an inactive atlas return `wall` itself, so
-   * no texture node is created). `kind`, `seed`, `u` and `v` are the façade node's inputs.
+   * The wall output with the atlas over its albedo (M10d2's hook, kept for tests and callers outside the look materials): `albedo` applied
+   * to `wall.color` and kept off the glass.
    */
   shade(wall: WallOut, i: { kind: L; seed: L; u: L; v: L }): WallOut {
+    const detailed = this.albedo(i)(wall.color);
+    return { ...wall, color: mix(detailed, wall.color, wall.glass) };
+  }
+
+  /**
+   * M02h7: the `albedo` seam of `wallNodes`: the wall albedo times the atlas detail of the building's tile. `kind`, `seed`, `u` and `v` are
+   * the façade node's inputs; the texel size follows the tier's variant.
+   */
+  albedo(i: { kind: L; seed: L; u: L; v: L }): (base: L) => L {
     const cfg = this.cfg;
     const pairs = tilePairs(cfg);
     const seedI = i.seed.mul(32767).round();
@@ -160,7 +172,7 @@ export class FacadeAtlas {
       tileM = select(idx.lessThan(k + 0.5), float(p.tileM), tileM);
     }
     const g = cfg.grid;
-    const tilePx = cfg.sizePx.desktop / g;
+    const tilePx = cfg.sizePx[atlasVariant(this.tier) ?? 'desktop'] / g;
     const inset = 0.5 / tilePx;
     const cell = vec2(fract(i.u.div(tileM)), float(1).sub(fract(i.v.div(tileM))));
     const tx = tile.sub(tile.div(g).floor().mul(g));
@@ -172,15 +184,15 @@ export class FacadeAtlas {
     const factor = sample.x.div(cfg.mean).clamp(0.3, 1.8);
     const near = float(1).sub(smoothstep(cfg.fade.startM, cfg.fade.endM, positionWorld.sub(cameraPosition).length()));
     const w = (this.weight as unknown as L).mul(cfg.strength).mul(near);
-    const detailed = wall.color.mul(mix(float(1), factor, w));
-    return { ...wall, color: mix(detailed, wall.color, wall.glass) };
+    const k = mix(float(1), factor, w);
+    return (base) => base.mul(k);
   }
 
   info(): FacadeAtlasInfo {
     return {
       on: this.active,
       asset: this.cfg.asset,
-      variant: this.active ? 'desktop' : null,
+      variant: this.active ? atlasVariant(this.tier) : null,
       requested: this.requested,
       loaded: this.tex !== null,
       failed: this.failed,
@@ -211,9 +223,19 @@ export function installedFacadeAtlas(): FacadeAtlas | null {
   return installed;
 }
 
-/** The wall nodes with the atlas over their albedo on `full`, or `wall` itself (no texture node) on other profiles or with none. */
+/** The wall nodes with the atlas over their albedo on `full` and `lite`, or `wall` itself (no texture node) on `min` or with none. */
 export function withFacadeAtlas(profile: 'full' | 'lite' | 'min', wall: WallOut, i: { kind: L; seed: L; u: L; v: L }): WallOut {
   const a = installed;
-  if (!a || !a.active || profile !== 'full') return wall;
+  if (!a || !a.active || profile === 'min') return wall;
   return a.shade(wall, i);
+}
+
+/**
+ * M02h7: the atlas half of `wallNodes`' `albedo` seam: built from the installed atlas (whose `FacadeAtlasHook` the loaded texture fills)
+ * on `full` and `lite`; null on `min`, off the atlas tiers or with no atlas, which leaves the wall graph unchanged.
+ */
+export function facadeAtlasAlbedo(profile: 'full' | 'lite' | 'min', i: { kind: L; seed: L; u: L; v: L }): ((base: L) => L) | null {
+  const a = installed;
+  if (!a || !a.active || profile === 'min') return null;
+  return a.albedo(i);
 }

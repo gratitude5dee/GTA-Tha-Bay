@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { float, vec3, type L } from '../src/client/sky/tsl.ts';
 import {
-  ATLAS_TIERS, FACADE_ATLAS, FacadeAtlas, atlasTier, atlasUv, installFacadeAtlas, installedFacadeAtlas, tilePairs, withFacadeAtlas,
+  ATLAS_TIERS, FACADE_ATLAS, FacadeAtlas, atlasTier, atlasUv, installFacadeAtlas, installedFacadeAtlas, tilePairs, withFacadeAtlas, facadeAtlasAlbedo,
 } from '../src/client/chunks/facade.ts';
 import type { WallOut } from '../src/client/look/facade.ts';
 import { bootSet } from '../src/sim/streaming/boot.ts';
@@ -60,9 +60,9 @@ describe('facade atlas config and asset', () => {
 });
 
 describe('FacadeAtlas on the tiers', () => {
-  it('draws on desktop-ultra and desktop only; mobile-low, mobile and XR request nothing', async () => {
-    expect(ATLAS_TIERS).toEqual(['desktop-ultra', 'desktop']);
-    for (const tier of ['mobile', 'mobile-low', 'xr-quest', 'xr-visionpro'] as const) {
+  it('draws on desktop-ultra, desktop and (M02h7) mobile; mobile-low and XR request nothing', async () => {
+    expect(ATLAS_TIERS).toEqual(['desktop-ultra', 'desktop', 'mobile']);
+    for (const tier of ['mobile-low', 'xr-quest', 'xr-visionpro'] as const) {
       expect(atlasTier(tier)).toBe(false);
       const a = new FacadeAtlas(tier, true);
       const calls: unknown[] = [];
@@ -87,6 +87,15 @@ describe('FacadeAtlas on the tiers', () => {
     a.dispose();
   });
 
+  it('M02h7: on mobile requests the atlas once with the tier (the catalog serves the mobile variant) and reports that variant', async () => {
+    const a = new FacadeAtlas('mobile', true);
+    const calls: [string, unknown][] = [];
+    await a.load({ job: async (n, args) => { calls.push([n, args]); return { missing: true }; } }, () => null);
+    expect(calls).toEqual([['world.texture', { ref: 'texture/facade-atlas', tier: 'mobile' }]]);
+    expect(a.info()).toMatchObject({ on: true, variant: 'mobile', requested: true });
+    a.dispose();
+  });
+
   it('with the atlas off (?textures=0, ?art=0) a desktop tier requests nothing', async () => {
     const a = new FacadeAtlas('desktop', false);
     let called = false;
@@ -98,15 +107,23 @@ describe('FacadeAtlas on the tiers', () => {
 });
 
 describe('withFacadeAtlas (the art hook of the wall albedo)', () => {
-  it('returns the wall itself without an installed atlas, on lite and min, and off the desktop tiers', () => {
+  it('returns the wall itself without an installed atlas, on min, and off the atlas tiers; the seam is null there too (M02h7)', () => {
     const w = wall();
+    installFacadeAtlas(null);
     expect(withFacadeAtlas('full', w, input())).toBe(w);
+    expect(facadeAtlasAlbedo('full', input())).toBeNull();
     installFacadeAtlas(new FacadeAtlas('desktop', true));
     expect(installedFacadeAtlas()?.tier).toBe('desktop');
-    expect(withFacadeAtlas('lite', w, input())).toBe(w);
     expect(withFacadeAtlas('min', w, input())).toBe(w);
+    expect(facadeAtlasAlbedo('min', input())).toBeNull();
+    expect(facadeAtlasAlbedo('full', input())).not.toBeNull();
+    // M02h7: the mobile variant draws on `lite` through the seam
     installFacadeAtlas(new FacadeAtlas('mobile', true));
+    expect(facadeAtlasAlbedo('lite', input())).not.toBeNull();
+    installFacadeAtlas(new FacadeAtlas('mobile-low', true));
+    expect(facadeAtlasAlbedo('lite', input())).toBeNull();
     expect(withFacadeAtlas('full', w, input())).toBe(w);
+    installFacadeAtlas(null);
   });
 
   it('on full builds a new colour node and keeps roughness, metalness, emissive and glass', () => {

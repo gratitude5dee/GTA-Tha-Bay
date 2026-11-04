@@ -19,7 +19,7 @@ import { layersOf, type LookFile, type LookLayer, type LookProfile } from './con
 import { BlobShadows, type BlobInfo } from './blob-shadows.ts';
 import { gradeFor, hazeFor, writeFogLook, type FogLook } from './grade.ts';
 import { vehicleReflectHook } from './sky-reflect.ts';
-import { LIT_RANGE_FIXED, litRange } from './windows.ts';
+import { LIT_RANGE_FIXED, litRange, shopGlow } from './windows.ts';
 import { PhysicalSky } from './sky-physical.ts';
 import { ShadowRig } from './shadows.ts';
 import { bakesEnvMap } from '../textures/config.ts';
@@ -125,6 +125,10 @@ export interface LookReport {
   gradeOn: 'tonemap' | 'fog' | null;
   /** M02g1: the share of lit windows `[min, max]` the façade shader uses now. */
   windowLit: [number, number];
+  /** M02h7: the night glow of shop signs and shop glass now, 0..1 (0 with the look or the `facade` layer off). */
+  shopGlow?: number;
+  /** M02h7: the facade kit (`WorldView.facadeReport`). */
+  facade?: FacadeLookReport;
   /** M02g2: the trees of the L0 units: units drawing theirs and the distance of the farthest, against `tree.drawM`. */
   vegetation: VegetationReport;
   /** M02h1: the street paint, its mode and counts. */
@@ -138,6 +142,28 @@ export interface LookReport {
   cover?: CoverReport;
   /** M02h6: the street furniture pools, the parked dressing and the signal heads (`WorldView.furnitureReport`). */
   furniture?: FurnitureLookReport;
+}
+
+/** M02h7: `look().facade`. */
+export interface FacadeLookReport {
+  /** The kit geometry is meshed on this tier now (a kit allowance, a facade record and the layer on). */
+  kit: boolean;
+  /** Counts over the resident L0 chunks. */
+  shopWalls: number;
+  awnings: number;
+  bays: number;
+  cornices: number;
+  kitTriangles: number;
+  /** The `min` profile's shader bands (shopfront, awning stripe, sign, night glow) are in force. */
+  minBands: boolean;
+  /** The shading layer is on. */
+  layer: boolean;
+  /** The night glow of signs and shop glass now (= `shopGlow`), > 0 only in the evening. */
+  signEmissive: number;
+  /** Storefront and bay glass reflect the analytic sky (no environment map carries the reflection). */
+  skyReflect: boolean;
+  /** Building triangles of the resident L0 chunks (the ledger's building triangles). */
+  buildingTriangles: number;
 }
 
 /** M02h3: `look().cover`. */
@@ -199,6 +225,8 @@ export class LookView {
   private lookClock = 0;
   private clockFrozen = false;
   private lastWindow = 0;
+  /** M02h7: the shop glow written last (`uShopGlow`). */
+  private lastShop = 0;
   private lastLevel: PostLevel;
   private readonly fallbacks: string[] = [];
   private readonly runtime: LookRuntime;
@@ -410,6 +438,9 @@ export class LookView {
     this.lastLitRange = [lit.min, lit.max];
     this.o.materials.lookNodes.uLitMin.value = lit.min;
     this.o.materials.lookNodes.uLitMax.value = lit.max;
+    // M02h7: shop signs and shop glass glow by the hour (`windows.shop`), with the building windows' night factor and blackout
+    this.lastShop = this.layerSet.has('facade') ? shopGlow(input.hour, look) * (1 - u.uBlackout * 0.85) : 0;
+    this.o.materials.lookNodes.uShopGlow.value = this.lastShop;
     const blend01 = Math.max(0, Math.min(1, input.blend / 65535));
     const grade = gradeFor(input.weather, input.next, blend01, look);
     const owner = this.stack?.gradeOwner ?? null;
@@ -493,6 +524,8 @@ export class LookView {
     if (id === 'bump') ln.uBump.value = on ? 1 : 0;
     if (id === 'macro') ln.uMacro.value = on ? 1 : 0;
     if (id === 'lots') ln.uLots.value = on ? 1 : 0;
+    // M02h7: the shading half of the facade kit (the world view re-meshes the geometry half)
+    if (id === 'facade') ln.uFacade.value = on ? 1 : 0;
     if (id === 'casters') {
       this.applyDynamicCasters(true);
       this.o.chunks.refreshTreeCasters();
@@ -605,6 +638,7 @@ export class LookView {
       skyReflect: on && this.lastReflect,
       gradeOn: on && this.layerSet.has('grade') ? this.stack?.gradeOwner ?? null : null,
       windowLit: [this.lastLitRange[0], this.lastLitRange[1]],
+      shopGlow: on ? this.lastShop : 0,
       vegetation: this.o.chunks.vegetationReport(),
       markings: markingsReportOf(this.o.materials, this.o.chunks),
       curbs: this.o.chunks.curbsCounts(),

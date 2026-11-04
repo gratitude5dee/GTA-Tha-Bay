@@ -30,7 +30,12 @@
     "ground.Grass": "grass-dirt",
     "ground.Park": "grass-dirt",
     "ground.Dirt": "grass-dirt",
-    "cover.driveway": "concrete"
+    "cover.driveway": "concrete",
+    "wall.ResLow": "stucco",
+    "wall.ResMid": "stucco",
+    "wall.Commercial": "brick",
+    "wall.Industrial": "brick",
+    "wall.Civic": "brick"
   },
   "procedural": [
     "cover.yard",
@@ -45,12 +50,7 @@
     "ground.WaterShallow",
     "ground.Water",
     "ground.Rail",
-    "wall.ResLow",
-    "wall.ResMid",
-    "wall.Commercial",
     "wall.Tower",
-    "wall.Industrial",
-    "wall.Civic",
     "roof.flat",
     "roof.gable",
     "roof.hip",
@@ -60,7 +60,8 @@
     "leaves",
     "massing.l1",
     "massing.l2",
-    "sea"
+    "sea",
+    "awning"
   ],
   "modes": { "full": "stochastic", "lite": "single", "min": "albedo", "legacy": "off", "xr": "off" },
   "budgets": {

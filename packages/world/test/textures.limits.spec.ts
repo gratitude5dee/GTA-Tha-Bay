@@ -9,7 +9,7 @@ import type { QualityTierId } from '@dv/shared';
 import { TIERS } from '@dv/engine/platform/tier-config';
 import { LOOK, lookProfileFor } from '../src/client/look/config.ts';
 import {
-  MAP_NAMES, boundSets, bakesEnvMap, groundReservedTextures, mapsWithin, refOf, refsFor, textureModeFor,
+  MAP_NAMES, boundSets, bakesEnvMap, groundReservedTextures, mapsWithin, refOf, refsFor, wallRefsFor, textureModeFor,
 } from '../src/client/textures/config.ts';
 import { SurfaceTextures, fragmentTextureLimit } from '../src/client/textures/surface-textures.ts';
 import { float, vec3, type L } from '../src/client/sky/tsl.ts';
@@ -108,16 +108,18 @@ describe('SurfaceTextures within textureSlots', () => {
   it('requests and binds the kept maps only, and reports what was capped', () => {
     const t = make(11);
     expect(t.report()).toMatchObject({ mode: 'stochastic', capped: ['texture/pbr.grass-dirt.orm'], slots: 11 });
-    expect(t.report().refs).toEqual(refsFor('stochastic').filter((r) => r !== 'texture/pbr.grass-dirt.orm'));
+    expect(t.report().refs).toEqual([...refsFor('stochastic').filter((r) => r !== 'texture/pbr.grass-dirt.orm'), ...wallRefsFor('stochastic')]);
     expect(slotsOfSets(t)['grass-dirt']).toEqual(['albedo', 'normal']);
     expect(Object.values(slotsOfSets(t)).flat()).toHaveLength(11);
+    // M02h7: the wall albedos are bound in the building material, not in the ground's slots
+    expect(slotsOfSets(t)['brick']).toBeUndefined();
     t.dispose();
   });
 
   it('binds the full set unchanged with no cap or room for it', () => {
     for (const t of [make(), make(FULL), make(27)]) {
       expect(t.report().capped).toEqual([]);
-      expect(t.report().refs).toEqual(refsFor('stochastic'));
+      expect(t.report().refs).toEqual([...refsFor('stochastic'), ...wallRefsFor('stochastic')]);
       expect(Object.values(slotsOfSets(t)).flat()).toHaveLength(FULL);
       t.dispose();
     }

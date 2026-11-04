@@ -79,10 +79,26 @@ export function mapsOf(mode: TextureMode): readonly MapName[] {
 /** The asset ref of one map of a set. */
 export const refOf = (set: string, map: MapName): string => `texture/pbr.${set}.${map}`;
 
-/** The sets some surface is bound to, in the order of `sets`. */
+/**
+ * M02h7: the wall sets: sets every binding of which names a wall surface (`wall.*`). The walls read only their albedo, through the façade's
+ * `albedo` seam in the building material (`withWallTextures`), never in the ground material, so they take no slot of the ground's plan.
+ */
+export function wallSets(cfg: SurfaceTexturesFile = SURFACE_TEXTURES): string[] {
+  const names = new Map<string, string[]>();
+  for (const [name, set] of Object.entries(cfg.bindings)) names.set(set, [...(names.get(set) ?? []), name]);
+  return Object.keys(cfg.sets).filter((s) => (names.get(s) ?? []).length > 0 && (names.get(s) ?? []).every((n) => n.startsWith('wall.')));
+}
+
+/** The ground sets: those some surface other than a wall is bound to, in the order of `sets` (the wall sets are `wallSets`). */
 export function boundSets(cfg: SurfaceTexturesFile = SURFACE_TEXTURES): string[] {
   const used = new Set(Object.values(cfg.bindings));
-  return Object.keys(cfg.sets).filter((s) => used.has(s));
+  const walls = new Set(wallSets(cfg));
+  return Object.keys(cfg.sets).filter((s) => used.has(s) && !walls.has(s));
+}
+
+/** M02h7: the wall sets' albedo refs a mode requests: on `stochastic` and `single` (the `full` and `lite` looks), none on `albedo` (`min`) or off. */
+export function wallRefsFor(mode: TextureMode, cfg: SurfaceTexturesFile = SURFACE_TEXTURES): string[] {
+  return mode === 'stochastic' || mode === 'single' ? wallSets(cfg).map((s) => refOf(s, 'albedo')) : [];
 }
 
 /** The surface ids bound to `set`. A name that is not a surface name is ignored here (`textureConfigErrors` reports it). */

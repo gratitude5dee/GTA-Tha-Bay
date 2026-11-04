@@ -76,7 +76,7 @@ export interface BootSet {
   critical: string[];
   /**
    * The art the tier draws from the boot on (M10d2, 02-world.md 5.1 "facade atlas and sky assets"): `texture/facade-atlas` on the
-   * desktop tiers. It loads after the reveal at idle priority, with the surface sets, so it is neither critical nor pinned.
+   * desktop tiers and (M02h7) on `mobile`. It loads after the reveal at idle priority, with the surface sets, so it is neither critical nor pinned.
    */
   art?: string[];
 }
@@ -120,6 +120,7 @@ export function bootSet(index: Pick<WorldIndex, 'tiles'>, spawn: { x: number; z:
   const spawnP0 = p0Keys[0] ? packAssetOf('p0', p0Keys[0]) : null;
   const spawnL0 = l0Keys[0] ? packAssetOf('l0', l0Keys[0]) : null;
   const critical = [...(spawnP0 ? [spawnP0] : []), ...(spawnL0 ? [spawnL0] : []), ...(far[0] ? [far[0]] : [])];
-  const art = b.ring ? ['texture/facade-atlas'] : [];
+  // M02h7: `mobile` draws the atlas's mobile variant through the façade's albedo seam
+  const art = b.ring || tier === 'mobile' ? ['texture/facade-atlas'] : [];
   return { p0, l0, l1, l2, far, critical: uniq(critical), art };
 }
