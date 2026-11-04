@@ -51,7 +51,8 @@ test.describe('cover ledger @cover-ledger', () => {
 
   for (const tier of LEDGER_TIERS) {
     test(`${tier}: the cover adds no render object and no triangle @cover-ledger`, async ({ page }) => {
-      await bootWorld(page, tier, '', SMALL_VIEWPORT);
+      // `&furniture=0` (DL-758): the later M02h6 row's street furniture and parked dressing stay out of this row's frame
+      await bootWorld(page, tier, '&furniture=0', SMALL_VIEWPORT);
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);
       if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));

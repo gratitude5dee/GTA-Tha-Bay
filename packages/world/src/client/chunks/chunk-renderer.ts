@@ -25,6 +25,9 @@ import type { MeshBuffers, UnitMesh } from './mesh-types.ts';
 import type { WorldMaterials } from './materials.ts';
 import { ChunkUploadGate } from './upload-gate.ts';
 import { walkLiftAt } from './sidewalks.ts';
+import { FurniturePools } from '../furniture/pools.ts';
+import type { FurnitureProfile } from '../furniture/kit.ts';
+import type { SkyNodes } from '../sky/nodes.ts';
 import { CHUNK_EDGE_M, COVER_NAMES as COVER_CLASS_NAMES, chunkKeyAt, type ChunkKey } from '@dv/shared';
 
 export type RenderLevel = 'l0' | 'l1' | 'l2';
@@ -114,6 +117,8 @@ export interface ChunkRendererOptions {
   treeSet?: TreeSet;
   /** M02h5: the vegetation scatter's bands, thinning and pools (absent: M02h4's pools alone). */
   scatter?: ScatterPoolOptions;
+  /** M02h6: the street furniture pools of the look profile (absent or null on `legacy`: none). */
+  furniture?: { profile: FurnitureProfile; sky: SkyNodes } | null;
 }
 
 /** The trees of the resident L0 units as the camera sees them (QA, `look().vegetation`). */
@@ -165,6 +170,10 @@ export class ChunkRenderer {
   readonly vegetation: VegetationPools;
   /** M02h4: the wind amplitude the world view set (reported only). */
   windNow = 0;
+  /** M02h6: the global furniture pools (C08 1.1 rule 12); null on the `legacy` look. */
+  readonly furniture: FurniturePools | null;
+  /** M02h6: told when an L0 unit is committed (its mesh) or dropped (null): the parked dressing follows the resident units. */
+  onL0: ((id: string, mesh: UnitMesh | null) => void) | null = null;
   /** M02h4: drawM crossings whose pool writes wait for upload room (unit id to the wanted state), oldest first. */
   private readonly crossQueue = new Map<string, boolean>();
   private readonly dirty = new Set<string>();
@@ -198,6 +207,7 @@ export class ChunkRenderer {
       scatter: o.scatter,
       impostorMaterial: () => this.impostorMaterial(),
     });
+    this.furniture = o.furniture ? new FurniturePools({ parent: this.root, profile: o.furniture.profile, sky: o.furniture.sky, receiveShadow: () => this.look?.receive ?? false }) : null;
   }
 
   /** M02h5: the impostor cards' billboard material, built once from the look's vegetation material; null without a look (no impostors). */
@@ -232,6 +242,8 @@ export class ChunkRenderer {
     this.root.remove(u.group);
     for (const g of u.geometries) g.dispose();
     this.vegetation.removeUnit(id);
+    this.furniture?.removeUnit(id);
+    if (level === 'l0') this.onL0?.(id, null);
     this.crossQueue.delete(id);
     this.markParent(level, key);
   }
@@ -312,6 +324,12 @@ export class ChunkRenderer {
       u.vegShown = !(this.camPos && this.treeDistance(u, this.camPos) > this.treeDrawM);
       this.vegetation.addUnit(id, mesh.trees, mesh.originX, mesh.originZ, u.vegShown, this.treesNear(mesh));
     } else this.vegetation.removeUnit(id);
+    // M02h6: the unit's furniture records take their pool slots (a re-mesh replaces them)
+    if (level === 'l0' && this.furniture) {
+      this.furniture.setReceiveShadow(this.look?.receive ?? false);
+      this.furniture.addUnit(id, mesh);
+    }
+    if (level === 'l0') this.onL0?.(id, mesh);
     this.units.set(id, u);
     this.root.add(group);
     this.markParent(level, mesh.key);
@@ -476,6 +494,7 @@ export class ChunkRenderer {
     this.o.materials.setTime(nowSec);
     this.uploadsThisFrame = 0;
     this.vegetation.startFrame();
+    this.furniture?.setFocus(cam.pos[0], cam.pos[2]);
     let uploaded: RenderedUnit | null = null;
 
     // A unit that came back after a GPU loss takes the frame's upload slot first.
@@ -715,6 +734,7 @@ export class ChunkRenderer {
     }
     // M02h4: the pools are built again from the instance data they hold (their buffers belonged to the lost device)
     this.vegetation.rebuild();
+    this.furniture?.rebuild();
     return Promise.resolve();
   }
 
@@ -735,7 +755,9 @@ export class ChunkRenderer {
     }
     // M02h4: each pool drawing is one render object, its triangles the drawn instances' (C08 1.1 rule 12)
     const v = this.vegetation.totals();
-    return { objects: objects + v.objects, triangles: triangles + v.triangles, bytes };
+    // M02h6: the furniture pools likewise
+    const f = this.furniture?.report();
+    return { objects: objects + v.objects + (f?.objects ?? 0), triangles: triangles + v.triangles + (f?.triangles ?? 0), bytes };
   }
 
   dispose(): void {
@@ -743,6 +765,7 @@ export class ChunkRenderer {
     this.units.clear();
     this.o.parent.remove(this.root);
     this.vegetation.dispose();
+    this.furniture?.dispose();
     this.impostorMat?.dispose();
   }
 }

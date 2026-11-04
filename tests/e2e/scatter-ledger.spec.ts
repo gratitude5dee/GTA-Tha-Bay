@@ -72,7 +72,8 @@ test.describe('scatter ledger @scatter-ledger', () => {
   for (const row of [...LEDGER_TIERS, 'legacy'] as const) {
     test(`${row}: the scatter's render objects against the latest merged ledger, and park-forest's vegetation triangles @scatter-ledger`, async ({ page }) => {
       const tier = row === 'legacy' ? 'mobile-low' : row;
-      await bootWorld(page, tier, '', SMALL_VIEWPORT);
+      // `&furniture=0` (DL-758): the later M02h6 row's street furniture and parked dressing stay out of this row's frame
+      await bootWorld(page, tier, '&furniture=0', SMALL_VIEWPORT);
       if (row === 'legacy') expect(await world(page, (w) => w.setLook(false)), 'the look switched off').toBe(true);
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);

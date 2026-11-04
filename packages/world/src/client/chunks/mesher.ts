@@ -1,8 +1,8 @@
 /**
  * The L0 mesher (02-world.md section 5.2 rule 4, 02-world-bake.md section 6; M02b1). Turns a decoded chunk (`SimChunk` for
  * the heightfield, ground classes and road segments, `RenderChunk` for the footprints and trees) into at most six render
- * objects: `terrain`, `buildings`, `roads` and `vegetation` (the tree instances); `furniture` and `extras` stay empty until their
- * milestones. It imports nothing from `three`, so it runs in asset.worker, and it is deterministic: the same chunk and options
+ * objects: `terrain`, `buildings`, `roads` and `vegetation` (the tree instances); the chunk `furniture` object and `extras` stay empty
+ * (since M02h6 the street furniture is records, `UnitMesh.furniture`, drawn by global pools, C08 1.1 rule 12). It imports nothing from `three`, so it runs in asset.worker, and it is deterministic: the same chunk and options
  * give the same bytes.
  *
  *  - terrain: every 1st / 2nd / 4th post (desktop / mobile / mobile-low), so every vertex lies on the physics surface, with the
@@ -16,18 +16,25 @@
  *  - roads: ribbons along the `p0` segment centrelines, lifted 0.12 m plus 0.01 m per class rank (the busier road on top, drawn
  *    last), at the carriageway width;
  *  - trees: one instance record per tree (x, y, z, height, yaw, form and tint; M02h4), drawn by the global vegetation pools; the
- *    foot is the lowest terrain under the trunk and the height, drawn from the form's distribution, stays under the nearest eave.
+ *    foot is the lowest terrain under the trunk and the height, drawn from the form's distribution, stays under the nearest eave;
+ *  - furniture (M02h6): the `RenderChunk.furniture` records, or `placeFurniture`'s when the pack has none (DL-740: the bake fill stays
+ *    off in v1), plus a signal assembly per approach of each Signal junction and (`full`) trolley wires, as `UnitMesh.furniture` records;
+ *    the look profile's pools decide which kinds are kept (none on `legacy`).
  *
  * Positions are local to the chunk's north-west corner (`x`, `z`), with `y` absolute, so a float32 position keeps its precision
  * 10 km from the origin.
  */
 import earcut from 'earcut';
 import {
+  ambientKey, ctrU32, datan2, densityCap, placeFurniture, signalHeads, wireSpans, worldSeedOf, type FurnitureFile, type ParkedSlot,
   NodeControl, PedEdgeKind, PedNodeFlag, TERRAIN_POSTS, VEG_FORM_NAMES, chunkBounds, isScatterByte, isUnderstoryForm, sampleHeight, treeFormOfByte, triangularQuantile, type BuildingRecord, type ChunkKey,
   type QualityTierId, type RenderChunk, type SimChunk, type TreeForm, type TreeFormTable, type VegFormName,
 } from '@dv/shared';
 import mesherJson from '../../../../../config/world/mesher.json';
 import treeFormsJson from '../../../../../config/world/tree-forms.json';
+import furnitureJson from '../../../../../config/world/furniture.json';
+import densityJson from '../../../../../config/world/density.json';
+import { pointAlong, polylineLength } from '../../sim/graph/geometry.ts';
 import { LOOK, LOOK_FLAG, facadeClassOf, lookProfileFor } from '../look/config.ts';
 import { packRoad, roadFields, roadVertex, wrapAlong, type RoadFields } from '../look/road-layout.ts';
 import { COVER_SURFACE_NAMES, FLAG_PARAPET, Surf, coverSurf, facadeDm, facadeSignedDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
@@ -35,9 +42,9 @@ import {
   approachesOf, clipKey, clippedPolyline, armsOf, crosswalkQuad, planRoads, ribbonSides, roadsContext, simplifyPoints, stopBarQuad, tileOf, type DecalQuad, type PlannedJunction,
   type RibbonPoint, type RoadsContext, type RoadsPlan,
 } from './junction-patch.ts';
-import { meshBytes, type MeshBuffers, type MeshStats, type UnitMesh } from './mesh-types.ts';
+import { FURNITURE_STRIDE, FurnitureKind, meshBytes, type FurnitureHead, type MeshBuffers, type MeshStats, type UnitMesh } from './mesh-types.ts';
 import { bakeMacro } from './macro.ts';
-import { CURBS, GUTTER_COLOR, buildSidewalks, curbedSides, type CurbSample, type CurbStats } from './sidewalks.ts';
+import { CURBS, GUTTER_COLOR, buildSidewalks, curbedSides, walkLiftAt, type CurbSample, type CurbStats } from './sidewalks.ts';
 
 // ---- configuration -------------------------------------------------------------------------------------------------------
 
@@ -98,6 +105,8 @@ export interface MesherConfig {
   cover: Record<(typeof COVER_SURFACE_NAMES)[number], string>;
 }
 export const MESHER: MesherConfig = mesherJson as unknown as MesherConfig;
+/** M02h6: `config/world/furniture.json`. */
+export const FURNITURE: FurnitureFile = furnitureJson as unknown as FurnitureFile;
 /** M02h4: the tree forms' table (`config/world/tree-forms.json`): the mesher reads the height draws. */
 export const TREE_FORM_TABLE: TreeFormTable = treeFormsJson as unknown as TreeFormTable;
 
@@ -998,6 +1007,11 @@ export interface MeshChunkOptions {
    * before M02h3. The caller passes it only with the `cover` layer on (`platform-flags.json` `world.cover`, `setLookLayer('cover', on)`).
    */
   cover?: Uint8Array | null | undefined;
+  /**
+   * M02h6: the furniture records' look profile (the pools that draw them); defaults to the tier's profile under the `world.look` flag. `legacy`
+   * meshes none.
+   */
+  furnitureProfile?: 'full' | 'lite' | 'min' | 'legacy' | undefined;
 }
 
 /**
@@ -1079,7 +1093,9 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
   let kept: readonly Candidate[] = candidates;
   let b0 = meshBuildings(kept);
   const trees = treeRecords(sim, render, ox, oz, { stride, buildings: candidates.map((c) => ({ ring: c.ring, height: c.height })) });
-  const bytesOf = (): number => meshBytes(b0.built ? [...objects, b0.built] : objects, trees);
+  // M02h6: the street furniture records (the walk mask of the curbs lifts them onto the sidewalk tops, so they follow the roads below)
+  let furn: { records: Float32Array; heads: FurnitureHead[]; source: 'bake' | 'mesher' | 'none' } = { records: new Float32Array(0), heads: [], source: 'none' };
+  const bytesOf = (): number => meshBytes(b0.built ? [...objects, b0.built] : objects, trees, furn.records);
   for (let pass = 0; pass < 6 && o.maxBytes && bytesOf() > o.maxBytes && kept.length > 1; pass++) {
     // Over the tier's upload cap: keep the largest footprints that fit.
     const ratio = Math.max(0.05, (o.maxBytes / bytesOf()) * 0.9);
@@ -1093,6 +1109,8 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
   if (b0.built) objects.push(b0.built);
 
   const roads = buildRoads(sim, ox, oz, o.markings ?? LOOK_FLAG, o.tile, curbsOn ? { profile: profileId, ...(o.curbDebug ? { debug: true } : {}) } : undefined);
+  furn = furnitureRecords(sim, render, o, ox, oz, roads.walk && roads.walkLiftM ? { mask: roads.walk, liftM: roads.walkLiftM } : null);
+  stats.furniture = { source: furn.source, records: furn.records.length / FURNITURE_STRIDE, heads: furn.heads.length };
   if (roads.mesh) {
     objects.push(roads.mesh);
     stats.markings = roads.stats;
@@ -1107,10 +1125,11 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
     stats.triangles += obj.indices.length / 3;
     stats.vertices += obj.positions.length / 3;
   }
-  stats.bytes = meshBytes(objects, trees);
+  stats.bytes = meshBytes(objects, trees, furn.records);
   const sorted = (set: ReadonlySet<number>): number[] => [...set].sort((a, b) => a - b);
   return {
-    level: 'l0', key: sim.key as ChunkKey, originX: ox, originZ: oz, objects, trees, lamps: lampRecords(sim, render, ox, oz), stats,
+    level: 'l0', key: sim.key as ChunkKey, originX: ox, originZ: oz, objects, trees, lamps: lampRecords(sim, render, ox, oz), furniture: furn.records, heads: furn.heads,
+    parked: parkedDressingRecords(sim, o.tier, o.furnitureProfile ?? lookProfileFor(o.tier)), stats,
     proxies: sorted(proxies), masked: sorted(masked),
     ...(roads.walk ? { walk: roads.walk, walkLiftM: roads.walkLiftM ?? 0 } : {}),
     ...(roads.samples ? { curbSamples: roads.samples } : {}),
@@ -1265,6 +1284,144 @@ function lampRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: 
     lamps[i * 3 + 2] = lz;
   }
   return lamps;
+}
+
+// ---- street furniture (M02h6) ---------------------------------------------------------------------------------------------------
+
+/** The pool that draws each `FurnitureKind` (`furniture/pools.ts`). */
+export const POOL_OF_KIND: readonly string[] = ['post', 'post', 'post', 'shelter', 'shelter', 'pole', 'post', 'signal', 'wire'];
+/** The kinds a look profile keeps: those whose pool it has; `min` leaves out the meters (02-world.md 5.4, M02h6 table). */
+export function furnitureKindsOf(profile: 'full' | 'lite' | 'min' | 'legacy', cfg: FurnitureFile = FURNITURE): Set<number> {
+  const out = new Set<number>();
+  if (profile === 'legacy') return out;
+  const pools = cfg.pools[profile];
+  POOL_OF_KIND.forEach((pool, kind) => {
+    if (pools[pool] === undefined) return;
+    if (profile === 'min' && kind === FurnitureKind.meter) return;
+    out.add(kind);
+  });
+  return out;
+}
+
+/**
+ * The furniture records of one L0 chunk: the pack's `RenderChunk.furniture` when it has any (a bake with `bakeFill`), else `placeFurniture`
+ * at mesh time (DL-740), the signal assemblies and (where the profile has the `wire` pool) the trolley wire spans; only the kinds the
+ * profile's pools draw. Local x and z, absolute y: the terrain under the item (its own tile chunk's), plus the curb's walk lift on a curbed
+ * sidewalk of this chunk.
+ */
+export function furnitureRecords(
+  sim: SimChunk,
+  render: RenderChunk | null,
+  o: Pick<MeshChunkOptions, 'tier' | 'tile' | 'furnitureProfile'>,
+  ox: number,
+  oz: number,
+  walk: { mask: Uint8Array; liftM: number } | null,
+): { records: Float32Array; heads: FurnitureHead[]; source: 'bake' | 'mesher' | 'none' } {
+  const profile = o.furnitureProfile ?? lookProfileFor(o.tier);
+  const kinds = furnitureKindsOf(profile);
+  if (kinds.size === 0) return { records: new Float32Array(0), heads: [], source: 'none' };
+  const tile = tileOf(sim, o.tile);
+  const cfg = { rules: FURNITURE.place, worldSeed: worldSeedOf(sim.bakeId), tile };
+  let recs: Float32Array;
+  let source: 'bake' | 'mesher';
+  if (render && render.furniture.length >= 4) {
+    recs = render.furniture;
+    source = 'bake';
+  } else {
+    const avoid: number[] = [];
+    if (render) {
+      for (let i = 0; i + 2 < render.lamps.length; i += 3) avoid.push(render.lamps[i] as number, render.lamps[i + 1] as number);
+      for (let i = 0; i + 3 < render.trees.length; i += 4) avoid.push(render.trees[i] as number, render.trees[i + 1] as number);
+    }
+    recs = placeFurniture(sim, { ...cfg, avoid });
+    source = 'mesher';
+  }
+  const heightAt = (x: number, z: number): number => {
+    for (const c of tile) {
+      const b = chunkBounds(c.key);
+      if (x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ) return sampleHeight(c.height, x, z);
+    }
+    const b = chunkBounds(sim.key);
+    return sampleHeight(sim.height, Math.min(b.maxX, Math.max(b.minX, x)), Math.min(b.maxZ, Math.max(b.minZ, z)));
+  };
+  const liftAt = (lx: number, lz: number): number => (walk && lx >= 0 && lz >= 0 && lx < 256 && lz < 256 ? walkLiftAt(walk.mask, walk.liftM, lx, lz) : 0);
+  const out: number[] = [];
+  for (let i = 0; i + 3 < recs.length; i += 4) {
+    const type = recs[i + 3] as number;
+    if (!kinds.has(type)) continue;
+    const x = recs[i] as number, z = recs[i + 1] as number;
+    out.push(type, x - ox, heightAt(x, z) + liftAt(x - ox, z - oz), z - oz, recs[i + 2] as number, 0);
+  }
+  const heads: FurnitureHead[] = [];
+  if (kinds.has(FurnitureKind.signal)) {
+    const byId = new Map(sim.junctions.map((j) => [j.id, j] as const));
+    for (const h of signalHeads(sim, cfg, FURNITURE.signal.inset)) {
+      const j = byId.get(h.junction);
+      if (!j?.program) continue;
+      out.push(FurnitureKind.signal, h.x - ox, heightAt(h.x, h.z) + liftAt(h.x - ox, h.z - oz), h.z - oz, h.yaw, heads.length);
+      heads.push({ junction: h.junction, movement: h.movement, program: j.program });
+    }
+  }
+  if (kinds.has(FurnitureKind.wire)) {
+    for (const w of wireSpans(sim, cfg, FURNITURE.wires)) out.push(FurnitureKind.wire, w.x - ox, w.y + FURNITURE.wires.heightM, w.z - oz, w.yaw, w.lengthM);
+  }
+  return { records: Float32Array.from(out), heads, source };
+}
+
+// ---- parked dressing (M02h6) -----------------------------------------------------------------------------------------------------
+
+/** Floats per `UnitMesh.parked` record: local x, road y, local z, yaw, slot, density profile. */
+export const PARKED_STRIDE = 6;
+const PARKED_FACTOR = (densityJson as unknown as { tierFactors: { parked: Record<QualityTierId, number> } }).tierFactors.parked;
+const PARKED_WORK = new Float64Array(6);
+
+/**
+ * Where a baked parked slot stands, as the sim's `parkedPose` (`sim/traffic/spawn.ts`, which the asset worker does not bundle: it pulls the
+ * traffic sim in): `widthM / 2 - 1.15` m from the centreline on its side, facing the way traffic runs in that lane; x, y, z, the yaw jitter
+ * and the heading in `out`. `packages/world/test/parked-dressing.spec.ts` holds the two equal.
+ */
+export function dressingPose(c: SimChunk, p: ParkedSlot, out: Float64Array): boolean {
+  const seg = c.segments.find((s) => s.id === p.seg);
+  if (!seg) return false;
+  const poly = polylineLength(seg.pts);
+  const sAt = seg.lengthM > 0 ? (p.s * poly) / seg.lengthM : p.s;
+  pointAlong(seg.pts, sAt, false, out);
+  const tx = out[3] as number, tz = out[4] as number;
+  const off = (seg.widthM / 2 - 1.15) * p.side;
+  const x = (out[0] as number) - tz * off;
+  const z = (out[2] as number) + tx * off;
+  const dir = p.side > 0 ? 1 : -1;
+  out[0] = x;
+  out[2] = z;
+  out[3] = p.yawJitterDm * 0.01;
+  out[4] = tx * dir;
+  out[5] = tz * dir;
+  return true;
+}
+
+/**
+ * The parked slots the render-only dressing may draw on `tier` (M02h6, C08 1.1 rule 12): only those with an index at or past
+ * `densityCap(capacity, tierFactors.parked[tier])`, which the sim never fills on that tier (C01 prefix rule), thinned to `dressShare` by a
+ * seeded draw of the slot's own plan stream. None on the `legacy` look. The archetype and the colour are the sim's draws, made by the
+ * renderer (`traffic/parked-dressing.ts`) from the slot and the profile.
+ */
+export function parkedDressingRecords(sim: SimChunk, tier: QualityTierId, profile: 'full' | 'lite' | 'min' | 'legacy'): Float32Array {
+  if (profile === 'legacy') return new Float32Array(0);
+  const list = sim.spawn.parked;
+  const first = densityCap(list.length, PARKED_FACTOR[tier] ?? 1);
+  const share = FURNITURE.parked.dressShare[profile];
+  const seed = worldSeedOf(sim.bakeId);
+  const out: number[] = [];
+  const b = chunkBounds(sim.key);
+  for (let i = first; i < list.length; i++) {
+    const slot = list[i] as ParkedSlot;
+    if (ctrU32(seed, ambientKey(sim.key as ChunkKey, slot.slot), 1 * 8 + 6) / 4294967296 >= share) continue;
+    if (!dressingPose(sim, slot, PARKED_WORK)) continue;
+    let yaw = datan2(-(PARKED_WORK[4] as number), -(PARKED_WORK[5] as number)) + (PARKED_WORK[3] as number);
+    if (yaw < 0) yaw += Math.PI * 2;
+    out.push((PARKED_WORK[0] as number) - b.minX, PARKED_WORK[1] as number, (PARKED_WORK[2] as number) - b.minZ, yaw, slot.slot, sim.spawn.densityProfile);
+  }
+  return Float32Array.from(out);
 }
 
 /**
