@@ -9,7 +9,8 @@ import type { WorldBridge } from '../../packages/world/src/client/world-bridge.t
  *                  bake S11), and the facade atlas `texture/facade-atlas` is neither drawn nor requested. The `?tier=mobile` case
  *                  that binds the atlas's `mobile` variant belongs to M02h7 (its AC-11), which merges after this row (DL-740).
  *  - @art-ultra    `?tier=desktop-ultra&gl=1&atmosphere=1`: with `world.atmosphere` on under WebGL2 the takram adapter falls back
- *                  to the M02e sky with no console error, and the facade atlas of the desktop tiers loads.
+ *                  to the M02e sky with no console error, and the facade atlas of the desktop tiers loads. The one line left out is
+ *                  the browser's 503 for the play-token route, which the secret-less e2e Worker gives by design (`errorsOf`).
  *
  * One software-rendered world per test (CI capacity, BD-FIX-CI-TEXGOLD-01); every wait is on the condition the assertion needs.
  */
@@ -17,11 +18,33 @@ type W = { __dvBridge: { world: WorldBridge } };
 
 const TINY = { width: 256, height: 144 } as const;
 
-/** Console errors and page errors of the page, collected from before the first navigation. */
+/**
+ * Route 5 (`POST /api/v1/id/play-token`, packages/identity/src/play-token-client.ts `PLAY_TOKEN_PATH`). The e2e Worker runs without
+ * `PLAY_TOKEN_HMAC` (BD-FIX-CI8-H02, BD-FIX-SEC-02), so the route answers 503 `upstream_unavailable` and the client plays offline.
+ */
+const PLAY_TOKEN_PATH = '/api/v1/id/play-token';
+
+/**
+ * The browser's own line for that 503, matched on the message's location (the resource URL) and the status (BD-FIX-WEBGPU-FACADE-01).
+ * Whether the page asks for a play token at all depends on the boot order, not on the sky or the atlas: the first schedule step of a
+ * hero writes a `block_boundary` intent, and the page's intent driver (apps/web/src/npc-agency.ts, a lazy chunk) asks the identity for a
+ * token only when it subscribed before that intent was published. On chromium-webgpu in CI runs 41800361763 and 41812786532 it had,
+ * and the `@art-ultra` case failed on this line alone while its atlas had loaded. Every other failed load and every script error counts.
+ */
+function isPlayTokenUnavailable(text: string, url: string): boolean {
+  if (!text.startsWith('Failed to load resource: the server responded with a status of 503')) return false;
+  try {
+    return new URL(url).pathname === PLAY_TOKEN_PATH;
+  } catch {
+    return false;
+  }
+}
+
+/** Console errors and page errors of the page, collected from before the first navigation (less the line above). */
 function errorsOf(page: Page): string[] {
   const out: string[] = [];
   page.on('console', (m) => {
-    if (m.type() === 'error') out.push(m.text());
+    if (m.type() === 'error' && !isPlayTokenUnavailable(m.text(), m.location().url)) out.push(m.text());
   });
   page.on('pageerror', (e) => out.push(e.message));
   return out;
