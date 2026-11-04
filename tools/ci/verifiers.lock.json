@@ -61,7 +61,7 @@
         "packages/world/test/golden/",
         "packages/engine/src/sim/save/__golden__/"
       ],
-      "sha256": "bb8f458f5c401203e9d9d4b561d811582fd59911e671ecb791ef4c63a8a4fa20",
+      "sha256": "80c15f16e0b7f8afc1fbc86012395bdfbbcf2d7c306d2257811c9664a51b1871",
       "subjects": [
         "packages/engine/src/sim/",
         "packages/shared/src/",
