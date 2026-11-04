@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import { decodePng, diffImages, encodePng, goldenFailures, identical, type Rgba } from '../support/image-diff.ts';
+import { canvasRgba } from './canvas-capture.ts';
 import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, type Json, type W } from './world-look-helpers.ts';
 import { MARKINGS_GOLDEN_SHOTS, PAINT_TIERS } from './markings-helpers.ts';
 
@@ -48,8 +49,7 @@ async function captureShot(page: Page, tier: string, shot: string): Promise<Rgba
   const held = !UNHELD_SHOTS.has(`${tier}.${shot}`);
   await page.evaluate(([id, h]) => (window as unknown as W).__dvBridge.world.shot(id, { held: h }), [shot, held] as const);
   await frames(page, 2);
-  const buf = await page.locator('#dv-engine-canvas').screenshot();
-  return decodePng(buf);
+  return canvasRgba(page);
 }
 
 test.describe('look goldens @look-golden', () => {
@@ -74,7 +74,7 @@ test.describe('look goldens @look-golden', () => {
       expect(first).toMatchObject({ width: GOLDEN_VIEWPORT.width, height: GOLDEN_VIEWPORT.height });
       // Two consecutive captures of one shot are byte-identical.
       await frames(page, 2);
-      const second = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+      const second = await canvasRgba(page);
       expect(identical(first, second), 'two consecutive captures differ').toBe(true);
       if (update) {
         mkdirSync(GOLDEN_DIR, { recursive: true });

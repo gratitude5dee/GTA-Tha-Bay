@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { decodePng, diffImages, encodePng, goldenFailures, identical, type Rgba } from '../support/image-diff.ts';
+import { canvasRgba } from './canvas-capture.ts';
 import { GOLDEN_VIEWPORT, HIDE, MARKINGS_GOLDEN_SHOTS, bootWorld, clearActors, frames, setSky, world, type W } from './markings-helpers.ts';
 
 /**
@@ -34,7 +35,7 @@ async function captureShot(page: Page, tier: string, shot: string): Promise<Rgba
   const held = !UNHELD_SHOTS.has(`${tier}.${shot}`);
   await page.evaluate(([id, h]) => (window as unknown as W).__dvBridge.world.shot(id, { held: h }), [shot, held] as const);
   await frames(page, 2);
-  return decodePng(await page.locator('#dv-engine-canvas').screenshot());
+  return canvasRgba(page);
 }
 
 /** The `describe` of the markings goldens, with `body` inside it (the manifest case of `markings-golden.spec.ts`, then the shots). */
@@ -56,7 +57,7 @@ export function registerMarkingsGoldenShots(tier: string): void {
       const first = await captureShot(page, tier, shot);
       expect(first).toMatchObject({ width: GOLDEN_VIEWPORT.width, height: GOLDEN_VIEWPORT.height });
       await frames(page, 2);
-      const second = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+      const second = await canvasRgba(page);
       expect(identical(first, second), 'two consecutive captures differ').toBe(true);
       const mode = (await world(page, (w) => w.look()))?.markings.mode;
       expect(mode, `${tier} paints`).toBe(tier === 'desktop' ? 'worn' : 'flat');
