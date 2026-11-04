@@ -86,7 +86,7 @@ test.describe('art city surfaces @art-skyline', () => {
   });
 });
 
-test.describe('art city surfaces on mobile @art-skyline', () => {
+test.describe('art mobile surfaces @art-skyline', () => {
   test.describe.configure({ timeout: 600_000 });
   test('mobile (M02h7): the walls sample the facade atlas\'s mobile variant through the albedo seam, and only that variant is requested @art-skyline', async ({ page }) => {
     const errors = errorsOf(page);
