@@ -168,12 +168,29 @@ test.describe('facade goldens @facade-golden', () => {
     // one boot per tier: the three shots stand within 90 m of each other on the x = -408 street (CI capacity, BD-FIX-CI-TEXGOLD-01)
     test(`${tier}: facade-shopfront, facade-bays and facade-night are within the tolerance of their goldens and repeat byte-identical @facade-golden`, async ({ page }) => {
       await bootWorld(page, tier, '', GOLDEN_VIEWPORT);
+      // the wall sets (brick, stucco) and the facade atlas load after the reveal: a golden is taken once both have settled, so no texture
+      // arrives between two captures (the `mobile` bays differed once when the 512 px atlas landed between them)
+      await expect
+        .poll(async () => world(page, (w) => {
+          const t = w.look()?.textures ?? null;
+          const a = w.art()?.facadeAtlas ?? null;
+          return (t?.settled ?? true) && (!a || !a.on || a.loaded || a.failed !== null);
+        }), { timeout: 900_000, intervals: [1000] })
+        .toBe(true);
       for (const shot of GOLDEN_SHOTS) {
         const file = `${GOLDEN_DIR}/${tier}.${shot}.png`;
-        const first = await goldenShot(page, shot);
+        let first = await goldenShot(page, shot);
         expect(first).toMatchObject({ width: GOLDEN_VIEWPORT.width, height: GOLDEN_VIEWPORT.height });
+        // the camera moved up to 90 m from the previous shot: a chunk the profile's skip rule meshed from afar is meshed again with its small
+        // buildings once it lies within reach (`remeshFiltered`, `mobile`), and lands a few frames after the shot settled. The golden is the
+        // first picture that two presented frames later is the same, and that repeat is the byte-identical check
         await frames(page, 2);
-        const second = await canvasRgba(page);
+        let second = await canvasRgba(page);
+        for (let i = 0; i < 8 && !identical(first, second); i++) {
+          first = second;
+          await frames(page, 4);
+          second = await canvasRgba(page);
+        }
         expect(identical(first, second), `${tier} ${shot}: two consecutive captures differ`).toBe(true);
         if (update) {
           mkdirSync(GOLDEN_DIR, { recursive: true });
