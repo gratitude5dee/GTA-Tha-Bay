@@ -744,6 +744,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         camera: { pos: [cam.position.x, cam.position.y, cam.position.z], dir: [-(e[8] as number), -(e[9] as number), -(e[10] as number)] },
         env: view.env,
         blackout: view.blackout,
+        simTick: view.tick,
         boundaryFog: view.boundaryFog,
         poses: view.poses,
         poseCount: view.count,

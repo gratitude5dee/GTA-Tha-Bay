@@ -255,7 +255,8 @@ test.describe('player ledger @player-ledger', () => {
 
   for (const tier of LEDGER_TIERS) {
     test(`${tier}: the body is one render object and the frame holds its count @player-ledger`, async ({ page }) => {
-      await bootWorld(page, tier);
+      // `&furniture=0` (DL-758): the later M02h6 row's street furniture and parked dressing stay out of this row's frame
+      await bootWorld(page, tier, '&furniture=0');
       await setSky(page, 13, 'clear');
       const p = await bodyDrawn(page);
       const r = (await bodies(page)) as Report;
