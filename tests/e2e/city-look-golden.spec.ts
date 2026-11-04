@@ -21,8 +21,20 @@ const GOLDEN_SHOTS: { tier: string; shot: string }[] = [
   // M02h2: the curb, gutter and ramp at a corner, and a lot beside a plaza
   ...(['desktop', 'mobile-low'] as const).flatMap((tier) => ['curb-corner', 'lot-plaza'].map((shot) => ({ tier, shot }))),
 ];
+/**
+ * `<tier>.<shot>` of the goldens whose held capture differed from the unheld one beyond the golden tolerance: they keep the plain `shot(id)`.
+ * None did (BD-FIX-CI-HELDSHOTS-01: twelve of the fourteen gave the same bytes held and unheld, `golden-water` at `mobile` and `mobile-low`
+ * differed in two to five water pixels by 1 to 3/255, the same pixels in which the unheld capture differs from its committed golden).
+ */
+const UNHELD_SHOTS: ReadonlySet<string> = new Set<string>([]);
 
-/** The 256 x 144 canvas of the page after `shot(id)` has presented its frame. The debug panel is hidden so the picture is the canvas alone. */
+/**
+ * The 256 x 144 canvas of the page after `shot(id, { held: true })` has presented its frame. The debug panel is hidden so the picture is the
+ * canvas alone. The shot's two waits for the stream run with the world's draw held (BD-FIX-CI-HELDSHOTS-01, as the texture, cover, tree and
+ * scatter goldens and the look-fix pairs do): at `desktop` on software GL the plain shot ran out both ten-minute waits at one unit per
+ * presented frame (9 to 19 minutes a golden in CI); held, they end once the shot's plan is resident (a `desktop` golden took 6 to 9 minutes
+ * here held, 14 to 32 unheld, on a loaded four-core machine). A shot in `UNHELD_SHOTS` keeps the plain `shot(id)`.
+ */
 async function captureShot(page: Page, tier: string, shot: string): Promise<Rgba> {
   await bootWorld(page, tier as QualityTierId, '', GOLDEN_VIEWPORT);
   await page.addStyleTag({ content: '.dv-hud, .dv-sim-panel, .dv-sky-controls, .dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg, .dv-npcagency, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
@@ -33,7 +45,8 @@ async function captureShot(page: Page, tier: string, shot: string): Promise<Rgba
     const view = (window as unknown as { __dvBridge: { world: { internals(): { view: { traffic: G; peds: G; transit: G } } } } }).__dvBridge.world.internals().view;
     for (const r of [view.traffic, view.peds, view.transit]) if (r) r.group.visible = false;
   });
-  await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id), shot);
+  const held = !UNHELD_SHOTS.has(`${tier}.${shot}`);
+  await page.evaluate(([id, h]) => (window as unknown as W).__dvBridge.world.shot(id, { held: h }), [shot, held] as const);
   await frames(page, 2);
   const buf = await page.locator('#dv-engine-canvas').screenshot();
   return decodePng(buf);
