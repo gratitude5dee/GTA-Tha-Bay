@@ -200,6 +200,7 @@ export async function runLandmarksCommand(argv: readonly string[]): Promise<numb
     const r = await buildLandmarks({ slug: values.slug, check: values.check });
     for (const p of r.plans) console.log(`map:landmarks: ${p.id} ${Object.entries(p.stats).map(([v, s]) => `${v} ${s.tris} tris ${s.primitives} objects`).join(', ')}`);
     if (!values.check && r.written.length > 0) console.log(`map:landmarks: wrote ${r.written.length} assets; run pnpm assets:catalog and pnpm assets:lock -- --approved-by <handle>`);
+    console.log(`map:landmarks: replaced by supplied models (skipped): ${r.replaced.length === 0 ? 'none' : r.replaced.join(', ')}`);
     const code = printFindings(values.check ? 'map:landmarks --build --check' : 'map:landmarks --build', r.findings);
     return code;
   }

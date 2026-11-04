@@ -33,7 +33,7 @@ import { runSpawn } from './stages/s9-spawn.ts';
 import { hoodAt, runPlaces, type PlacesProduct } from './stages/s10-places.ts';
 import { runTransit, type RouteRow, type StopRow, type TransitRoutes } from './stages/s10-transit.ts';
 import { runLod } from './stages/s11-lod.ts';
-import { runFar } from './stages/s11-far.ts';
+import { cardsPreviewPng, encodeCards, runFar } from './stages/s11-far.ts';
 import { districtGridBytes, runDistrictGrid, type DistrictGridProduct } from './stages/s12-district-grid.ts';
 import { runMap, type MapProduct, type MapStreetRow } from './stages/s12-map.ts';
 import { runGeocode, type EasRow, type GeocodeReport } from './stages/s12-geocode.ts';
@@ -141,7 +141,7 @@ function cachePath(c: Ctx, stage: string): string {
   return path.join(c.o.cacheRoot ?? CACHE_ROOT, 'stages', stage, `${key}.bin`);
 }
 
-async function stage<T>(c: Ctx, id: StageId, selected: boolean, ms: Record<string, number>, run: () => T): Promise<T> {
+async function stage<T>(c: Ctx, id: StageId, selected: boolean, ms: Record<string, number>, run: () => T | Promise<T>): Promise<T> {
   const file = cachePath(c, id);
   if (!selected || (!c.o.force && existsSync(file))) {
     if (existsSync(file)) {
@@ -151,7 +151,7 @@ async function stage<T>(c: Ctx, id: StageId, selected: boolean, ms: Record<strin
     throw new Error(`stage ${id} is not selected and has no cached output for bake ${c.bakeId.slice(0, 12)}; run it first (pnpm map:build -- --area ${c.area} --stage ${id})`);
   }
   const t0 = Date.now();
-  const out = run();
+  const out = await run();
   ms[id] = Date.now() - t0;
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, v8.serialize(out));
@@ -170,7 +170,7 @@ interface TagsStage { tags: TagsProduct; spawn: Map<ChunkKey, SpawnTable>; spawn
 interface PlacesStage { places: PlacesProduct; transit: TransitRoutes; transitReport: Record<string, unknown>; gates: GateResult[] }
 interface DistrictStage { product: DistrictGridProduct; gates: GateResult[] }
 interface MapStage { product: MapProduct; geocode: Uint8Array; geoReport: GeocodeReport; gates: GateResult[] }
-interface LodStage { files: { name: string; family: 'l1' | 'l2'; x: number; y: number; units: number; bytes: Uint8Array }[]; far: { dem: Uint8Array; massing: Uint8Array; cards: Uint8Array }; report: Record<string, unknown>; farReport: Record<string, unknown> }
+interface LodStage { files: { name: string; family: 'l1' | 'l2'; x: number; y: number; units: number; bytes: Uint8Array }[]; far: { dem: Uint8Array; massing: Uint8Array; cards: Uint8Array; cardsPreview: Uint8Array }; report: Record<string, unknown>; farReport: Record<string, unknown> }
 
 export async function runBake(o: BakeOptions): Promise<BakeResult> {
   const log = o.log ?? ((l: string) => console.log(l));
@@ -367,7 +367,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
   gates.push(...districtStage.gates);
 
   // S11 LOD packs and the far backdrop
-  const lodStage = await stage<LodStage>(c, 'lod', wanted.has('lod'), ms, () => {
+  const lodStage = await stage<LodStage>(c, 'lod', wanted.has('lod'), ms, async () => {
     const lod = runLod({
       bakeId, grid, terrain: graded, landRings: water.product.landRings, landuse: water.product.landuse, buildings: buildings.product, segs: grading.product.segs, districtAt,
     });
@@ -376,7 +376,11 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       bakeId, bounds: loadBounds(), mosaic12: z12, mosaic15: mosaicOf(c), area: gridBox, areaHeight: (x, z) => graded.heightAt(x, z), isLand,
       buildings: buildings.product, segs: grading.product.segs,
     });
-    return { files: lod.files, far: { dem: far.dem, massing: far.massing, cards: far.cards }, report: lod.report as unknown as Record<string, unknown>, farReport: far.report as unknown as Record<string, unknown> };
+    const cards = await encodeCards(far.cards);
+    return {
+      files: lod.files, far: { dem: far.dem, massing: far.massing, cards, cardsPreview: cardsPreviewPng(far.cards) },
+      report: lod.report as unknown as Record<string, unknown>, farReport: { ...far.report, cardsBytes: cards.byteLength } as unknown as Record<string, unknown>,
+    };
   });
 
   // S12 map: sf-map.v1, sf-map-bldg.v1 and sf-geocode.v1 (M02c2)
@@ -405,7 +409,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       segs: grading.product.segs, nodes: grading.product.nodes, edges: grading.product.edges, junctions: junctions.product.junctions,
       slabs: grading.product.slabs, hoods: grading.product.hoods, ped: ped.product, tags: tagStage.tags.tags, lamps: tagStage.tags.lamps, portals: tagStage.tags.portals, spawn: tagStage.spawn,
       places: placesStage.places, lod: lodStage.files,
-      far: [{ name: 'far-bay-dem.pack', bytes: lodStage.far.dem }, { name: 'far-bay-massing.pack', bytes: lodStage.far.massing }, { name: 'far-bay-cards.png', bytes: lodStage.far.cards }],
+      far: [{ name: 'far-bay-dem.pack', bytes: lodStage.far.dem }, { name: 'far-bay-massing.pack', bytes: lodStage.far.massing }, { name: 'far-bay-cards.ktx2', bytes: lodStage.far.cards }],
       cover: { cfg: loadCover(), osm: osmOf(c) },
       scatter: { cfg: loadVegetation() },
     });
@@ -459,6 +463,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       { name: RAW_LOCK_NAME, bytes: Buffer.from(rawLockText(bakeLock)) },
       { name: 'attribution.world.json', bytes: Buffer.from(stableJson(attributionFor(cfg, o.area))) },
       { name: 'preview.png', bytes: renderPreview(grid, outputs.sims, outputs.renders) },
+      { name: 'far-bay-cards.preview.png', bytes: lodStage.far.cardsPreview },
     ];
     gates.push(...s13Gates(outputs.files.map((f) => ({ name: f.name, bytes: f.bytes.length })), [...outputs.files.map((f) => ({ name: f.name, bytes: f.bytes })), ...extra], def.gates.s13));
 

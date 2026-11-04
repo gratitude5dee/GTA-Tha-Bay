@@ -104,7 +104,7 @@ export function packBake(bakeDir: string, cfg: SourcesConfig): PackedBake {
     const m = /^((?:p0|l0|l1|l2)-\d+-\d+|far-bay-dem|far-bay-massing)\.pack$/.exec(name);
     if (m) files.push({ kind: 'world_pack', id: m[1] as string, abs: path.join(packsDir, name), ext: 'pack' });
   }
-  if (existsSync(path.join(packsDir, 'far-bay-cards.png'))) files.push({ kind: 'texture', id: 'far-bay-cards', abs: path.join(packsDir, 'far-bay-cards.png'), ext: 'png' });
+  if (existsSync(path.join(packsDir, 'far-bay-cards.ktx2'))) files.push({ kind: 'texture', id: 'far-bay-cards', abs: path.join(packsDir, 'far-bay-cards.ktx2'), ext: 'ktx2' });
   if (existsSync(path.join(packsDir, 'sf-graph.v1.pack'))) files.push({ kind: 'map_data', id: 'sf-graph.v1', abs: path.join(packsDir, 'sf-graph.v1.pack'), ext: 'pack' });
   for (const id of ['sf-map.v1', 'sf-map-bldg.v1', 'sf-geocode.v1']) {
     if (existsSync(path.join(packsDir, `${id}.pack`))) files.push({ kind: 'map_data', id, abs: path.join(packsDir, `${id}.pack`), ext: 'pack' });

@@ -62,7 +62,8 @@ describe('tree bytes of the baked worlds (AC-2)', () => {
       };
       expect(mapSchema('bake-report')(report)).toEqual([]);
       expect(report.toolVersion).toBe(TOOL_ID);
-      expect(TOOL_VERSION).toBe('0.5.0');
+      // M10d2 bumped the tool to 0.6.0 (raster skyline cards); the scatter bytes are those of 0.5.0
+      expect(['0.5.0', '0.6.0']).toContain(TOOL_VERSION);
       if (area === 'synth') expect(report.bakeId).not.toBe(PARENT_SYNTH);
       expect(report.treeForms, 'bake-report.json treeForms').toBeDefined();
       expect(Array.isArray(report.treeUnmatched)).toBe(true);

@@ -230,21 +230,22 @@
       "what": "The far-bay card atlas (texture/far-bay-cards)",
       "owner": "M10d2",
       "match": "^texture/far-bay-cards$",
-      "replacedBy": []
+      "replacedBy": ["texture/far-bay-cards"],
+      "holds": { "file": "config/world/backdrop.json", "pointer": "/atlas/asset" }
     },
     {
       "id": "facade-atlas",
       "what": "The procedural facade atlas of the look (look/facade.ts)",
       "owner": "M10d2",
       "match": "code:facade-atlas",
-      "replacedBy": []
+      "replacedBy": ["texture/facade-atlas", "code/facade-atlas"]
     },
     {
       "id": "desktop-ultra-sky",
       "what": "The procedural desktop-ultra sky dome",
       "owner": "M10d2",
       "match": "code:desktop-ultra-sky",
-      "replacedBy": []
+      "replacedBy": ["code/atmosphere-takram"]
     },
     {
       "id": "player-cars",
@@ -262,9 +263,9 @@
     },
     {
       "id": "fighter-capsules",
-      "what": "The gray-box fighter bodies and props (character/graybox.*, prop/graybox.fighter-*)",
+      "what": "The gray-box fighter bodies, portraits, move sets and props (character/graybox.*, portrait/graybox.*, anim/graybox.*, prop/graybox.fighter-*)",
       "owner": "M10d3",
-      "match": "^(character/graybox\\.|prop/graybox\\.fighter-)",
+      "match": "^(character/graybox\\.|portrait/graybox\\.|anim/graybox\\.|prop/graybox\\.fighter-)",
       "replacedBy": []
     },
     {

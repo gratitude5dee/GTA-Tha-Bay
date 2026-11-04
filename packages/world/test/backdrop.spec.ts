@@ -6,6 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { decodeFarDem, decodeFarMassing, type FarDem, type QualityTierId } from '@dv/shared';
+import { Texture } from 'three/webgpu';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { BackdropLayer, type JobClient } from '../src/client/backdrop/backdrop-layer.ts';
 import { BACKDROP, cardsLayout, demHeightAt, massingInstances, ringMesh } from '../src/client/backdrop/far-mesh.ts';
@@ -107,7 +108,7 @@ function fakeJobs(): JobClient & { calls: string[] } {
       calls.push(`${name}:${a.name}`);
       if (a.name === 'ring') return tinyRing();
       if (a.name === 'massing') return tinyMassing();
-      return { png: new ArrayBuffer(8) };
+      return { bytes: Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).buffer };
     },
   };
 }
@@ -157,6 +158,27 @@ describe('BackdropLayer reports per tier (AC-14)', () => {
   it('with world.cards off the card tiers draw no backdrop and report no upload', async () => {
     const layer = new BackdropLayer({ tier: 'mobile', jobs: fakeJobs(), flags: { cards: false, massing: true }, spawn: { x: 0, z: 0 } });
     await layer.load();
-    expect(layer.info()).toEqual({ ringKm: null, cardsKm: null, massing: false, renderObjects: 0, bootUploads: 0 });
+    expect(layer.info()).toEqual({ ringKm: null, cardsKm: null, massing: false, renderObjects: 0, bootUploads: 0, cardsAtlas: null });
+  });
+
+  it('M10d2: a KTX2 atlas goes through the KTX2 decoder and the info names the asset and the format; a PNG atlas still draws', async () => {
+    const ktx = Uint8Array.from([0xab, 0x4b, 0x54, 0x58, 0x20, 0x32, 0x30, 0xbb, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]).buffer;
+    const decoded: ArrayBuffer[] = [];
+    const jobs: JobClient = { job: async () => ({ bytes: ktx }) };
+    const layer = new BackdropLayer({
+      tier: 'mobile-low', jobs, flags: { cards: true, massing: false }, spawn: { x: 0, z: 0 },
+      decodeKtx2: async (b) => { decoded.push(b); return new Texture(); },
+    });
+    await layer.load();
+    expect(decoded).toHaveLength(1);
+    expect(layer.info().cardsAtlas).toEqual({ asset: 'texture/far-bay-cards', format: 'ktx2' });
+    expect(layer.info().renderObjects).toBe(1);
+    const png = new BackdropLayer({ tier: 'mobile', jobs: fakeJobs(), flags: { cards: true, massing: false }, spawn: { x: 0, z: 0 } });
+    await png.load();
+    expect(png.info().cardsAtlas).toEqual({ asset: 'texture/far-bay-cards', format: 'png' });
+    // a KTX2 atlas with no decoder draws no cards (and says why)
+    const none = new BackdropLayer({ tier: 'mobile-low', jobs, flags: { cards: true, massing: false }, spawn: { x: 0, z: 0 } });
+    await expect(none.load()).rejects.toThrow(/no KTX2 decoder/);
+    expect(none.info().cardsAtlas).toBeNull();
   });
 });

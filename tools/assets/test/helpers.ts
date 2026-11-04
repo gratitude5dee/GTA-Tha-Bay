@@ -46,7 +46,8 @@ function dropFixtureAssets(root: string): void {
   const textureDir = path.join(root, 'assets', 'src', 'texture');
   for (const id of readdirSync(textureDir)) {
     // M10d4: the people atlas pages (texture/pc.<pool>, texture/ped.atlas) are built by assets:import -- characters
-    if (!id.startsWith('pbr.') && !id.startsWith('pc.') && !id.startsWith('ped.')) continue;
+    // M10d2: the facade atlas (texture/facade-atlas) is built by recipes/facade-atlas.ts and tested in packages/world facade.atlas
+    if (!id.startsWith('pbr.') && !id.startsWith('pc.') && !id.startsWith('ped.') && id !== 'facade-atlas') continue;
     rmSync(path.join(textureDir, id), { recursive: true, force: true });
     delete lock.entries[`texture/${id}`];
   }
