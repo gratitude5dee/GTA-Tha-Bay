@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { decodePng, diffImages, encodePng, goldenFailures, identical, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
+import { canvasRgba } from './canvas-capture.ts';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
 import { veg } from './trees-helpers.ts';
 import { FLAT_TIERS, GOLDEN_VIEWPORT, HIDE, bootWorld, clearActors, frames, world, type W } from './markings-helpers.ts';
@@ -32,7 +33,7 @@ async function scatterSettled(page: Page): Promise<void> {
   await expect.poll(async () => (await scatter(page)).bandWrites.pending, { timeout: 180_000, intervals: [500] }).toBe(0);
 }
 
-const canvas = async (page: Page): Promise<Rgba> => decodePng(await page.locator('#dv-engine-canvas').screenshot());
+const canvas = async (page: Page): Promise<Rgba> => await canvasRgba(page);
 
 test.describe('world scatter @world-scatter', () => {
   test.describe.configure({ timeout: 1_800_000 });

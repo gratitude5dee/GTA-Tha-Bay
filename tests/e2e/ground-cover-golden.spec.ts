@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type TestInfo } from '@playwright/test';
 import { decodePng, diffImages, encodePng, goldenFailures, identical, type Rgba } from '../support/image-diff.ts';
+import { canvasRgba } from './canvas-capture.ts';
 import { GOLDEN_VIEWPORT, HIDE, bootWorld, clearActors, frames, type W } from './markings-helpers.ts';
 
 /**
@@ -28,9 +29,9 @@ test.describe('cover goldens @look-golden', () => {
         await clearActors(page);
         await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id, { held: true }), shot);
         await frames(page, 2);
-        const first: Rgba = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+        const first: Rgba = await canvasRgba(page);
         await frames(page, 2);
-        const second = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+        const second = await canvasRgba(page);
         expect(identical(first, second), 'two consecutive captures differ').toBe(true);
         if (update) {
           mkdirSync(GOLDEN_DIR, { recursive: true });

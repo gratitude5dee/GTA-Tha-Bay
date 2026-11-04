@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type TestInfo } from '@playwright/test';
-import { decodePng, encodePng, meanAbsDifference } from '../support/image-diff.ts';
+import { encodePng, meanAbsDifference } from '../support/image-diff.ts';
+import { canvasPng, canvasRgba } from './canvas-capture.ts';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
 import { CLASSES, cover, coverSettled, parts, setCover } from './cover-helpers.ts';
 import { FLAT_TIERS, HIDE, bootWorld, clearActors, live, world } from './markings-helpers.ts';
@@ -38,7 +39,7 @@ test.describe('world cover @world-cover', () => {
       // therefore both re-committed ones: off, then on again.
       expect(await setCover(page, false)).toBe(true);
       await coverSettled(page);
-      const offImg = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+      const offImg = await canvasRgba(page);
       await world(page, (w) => w.hold(true));
       const offCount = await live(page);
       const offParts = await parts(page);
@@ -49,7 +50,7 @@ test.describe('world cover @world-cover', () => {
 
       expect(await setCover(page, true)).toBe(true);
       await coverSettled(page);
-      const onImg = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+      const onImg = await canvasRgba(page);
       await world(page, (w) => w.hold(true));
       const onCount = await live(page);
       const onParts = await parts(page);
@@ -67,7 +68,7 @@ test.describe('world cover @world-cover', () => {
 
       await world(page, (w) => w.shot('hill-scrub', { held: true }));
       const atHill = await cover(page);
-      if (process.env['DV_COVER_DEBUG'] === '1') writeFileSync(`test-results/cover/${testInfo.project.name}.${tier}.hill-scrub.png`, await page.locator('#dv-engine-canvas').screenshot());
+      if (process.env['DV_COVER_DEBUG'] === '1') writeFileSync(`test-results/cover/${testInfo.project.name}.${tier}.hill-scrub.png`, await canvasPng(page));
       console.log(`world-cover ${testInfo.project.name} ${tier}: hill-scrub cells ${JSON.stringify(atHill.cells)}`);
       for (const c of CLASSES) expect((atYard.cells[c] ?? 0) + (atHill.cells[c] ?? 0), `${tier}: ${c} cells across both shots`).toBeGreaterThan(0);
       expect(errors).toEqual([]);

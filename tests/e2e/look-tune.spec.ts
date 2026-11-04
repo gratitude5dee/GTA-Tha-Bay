@@ -6,6 +6,7 @@ import type { MissionBridge } from '../../packages/modes/story/src/debug/bridge.
 import type { PlatformBridge } from '../../packages/engine/src/platform/probe.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
 import { composeGrid, decodePng, diffImages, encodePng, goldenFailures, identical, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
+import { canvasRgba } from './canvas-capture.ts';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
 import { crowdMax, streamAtPlan } from './ledger-helpers.ts';
 
@@ -331,10 +332,10 @@ async function captureOwnerShot(page: Page, shot: string, resume = true): Promis
   });
   await frames(page, 3);
   // the sky's blend and the exposure settle over a few presented frames: the picture counts once two consecutive frames agree
-  let img = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+  let img = await canvasRgba(page);
   for (let i = 0; i < 8; i++) {
     await frames(page, 2);
-    const next = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+    const next = await canvasRgba(page);
     const same = identical(img, next);
     img = next;
     if (same) break;

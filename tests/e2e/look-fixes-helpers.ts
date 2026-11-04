@@ -3,8 +3,9 @@ import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { PlatformBridge } from '../../packages/engine/src/platform/probe.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
-import { decodePng, encodePng, identical, type Rgba } from '../support/image-diff.ts';
+import { encodePng, identical, type Rgba } from '../support/image-diff.ts';
 import { FLICKER_BASELINE_FILE, FLICKER_FLOOR, FLICKER_PAIRS, FLICKER_THRESHOLD, FLICKER_VIEWPORT, flickerLimit, flickerShare, flickerShareRaw, type FlickerBaseline, type FlickerPairId } from '../support/flicker.ts';
+import { canvasRgba } from './canvas-capture.ts';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
 
 /**
@@ -90,10 +91,10 @@ export async function captureShot(page: Page, shot: string, how: 'shot' | 'move'
   });
   await frames(page, 3);
   // the sky's blend and the exposure settle over a few presented frames: the picture counts once two consecutive frames agree
-  let img = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+  let img = await canvasRgba(page);
   for (let i = 0; i < 5; i++) {
     await frames(page, 2);
-    const next = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+    const next = await canvasRgba(page);
     const same = identical(img, next);
     img = next;
     if (same) break;
