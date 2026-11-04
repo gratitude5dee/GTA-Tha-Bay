@@ -105,8 +105,9 @@ test.describe('street furniture @world-furniture', () => {
       expect(requests.length, 'the layers fetch nothing').toBe(before);
 
       // every image or texture request is a surface texture ref (M10d0), a vehicle art ref (M10d1), a people-kit ref (M10d4) or the
-      // backdrop's skyline cards (M02c2, `texture/far-bay-cards`, on the tiers that draw them): none is a furniture part or a sign face
-      const refs = await world(page, (w) => [...(w.look()?.textures?.refs ?? []), ...(w.art()?.refs ?? []), ...(w.peds()?.art.refs ?? []), 'texture/far-bay-cards']);
+      // backdrop's skyline cards (M02c2, `texture/far-bay-cards`, on the tiers that draw them) or one of the player body's three creator atlas
+      // pages (M10d5, `PLAYER_PAGES` of `player-body.ts`): none is a furniture part or a sign face
+      const refs = await world(page, (w) => [...(w.look()?.textures?.refs ?? []), ...(w.art()?.refs ?? []), ...(w.peds()?.art.refs ?? []), 'texture/far-bay-cards', 'texture/pc.skin', 'texture/pc.cloth', 'texture/pc.hair']);
       for (const url of requests) expect(refs.some((ref) => url.includes(`/${ref}/`)), `${url} is not one of the texture or art refs`).toBe(true);
       expect(errors).toEqual([]);
     });
