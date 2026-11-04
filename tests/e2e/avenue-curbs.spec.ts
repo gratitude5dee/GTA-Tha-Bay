@@ -1,6 +1,7 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { decodePng, type Rgba } from '../support/image-diff.ts';
+import type { Rgba } from '../support/image-diff.ts';
 import { FLICKER_BASELINE_FILE, FLICKER_FLOOR, flickerShare } from '../support/flicker.ts';
+import { canvasRgba } from './canvas-capture.ts';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
 import { captureShot, readBaseline } from './look-fixes-helpers.ts';
 import { FLAT_TIERS, HIDE, bootWorld, clearActors, frames, read, setSky, world, type W } from './markings-helpers.ts';
@@ -22,7 +23,7 @@ const PROFILE: Record<(typeof FLAT_TIERS)[number], 'full' | 'lite' | 'min'> = { 
 
 const canvas = async (page: Page): Promise<Rgba> => {
   await frames(page, 3);
-  return decodePng(await page.locator('#dv-engine-canvas').screenshot());
+  return await canvasRgba(page);
 };
 
 /** Mean absolute difference of two frames over the colour channels, 0..1. */
