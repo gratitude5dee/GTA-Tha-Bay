@@ -51,6 +51,10 @@ export interface MeshStats {
   coverAvailable?: boolean;
   /** L0 (M02h6): where the furniture records came from (the pack, the mesher, none on `legacy`), how many, and the signal heads. */
   furniture?: { source: 'bake' | 'mesher' | 'none'; records: number; heads: number };
+  /** L0 with the facade kit (M02h7): shop walls, awnings, bays, cornices and the kit's triangles (`chunks/facade-kit.ts`). */
+  kit?: { shopWalls: number; awnings: number; bays: number; cornices: number; triangles: number; baysBlocked: number };
+  /** L0 (M02h7): the triangles the facade kit added to the buildings object; absent where the kit is off. */
+  kitTriangles?: number;
 }
 
 /**

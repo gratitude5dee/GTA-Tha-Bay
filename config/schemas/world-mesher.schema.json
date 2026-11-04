@@ -25,7 +25,8 @@
     "curbs",
     "lotPlaza",
     "macro",
-    "cover"
+    "cover",
+    "kit"
   ],
   "$defs": {
     "hex": {
@@ -706,6 +707,216 @@
           "type": "number",
           "minimum": 0,
           "maximum": 0.04
+        }
+      }
+    },
+    "kit": {
+      "$comment": "M02h7: the facade kit (packages/world/src/client/chunks/facade-kit.ts)",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trisPerBuilding",
+        "street",
+        "shopResMid",
+        "awning",
+        "bay",
+        "cornice"
+      ],
+      "properties": {
+        "$comment": {
+          "type": "string"
+        },
+        "trisPerBuilding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "desktop",
+            "visionpro",
+            "mobile",
+            "low"
+          ],
+          "properties": {
+            "desktop": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "visionpro": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mobile": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "low": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "street": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minWallM",
+            "reachM",
+            "parallelDeg"
+          ],
+          "properties": {
+            "minWallM": {
+              "type": "number",
+              "minimum": 0
+            },
+            "reachM": {
+              "type": "number",
+              "minimum": 0
+            },
+            "parallelDeg": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 90
+            }
+          }
+        },
+        "shopResMid": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "awning": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "insetM",
+            "topBelowGfM",
+            "depthM",
+            "dropM"
+          ],
+          "properties": {
+            "insetM": {
+              "type": "number",
+              "minimum": 0
+            },
+            "topBelowGfM": {
+              "type": "number",
+              "minimum": 0
+            },
+            "depthM": {
+              "type": "number",
+              "minimum": 0
+            },
+            "dropM": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "bay": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "widthM",
+            "depthM",
+            "eaveGapM",
+            "perWall",
+            "minHeightM",
+            "marginM"
+          ],
+          "properties": {
+            "widthM": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "depthM": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "eaveGapM": {
+              "type": "number",
+              "minimum": 0
+            },
+            "perWall": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "desktop",
+                "visionpro",
+                "mobile",
+                "low"
+              ],
+              "properties": {
+                "desktop": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "visionpro": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "mobile": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "low": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "minHeightM": {
+              "type": "number",
+              "minimum": 0
+            },
+            "marginM": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "cornice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "offsetM",
+            "heightM",
+            "minEdgeM",
+            "profiles"
+          ],
+          "properties": {
+            "offsetM": {
+              "type": "number",
+              "minimum": 0
+            },
+            "heightM": {
+              "type": "number",
+              "minimum": 0
+            },
+            "minEdgeM": {
+              "type": "number",
+              "minimum": 0
+            },
+            "profiles": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "desktop",
+                  "visionpro",
+                  "mobile",
+                  "low"
+                ]
+              }
+            }
+          }
         }
       }
     }

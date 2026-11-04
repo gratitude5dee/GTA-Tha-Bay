@@ -50,6 +50,22 @@
       "palette": ["#d9d2c2", "#cfc7b6", "#e2dccf", "#bfb8a8"]
     }
   },
+  "facadeKit": {
+    "$comment": "M02h7: the shading of the facade kit (look/facade.ts). Original colours only: awning cloth pairs (stripes by seed) and plain sign panels, no text, glyph or logo. Heights in metres below the ground-floor line; the recess is the analytic reveal depth of the window bump. Design values, tuned here.",
+    "awningPalette": ["#7a2e2a", "#1f4e5a", "#2f5a34", "#8a6a2a", "#3a3a48", "#6b3d5c"],
+    "awningStripe": "#e8e1d0",
+    "awningRoughness": 0.8,
+    "signPalette": ["#1e2a3a", "#5a1e22", "#20402c", "#2b2b2b", "#e2d6b8", "#3a2a1e"],
+    "signTopBelowGfM": 0.25,
+    "signBottomBelowGfM": 0.9,
+    "transomBelowGfM": 1.35,
+    "kickM": 0.45,
+    "pilasterM": 0.28,
+    "recessM": 0.12,
+    "corniceTilt": 0.45,
+    "signGlow": [1.0, 0.86, 0.62],
+    "shopGlow": [1.0, 0.82, 0.55]
+  },
   "roof": {
     "flat": { "albedo": "#8a8680", "roughness": 0.9, "pattern": "membrane" },
     "gable": { "albedo": "#7a5a4c", "roughness": 0.82, "pattern": "shingle" },
@@ -114,12 +130,13 @@
     "golden": { "sun": 0.7, "blue": 0.3, "ext": 0.05 }
   },
   "windows": {
-    "litFrac": [[0, 0.3, 0.6], [3, 0.12, 0.3], [5.5, 0.08, 0.22], [6.5, 0.05, 0.16], [8, 0.02, 0.07], [12, 0.0, 0.04], [16, 0.04, 0.12], [18, 0.3, 0.55], [20, 0.5, 0.8], [22, 0.55, 0.85]]
+    "litFrac": [[0, 0.3, 0.6], [3, 0.12, 0.3], [5.5, 0.08, 0.22], [6.5, 0.05, 0.16], [8, 0.02, 0.07], [12, 0.0, 0.04], [16, 0.04, 0.12], [18, 0.3, 0.55], [20, 0.5, 0.8], [22, 0.55, 0.85]],
+    "shop": [[0, 0.35], [2, 0.15], [6, 0.0], [17, 0.0], [18.5, 0.7], [20, 1.0], [23, 0.8]]
   },
   "layers": {
-    "full": ["grade", "haze", "blob", "casters", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots"],
-    "lite": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots"],
-    "min": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs"],
+    "full": ["grade", "haze", "blob", "casters", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots", "facade"],
+    "lite": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots", "facade"],
+    "min": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs", "facade"],
     "legacy": ["markings"]
   },
   "bump": { "full": 2, "lite": 1.5, "min": 0, "legacy": 0 },

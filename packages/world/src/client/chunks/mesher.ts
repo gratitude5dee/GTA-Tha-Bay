@@ -37,13 +37,17 @@ import densityJson from '../../../../../config/world/density.json';
 import { pointAlong, polylineLength } from '../../sim/graph/geometry.ts';
 import { LOOK, LOOK_FLAG, facadeClassOf, lookProfileFor } from '../look/config.ts';
 import { packRoad, roadFields, roadVertex, wrapAlong, type RoadFields } from '../look/road-layout.ts';
-import { COVER_SURFACE_NAMES, FLAG_PARAPET, Surf, coverSurf, facadeDm, facadeSignedDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
+import { COVER_SURFACE_NAMES, FLAG_BAY, FLAG_CORNICE, FLAG_PARAPET, FLAG_SHOP, Surf, coverSurf, facadeDm, facadeSignedDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
 import {
   approachesOf, clipKey, clippedPolyline, armsOf, crosswalkQuad, planRoads, ribbonSides, roadsContext, simplifyPoints, stopBarQuad, tileOf, type DecalQuad, type PlannedJunction,
   type RibbonPoint, type RoadsContext, type RoadsPlan,
 } from './junction-patch.ts';
 import { FURNITURE_STRIDE, FurnitureKind, meshBytes, type FurnitureHead, type MeshBuffers, type MeshStats, type UnitMesh } from './mesh-types.ts';
 import { bakeMacro } from './macro.ts';
+import {
+  AWNING_TRIS, BAY_TRIS, CORNICE_TRIS_PER_EDGE, KIT, bayLayout, corniceRing, emptyKitStats, inRing, isBayKind, isCorniceKind, isShopKind, isStreetWall, kitHash, localSegments,
+  planKit, type BaySpot, type BuildingKit, type KitPart, type KitStats,
+} from './facade-kit.ts';
 import { CURBS, GUTTER_COLOR, buildSidewalks, curbedSides, walkLiftAt, type CurbSample, type CurbStats } from './sidewalks.ts';
 
 // ---- configuration -------------------------------------------------------------------------------------------------------
@@ -562,6 +566,11 @@ export function addBuilding(
    * the nominal foot, so the floors and bands do not move; the extra depth is below them (a negative `v`).
    */
   footIn?: number,
+  /**
+   * M02h7: the facade kit (awnings on street shop walls, bays on ResLow/ResMid street walls, a cornice ring) within `kit.allowance` triangles
+   * on top of `profile.trisPerBuilding`; only with a facade record. Absent, or with an allowance of 0, the building meshes as before.
+   */
+  kit?: BuildingKit,
 ): number {
   let ring = ringIn.slice();
   if (signedArea(ring) < 0) {
@@ -610,6 +619,9 @@ export function addBuilding(
   const seed15 = rec.seed & 0x7fff;
   const code = (rec.kind & 15) | ((rec.roof & 3) << 4);
 
+  // M02h7: the kit's plan: street walls, shop walls, bays, the cornice ring, and what fits in the allowance
+  const plan = withFacade && surfOverride === undefined && kit && kit.allowance > 0 ? planBuildingKit(ring, base, eave, wallTop, pitched, rec, kit) : null;
+
   // Walls: outward normal (dz, 0, -dx) for a counter-clockwise ring in (x, z). The foot is the foundation skirt, 1.5 m under the ground.
   b.setSurf(surfOverride ?? wallSurf(rec.kind), rec.palette, code, parapet ? FLAG_PARAPET : 0);
   const nominalFoot = base - foundation;
@@ -625,6 +637,7 @@ export function addBuilding(
     const len = Math.sqrt(dx * dx + dz * dz) || 1;
     const nrm: Rgb = [dz / len, 0, -dx / len];
     const uEnd = facadeDm(withFacade ? Math.max(1, Math.round(len / bayM)) * bayM : len);
+    if (plan) b.setSurf(wallSurf(rec.kind), rec.palette, code, (parapet ? FLAG_PARAPET : 0) | (plan.shop[i] ? FLAG_SHOP : 0) | (plan.cornice ? FLAG_CORNICE : 0));
     const v0 = b.vertex(x0, footY, z0, nrm, scale(wall, 0.72), AO_BASE, [0, footV, wallHdm, seed15]);
     const v1 = b.vertex(x1, footY, z1, nrm, scale(wall, 0.72), AO_BASE, [uEnd, footV, wallHdm, seed15]);
     const v2 = b.vertex(x1, wallTop, z1, nrm, wall, 1, [uEnd, wallHdm, wallHdm, seed15]);
@@ -701,7 +714,8 @@ export function addBuilding(
     face([[p2x, wallTop, p2z], [p3x, wallTop, p3z], ridgeA, ridgeB]);
     face([[p1x, wallTop, p1z], [p2x, wallTop, p2z], ridgeB]);
     face([[p3x, wallTop, p3z], [p0x, wallTop, p0z], ridgeA]);
-    return wallRow ? tris + rowTris : tris;
+    const kitTris = plan ? emitKit(b, ring, plan, rec, code, base - foundation, wallHdm, seed15, wall) : 0;
+    return (wallRow ? tris + rowTris : tris) + kitTris;
   }
 
   const idx = earcut(ring);
@@ -726,7 +740,173 @@ export function addBuilding(
       tris -= 10;
     }
   }
-  return tris;
+  return tris + (plan ? emitKit(b, ring, plan, rec, code, base - foundation, wallHdm, seed15, wall) : 0);
+}
+
+// ---- the facade kit (M02h7) ----------------------------------------------------------------------------------------------
+
+interface KitPlan {
+  /** Per wall of the (simplified, counter-clockwise) ring. */
+  shop: boolean[];
+  /** Kept awnings and bays: the wall index and, for a bay, its spot. */
+  awnings: number[];
+  bays: { wall: number; spot: BaySpot }[];
+  /** The cornice ring when it is kept. */
+  cornice: number[] | null;
+  base: number;
+  eave: number;
+  wallTop: number;
+  stats: KitStats;
+}
+
+const KIT_AWNING_COLORS: readonly Rgb[] = LOOK.facadeKit.awningPalette.map((h) => hexToLinear(h));
+
+function planBuildingKit(ring: readonly number[], base: number, eave: number, wallTop: number, pitched: boolean, rec: Pick<BuildingRecord, 'kind' | 'roof' | 'palette' | 'seed'>, kit: BuildingKit): KitPlan {
+  const n = ring.length / 2;
+  const gf = facadeClassOf(rec.kind).groundFloorM;
+  const shop: boolean[] = [];
+  const parts: (KitPart & { wall: number; spot?: BaySpot })[] = [];
+  const bayY0 = base + gf, bayY1 = eave - KIT.bay.eaveGapM;
+  const shopKind = isShopKind(rec.kind, rec.seed);
+  const bayKind = isBayKind(rec.kind) && kit.bays > 0 && bayY1 - bayY0 >= KIT.bay.minHeightM;
+  const blocked = (x: number, z: number): boolean => {
+    if (inRing(ring, x, z)) return true;
+    for (let k = 0; k < kit.others.length; k++) if (k !== kit.self && inRing(kit.others[k] as number[], x, z)) return true;
+    return false;
+  };
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const x0 = ring[i * 2] as number, z0 = ring[i * 2 + 1] as number, x1 = ring[j * 2] as number, z1 = ring[j * 2 + 1] as number;
+    const street = isStreetWall(x0, z0, x1, z1, kit.segs);
+    shop.push(street && shopKind);
+    if (!street) continue;
+    const len = Math.hypot(x1 - x0, z1 - z0);
+    if (shopKind && len > 2 * KIT.awning.insetM + 1) parts.push({ kind: 'awning', tris: AWNING_TRIS, wall: i });
+    if (!bayKind) continue;
+    const tx = (x1 - x0) / len, tz = (z1 - z0) / len, nx = tz, nz = -tx;
+    for (const spot of bayLayout(len, rec.seed, i, kit.bays)) {
+      // the two front corners, the front midpoint and the side midpoints, just outside the wall
+      const at = (s: number, o: number): [number, number] => [x0 + tx * s + nx * o, z0 + tz * s + nz * o];
+      const s0 = spot.c - spot.w / 2, s1 = spot.c + spot.w / 2;
+      const probes = [at(s0 + spot.d, spot.d), at(s1 - spot.d, spot.d), at(spot.c, spot.d), at(s0 + spot.d / 2, spot.d / 2), at(s1 - spot.d / 2, spot.d / 2)];
+      if (probes.some(([x, z]) => blocked(x, z))) {
+        kit.stats.baysBlocked++;
+        continue;
+      }
+      parts.push({ kind: 'bay', tris: BAY_TRIS, wall: i, spot });
+    }
+  }
+  const cring = kit.cornice && !pitched && isCorniceKind(rec.kind) ? corniceRing(ring) : null;
+  if (cring) parts.push({ kind: 'cornice', tris: n * CORNICE_TRIS_PER_EDGE, wall: -1 });
+  const keep = planKit(parts, kit.allowance);
+  const plan: KitPlan = { shop, awnings: [], bays: [], cornice: null, base, eave, wallTop, stats: kit.stats };
+  parts.forEach((p, k) => {
+    if (!keep[k]) return;
+    if (p.kind === 'awning') plan.awnings.push(p.wall);
+    else if (p.kind === 'bay') plan.bays.push({ wall: p.wall, spot: p.spot as BaySpot });
+    else plan.cornice = cring;
+  });
+  kit.stats.shopWalls += shop.filter(Boolean).length;
+  return plan;
+}
+
+/** One quad of four corners wound to face (nx, ny, nz): two triangles. */
+function kitQuad(b: MeshBuilder, p: readonly (readonly [number, number, number])[], nrm: Rgb, c: Rgb, ao: number, fac: (q: readonly [number, number, number], k: number) => [number, number, number, number]): void {
+  const ids = p.map((q, k) => b.vertex(q[0], q[1], q[2], nrm, c, ao, fac(q, k)));
+  b.triFacing(ids[0] as number, ids[1] as number, ids[2] as number, nrm[0], nrm[1], nrm[2]);
+  b.triFacing(ids[0] as number, ids[2] as number, ids[3] as number, nrm[0], nrm[1], nrm[2]);
+}
+
+/** Emits the kept parts of `plan` (after the building's walls and roof) and returns their triangle count. */
+function emitKit(b: MeshBuilder, ring: readonly number[], plan: KitPlan, rec: Pick<BuildingRecord, 'kind' | 'seed' | 'palette'>, code: number, nominalFoot: number, wallHdm: number, seed15: number, wallColor: Rgb): number {
+  const before = b.triangleCount;
+  const n = ring.length / 2;
+  const gf = facadeClassOf(rec.kind).groundFloorM;
+  const dm = (y: number): number => facadeSignedDm(y - nominalFoot);
+  const corner = (i: number): [number, number] => [ring[(i % n) * 2] as number, ring[(i % n) * 2 + 1] as number];
+  const axis = (i: number): { x0: number; z0: number; tx: number; tz: number; nx: number; nz: number; len: number } => {
+    const [x0, z0] = corner(i);
+    const [x1, z1] = corner(i + 1);
+    const len = Math.hypot(x1 - x0, z1 - z0) || 1;
+    const tx = (x1 - x0) / len, tz = (z1 - z0) / len;
+    return { x0, z0, tx, tz, nx: tz, nz: -tx, len };
+  };
+
+  // Awnings: a canopy along the wall (less `insetM` per end), its top under the ground-floor line, `depthM` out and `dropM` down
+  for (const w of plan.awnings) {
+    const a = axis(w);
+    const k = Math.floor(kitHash(rec.seed, 20 + w) * KIT_AWNING_COLORS.length) % KIT_AWNING_COLORS.length;
+    b.setSurf(Surf.Awning, k, code, 0);
+    const col = KIT_AWNING_COLORS[k] as Rgb;
+    const yTop = plan.base + gf - KIT.awning.topBelowGfM, yLow = yTop - KIT.awning.dropM, d = KIT.awning.depthM;
+    const s0 = KIT.awning.insetM, s1 = a.len - KIT.awning.insetM;
+    const P = (s: number, o: number, y: number): [number, number, number] => [a.x0 + a.tx * s + a.nx * o, y, a.z0 + a.tz * s + a.nz * o];
+    const fac = (s: number) => (q: readonly [number, number, number]): [number, number, number, number] => [facadeDm(s), dm(q[1]), wallHdm, seed15];
+    const sl = Math.hypot(d, KIT.awning.dropM);
+    const up: Rgb = [(a.nx * KIT.awning.dropM) / sl, d / sl, (a.nz * KIT.awning.dropM) / sl];
+    const top = [P(s0, 0, yTop), P(s1, 0, yTop), P(s1, d, yLow), P(s0, d, yLow)] as const;
+    const facS = (k2: number): number => (k2 === 0 || k2 === 3 ? s0 : s1);
+    kitQuad(b, top, up, col, 0.95, (q, k2) => fac(facS(k2))(q));
+    kitQuad(b, top, [-up[0], -up[1], -up[2]], scale(col, 0.7), 0.7, (q, k2) => fac(facS(k2))(q));
+    // the cheeks: wall top corner, outer corner, wall at the outer height
+    for (const [s, sign] of [[s0, -1], [s1, 1]] as const) {
+      const nrm: Rgb = [a.tx * sign, 0, a.tz * sign];
+      const ids = [P(s, 0, yTop), P(s, d, yLow), P(s, 0, yLow)].map((q) => b.vertex(q[0], q[1], q[2], nrm, scale(col, 0.85), 0.85, fac(s)(q)));
+      b.triFacing(ids[0] as number, ids[1] as number, ids[2] as number, nrm[0], nrm[1], nrm[2]);
+    }
+    plan.stats.awnings++;
+  }
+
+  // Bays: three faces with 45 degree sides from the ground-floor line to under the eave, a cap and an underside
+  if (plan.bays.length > 0) {
+    const bayM = facadeClassOf(rec.kind).bayM;
+    for (const { wall, spot } of plan.bays) {
+      const a = axis(wall);
+      b.setSurf(wallSurf(rec.kind), rec.palette, code, FLAG_BAY);
+      const y0 = plan.base + gf, y1 = plan.eave - KIT.bay.eaveGapM;
+      const s0 = spot.c - spot.w / 2, s1 = spot.c + spot.w / 2, d = spot.d;
+      const P = (s: number, o: number): [number, number] => [a.x0 + a.tx * s + a.nx * o, a.z0 + a.tz * s + a.nz * o];
+      const W0 = P(s0, 0), F0 = P(s0 + d, d), F1 = P(s1 - d, d), W1 = P(s1, 0);
+      const r = Math.SQRT1_2;
+      const faces: [[number, number], [number, number], Rgb, number, number][] = [
+        [W0, F0, [(a.nx - a.tx) * r, 0, (a.nz - a.tz) * r], bayM * 0.25, bayM * 0.75],
+        [F0, F1, [a.nx, 0, a.nz], 0, bayM],
+        [F1, W1, [(a.nx + a.tx) * r, 0, (a.nz + a.tz) * r], bayM * 0.25, bayM * 0.75],
+      ];
+      for (const [A, B, nrm, u0, u1] of faces) {
+        const quad = [[A[0], y0, A[1]], [B[0], y0, B[1]], [B[0], y1, B[1]], [A[0], y1, A[1]]] as const;
+        kitQuad(b, quad, nrm, scale(wallColor, 0.9), 0.9, (q, k) => [facadeDm(k === 0 || k === 3 ? u0 : u1), dm(q[1]), wallHdm, seed15]);
+      }
+      const plate = (y: number, nrm: Rgb, c: Rgb): void => {
+        const ids = [W0, F0, F1, W1].map((q) => b.vertex(q[0], y, q[1], nrm, c, 0.9, [0, wallHdm, wallHdm, seed15]));
+        b.triFacing(ids[0] as number, ids[1] as number, ids[2] as number, nrm[0], nrm[1], nrm[2]);
+        b.triFacing(ids[0] as number, ids[2] as number, ids[3] as number, nrm[0], nrm[1], nrm[2]);
+      };
+      plate(y1, UP, wallColor);
+      plate(y0, [0, -1, 0], scale(wallColor, 0.6));
+      plan.stats.bays++;
+    }
+  }
+
+  // The cornice: the ring offset outward, `heightM` tall under the wall top: a front and an underside per edge
+  if (plan.cornice) {
+    const c = plan.cornice;
+    b.setSurf(wallSurf(rec.kind), rec.palette, code, FLAG_CORNICE);
+    const y1 = plan.wallTop, y0 = plan.wallTop - KIT.cornice.heightM;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      const a = axis(i);
+      const cx0 = c[i * 2] as number, cz0 = c[i * 2 + 1] as number, cx1 = c[j * 2] as number, cz1 = c[j * 2 + 1] as number;
+      const [px0, pz0] = corner(i), [px1, pz1] = corner(j);
+      const u1 = a.len;
+      kitQuad(b, [[cx0, y0, cz0], [cx1, y0, cz1], [cx1, y1, cz1], [cx0, y1, cz0]], [a.nx, 0, a.nz], scale(wallColor, 1.05), 0.95, (q, k) => [facadeDm(k === 0 || k === 3 ? 0 : u1), dm(q[1]), wallHdm, seed15]);
+      kitQuad(b, [[px0, y0, pz0], [px1, y0, pz1], [cx1, y0, cz1], [cx0, y0, cz0]], [0, -1, 0], scale(wallColor, 0.55), 0.7, (_q, k) => [facadeDm(k === 0 || k === 3 ? 0 : u1), dm(y0), wallHdm, seed15]);
+    }
+    plan.stats.cornices++;
+  }
+  const added = b.triangleCount - before;
+  plan.stats.triangles += added;
+  return added;
 }
 
 /** An axis-aligned box standing on y0 (five faces, 10 triangles). */
@@ -1012,6 +1192,11 @@ export interface MeshChunkOptions {
    * meshes none.
    */
   furnitureProfile?: 'full' | 'lite' | 'min' | 'legacy' | undefined;
+  /**
+   * M02h7: the facade kit (awnings, bays, cornices, shop-wall flags) on the profiles that have a kit allowance and a facade record; default on.
+   * False is the `facade` layer off (`setLookLayer('facade', false)`): the buildings mesh as before M02h7.
+   */
+  facadeKit?: boolean | undefined;
 }
 
 /**
@@ -1079,13 +1264,22 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
 
   // M02e: the facade record rides on the building vertices unless the tier's look is `legacy`.
   const withFacade = lookProfileFor(o.tier) !== 'legacy';
+  // M02h7: the facade kit, where the profile has an allowance and the buildings a facade record
+  const kitAllowance = withFacade && o.facadeKit !== false ? KIT.trisPerBuilding[profileId] : 0;
+  const kitSegs = kitAllowance > 0 ? localSegments(sim.segments, ox, oz) : [];
+  const kitRings = kitAllowance > 0 ? candidates.map((c) => c.ring) : [];
+  let kitStats: KitStats | null = null;
   const meshBuildings = (list: readonly Candidate[]): { built: MeshBuffers | null; maxTris: number } => {
     const bb = new MeshBuilder({ facade: withFacade });
     let maxTris = 0;
+    kitStats = kitAllowance > 0 ? emptyKitStats() : null;
     for (const c of list) {
       const base = c.rec.baseDm / 10;
       const foot = wallFoot(sim.height.dm, cellM, stride, c.ring, base, (x, z) => sampleHeight(sim.height, ox + x, oz + z));
-      const t = addBuilding(bb, c.ring, base, c.height, c.rec, profile, undefined, foot);
+      const kit: BuildingKit | undefined = kitStats
+        ? { segs: kitSegs, others: kitRings, self: candidates.indexOf(c), allowance: kitAllowance, bays: KIT.bay.perWall[profileId], cornice: KIT.cornice.profiles.includes(profileId), stats: kitStats }
+        : undefined;
+      const t = addBuilding(bb, c.ring, base, c.height, c.rec, profile, undefined, foot, kit);
       if (t > maxTris) maxTris = t;
     }
     return { built: bb.build('buildings'), maxTris };
@@ -1106,6 +1300,10 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
   stats.buildings = kept.length;
   stats.skipped += candidates.length - kept.length;
   stats.maxBuildingTris = b0.maxTris;
+  if (kitStats) {
+    stats.kit = kitStats;
+    stats.kitTriangles = (kitStats as KitStats).triangles;
+  }
   if (b0.built) objects.push(b0.built);
 
   const roads = buildRoads(sim, ox, oz, o.markings ?? LOOK_FLAG, o.tile, curbsOn ? { profile: profileId, ...(o.curbDebug ? { debug: true } : {}) } : undefined);
