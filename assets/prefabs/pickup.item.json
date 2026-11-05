@@ -3,7 +3,7 @@
   "kind": "pickup",
   "version": 1,
   "render": {
-    "asset": "prop/graybox.pickup-item"
+    "asset": "prop/pickup-item"
   },
   "physics": {
     "body": "fixed",

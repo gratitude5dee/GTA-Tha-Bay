@@ -18,7 +18,7 @@ describe('look.no-fetch', () => {
 
   it('has the modules of the milestone', () => {
     const names = files(dir).map((f) => f.name);
-    for (const n of ['config.ts', 'surfaces.ts', 'noise.ts', 'facade.ts', 'roof.ts', 'ground.ts', 'water.ts', 'sun.ts', 'sky-physical.ts', 'shadows.ts', 'look-view.ts', 'shots.ts']) expect(names).toContain(n);
+    for (const n of ['config.ts', 'surfaces.ts', 'noise.ts', 'facade.ts', 'roof.ts', 'ground.ts', 'water.ts', 'sun.ts', 'sky-physical.ts', 'shadows.ts', 'look-view.ts', 'shots.ts', 'markings.ts', 'road-layout.ts']) expect(names).toContain(n);
     expect(files(postDir).map((f) => f.name).sort()).toEqual(['grade.ts', 'index.ts', 'levels.ts', 'nodes.ts', 'stack.ts']);
   });
 

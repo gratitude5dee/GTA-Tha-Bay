@@ -150,7 +150,7 @@ export interface SkyControlsOptions {
   /** Freeze or release the clock. */
   onFreeze(on: boolean): void;
   /** M02e: the look switch and the post nodes running; absent on a view without a look pass. */
-  look?: { available(): boolean; isOn(): boolean; setOn(on: boolean): boolean; nodes(): readonly string[] };
+  look?: { available(): boolean; isOn(): boolean; setOn(on: boolean): boolean; nodes(): readonly string[]; markings?: { available(): boolean; aaOn(): boolean; setAA(on: boolean): void } };
 }
 
 /** Forced rain intensity of the panel's Rain switch (the `rain` preset's own value). */
@@ -171,6 +171,7 @@ export class SkyControls {
   private readonly freeze: HTMLInputElement;
   private readonly lookBox: HTMLInputElement | null = null;
   private readonly lookText: HTMLElement | null = null;
+  private readonly markAaBox: HTMLInputElement | null = null;
   private readonly lookApi: SkyControlsOptions['look'];
   private dragging = false;
 
@@ -252,6 +253,12 @@ export class SkyControls {
       this.lookText.dataset['testid'] = 'look-nodes';
       this.lookText.style.cssText = 'opacity:0.8;max-width:200px;overflow-wrap:anywhere';
       grid.append(this.lookText);
+    }
+    // M02h1: `markings.aa` turns the street paint's antialiasing and distance fade off, to see the sparkle they remove (QA)
+    const marks = opts.look?.markings;
+    if (marks?.available()) {
+      this.markAaBox = toggle('markings-aa', 'markings.aa', (v) => marks.setAA(v));
+      this.markAaBox.checked = marks.aaOn();
     }
     opts.container.append(root);
     this.root = root;

@@ -36,6 +36,52 @@ export const TOUCH_MIN_HOLD_MS = 120;
 /** Simultaneous contacts (design value). */
 export const TOUCH_MAX_CONTACTS = 5;
 
+/** Where the dashed ring of the move stick sits at rest: its centre is a stick radius in from this offset, CSS px from the bottom safe-area corner. */
+export const TOUCH_STICK_HINT_PX = { dx: 56, dy: 48 } as const;
+/** The space kept between a touch widget and anything the HUD draws (the 8 px button spacing of S10 section 2.9 rule 3). */
+export const TOUCH_RESERVE_GAP_PX = 8;
+
+export type TouchCorner = TouchAnchor['corner'];
+export const TOUCH_CORNERS: readonly TouchCorner[] = ['tl', 'tr', 'bl', 'br'];
+
+/**
+ * The dashed ring that shows where the move stick rests (M01b2): the stick's base size, at `TOUCH_STICK_HINT_PX` from the bottom corner on
+ * the side the stick zone reaches (bottom left for a right-handed layout, bottom right for `default-left`). A zone that reaches neither
+ * side edge (`one-handed`, a centre zone) has no corner ring: a ring in the corner would sit outside the zone (BD-FIX-MOBILE-HUD-01).
+ */
+export function stickHintAnchor(layout: Pick<TouchLayout, 'widgets'>): { at: TouchAnchor; sizePx: number } | null {
+  const stick = layout.widgets.find((w): w is Extract<TouchWidget, { kind: 'stick' }> => w.kind === 'stick');
+  if (!stick) return null;
+  const left = stick.zone.x;
+  const right = 1 - (stick.zone.x + stick.zone.w);
+  const edge = 0.1;
+  const corner: TouchCorner | null = left <= edge && left <= right ? 'bl' : right <= edge ? 'br' : null;
+  if (corner === null) return null;
+  return { at: { corner, dx: TOUCH_STICK_HINT_PX.dx, dy: TOUCH_STICK_HINT_PX.dy }, sizePx: TOUCH_STICK_RADIUS_PX * 2 };
+}
+
+/** The block one corner of the touch layer holds, CSS px from its safe-area corner. */
+export interface TouchReserve { w: number; h: number }
+export type TouchReserves = Record<TouchCorner, TouchReserve>;
+
+/**
+ * What each corner of the touch layer holds (BD-FIX-MOBILE-HUD-01): the extent, from the safe-area corner, of the widgets anchored there
+ * (every button and the stick ring), plus `TOUCH_RESERVE_GAP_PX`; zero where nothing is anchored. The HUD keeps its regions out of these
+ * blocks, so no HUD element lies under a touch target.
+ */
+export function touchReserves(layout: Pick<TouchLayout, 'widgets'>): TouchReserves {
+  const out: TouchReserves = { tl: { w: 0, h: 0 }, tr: { w: 0, h: 0 }, bl: { w: 0, h: 0 }, br: { w: 0, h: 0 } };
+  const add = (at: TouchAnchor, w: number, h: number): void => {
+    const r = out[at.corner];
+    r.w = Math.max(r.w, at.dx + w + TOUCH_RESERVE_GAP_PX);
+    r.h = Math.max(r.h, at.dy + h + TOUCH_RESERVE_GAP_PX);
+  };
+  for (const w of layout.widgets) if (w.kind === 'button') add(w.at, w.sizePx, w.sizePx);
+  const hint = stickHintAnchor(layout);
+  if (hint) add(hint.at, hint.sizePx, hint.sizePx);
+  return out;
+}
+
 /** The analog half-axes the stick writes into the raw state; the touch map binds them like gamepad axes. */
 export const STICK_CONTROLS = {
   right: 'touch:btn:moveRight',

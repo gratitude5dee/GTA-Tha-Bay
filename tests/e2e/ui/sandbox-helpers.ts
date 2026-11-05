@@ -38,6 +38,16 @@ export async function bootSandbox(page: Page): Promise<void> {
   await waitForEngine(page);
   await page.waitForFunction(() => (window as unknown as Bridge).__dvBridge?.world !== undefined, undefined, { timeout: 120_000 });
   await page.waitForFunction(() => (window as unknown as Bridge).__dvBridge!.world!.boot().revealed, undefined, { timeout: 180_000 });
+  await waitSandboxReady(page);
+}
+
+/**
+ * After the reveal, under the QA play bypass: waits until the player is placed on the ground and the sandbox is running. The reveal and a
+ * grounded snapshot say neither: the page can reveal the world before the sim has run the ticks that start the sandbox, and a
+ * `sandbox.set` (or a press in the phone's Sandbox app) that reaches the sim before the sandbox has entered has no mode to reach and is
+ * dropped (`commands.ts`), as on chromium-webgpu in CI (BD-FIX-SBXWGPU-01, BD-FIX-WEBGPU-HUDSTARS-01).
+ */
+export async function waitSandboxReady(page: Page): Promise<void> {
   // Placed: on the ground and out of the boot move (the feet stand at the unplaced height until 701 finds the ground).
   await expect
     .poll(async () => {

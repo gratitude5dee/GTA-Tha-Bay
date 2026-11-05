@@ -7,9 +7,27 @@
       "kind": "character",
       "tag": "class:hero",
       "fidelity": {
-        "hi": { "tris": 30000, "maxTexPx": 2048, "materials": 3, "gpuTexBytes": 16777216, "fileBytes": 6291456 },
-        "mid": { "tris": 12000, "maxTexPx": 1024, "materials": 2, "gpuTexBytes": 4718592, "fileBytes": 2097152 },
-        "lo": { "tris": 6000, "maxTexPx": 512, "materials": 1, "gpuTexBytes": 1048576, "fileBytes": 838860 }
+        "hi": {
+          "tris": 30000,
+          "maxTexPx": 2048,
+          "materials": 3,
+          "gpuTexBytes": 16777216,
+          "fileBytes": 6291456
+        },
+        "mid": {
+          "tris": 12000,
+          "maxTexPx": 1024,
+          "materials": 2,
+          "gpuTexBytes": 4718592,
+          "fileBytes": 2097152
+        },
+        "lo": {
+          "tris": 6000,
+          "maxTexPx": 512,
+          "materials": 1,
+          "gpuTexBytes": 1048576,
+          "fileBytes": 838860
+        }
       }
     },
     {
@@ -17,9 +35,27 @@
       "kind": "character",
       "tag": "class:npc",
       "fidelity": {
-        "hi": { "tris": 12000, "maxTexPx": 1024, "materials": 2, "gpuTexBytes": 4718592, "fileBytes": 2097152 },
-        "mid": { "tris": 6000, "maxTexPx": 512, "materials": 2, "gpuTexBytes": 1258291, "fileBytes": 838860 },
-        "lo": { "tris": 3000, "maxTexPx": 512, "materials": 1, "gpuTexBytes": 1048576, "fileBytes": 629145 }
+        "hi": {
+          "tris": 12000,
+          "maxTexPx": 1024,
+          "materials": 2,
+          "gpuTexBytes": 4718592,
+          "fileBytes": 2097152
+        },
+        "mid": {
+          "tris": 6000,
+          "maxTexPx": 512,
+          "materials": 2,
+          "gpuTexBytes": 1258291,
+          "fileBytes": 838860
+        },
+        "lo": {
+          "tris": 3000,
+          "maxTexPx": 512,
+          "materials": 1,
+          "gpuTexBytes": 1048576,
+          "fileBytes": 629145
+        }
       }
     },
     {
@@ -27,9 +63,27 @@
       "kind": "vehicle",
       "tag": "class:race",
       "fidelity": {
-        "hi": { "tris": 60000, "maxTexPx": 2048, "materials": 6, "gpuTexBytes": 25165824, "fileBytes": 8388608 },
-        "mid": { "tris": 30000, "maxTexPx": 1024, "materials": 4, "gpuTexBytes": 6291456, "fileBytes": 3145728 },
-        "lo": { "tris": 15000, "maxTexPx": 512, "materials": 2, "gpuTexBytes": 1572864, "fileBytes": 1048576 }
+        "hi": {
+          "tris": 60000,
+          "maxTexPx": 2048,
+          "materials": 6,
+          "gpuTexBytes": 25165824,
+          "fileBytes": 8388608
+        },
+        "mid": {
+          "tris": 30000,
+          "maxTexPx": 1024,
+          "materials": 4,
+          "gpuTexBytes": 6291456,
+          "fileBytes": 3145728
+        },
+        "lo": {
+          "tris": 15000,
+          "maxTexPx": 512,
+          "materials": 2,
+          "gpuTexBytes": 1572864,
+          "fileBytes": 1048576
+        }
       }
     },
     {
@@ -37,9 +91,24 @@
       "kind": "building",
       "tag": "lm-class:hero",
       "fidelity": {
-        "hi": { "tris": 30000, "maxObjects": 3, "maxTexPx": 1024, "fileBytes": 2097152 },
-        "mid": { "tris": 12000, "maxObjects": 3, "maxTexPx": 512, "fileBytes": 1048576 },
-        "lo": { "tris": 4000, "maxObjects": 2, "maxTexPx": 256, "fileBytes": 524288 }
+        "hi": {
+          "tris": 30000,
+          "maxObjects": 3,
+          "maxTexPx": 1024,
+          "fileBytes": 2097152
+        },
+        "mid": {
+          "tris": 12000,
+          "maxObjects": 3,
+          "maxTexPx": 512,
+          "fileBytes": 1048576
+        },
+        "lo": {
+          "tris": 4000,
+          "maxObjects": 2,
+          "maxTexPx": 256,
+          "fileBytes": 524288
+        }
       }
     },
     {
@@ -47,9 +116,24 @@
       "kind": "building",
       "tag": "lm-class:major",
       "fidelity": {
-        "hi": { "tris": 12000, "maxObjects": 3, "maxTexPx": 1024, "fileBytes": 1048576 },
-        "mid": { "tris": 5000, "maxObjects": 3, "maxTexPx": 512, "fileBytes": 524288 },
-        "lo": { "tris": 1800, "maxObjects": 2, "maxTexPx": 256, "fileBytes": 262144 }
+        "hi": {
+          "tris": 12000,
+          "maxObjects": 3,
+          "maxTexPx": 1024,
+          "fileBytes": 1048576
+        },
+        "mid": {
+          "tris": 5000,
+          "maxObjects": 3,
+          "maxTexPx": 512,
+          "fileBytes": 524288
+        },
+        "lo": {
+          "tris": 1800,
+          "maxObjects": 2,
+          "maxTexPx": 256,
+          "fileBytes": 262144
+        }
       }
     },
     {
@@ -57,9 +141,152 @@
       "kind": "building",
       "tag": "lm-class:minor",
       "fidelity": {
-        "hi": { "tris": 5000, "maxObjects": 3, "maxTexPx": 1024, "fileBytes": 524288 },
-        "mid": { "tris": 2200, "maxObjects": 3, "maxTexPx": 512, "fileBytes": 262144 },
-        "lo": { "tris": 800, "maxObjects": 2, "maxTexPx": 256, "fileBytes": 131072 }
+        "hi": {
+          "tris": 5000,
+          "maxObjects": 3,
+          "maxTexPx": 1024,
+          "fileBytes": 524288
+        },
+        "mid": {
+          "tris": 2200,
+          "maxObjects": 3,
+          "maxTexPx": 512,
+          "fileBytes": 262144
+        },
+        "lo": {
+          "tris": 800,
+          "maxObjects": 2,
+          "maxTexPx": 256,
+          "fileBytes": 131072
+        }
+      }
+    },
+    {
+      "id": "vehicle-traffic",
+      "kind": "vehicle",
+      "tag": "class:traffic",
+      "fidelity": {
+        "hi": {
+          "tris": 12000,
+          "maxTexPx": 1024,
+          "materials": 4,
+          "fileBytes": 524288
+        },
+        "mid": {
+          "tris": 3000,
+          "maxTexPx": 512,
+          "materials": 3,
+          "fileBytes": 262144
+        },
+        "lo": {
+          "tris": 800,
+          "maxTexPx": 256,
+          "materials": 1,
+          "fileBytes": 131072
+        }
+      }
+    },
+    {
+      "id": "vehicle-police",
+      "kind": "vehicle",
+      "tag": "class:police",
+      "fidelity": {
+        "hi": {
+          "tris": 15000,
+          "maxTexPx": 1024,
+          "materials": 4,
+          "fileBytes": 524288
+        },
+        "mid": {
+          "tris": 4000,
+          "maxTexPx": 512,
+          "materials": 3,
+          "fileBytes": 262144
+        },
+        "lo": {
+          "tris": 1200,
+          "maxTexPx": 256,
+          "materials": 1,
+          "fileBytes": 131072
+        }
+      }
+    },
+    {
+      "id": "prop-street",
+      "kind": "prop",
+      "tag": "prop:street",
+      "fidelity": {
+        "hi": {
+          "tris": 2000,
+          "maxTexPx": 512,
+          "materials": 2,
+          "fileBytes": 131072
+        },
+        "mid": {
+          "tris": 800,
+          "maxTexPx": 256,
+          "materials": 1,
+          "fileBytes": 65536
+        },
+        "lo": {
+          "tris": 300,
+          "maxTexPx": 128,
+          "materials": 1,
+          "fileBytes": 32768
+        }
+      }
+    },
+    {
+      "id": "prop-backdrop",
+      "kind": "prop",
+      "tag": "prop:backdrop",
+      "fidelity": {
+        "hi": {
+          "tris": 8000,
+          "maxTexPx": 1024,
+          "materials": 2,
+          "fileBytes": 524288
+        },
+        "mid": {
+          "tris": 3000,
+          "maxTexPx": 512,
+          "materials": 2,
+          "fileBytes": 262144
+        },
+        "lo": {
+          "tris": 1000,
+          "maxTexPx": 256,
+          "materials": 1,
+          "fileBytes": 131072
+        }
+      }
+    },
+    {
+      "id": "vehicle-hero",
+      "kind": "vehicle",
+      "tag": "class:hero",
+      "fidelity": {
+        "hi": {
+          "tris": 60000,
+          "maxTexPx": 2048,
+          "materials": 6,
+          "gpuTexBytes": 25165824,
+          "fileBytes": 8388608
+        },
+        "mid": {
+          "tris": 30000,
+          "maxTexPx": 1024,
+          "materials": 4,
+          "gpuTexBytes": 6291456,
+          "fileBytes": 3145728
+        },
+        "lo": {
+          "tris": 15000,
+          "maxTexPx": 512,
+          "materials": 2,
+          "gpuTexBytes": 1572864,
+          "fileBytes": 1048576
+        }
       }
     }
   ]

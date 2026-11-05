@@ -4,7 +4,7 @@
   "version": 1,
   "nameKey": "vehicle.rideshare",
   "render": {
-    "asset": "vehicle/graybox.rideshare"
+    "asset": "vehicle/traffic.rideshare"
   },
   "physics": {
     "body": "dynamic",

@@ -15,12 +15,15 @@
   display: none;
 }
 
+/* A cutscene hides the HUD except its subtitles, skip and AI chip (10-ui-hud-xr.md 2.10); its overlay takes every press, so the touch
+   buttons would only sit dead under the Skip button (BD-FIX-MOBILE-HUD-01). */
+:root[data-dv-cutscene] .dv-touch {
+  visibility: hidden;
+}
+
+/* The ring where the move stick rests; the overlay places it from the stick zone's side (touch.ts `stickHintAnchor`). */
 .dv-touch-stick-hint {
   position: absolute;
-  inset-inline-start: calc(env(safe-area-inset-left, 0px) + 56px);
-  inset-block-end: calc(env(safe-area-inset-bottom, 0px) + 48px);
-  inline-size: 116px;
-  block-size: 116px;
   border: 2px dashed rgb(255 255 255 / 0.3);
   border-radius: 50%;
   pointer-events: none;

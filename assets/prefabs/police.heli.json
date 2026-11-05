@@ -4,7 +4,7 @@
   "version": 1,
   "nameKey": "vehicle.police.heli",
   "render": {
-    "asset": "vehicle/graybox.heli"
+    "asset": "prop/police.heli"
   },
   "physics": {
     "body": "kinematic",

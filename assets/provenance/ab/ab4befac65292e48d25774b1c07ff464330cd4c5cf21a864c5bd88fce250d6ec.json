@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "ab4befac65292e48d25774b1c07ff464330cd4c5cf21a864c5bd88fce250d6ec",
+  "paths": [
+    "assets/src/prop/cone/mobile-low.glb"
+  ],
+  "kind": "prop",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "d871cc4fb638721fb5e26de18aa405027dd5a80453e515643bef8ede75867f84"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

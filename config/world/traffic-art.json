@@ -1,0 +1,26 @@
+{
+  "$comment": "M10d1: how the instanced traffic draws the final vehicle models. `bases` are the model each family draws (one body, wheels merged, the `mid` variant on the `full` profile and the `lo` variant elsewhere); `members` are the eight ambient archetypes by asset ref with their overall size in metres [width, height, length] (the instance scale is the size over the base's bounds), whether the body colour of the instance tints the paint, a fixed paint colour (sRGB hex) when it does not, and how often the livery bit is set (the contrasting door panels of the base). `profiles` say which bases a look profile draws, one family (one `InstancedMesh`, two on `full` with the glass pass split off) per base.",
+  "schema": "traffic-art/1",
+  "bases": {
+    "car": "vehicle/traffic.sedan",
+    "robotaxi": "vehicle/robotaxi.default",
+    "pickup": "vehicle/traffic.pickup",
+    "box": "vehicle/traffic.van"
+  },
+  "members": {
+    "vehicle/traffic.compact": { "base": "car", "size": [1.7, 1.47, 3.7], "tint": true, "liveryShare": 0.1 },
+    "vehicle/traffic.sedan": { "base": "car", "size": [1.85, 1.5, 4.7], "tint": true, "liveryShare": 0.1 },
+    "vehicle/traffic.rideshare": { "base": "car", "size": [1.85, 1.52, 4.6], "tint": true, "liveryShare": 1 },
+    "vehicle/robotaxi.default": { "base": "robotaxi", "size": [1.95, 1.56, 4.8], "tint": false, "paint": "#f4f6f8", "liveryShare": 1 },
+    "vehicle/traffic.van": { "base": "box", "size": [2.0, 2.1, 5.4], "tint": true, "liveryShare": 0.3 },
+    "vehicle/traffic.truck": { "base": "box", "size": [2.3, 2.9, 6.5], "tint": true, "liveryShare": 0.3 },
+    "vehicle/traffic.pickup": { "base": "pickup", "size": [2.0, 1.72, 5.3], "tint": true, "liveryShare": 0.1 },
+    "vehicle/police.cruiser": { "base": "car", "size": [1.9, 1.5, 5.0], "tint": false, "paint": "#16181c", "liveryShare": 1 }
+  },
+  "profiles": {
+    "full": { "variant": "mobile", "splitGlass": true, "families": { "car": ["car"], "robotaxi": ["robotaxi"], "pickup": ["pickup"], "box": ["box"] } },
+    "lite": { "variant": "mobile-low", "splitGlass": false, "families": { "car": ["car", "robotaxi"], "pickup": ["pickup"], "box": ["box"] } },
+    "min": { "variant": "mobile-low", "splitGlass": false, "families": { "car": ["car", "robotaxi", "pickup"], "box": ["box"] } },
+    "legacy": { "variant": "mobile-low", "splitGlass": false, "families": { "car": ["car", "robotaxi", "pickup", "box"] } }
+  }
+}

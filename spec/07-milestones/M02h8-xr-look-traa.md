@@ -144,5 +144,5 @@ How to see it:
 ## Notes for the Builder
 - Read `11-platform-xr.md` §1–§4, `11-platform.md` §4.4, §5.1, the study's render audit (items 9, 12, 13) and the files named in Depends on.
 - Check multiview and TRAA behaviour in the installed `three@0.186.1` (F-002, S11-F4 at `11-platform-xr.md:222`). Use no export that spec/03 §7 does not list.
-- Sim untouched; state hashes equal. The target image is never committed, sampled or fed to fal.
+- Sim untouched; state hashes equal. The target image is never committed; since DL-OWN-10 the owner's look references may be used as look inputs (a fal reference input, a side-by-side comparison, a palette), read from outside the repository.
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (AC-10, AC-11; SKIP locally). Device: Quest 3 (Q-13). Branch `m02h8-xr-look-traa`.

@@ -1,6 +1,7 @@
 import type { DeviceKind } from '@dv/shared';
 import {
-  TOUCH_KNOB_RADIUS_PX, TOUCH_STICK_RADIUS_PX, type TouchAnchor, type TouchLayout, type TouchVisual,
+  TOUCH_CORNERS, TOUCH_KNOB_RADIUS_PX, TOUCH_STICK_RADIUS_PX, stickHintAnchor, touchReserves, type TouchAnchor, type TouchLayout, type TouchReserves,
+  type TouchVisual,
 } from './touch.ts';
 import './touch.css';
 
@@ -61,6 +62,11 @@ export interface TouchOverlayOptions {
   labels?: Readonly<Record<string, string>>;
   /** `matchMedia('(pointer: coarse)').matches`. Overridable for tests and the `?touch=1` QA flag. */
   coarsePointer?: () => boolean;
+  /**
+   * Where the layer says it is shown (the document element): `data-dv-touch` while it shows, and the space each corner holds as
+   * `--dv-touch-<corner>-w` / `-h` (CSS px from the safe-area corner), which the HUD keeps out of (BD-FIX-MOBILE-HUD-01).
+   */
+  root?: HTMLElement;
 }
 
 function place(el: HTMLElement, at: TouchAnchor, sizePx: number): void {
@@ -91,21 +97,26 @@ export class TouchOverlay {
   private enabled = false;
   private device: DeviceKind = 'kbm';
   private readonly coarse: () => boolean;
+  private readonly rootEl: HTMLElement;
+  private reserves: TouchReserves | null = null;
 
   constructor(opts: TouchOverlayOptions) {
     const doc = opts.container.ownerDocument;
     this.doc = doc;
+    this.rootEl = opts.root ?? doc.documentElement;
     this.coarse = opts.coarsePointer ?? ((): boolean => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
     this.labels = { ...DEFAULT_LABELS, ...(opts.labels ?? {}) };
 
     const root = doc.createElement('div');
     root.className = 'dv-touch';
+    root.dataset['testid'] = 'touch-layer';
     root.dataset['layout'] = opts.layout.id;
     root.hidden = true;
     this.root = root;
 
     this.hint = doc.createElement('div');
     this.hint.className = 'dv-touch-stick-hint';
+    this.hint.dataset['testid'] = 'touch-stick-hint';
     this.base = doc.createElement('div');
     this.base.className = 'dv-touch-stick-base';
     this.base.style.inlineSize = `${TOUCH_STICK_RADIUS_PX * 2}px`;
@@ -130,12 +141,18 @@ export class TouchOverlay {
     this.root.dataset['layout'] = layout.id;
     this.root.dataset['handed'] = layout.handed;
     this.root.style.setProperty('--dv-touch-opacity', String(opacity));
+    const hint = stickHintAnchor(layout);
+    this.hint.hidden = hint === null;
+    for (const p of ['top', 'bottom', 'left', 'right']) this.hint.style.removeProperty(p);
+    if (hint) place(this.hint, hint.at, hint.sizePx);
+    this.reserves = touchReserves(layout);
     for (const w of layout.widgets) {
       if (w.kind !== 'button') continue;
       const b = this.doc.createElement('button');
       b.type = 'button';
       b.className = `dv-touch-btn dv-touch-btn--${w.icon}`;
       b.dataset['dvBtn'] = w.id;
+      b.dataset['testid'] = `touch-btn-${w.id}`;
       b.setAttribute('aria-label', this.labels[w.label ?? ''] ?? w.id);
       b.innerHTML = ICONS[w.icon] ?? '';
       place(b, w.at, w.sizePx);
@@ -154,6 +171,7 @@ export class TouchOverlay {
       return;
     }
     this.build(layout, opacity);
+    this.sync();
   }
 
   private sig = '';
@@ -193,10 +211,30 @@ export class TouchOverlay {
   dispose(): void {
     this.root.remove();
     this.buttons.clear();
+    this.publish(false);
   }
 
   private sync(): void {
     const show = this.enabled && (this.device === 'touch' || this.coarse());
     this.root.hidden = !show;
+    this.publish(show);
+  }
+
+  /** Tells the page whether the layer shows and what each corner holds (the HUD's touch layout, BD-FIX-MOBILE-HUD-01). */
+  private publish(show: boolean): void {
+    const el = this.rootEl;
+    if (!show || !this.reserves) {
+      el.removeAttribute('data-dv-touch');
+      for (const c of TOUCH_CORNERS) {
+        el.style.removeProperty(`--dv-touch-${c}-w`);
+        el.style.removeProperty(`--dv-touch-${c}-h`);
+      }
+      return;
+    }
+    for (const c of TOUCH_CORNERS) {
+      el.style.setProperty(`--dv-touch-${c}-w`, `${this.reserves[c].w}px`);
+      el.style.setProperty(`--dv-touch-${c}-h`, `${this.reserves[c].h}px`);
+    }
+    el.setAttribute('data-dv-touch', this.root.dataset['handed'] ?? 'right');
   }
 }

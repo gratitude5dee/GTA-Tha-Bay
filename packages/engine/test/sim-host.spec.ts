@@ -71,6 +71,36 @@ describe('SimHost over SimCore', () => {
     await host.dispose();
   }, 60_000);
 
+  it('slow frames (0.8 s apart, a page on software GL) are not a stall in 2 s of wall time; a stuck worker is still caught after enough of them (BD-REPAIR-M10d1-03)', async () => {
+    const crashes: string[] = [];
+    const { host, workers } = makeHost((r, d) => crashes.push(`${r}: ${d}`));
+    await startHost(host, workers, physicsDropConfig('canonical'));
+    let now = 0;
+    for (let f = 0; f < 3; f++) {
+      now += 16.7;
+      host.frame(sig(f, now));
+      workers[0]?.pump();
+    }
+    // The worker answers late: three frames 0.8 s apart (2.4 s of wall time) with no fresh snapshot.
+    for (let f = 3; f < 6; f++) {
+      now += 800;
+      host.frame(sig(f, now));
+    }
+    expect(crashes).toEqual([]);
+    workers[0]?.pump();
+    now += 800;
+    host.frame(sig(6, now));
+    expect(crashes).toEqual([]);
+    // Stuck for good: 0.8 s frames, each worth 250 ms, so the ninth frame without a snapshot is the stall.
+    for (let f = 7; f < 40; f++) {
+      now += 800;
+      host.frame(sig(f, now));
+    }
+    expect(crashes).toHaveLength(1);
+    expect(crashes[0]).toMatch(/^stalled: no snapshot for/);
+    await host.dispose();
+  }, 60_000);
+
   it('hiding the page (a long gap between frames) or pausing does not count as a stall', async () => {
     const crashes: string[] = [];
     const { host, workers } = makeHost((r, d) => crashes.push(`${r}: ${d}`));

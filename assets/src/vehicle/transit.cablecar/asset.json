@@ -1,0 +1,65 @@
+{
+  "kind": "vehicle",
+  "id": "transit.cablecar",
+  "variants": {
+    "desktop": "assets/src/vehicle/transit.cablecar/desktop.glb",
+    "mobile": "assets/src/vehicle/transit.cablecar/mobile.glb",
+    "mobile-low": "assets/src/vehicle/transit.cablecar/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 2852,
+      "verts": 1978,
+      "primitives": 15,
+      "materials": 4
+    },
+    "mobile": {
+      "tris": 1636,
+      "verts": 1258,
+      "primitives": 15,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 628,
+      "verts": 605,
+      "primitives": 13,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "class:traffic",
+    "art:m10d1"
+  ],
+  "extras": {
+    "t": "vehicle",
+    "class": "traffic",
+    "fictionalMake": "Hillside Cable Works",
+    "wheelRadiusM": 0.34,
+    "nodes": {
+      "body": "body",
+      "wheels": [
+        "wheel_fl",
+        "wheel_fr",
+        "wheel_rl",
+        "wheel_rr"
+      ],
+      "steer": [
+        "steer_fl",
+        "steer_fr"
+      ],
+      "lights": [
+        "light_head_l",
+        "light_head_r",
+        "light_brake_l",
+        "light_brake_r"
+      ],
+      "collider": "collider_hull"
+    }
+  },
+  "status": "active",
+  "visibility": "public"
+}

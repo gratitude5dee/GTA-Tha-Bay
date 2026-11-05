@@ -2,7 +2,7 @@
  * Continue and Load, Profile, Saves, and New Game (10-ui-pages.md sections 2.5 and 2.7). Profile rows, slots, export and import go
  * through the page's `SavesPort` (BD-M04b1-02); the sim only selects the profile it plays (`save.profile select`).
  */
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { SAVE_LIMITS, type JsonObject, type LastSaveStatus, type ProfileId, type ProfileMeta, type SaveErrorCode, type SaveReason, type SaveResult, type SlotId } from '@dv/shared';
 import { formatDate, formatNumber, getLang, lk, plural, t } from '../i18n/index.ts';
 import { Button, ListBox, Progress, useAsync, Banner } from '../kit/widgets.tsx';
@@ -95,31 +95,122 @@ export function mostRecent(list: readonly ProfileMeta[]): ProfileMeta | null {
   return [...list].sort((a, b) => (b.lastSave?.at ?? b.updatedAt) - (a.lastSave?.at ?? a.updatedAt))[0] ?? null;
 }
 
-export interface NewGameDeps {
-  saves: Pick<SavesPort, 'create' | 'rename'>;
-  /** The open profile, when there is one. */
-  active: { id: string; name: string; hasStory: boolean } | null;
-  prefersReducedMotion: boolean;
-  send(cmd: { t: 'save.profile'; op: 'select'; id: string } | { t: 'save.settings'; data: Record<string, unknown> }): boolean;
-  /** Resolves true when the sim reports the profile as open. */
-  selected(id: string, reloading?: boolean): Promise<boolean>;
+// ---- selecting a profile in the sim (BD-FIX-NEWGAME-01)
+
+/** The open profile as the sim publishes it (`sys.profile`). */
+export interface OpenProfile { id: string; name: string; hasStory: boolean }
+
+/**
+ * How long a page waits for a session that can take a profile `select`, ms. The engine boots behind the Title and attaches to the shell
+ * only once the world is prepared, so the menus are usable for a while before it (seconds on a fast desktop, tens of seconds on WebKit
+ * or a slow link). The cap only matters when the engine never comes up.
+ */
+export const SESSION_WAIT_MS = 120_000;
+/** How long a page waits for the sim to report the profile it selected as open, ms. */
+export const SELECT_WAIT_MS = 15_000;
+const POLL_MS = 100;
+
+/** What a profile select reads of the shell context; the fields are live getters. */
+export type SelectCtx = Pick<ShellContext, 'engine' | 'mode' | 'sendUi'>;
+
+/**
+ * The sim's open profile when a `select` sent now is taken: the engine is attached, it has published `sys.profile`, and no mode is on the
+ * stack (the sim selects only while the host is Idle and refuses with `save.profile.busy` otherwise, BD-M04b1-02). Null while any is not so.
+ */
+export function openSession(ctx: Pick<ShellContext, 'engine' | 'mode'>): OpenProfile | null {
+  const engine = ctx.engine;
+  if (!engine) return null;
+  const p = engine.vm.get('sys.profile') as { id?: unknown; name?: unknown; hasStory?: unknown } | null | undefined;
+  if (!p || typeof p.id !== 'string') return null;
+  if (ctx.mode.state !== 'Idle') return null;
+  return { id: p.id, name: typeof p.name === 'string' ? p.name : '', hasStory: p.hasStory === true };
 }
 
-export type NewGameResult = { ok: true; id: string; reused: boolean } | { ok: false; error: SaveErrorCode };
+/** Resolves with `openSession(ctx)` as soon as it is not null; null after `timeoutMs` or when `signal` aborts. */
+export function waitForSession(ctx: Pick<ShellContext, 'engine' | 'mode'>, timeoutMs = SESSION_WAIT_MS, signal?: AbortSignal): Promise<OpenProfile | null> {
+  const now = openSession(ctx);
+  if (now || signal?.aborted) return Promise.resolve(now);
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const done = (v: OpenProfile | null): void => {
+      clearInterval(timer);
+      signal?.removeEventListener('abort', abort);
+      resolve(v);
+    };
+    const abort = (): void => done(null);
+    const timer = setInterval(() => {
+      const open = openSession(ctx);
+      if (open) done(open);
+      else if (Date.now() - started >= timeoutMs) done(null);
+    }, POLL_MS);
+    signal?.addEventListener('abort', abort);
+  });
+}
+
+/** `notReady`: no session came up in time, or the command could not be sent; `timeout`: sent, but the sim did not report the profile in time. */
+export type SelectResult = 'ok' | 'notReady' | 'timeout';
+
+/**
+ * Opens profile `id` in the sim: waits for a session that takes the `select` (`waitForSession`), sends it, and resolves `ok` once
+ * `sys.profile` names `id`. A select is never sent before the engine is attached (the shell would drop it) or while a mode runs (the sim
+ * would refuse it). `reload` sends it even when `id` is already open and waits for the reload (New Game's reused profile, renamed on the page).
+ */
+export async function selectProfile(ctx: SelectCtx, id: string, opts: { reload?: boolean; readyMs?: number; confirmMs?: number; signal?: AbortSignal } = {}): Promise<SelectResult> {
+  const open = await waitForSession(ctx, opts.readyMs ?? SESSION_WAIT_MS, opts.signal);
+  if (!open) return 'notReady';
+  const reload = opts.reload === true;
+  if (open.id === id && !reload) return 'ok';
+  if (!ctx.sendUi({ t: 'save.profile', op: 'select', id })) return 'notReady';
+  return (await waitForProfile(ctx, id, opts.confirmMs ?? SELECT_WAIT_MS, reload)) ? 'ok' : 'timeout';
+}
+
+/** A New Game failure: a C05 `SaveErrorCode`, or `NOT_READY` (the game did not come up, or did not open the profile, in time). */
+export type NewGameError = SaveErrorCode | 'NOT_READY';
+
+export const NOT_READY_UI: SaveErrorUi = { message: lk('engine.notReady'), action: { kind: 'none' } };
+
+export const newGameErrorUi = (code: NewGameError): SaveErrorUi => (code === 'NOT_READY' ? NOT_READY_UI : saveErrorUi(code));
+
+export interface NewGameDeps {
+  saves: Pick<SavesPort, 'create' | 'rename' | 'list' | 'persistent'>;
+  /** The sim's open profile once a `select` can be sent (`waitForSession`); null when the game did not come up in time. */
+  session(): Promise<OpenProfile | null>;
+  prefersReducedMotion: boolean;
+  send(cmd: { t: 'save.settings'; data: Record<string, unknown> }): boolean;
+  /** Opens `id` in the sim (`selectProfile`); `reload` when `id` is the open profile, renamed here. */
+  select(id: string, reload: boolean): Promise<SelectResult>;
+}
+
+/** `memoryOnly`: the page's SaveService is on the in-memory store, so play goes on in the sim's open profile (see `runNewGame`). */
+export type NewGameResult = { ok: true; id: string; reused: boolean; memoryOnly: boolean } | { ok: false; error: NewGameError };
 
 const isMeta = (x: ProfileMeta | SaveResult): x is ProfileMeta => 'id' in x;
 
 /**
  * New Game (DN-S10-03): a new save profile, or the open one when it has no story data yet. The profile is selected in the sim, and a
  * profile made under `prefers-reduced-motion: reduce` starts with `reducedMotion: true` (and the XR mirror, in the same write).
+ *
+ * Nothing is decided before the sim's session is up (BD-FIX-NEWGAME-01): the open profile is only known then, and a select sent earlier
+ * was dropped. On the in-memory store (IndexedDB unavailable) the page's SaveService and the sim's hold two separate memory stores, so a
+ * profile made or renamed here is one the sim cannot open: play goes on in the sim's open profile, kept in memory (the caller says so).
  */
 export async function runNewGame(d: NewGameDeps, name: string): Promise<NewGameResult> {
+  const open = await d.session();
+  if (!open) return { ok: false, error: 'NOT_READY' };
+  // `persistent` is known once the page's SaveService has opened; a list waits for that.
+  await d.saves.list();
+  if (!d.saves.persistent) {
+    // A second playthrough cannot be made beside one that has story data: only the sim could make it, and it does not (BD-M04b1-02).
+    if (open.hasStory) return { ok: false, error: 'IDB_UNAVAILABLE' };
+    settings(d);
+    return { ok: true, id: open.id, reused: true, memoryOnly: true };
+  }
   let id: string;
   let reused = false;
-  if (d.active && !d.active.hasStory) {
+  if (!open.hasStory) {
     reused = true;
-    id = d.active.id;
-    if (name.trim() !== d.active.name) {
+    id = open.id;
+    if (name.trim() !== open.name) {
       const r = await d.saves.rename(id as ProfileId, name);
       if (!r.ok) return { ok: false, error: r.error };
     }
@@ -128,12 +219,28 @@ export async function runNewGame(d: NewGameDeps, name: string): Promise<NewGameR
     if (!isMeta(made)) return made.ok ? { ok: false, error: 'INVALID' } : { ok: false, error: made.error };
     id = made.id;
   }
-  d.send({ t: 'save.profile', op: 'select', id });
   // An already open profile is reloaded by the select command: wait for that reload before the settings write, or it would be overwritten.
-  const ok = await d.selected(id, reused);
-  if (!ok) return { ok: false, error: 'IDB_UNAVAILABLE' };
+  const sel = await d.select(id, reused);
+  if (sel !== 'ok') return { ok: false, error: 'NOT_READY' };
+  settings(d);
+  return { ok: true, id, reused, memoryOnly: false };
+}
+
+function settings(d: NewGameDeps): void {
   if (d.prefersReducedMotion) d.send({ t: 'save.settings', data: { accessibility: { reducedMotion: true }, camera: { shake: false }, xr: { reduceMotion: true } } });
-  return { ok: true, id, reused };
+}
+
+/** An AbortSignal that aborts when the component unmounts: a wait that outlives its page must not act for it. */
+export function useUnmountSignal(): AbortSignal {
+  const ref = useRef<AbortController | null>(null);
+  ref.current ??= new AbortController();
+  useEffect(() => () => ref.current?.abort(), []);
+  return ref.current.signal;
+}
+
+/** The busy line a page shows while it waits for the game (no frozen-looking page). */
+function BusyLine(props: { on: boolean; testId: string }) {
+  return props.on ? <p class="dv-muted" role="status" data-testid={props.testId}>{t('common.preparing')}</p> : null;
 }
 
 // ---- shared bits
@@ -168,6 +275,9 @@ export function LoadPage(_props: PageProps) {
   const saves = ctx.saves;
   const profiles = useAsync(() => (saves ? saves.list() : Promise.resolve([])), [saves]);
   const [pick, setPick] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [failure, setFailure] = useState<SaveErrorUi | null>(null);
+  const signal = useUnmountSignal();
   const list = profiles.data ?? [];
   const current = (pick ? list.find((p) => p.id === pick) : null) ?? mostRecent(list);
   const slots = useAsync(() => (saves && current ? saves.slots(current.id) : Promise.resolve([])), [saves, current?.id]);
@@ -182,6 +292,18 @@ export function LoadPage(_props: PageProps) {
       ...(newer ? { hint: t('saves.error.NEWER_SCHEMA') } : {}),
     };
   });
+  // The story starts only once the sim has the profile open: a `mode.start` sent beside an unconfirmed select entered the story with the
+  // slices of the profile open before (the select loads asynchronously), and before the engine attached the select was dropped.
+  const play = async (id: string, slot: SlotId): Promise<void> => {
+    if (pending) return;
+    setPending(true);
+    setFailure(null);
+    const r = await selectProfile(ctx, id, { signal });
+    if (signal.aborted) return;
+    setPending(false);
+    if (r !== 'ok') setFailure(NOT_READY_UI);
+    else ctx.startMode('story', slot);
+  };
   return (
     <main class="dv-page" data-testid="load">
       <h1>{t('nav.continue')}</h1>
@@ -193,17 +315,9 @@ export function LoadPage(_props: PageProps) {
       {newer ? (
         <Banner id="newer" tone="warning" icon="!" text={t('saves.error.NEWER_SCHEMA')} action={{ label: t('saves.action.update'), onPress: () => ctx.props.hooks.reload() }} />
       ) : null}
-      {current ? (
-        <ListBox
-          id="slots"
-          rows={rows}
-          empty={t('load.empty')}
-          onPress={(slot) => {
-            ctx.sendUi({ t: 'save.profile', op: 'select', id: current.id });
-            ctx.startMode('story', slot as SlotId);
-          }}
-        />
-      ) : null}
+      {current ? <ListBox id="slots" rows={rows} empty={t('load.empty')} onPress={(slot) => void play(current.id, slot as SlotId)} /> : null}
+      <BusyLine on={pending} testId="load-busy" />
+      <ErrorBox error={failure} shell={shell} ctx={ctx} />
       {list.length > 1 ? (
         <>
           <h2>{t('load.profiles')}</h2>
@@ -228,29 +342,35 @@ export function NewGamePage(_props: PageProps) {
   const [step, setStep] = useState<NewStep>('name');
   const [busy, setBusy] = useState(false);
   const [profileId, setProfileId] = useState<string | null>(null);
-  const err = useErrorText();
+  const [failure, setFailure] = useState<SaveErrorUi | null>(null);
+  const signal = useUnmountSignal();
   const saves = ctx.saves;
   const submit = async (e: Event): Promise<void> => {
     e.preventDefault();
-    if (!saves || busy) return;
+    // The button is aria-disabled (not disabled) for an empty name or another tab, so a press still submits the form.
+    if (!saves || busy || name.trim() === '' || ctx.otherTab) return;
     setBusy(true);
-    err.show(null);
+    setFailure(null);
     const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const r = await runNewGame(
       {
         saves,
-        active: ctx.profile,
+        // Waits for the engine (it may still be starting behind the menu) and for the sim's open profile (BD-FIX-NEWGAME-01).
+        session: () => waitForSession(ctx, SESSION_WAIT_MS, signal),
         prefersReducedMotion: reduced,
         send: (c) => ctx.sendUi(c as never),
-        selected: (id, reloading) => waitForProfile(ctx, id, 10_000, reloading === true),
+        select: (id, reload) => selectProfile(ctx, id, { reload, signal }),
       },
       name.normalize('NFC').trim(),
     );
+    if (signal.aborted) return;
     setBusy(false);
     if (!r.ok) {
-      err.show(r.error);
+      setFailure(newGameErrorUi(r.error));
       return;
     }
+    // Memory only: the notice is shown and play goes on, as it says, so the creator opens on this same press.
+    if (r.memoryOnly) shell.toast({ id: 'saves.memoryOnly', kind: 'warning', text: lk('saves.error.IDB_UNAVAILABLE'), ttlMs: 8000 });
     setProfileId(r.id);
     setStep('creator');
   };
@@ -294,14 +414,23 @@ export function NewGamePage(_props: PageProps) {
             data-fid="new.name"
             maxLength={SAVE_LIMITS.nameMax}
             autocomplete="off"
+            readOnly={busy}
             value={name}
             onInput={(e) => setName((e.currentTarget as HTMLInputElement).value)}
           />
         </label>
-        <ErrorBox error={err.error} shell={shell} ctx={ctx} />
+        <BusyLine on={busy} testId="new-busy" />
+        <ErrorBox error={failure} shell={shell} ctx={ctx} />
         <div class="dv-actions">
           <Button id="new-back" label={t('common.back')} onPress={() => shell.back()} />
-          <button type="submit" class="dv-btn dv-btn-primary" data-testid="new-continue" data-fid="new.continue" aria-disabled={busy || name.trim() === '' || ctx.otherTab ? 'true' : undefined}>
+          <button
+            type="submit"
+            class="dv-btn dv-btn-primary"
+            data-testid="new-continue"
+            data-fid="new.continue"
+            aria-disabled={busy || name.trim() === '' || ctx.otherTab ? 'true' : undefined}
+            aria-busy={busy ? 'true' : undefined}
+          >
             {t('common.continue')}
           </button>
         </div>
@@ -310,8 +439,12 @@ export function NewGamePage(_props: PageProps) {
   );
 }
 
-/** Resolves true when the sim's `sys.profile` names `id` (the select command loads the slices asynchronously). */
-export function waitForProfile(ctx: ShellContext, id: string, timeoutMs = 10_000, fresh = false): Promise<boolean> {
+/**
+ * Resolves true when the sim's `sys.profile` names `id` (the select command loads the slices asynchronously); `fresh` ignores the value
+ * already there and waits for the next patch (a reload of the open profile). False at once without an engine: send through
+ * `selectProfile`, which waits for one.
+ */
+export function waitForProfile(ctx: Pick<ShellContext, 'engine'>, id: string, timeoutMs = SELECT_WAIT_MS, fresh = false): Promise<boolean> {
   const engine = ctx.engine;
   if (!engine) return Promise.resolve(false);
   const is = (v: unknown): boolean => typeof v === 'object' && v !== null && (v as { id?: string }).id === id;
@@ -333,10 +466,32 @@ export function waitForProfile(ctx: ShellContext, id: string, timeoutMs = 10_000
 
 // ---- Profile
 
+/**
+ * A profile switch from the Profile and Saves pages: through `selectProfile`, so a switch pressed while the engine is still starting is
+ * sent once it is up instead of being dropped, with the busy line meanwhile and a toast when it does not happen.
+ */
+function useSwitch(ctx: ShellContext, shell: ShellApi): { pending: boolean; to(id: string): void } {
+  const [pending, setPending] = useState(false);
+  const signal = useUnmountSignal();
+  return {
+    pending,
+    to: (id) => {
+      if (pending) return;
+      setPending(true);
+      void selectProfile(ctx, id, { signal }).then((r) => {
+        if (signal.aborted) return;
+        setPending(false);
+        if (r !== 'ok') shell.toast({ id: 'engine.notReady', kind: 'warning', text: NOT_READY_UI.message });
+      });
+    },
+  };
+}
+
 export function ProfilePage(_props: PageProps) {
   const { shell, ctx } = useShell();
   const profiles = useAsync(() => (ctx.saves ? ctx.saves.list() : Promise.resolve([])), [ctx.saves]);
   const list = profiles.data ?? [];
+  const switcher = useSwitch(ctx, shell);
   return (
     <main class="dv-page" data-testid="profile">
       <h1>{t('nav.profile')}</h1>
@@ -351,8 +506,9 @@ export function ProfilePage(_props: PageProps) {
           id="playthroughs"
           rows={list.map((p) => ({ id: p.id, text: p.name, detail: playtimeText(p.playtimeSec), ...(ctx.profile?.id === p.id ? { badge: t('profile.active') } : {}) }))}
           empty={t('load.empty')}
-          onPress={(id) => ctx.sendUi({ t: 'save.profile', op: 'select', id })}
+          onPress={(id) => switcher.to(id)}
         />
+        <BusyLine on={switcher.pending} testId="profile-busy" />
       </section>
       <section class="dv-card" data-testid="profile-account">
         <h2>{t('profile.account')}</h2>
@@ -380,7 +536,7 @@ function download(blob: Blob, name: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-function ProfileCard(props: { p: ProfileMeta; ctx: ShellContext; shell: ShellApi; saves: SavesPort; onChanged(): void; onError(code: SaveErrorCode | null): void; others: ProfileMeta[] }) {
+function ProfileCard(props: { p: ProfileMeta; ctx: ShellContext; shell: ShellApi; saves: SavesPort; onChanged(): void; onError(code: SaveErrorCode | null): void; onSwitch(id: string): void; others: ProfileMeta[] }) {
   const { p, ctx, shell, saves } = props;
   const slots = useAsync(() => saves.slots(p.id), [p.id]);
   const usage = useAsync(() => saves.usage(p.id), [p.id]);
@@ -436,7 +592,7 @@ function ProfileCard(props: { p: ProfileMeta; ctx: ShellContext; shell: ShellApi
       </ul>
       <Progress value={used / SAVE_LIMITS.profileMaxBytes} label={t('saves.usage', { used: formatNumber(Math.round(used / 1024)), max: formatNumber(SAVE_LIMITS.profileMaxBytes / 1024 / 1024) })} />
       <div class="dv-actions dv-wrap">
-        <Button id={`switch-${p.id}`} label={t('saves.switch')} disabledReason={off ?? (active ? t('profile.active') : undefined)} onPress={() => ctx.sendUi({ t: 'save.profile', op: 'select', id: p.id })} testId={`switch-${p.name}`} />
+        <Button id={`switch-${p.id}`} label={t('saves.switch')} disabledReason={off ?? (active ? t('profile.active') : undefined)} onPress={() => props.onSwitch(p.id)} testId={`switch-${p.name}`} />
         <Button id={`rename-${p.id}`} label={t('saves.rename')} disabledReason={off} onPress={() => void rename()} testId={`rename-${p.name}`} />
         <Button id={`export-${p.id}`} label={t('saves.export')} onPress={() => void exportIt()} testId={`export-${p.name}`} />
         <label class="dv-btn dv-btn-secondary dv-file" data-fid={`replace-${p.id}`} tabIndex={0}>
@@ -475,6 +631,7 @@ export function SavesPage(_props: PageProps) {
   const profiles = useAsync(() => (saves ? saves.list() : Promise.resolve([])), [saves]);
   const err = useErrorText();
   const list = profiles.data ?? [];
+  const switcher = useSwitch(ctx, shell);
   const importNew = async (file: File | undefined): Promise<void> => {
     if (!file || !saves) return;
     const r = await saves.importProfile(file, 'asNew');
@@ -487,6 +644,7 @@ export function SavesPage(_props: PageProps) {
       <h1>{t('saves.title')}</h1>
       {saves && !saves.persistent ? <Banner id="nosave" tone="warning" icon="!" text={t('banner.noSave')} /> : null}
       <ErrorBox error={err.error} shell={shell} ctx={ctx} />
+      <BusyLine on={switcher.pending} testId="saves-busy" />
       <div class="dv-actions dv-wrap">
         <label class="dv-btn dv-btn-secondary dv-file" data-fid="import-new" tabIndex={0}>
           {t('saves.import')}
@@ -505,6 +663,7 @@ export function SavesPage(_props: PageProps) {
               others={list.filter((x) => x.id !== p.id)}
               onChanged={() => profiles.reload()}
               onError={(c) => err.show(c)}
+              onSwitch={(id) => switcher.to(id)}
             />
           ))
         : null}

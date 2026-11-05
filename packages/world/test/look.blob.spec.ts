@@ -104,6 +104,30 @@ describe('BlobShadows', () => {
     b.dispose();
   });
 
+  it('an ambient actor whose renderer group is hidden casts no blob; the player and its car always do (M02h2 repair)', () => {
+    const b = new BlobShadows({ parent: new Scene(), cap: 64 });
+    const poses = [
+      pose(1, 1, 0, 0.7, -10, { flags: 3 }), // an ambient car
+      pose(2, 2, 3, 0, 4, { flags: 3 }), // an ambient pedestrian
+      pose(3, 3, -2, 0, 1), // the player (not ambient)
+      pose(4, 4, 6, 0.67, 8), // the player's pickup (not ambient)
+    ];
+    const pedKey = PED_ASSETS[0] ?? '';
+    b.begin();
+    b.feed(frame(poses), (key) => key !== pedKey); // the pedestrians' group hidden
+    b.commit();
+    expect(b.count).toBe(3);
+    b.begin();
+    b.feed(frame(poses), () => false); // every ambient group hidden, as the look goldens do
+    b.commit();
+    expect(b.count).toBe(2);
+    b.begin();
+    b.feed(frame(poses), () => true);
+    b.commit();
+    expect(b.count).toBe(4);
+    b.dispose();
+  });
+
   it('never draws more than its cap and starts every frame from zero', () => {
     const b = new BlobShadows({ parent: new Scene(), cap: 8 });
     const many = Array.from({ length: 30 }, (_, i) => pose(i + 1, 2, i, 0, 0));
