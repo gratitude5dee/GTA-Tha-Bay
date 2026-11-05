@@ -227,6 +227,11 @@ export class ChunkRenderer {
     this.gate.enqueue({ id: idOf(mesh.level, mesh.key), priority, bytes: mesh.stats.bytes, payload: mesh });
   }
 
+  /** M02h7: whether a meshed unit of `level`/`key` waits at the upload gate. */
+  queued(level: RenderLevel, key: ChunkKey): boolean {
+    return this.gate.has(idOf(level, key));
+  }
+
   /** Queues a task that takes one upload slot: it runs in the frame the gate releases it (the landmark swap commit). */
   enqueueTask(id: string, priority: number, bytes: number, task: GateTask): void {
     this.gate.enqueue({ id: `task:${id}`, priority, bytes, payload: task });

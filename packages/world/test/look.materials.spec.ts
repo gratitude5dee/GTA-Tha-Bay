@@ -58,6 +58,9 @@ describe('createLookMaterials', () => {
     const full = createLookMaterials({ profile: 'full', look: LOOK, nodes, foundationM: 1.5, parapetM: 0.5, depth: new DepthRules() });
     const min = createLookMaterials({ profile: 'min', look: LOOK, nodes, foundationM: 1.5, parapetM: 0.5, depth: new DepthRules() });
     expect(full.l0.buildings?.metalnessNode).toBeTruthy();
+    // M02h7: the window reveal bump and the wall-top tilt are a normal node of the full building material, absent on min
+    expect((full.l0.buildings as unknown as { normalNode: unknown }).normalNode).toBeTruthy();
+    expect((min.l0.buildings as unknown as { normalNode: unknown }).normalNode).toBeFalsy();
     expect(full.l0.buildings?.emissiveNode).toBeTruthy();
     expect(min.l0.buildings?.emissiveNode).toBeTruthy();
     // The water of min is a flat colour: its ground material sets no normal node.

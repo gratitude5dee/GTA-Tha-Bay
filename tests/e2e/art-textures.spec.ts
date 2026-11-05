@@ -30,11 +30,16 @@ interface Cfg {
   unsupported: string[];
 }
 const CFG = read<Cfg>('config/world/surface-textures.json');
-const BOUND = Object.keys(CFG.sets).filter((s) => Object.values(CFG.bindings).includes(s));
+const BOUND_ALL = Object.keys(CFG.sets).filter((s) => Object.values(CFG.bindings).includes(s));
+/** M02h7: the wall sets (bound to `wall.*` surfaces only) read their albedo alone, on `full` and `lite` (`textures/config.ts` `wallSets`). */
+const WALL_SETS = BOUND_ALL.filter((s) => Object.entries(CFG.bindings).every(([name, set]) => set !== s || name.startsWith('wall.')));
+const BOUND = BOUND_ALL.filter((s) => !WALL_SETS.includes(s));
+const setsFor = (mode: string): string[] => (mode === 'albedo' ? BOUND : BOUND_ALL);
 
 const refsFor = (mode: string): string[] => {
   const maps = mode === 'albedo' ? ['albedo'] : ['albedo', 'normal', 'orm'];
-  return BOUND.flatMap((s) => maps.map((m) => `texture/pbr.${s}.${m}`)).sort();
+  const walls = mode === 'albedo' ? [] : WALL_SETS.map((s) => `texture/pbr.${s}.albedo`);
+  return [...BOUND.flatMap((s) => maps.map((m) => `texture/pbr.${s}.${m}`)), ...walls].sort();
 };
 
 async function setSky(page: Page, hour: number, weather: string): Promise<void> {
@@ -97,7 +102,7 @@ test.describe('surface textures @art-textures', () => {
       expect(t.mode).toBe(MODE_OF[tier]);
       expect([...t.refs].sort()).toEqual(refs);
       expect(t.failed).toEqual([]);
-      expect([...t.sets].sort()).toEqual([...BOUND].sort());
+      expect([...t.sets].sort()).toEqual([...setsFor(MODE_OF[tier])].sort());
       expect(t.format, 'the GPU format the maps were transcoded to').toMatch(/^(BC7|ASTC4x4|ETC2|RGBA8|DXT5|DXT1|ETC1|PVRTC)$/);
       expect(t.gpuBytes).toBeGreaterThan(0);
       expect(t.gpuBytes).toBeLessThanOrEqual(budget.gpuMB * MIB);

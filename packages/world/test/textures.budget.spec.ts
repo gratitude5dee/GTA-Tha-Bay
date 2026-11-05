@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import type { QualityTierId } from '@dv/shared';
 import { TIERS } from '@dv/engine/platform/tier-config';
 import { LOOK, TIER_IDS, lookProfileFor } from '../src/client/look/config.ts';
-import { MAP_NAMES, SURFACE_TEXTURES, TIER_VARIANT, boundSets, mapsOf, textureModeFor, type MapName } from '../src/client/textures/config.ts';
+import { MAP_NAMES, SURFACE_TEXTURES, TIER_VARIANT, boundSets, mapsOf, textureModeFor, wallRefsFor, type MapName } from '../src/client/textures/config.ts';
 import { planMipDrops, type MipEntry } from '../src/client/textures/surface-textures.ts';
 
 const MIB = 1024 * 1024;
@@ -23,8 +23,11 @@ function tierLoad(tier: QualityTierId): { download: number; gpu: number; rgba8: 
   let download = 0;
   let gpu = 0;
   const rgba8: MipEntry[] = [];
-  for (const set of boundSets()) {
-    for (const map of mapsOf(mode)) {
+  // M02h7: the ground sets' maps of the mode and the wall sets' albedo (full and lite looks)
+  const pairs: [string, MapName][] = boundSets().flatMap((set) => mapsOf(mode).map((map) => [set, map] as [string, MapName]));
+  for (const ref of wallRefsFor(mode)) pairs.push([ref.slice('texture/pbr.'.length, -'.albedo'.length), 'albedo']);
+  for (const [set, map] of pairs) {
+    {
       download += statSync(root(`${dirOf(set, map)}/${variant}.ktx2`)).size;
       const spec = JSON.parse(readFileSync(root(`${dirOf(set, map)}/asset.json`), 'utf8')) as Spec;
       gpu += spec.stats[variant]?.texGpuBytes ?? 0;

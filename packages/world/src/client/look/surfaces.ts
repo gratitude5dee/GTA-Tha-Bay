@@ -3,7 +3,7 @@
  * paving, a Commercial wall from a roof, and so on. Pure data, no `three` import (the mesher runs in asset.worker).
  *
  * `surf` is a `Uint8x4` attribute per vertex: surface id, palette index, kind/roof code, flags (the fourth byte is a bit set:
- * bit 0 parapet band on a wall). `facade` is an `Int16x4` per building vertex: metres x 10 along the wall from its start (stretched
+ * bit 0 parapet band on a wall; M02h7: bit 1 shop front, bit 2 bay face, bit 3 cornice). `facade` is an `Int16x4` per building vertex: metres x 10 along the wall from its start (stretched
  * to a whole number of bays), height above the base, wall height, `seed & 0x7fff`. Both are uploaded normalised (unorm8 / snorm16),
  * so a shader reads them as `value x 255` and `value x 32767`.
  */
@@ -55,13 +55,15 @@ export const enum Surf {
   CoverVacant = 46,
   CoverScrub = 47,
   CoverPark = 48,
+  /** M02h7: the canopy of a shop front (`chunks/facade-kit.ts`): striped cloth, its own roughness, wet in the rain. */
+  Awning = 49,
 }
 
 /** M02h3: the `CoverClass` (C08 1.1) names 1..7 in id order. */
 export const COVER_SURFACE_NAMES = ['yard', 'dirt', 'mixed', 'driveway', 'vacant', 'scrub', 'park'] as const;
 
 /** One past the largest id. */
-export const SURFACE_COUNT = 49;
+export const SURFACE_COUNT = 50;
 
 export const SURFACE_NAMES: readonly string[] = [
   ...GROUND_NAMES.map((n) => `ground.${n}`),
@@ -71,6 +73,7 @@ export const SURFACE_NAMES: readonly string[] = [
   'roof.flat', 'roof.gable', 'roof.hip', 'parapet', 'equipment', 'trunk', 'leaves', 'massing.l1', 'massing.l2', 'sea',
   'junction', 'crosswalk', 'stopbar', 'curb', 'gutter', 'lot', 'plaza',
   ...COVER_SURFACE_NAMES.map((n) => `cover.${n}`),
+  'awning',
 ];
 
 export const isSurfaceId = (id: number): boolean => Number.isInteger(id) && id >= 0 && id < SURFACE_COUNT;
@@ -84,6 +87,12 @@ export const roofSurf = (roof: number): number => (roof === 1 ? Surf.RoofGable :
 
 /** Bit 0 of `surf.w` on a wall vertex: the parapet band. */
 export const FLAG_PARAPET = 1;
+/** M02h7, bit 1: a street wall that is a shop front (kick plate, shop glass, transom, sign panel, pilasters; `look/facade.ts`). */
+export const FLAG_SHOP = 2;
+/** M02h7, bit 2: a face of a bay window (the window grid draws a window per face and floor). */
+export const FLAG_BAY = 4;
+/** M02h7, bit 3: the walls and the ring of a building with cornice geometry (the shader's wall-top tilt is left out there). */
+export const FLAG_CORNICE = 8;
 
 /** Normalisation of the two attributes: the shader multiplies the unorm8 / snorm16 read by these. */
 export const SURF_SCALE = 255;

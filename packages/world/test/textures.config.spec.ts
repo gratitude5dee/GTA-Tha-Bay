@@ -11,7 +11,7 @@ import { TIERS } from '@dv/engine/platform/tier-config';
 import { LOOK, TIER_IDS, lookProfileFor } from '../src/client/look/config.ts';
 import { SURFACE_NAMES } from '../src/client/look/surfaces.ts';
 import {
-  MAP_NAMES, SURFACE_TEXTURES, TEXTURES_FLAG, TIER_VARIANT, backendUnsupported, boundSets, idsOfSet, mapsOf, refOf, refsFor, textureConfigErrors, textureModeFor,
+  MAP_NAMES, SURFACE_TEXTURES, TEXTURES_FLAG, TIER_VARIANT, backendUnsupported, boundSets, idsOfSet, mapsOf, refOf, refsFor, wallRefsFor, wallSets, textureConfigErrors, textureModeFor,
   type SurfaceTexturesFile,
 } from '../src/client/textures/config.ts';
 import { SurfaceTextures, installSurfaceTextures, withSurfaceTextures } from '../src/client/textures/surface-textures.ts';
@@ -43,11 +43,19 @@ describe('config/world/surface-textures.json', () => {
     expect(boundSets()).toEqual(['asphalt', 'concrete', 'pavers', 'grass-dirt']);
   });
 
-  it('lists the walls as procedural until M02h7 binds brick and stucco, and keeps those two sets unbound', () => {
-    for (const name of SURFACE_NAMES.filter((n) => n.startsWith('wall.'))) expect(SURFACE_TEXTURES.procedural).toContain(name);
-    expect(Object.values(SURFACE_TEXTURES.bindings)).not.toContain('brick');
-    expect(Object.values(SURFACE_TEXTURES.bindings)).not.toContain('stucco');
+  it('M02h7 binds brick to Commercial, Industrial and Civic walls and stucco to ResLow and ResMid; Tower and the awning stay procedural', () => {
+    const b = SURFACE_TEXTURES.bindings;
+    for (const k of ['Commercial', 'Industrial', 'Civic']) expect(b[`wall.${k}`]).toBe('brick');
+    for (const k of ['ResLow', 'ResMid']) expect(b[`wall.${k}`]).toBe('stucco');
+    expect(SURFACE_TEXTURES.procedural).toContain('wall.Tower');
+    expect(SURFACE_TEXTURES.procedural).toContain('awning');
+    expect(wallSets()).toEqual(['brick', 'stucco']);
     expect(Object.keys(SURFACE_TEXTURES.sets).sort()).toEqual(['asphalt', 'brick', 'concrete', 'grass-dirt', 'pavers', 'stucco']);
+    // the walls read their albedo alone, on the `full` and `lite` looks (stochastic, single), never on `min` (albedo) or off
+    expect(wallRefsFor('stochastic')).toEqual(['texture/pbr.brick.albedo', 'texture/pbr.stucco.albedo']);
+    expect(wallRefsFor('single')).toEqual(wallRefsFor('stochastic'));
+    expect(wallRefsFor('albedo')).toEqual([]);
+    expect(wallRefsFor('off')).toEqual([]);
   });
 
   it('every surface name is bound or procedural, exactly once, and a fixture with one unlisted name fails naming it', () => {
@@ -104,7 +112,8 @@ describe('the mode of a tier', () => {
   it('knows the ids each set is bound to', () => {
     expect(idsOfSet('concrete').map((i) => SURFACE_NAMES[i])).toEqual(['ground.Sidewalk', 'sidewalk', 'curb', 'gutter', 'lot', 'cover.driveway']);
     expect(idsOfSet('pavers').map((i) => SURFACE_NAMES[i])).toEqual(['ground.Paved', 'plaza']);
-    expect(idsOfSet('brick')).toEqual([]);
+    expect(idsOfSet('brick').map((i) => SURFACE_NAMES[i])).toEqual(['wall.Commercial', 'wall.Industrial', 'wall.Civic']);
+    expect(idsOfSet('stucco').map((i) => SURFACE_NAMES[i])).toEqual(['wall.ResLow', 'wall.ResMid']);
   });
 
   it('reads the unsupported list by backend and by browser and backend', () => {
@@ -139,7 +148,7 @@ describe('SurfaceTextures and withSurfaceTextures', () => {
   it('reports the configured mode and the tier\'s refs before anything has loaded, and goes off with the QA switch', () => {
     const t = make('mobile');
     expect(t.report()).toMatchObject({ mode: 'single', configured: 'single', on: true, sets: [], settled: false, gpuBytes: 0, downloadBytes: 0 });
-    expect(t.report().refs).toEqual(refsFor('single'));
+    expect(t.report().refs).toEqual([...refsFor('single'), ...wallRefsFor('single')]);
     expect(t.setOn(false)).toBe(true);
     expect(t.report()).toMatchObject({ mode: 'off', configured: 'single', on: false });
     expect(t.setOn(true)).toBe(true);
@@ -185,9 +194,11 @@ describe('SurfaceTextures and withSurfaceTextures', () => {
 
   it('gives every slot its own placeholder: texture nodes that hold one texture share one binding, which would alias the maps', () => {
     const t = make('desktop');
-    const sets = (t as unknown as { sets: { slots: Record<string, { node: { value: { uuid: string } } }> }[] }).sets;
-    const ids = sets.flatMap((s) => Object.values(s.slots).map((slot) => slot.node.value.uuid));
-    expect(ids.length).toBe(12);
+    type Sets = { slots: Record<string, { node: { value: { uuid: string } } }> }[];
+    const inner = t as unknown as { sets: Sets; walls: Sets };
+    const ids = [...inner.sets, ...inner.walls].flatMap((s) => Object.values(s.slots).map((slot) => slot.node.value.uuid));
+    // twelve ground maps and the two wall albedos (M02h7)
+    expect(ids.length).toBe(14);
     expect(new Set(ids).size).toBe(ids.length);
     t.dispose();
   });

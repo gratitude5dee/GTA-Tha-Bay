@@ -53,5 +53,14 @@
   },
   "cover": { "$comment": "M02h3: vertex colours (sRGB) of the ground cover classes on the terrain posts (every profile; `min` and `legacy` draw them as they are)", "yard": "#7d9c55", "dirt": "#8a7353", "mixed": "#86905a", "driveway": "#a6a49d", "vacant": "#9d8d6b", "scrub": "#9f9b5f", "park": "#62a04e" },
   "lotPlaza": { "plazaM": 8, "lot": "#8b8d90", "plaza": "#b3a798" },
+  "kit": {
+    "$comment": "M02h7: the facade kit (chunks/facade-kit.ts): awnings on street shop walls, bay windows on ResLow and ResMid street walls, a cornice ring on desktop flat-roof ResMid, Commercial and Civic. Kit triangles per building and profile come on top of trisPerBuilding; parts that do not fit drop whole (cornice, then bays, then awnings). Design values, tuned here.",
+    "trisPerBuilding": { "desktop": 48, "visionpro": 0, "mobile": 16, "low": 0 },
+    "street": { "minWallM": 4, "reachM": 14, "parallelDeg": 30 },
+    "shopResMid": 0.4,
+    "awning": { "insetM": 0.4, "topBelowGfM": 0.95, "depthM": 1.0, "dropM": 0.45 },
+    "bay": { "widthM": [2.4, 3.6], "depthM": [0.6, 0.9], "eaveGapM": 0.3, "perWall": { "desktop": 2, "visionpro": 0, "mobile": 1, "low": 0 }, "minHeightM": 2.0, "marginM": 0.8 },
+    "cornice": { "offsetM": 0.35, "heightM": 0.6, "minEdgeM": 1.0, "profiles": ["desktop"] }
+  },
   "macro": { "octavesM": [200, 50], "weights": [0.6, 0.4], "albedo": 0.08, "roughness": 0.04 }
 }

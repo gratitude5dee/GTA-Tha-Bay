@@ -29,6 +29,7 @@ import { createWorldMaterials, type WorldMaterials } from './chunks/materials.ts
 import { LandmarkLayer, type LandmarkSpot, type LandmarksReport, type PrepareCall, type PreparedRemesh } from './chunks/landmark-layer.ts';
 import { mountLandmark } from './chunks/landmark-view.ts';
 import { MESHER, profileOf, wantNearStride } from './chunks/mesher.ts';
+import { KIT } from './chunks/facade-kit.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
 import { COVER_FLAG, LOOK, LOOK_LAYERS, SCATTER_FLAG, TREE_FORMS_FLAG, lookProfileFor, type LookLayer } from './look/config.ts';
@@ -58,7 +59,7 @@ import { decodeKtx2Once } from './textures/ktx2.ts'; // art-hook:cards (M10d2)
 import { FacadeAtlas, installFacadeAtlas, installedFacadeAtlas, type FacadeAtlasInfo } from './chunks/facade.ts'; // art-hook:facade (M10d2)
 import { TransitRenderer, isTransitKey, type TransitInfo } from './transit/render.ts';
 import { ParkedDressing } from './traffic/parked-dressing.ts';
-import type { FurnitureLookReport } from './look/look-view.ts';
+import type { FacadeLookReport, FurnitureLookReport } from './look/look-view.ts';
 import { MapLayer } from './map/layer.ts';
 import type { AreaBannerPatch } from './map/banner.ts';
 
@@ -309,6 +310,14 @@ export class WorldView implements WorldLayer {
   private inflight = 0;
   /** M02h3: the ground cover layer (`world.cover`, `setLookLayer('cover', on)`): every L0 mesh request carries it. */
   private coverOn = COVER_FLAG;
+  /** M02h7: the facade kit (`setLookLayer('facade', on)`): every L0 mesh request carries it; the shading half is the look's `facade` layer. */
+  private facadeOn = true;
+  /**
+   * M02h7: the `facade` layer has been switched at least once (only then can a resident mesh disagree with it), and the L0 keys whose
+   * follow-up re-mesh (`remeshFacade`) is in flight.
+   */
+  private facadeSwitched = false;
+  private readonly facadeDue = new Set<ChunkKey>();
   /** M02h4: the tree set of the vegetation pools, and the `wind` layer (`full` only). */
   private treeSet: TreeSet = 'low';
   private windOn = true;
@@ -640,6 +649,7 @@ export class WorldView implements WorldLayer {
     if (this.frames % 30 === 0) {
       this.remeshFiltered();
       this.remeshNear();
+      this.remeshFacade();
     }
     if (this.host) this.backdrop.sync(this.host.camera as PerspectiveCamera);
     this.sky?.update(f);
@@ -794,7 +804,7 @@ export class WorldView implements WorldLayer {
       priority: r.priority,
       // A chunk that streams in while a landmark model stands in its proxies' place arrives without them (no second upload, no overlap).
       ...(level === 'l0' && this.landmarks && this.landmarks.maskList().length > 0 ? { maskProxies: this.landmarks.maskList() } : {}),
-      ...(level === 'l0' ? { cover: this.coverOn } : {}),
+      ...(level === 'l0' ? { cover: this.coverOn, facade: this.facadeOn } : {}),
     };
     this.inflight++;
     void this.o.assets
@@ -835,7 +845,7 @@ export class WorldView implements WorldLayer {
       // Mark it handled first so one pass requests it once.
       mesh.stats.filtered = false;
       const mask = this.landmarks?.maskFor(mesh.proxies) ?? [];
-      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store.distanceTo(key), priority: 'soon', ...(mask.length > 0 ? { maskProxies: mask } : {}), cover: this.coverOn };
+      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store.distanceTo(key), priority: 'soon', ...(mask.length > 0 ? { maskProxies: mask } : {}), cover: this.coverOn, facade: this.facadeOn };
       void this.o.assets
         .job('world.mesh', args)
         .then((res) => {
@@ -868,7 +878,7 @@ export class WorldView implements WorldLayer {
       // Marked first: one pass requests a chunk once; the result below records what the new mesh really is.
       mesh.stats.near = want;
       const mask = this.landmarks?.maskFor(mesh.proxies) ?? [];
-      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store.distanceTo(key), priority: 'soon', ...(mask.length > 0 ? { maskProxies: mask } : {}), cover: this.coverOn };
+      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store.distanceTo(key), priority: 'soon', ...(mask.length > 0 ? { maskProxies: mask } : {}), cover: this.coverOn, facade: this.facadeOn };
       void this.o.assets
         .job('world.mesh', args)
         .then((res) => {
@@ -892,7 +902,7 @@ export class WorldView implements WorldLayer {
 
   /** Meshes an uploaded chunk again with `mask` (proxy ids) left out; the new mesh goes through the upload gate ahead of everything else. */
   private remeshChunk(key: ChunkKey, mask: number[]): void {
-    const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store ? this.store.distanceTo(key) : 0, priority: 'now', maskProxies: mask, cover: this.coverOn };
+    const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store ? this.store.distanceTo(key) : 0, priority: 'now', maskProxies: mask, cover: this.coverOn, facade: this.facadeOn };
     this.inflight++;
     void this.o.assets
       .job('world.mesh', args)
@@ -909,7 +919,7 @@ export class WorldView implements WorldLayer {
    * not uploaded. The layer queues it through the upload gate after the model it belongs to has joined the scene.
    */
   private prepareChunk(key: ChunkKey, mask: number[]): PrepareCall {
-    const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store ? this.store.distanceTo(key) : 0, priority: 'now', maskProxies: mask, cover: this.coverOn };
+    const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store ? this.store.distanceTo(key) : 0, priority: 'now', maskProxies: mask, cover: this.coverOn, facade: this.facadeOn };
     this.inflight++;
     const call = this.o.assets.trackedJob('world.mesh', args);
     const result = call.done
@@ -1249,7 +1259,30 @@ export class WorldView implements WorldLayer {
 
   lookReport(): LookReport | null {
     const r = this.lookReportOf();
-    return r ? { ...r, cover: { enabled: this.coverOn, cells: this.renderer.coverCounts(), ...this.coverPending() }, furniture: this.furnitureReport() } : null;
+    return r ? { ...r, cover: { enabled: this.coverOn, cells: this.renderer.coverCounts(), ...this.coverPending() }, furniture: this.furnitureReport(), facade: this.facadeReport(r) } : null;
+  }
+
+  /** M02h7: `look().facade`: the kit's counts over the resident L0 chunks, the `min` bands, the sign glow and the glass reflection. */
+  facadeReport(r: LookReport | null = this.lookReportOf()): FacadeLookReport {
+    let shopWalls = 0, awnings = 0, bays = 0, cornices = 0, kitTriangles = 0, buildingTriangles = 0, kitUnits = 0;
+    for (const u of this.renderer?.units.values() ?? []) {
+      if (u.level !== 'l0') continue;
+      for (const o of u.mesh.objects) if (o.kind === 'buildings') buildingTriangles += o.indices.length / 3;
+      const k = u.mesh.stats.kit;
+      if (!k) continue;
+      kitUnits++;
+      shopWalls += k.shopWalls;
+      awnings += k.awnings;
+      bays += k.bays;
+      cornices += k.cornices;
+      kitTriangles += k.triangles;
+    }
+    const on = r?.on === true;
+    const layer = on && r.layers.includes('facade');
+    return {
+      kit: on && this.facadeOn && kitUnits > 0, shopWalls, awnings, bays, cornices, kitTriangles,
+      minBands: layer && r.profile === 'min', layer, signEmissive: r?.shopGlow ?? 0, skyReflect: r?.skyReflect ?? false, buildingTriangles,
+    };
   }
 
   /** M02h6: `look().furniture`: where the records came from, the pools, their render objects, the parked dressing and the signal heads. */
@@ -1319,7 +1352,7 @@ export class WorldView implements WorldLayer {
     // nearest first through the upload gate, ahead of the streaming (one unit a frame)
     due.sort((a, b) => a.d - b.d || (a.key < b.key ? -1 : 1));
     for (const { key, masked, d } of due) {
-      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: d, priority: 'now', maskProxies: masked, cover: on };
+      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: d, priority: 'now', maskProxies: masked, cover: on, facade: this.facadeOn };
       this.inflight++;
       void this.o.assets
         .job('world.mesh', args)
@@ -1331,6 +1364,75 @@ export class WorldView implements WorldLayer {
         .finally(() => void this.inflight--);
     }
     return true;
+  }
+
+  /**
+   * M02h7: the `facade` layer. The look's shading layer (storefronts, signs, bump, bands) follows at once; the kit geometry needs a re-mesh of
+   * the resident L0 chunks whose profile has a kit, nearest first through the upload gate, once per change.
+   */
+  private setFacade(on: boolean): boolean {
+    if (!this.lookView || !this.lookView.setLayer('facade', on)) return false;
+    if (on === this.facadeOn) return true;
+    this.facadeOn = on;
+    this.facadeSwitched = true;
+    if (KIT.trisPerBuilding[profileOf(this.o.tier).id] === 0) return true;
+    const due: { key: ChunkKey; masked: number[]; d: number }[] = [];
+    for (const u of this.renderer.units.values()) {
+      if (u.level !== 'l0') continue;
+      due.push({ key: u.key, masked: u.mesh.masked, d: this.store ? this.store.distanceTo(u.key) : 0 });
+    }
+    due.sort((a, b) => a.d - b.d || (a.key < b.key ? -1 : 1));
+    for (const { key, masked, d } of due) {
+      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: d, priority: 'now', maskProxies: masked, cover: this.coverOn, facade: on };
+      this.inflight++;
+      void this.o.assets
+        .job('world.mesh', args)
+        .then((res) => {
+          const result = res as MeshJobResult;
+          if ('mesh' in result && this.store.ready(key, 'l0') && !this.disposed && this.facadeOn === on) this.renderer.enqueue(result.mesh, -1000 + d / 100);
+        })
+        .catch(() => undefined)
+        .finally(() => void this.inflight--);
+    }
+    return true;
+  }
+
+  /**
+   * M02h7: the `facade` layer's switch re-meshes the units resident at that moment, but a mesh requested before it (a chunk streaming in, a
+   * `remeshFiltered` or `remeshNear` re-mesh, a landmark's prepared chunk, a unit still queued at the upload gate) carries the old
+   * `facade` flag and lands after it, so its kit (or its lack of one) would stay drawn until the chunk unloads (CI run 41928966169: 56 kit
+   * triangles stayed at `mobile` with the layer off). Every 30 frames a resident L0 unit whose mesh disagrees with the layer is meshed
+   * again with the layer's flag, nearest first, at most four per pass, once per key while its re-mesh is in flight. On a kit profile the
+   * mesher sets `stats.kit` exactly when it meshes the kit (`meshChunk`: a kit allowance, a facade record, `facadeKit` not false).
+   */
+  private remeshFacade(): void {
+    if (!this.facadeSwitched || this.disposed) return;
+    if (KIT.trisPerBuilding[profileOf(this.o.tier).id] === 0 || lookProfileFor(this.o.tier) === 'legacy') return;
+    const due: { key: ChunkKey; masked: number[]; d: number }[] = [];
+    for (const u of this.renderer.units.values()) {
+      // a newer mesh of the unit waits at the gate: it is checked once it is drawn
+      if (u.level !== 'l0' || this.facadeDue.has(u.key) || this.renderer.queued('l0', u.key)) continue;
+      if ((u.mesh.stats.kit !== undefined) === this.facadeOn) continue;
+      due.push({ key: u.key, masked: u.mesh.masked, d: this.store ? this.store.distanceTo(u.key) : 0 });
+    }
+    due.sort((a, b) => a.d - b.d || (a.key < b.key ? -1 : 1));
+    const on = this.facadeOn;
+    for (const { key, masked, d } of due.slice(0, 4)) {
+      this.facadeDue.add(key);
+      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: d, priority: 'now', maskProxies: masked, cover: this.coverOn, facade: on };
+      this.inflight++;
+      void this.o.assets
+        .job('world.mesh', args)
+        .then((res) => {
+          const result = res as MeshJobResult;
+          if ('mesh' in result && this.store.ready(key, 'l0') && !this.disposed && this.facadeOn === on) this.renderer.enqueue(result.mesh, -1000 + d / 100);
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          this.facadeDue.delete(key);
+          this.inflight--;
+        });
+    }
   }
 
   /** M02h3: resident L0 chunks with cover whose mesh does not yet follow the layer, all and within `nearM` of the focus. */
@@ -1363,6 +1465,8 @@ export class WorldView implements WorldLayer {
     // M02h3: the ground cover lives in the terrain's vertices on every tier (the legacy look draws it as vertex colour), so the layer is
     // a re-mesh of the resident L0 chunks, not a shader switch
     if (id === 'cover') return this.setCover(on);
+    // M02h7: the facade kit is geometry (a re-mesh of the resident L0 chunks once) plus the shading layer of the look
+    if (id === 'facade') return this.setFacade(on);
     // M02h4: the trees' wind sway, on the `full` set only (render only: a uniform of the trees' material)
     if (id === 'wind') {
       if (this.treeSet !== 'full') return false;

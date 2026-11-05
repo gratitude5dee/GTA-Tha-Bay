@@ -184,6 +184,8 @@ export interface MeshJobArgs {
   maskProxies?: number[];
   /** L0 only (M02h3): mesh the ground cover; default the `world.cover` flag. False is the `cover` layer off (`setLookLayer`). */
   cover?: boolean;
+  /** L0 only (M02h7): mesh the facade kit (awnings, bays, cornices, shop flags); default on. False is the `facade` layer off (`setLookLayer`). */
+  facade?: boolean;
 }
 export type MeshJobResult = { mesh: UnitMesh } | { empty: true };
 
@@ -232,7 +234,7 @@ const mesh: AssetJob = async (svc, raw, signal) => {
     const sim = tile.sim.find((c) => c.key === a.key);
     if (!sim) return { result: { empty: true } satisfies MeshJobResult };
     const available = tile.cover.get(a.key) ?? null;
-    m = meshChunk(sim, tile.render.find((c) => c.key === a.key) ?? null, { tier: a.tier, distM: a.distM, maxBytes: basePlan(a.tier).uploadBytes, maskProxies: a.maskProxies, tile: tile.sim, cover: (a.cover ?? COVER_FLAG) ? available : null });
+    m = meshChunk(sim, tile.render.find((c) => c.key === a.key) ?? null, { tier: a.tier, distM: a.distM, maxBytes: basePlan(a.tier).uploadBytes, maskProxies: a.maskProxies, tile: tile.sim, cover: (a.cover ?? COVER_FLAG) ? available : null, facadeKit: a.facade !== false });
     if (available) m.stats.coverAvailable = true;
   } else {
     const packRef = packRefOf(a.key, a.level);

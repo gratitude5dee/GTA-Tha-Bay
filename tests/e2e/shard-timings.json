@@ -264,7 +264,22 @@
       "world-trees.spec.ts › world trees @world-trees › desktop: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 14.7,
       "world-trees.spec.ts › world trees @world-trees › mobile-low: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 1.2,
       "world-trees.spec.ts › world trees @world-trees › mobile-low: world.treeForms off (?treeForms=0) draws one cone pool @world-trees": 0.44,
-      "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 3.8
+      "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 3.8,
+      "world-facade.spec.ts › facade kit @world-facade › desktop: facade-shopfront reports the kit, the min bands, the sign glow by the hour, the glass reflection and the wall textures @world-facade": 5,
+      "world-facade.spec.ts › facade kit @world-facade › mobile: facade-shopfront reports the kit, the min bands, the sign glow by the hour, the glass reflection and the wall textures @world-facade": 4,
+      "world-facade.spec.ts › facade kit @world-facade › mobile-low: facade-shopfront reports the kit, the min bands, the sign glow by the hour, the glass reflection and the wall textures @world-facade": 1,
+      "world-facade.spec.ts › facade kit @world-facade › mobile: the facade-graze pair flickers at most 10 % over its committed baseline @world-facade": 0.05,
+      "world-facade.spec.ts › facade goldens @facade-golden › the manifest names the current synth bake, or fails naming both @facade-golden": 0.05,
+      "world-facade.spec.ts › facade goldens @facade-golden › desktop: facade-shopfront, facade-bays and facade-night are within the tolerance of their goldens and repeat byte-identical @facade-golden": 0.05,
+      "world-facade.spec.ts › facade goldens @facade-golden › mobile: facade-shopfront, facade-bays and facade-night are within the tolerance of their goldens and repeat byte-identical @facade-golden": 0.05,
+      "world-facade.spec.ts › facade goldens @facade-golden › mobile-low: facade-shopfront, facade-bays and facade-night are within the tolerance of their goldens and repeat byte-identical @facade-golden": 0.05,
+      "world-facade.spec.ts › facade goldens @facade-golden › regenerating writes the manifest @facade-golden": 0.05,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › desktop: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 0.05,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › mobile: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 0.05,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › mobile-low: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 0.05,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › legacy: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 0.05,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @facade-ledger": 0.05,
+      "art.spec.ts › art mobile surfaces @art-skyline › mobile (M02h7): the walls sample the facade atlas's mobile variant through the albedo seam, and only that variant is requested @art-skyline": 2
     },
     "chromium-webgl2": {
       "account-password.spec.ts › account island @account › an adult creates an account after reading the terms; no token is stored in the browser @account": 0.02,
@@ -646,7 +661,22 @@
       "furniture-ledger.spec.ts › furniture ledger @furniture-ledger › legacy: the furniture's render objects against the latest merged ledger, and its delta at noon-street and junction-noon @furniture-ledger": 2,
       "furniture-ledger.spec.ts › furniture ledger @furniture-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @furniture-ledger": 0,
       "city-look-golden.spec.ts › look goldens @look-golden › desktop junction-noon is within the tolerance of its golden and a second capture is byte-identical @look-golden": 15,
-      "city-look-golden.spec.ts › look goldens @look-golden › mobile-low junction-noon is within the tolerance of its golden and a second capture is byte-identical @look-golden": 0.8
+      "city-look-golden.spec.ts › look goldens @look-golden › mobile-low junction-noon is within the tolerance of its golden and a second capture is byte-identical @look-golden": 0.8,
+      "world-facade.spec.ts › facade kit @world-facade › desktop: facade-shopfront reports the kit, the min bands, the sign glow by the hour, the glass reflection and the wall textures @world-facade": 9,
+      "world-facade.spec.ts › facade kit @world-facade › mobile: facade-shopfront reports the kit, the min bands, the sign glow by the hour, the glass reflection and the wall textures @world-facade": 6,
+      "world-facade.spec.ts › facade kit @world-facade › mobile-low: facade-shopfront reports the kit, the min bands, the sign glow by the hour, the glass reflection and the wall textures @world-facade": 1.5,
+      "world-facade.spec.ts › facade kit @world-facade › mobile: the facade-graze pair flickers at most 10 % over its committed baseline @world-facade": 4,
+      "world-facade.spec.ts › facade goldens @facade-golden › the manifest names the current synth bake, or fails naming both @facade-golden": 0.05,
+      "world-facade.spec.ts › facade goldens @facade-golden › desktop: facade-shopfront, facade-bays and facade-night are within the tolerance of their goldens and repeat byte-identical @facade-golden": 9,
+      "world-facade.spec.ts › facade goldens @facade-golden › mobile: facade-shopfront, facade-bays and facade-night are within the tolerance of their goldens and repeat byte-identical @facade-golden": 2,
+      "world-facade.spec.ts › facade goldens @facade-golden › mobile-low: facade-shopfront, facade-bays and facade-night are within the tolerance of their goldens and repeat byte-identical @facade-golden": 1,
+      "world-facade.spec.ts › facade goldens @facade-golden › regenerating writes the manifest @facade-golden": 0.05,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › desktop: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 8,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › mobile: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 3,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › mobile-low: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 1.5,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › legacy: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 1.5,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @facade-ledger": 0.05,
+      "art.spec.ts › art mobile surfaces @art-skyline › mobile (M02h7): the walls sample the facade atlas's mobile variant through the albedo seam, and only that variant is requested @art-skyline": 3
     },
     "webkit-webgl2": {
       "account-password.spec.ts › account island @account › an adult creates an account after reading the terms; no token is stored in the browser @account": 0.04,
@@ -916,7 +946,22 @@
       "world-trees.spec.ts › world trees @world-trees › mobile: the set, its pools and all five forms; wind on desktop only; drawn trees follow a 2 km teleport and back @world-trees": 0.75,
       "world-furniture.spec.ts › street furniture @world-furniture › desktop: junction-noon lists the profile's pools and parked cars, the heads change, the layers switch, nothing is fetched @world-furniture": 4.1,
       "world-furniture.spec.ts › street furniture @world-furniture › mobile: junction-noon lists the profile's pools and parked cars, the heads change, the layers switch, nothing is fetched @world-furniture": 0.8,
-      "world-furniture.spec.ts › street furniture @world-furniture › mobile-low: junction-noon lists the profile's pools and parked cars, the heads change, the layers switch, nothing is fetched @world-furniture": 0.5
+      "world-furniture.spec.ts › street furniture @world-furniture › mobile-low: junction-noon lists the profile's pools and parked cars, the heads change, the layers switch, nothing is fetched @world-furniture": 0.5,
+      "world-facade.spec.ts › facade kit @world-facade › desktop: facade-shopfront reports the kit, the min bands, the sign glow by the hour, the glass reflection and the wall textures @world-facade": 5,
+      "world-facade.spec.ts › facade kit @world-facade › mobile: facade-shopfront reports the kit, the min bands, the sign glow by the hour, the glass reflection and the wall textures @world-facade": 4,
+      "world-facade.spec.ts › facade kit @world-facade › mobile-low: facade-shopfront reports the kit, the min bands, the sign glow by the hour, the glass reflection and the wall textures @world-facade": 1,
+      "world-facade.spec.ts › facade kit @world-facade › mobile: the facade-graze pair flickers at most 10 % over its committed baseline @world-facade": 3,
+      "world-facade.spec.ts › facade goldens @facade-golden › the manifest names the current synth bake, or fails naming both @facade-golden": 0.05,
+      "world-facade.spec.ts › facade goldens @facade-golden › desktop: facade-shopfront, facade-bays and facade-night are within the tolerance of their goldens and repeat byte-identical @facade-golden": 0.05,
+      "world-facade.spec.ts › facade goldens @facade-golden › mobile: facade-shopfront, facade-bays and facade-night are within the tolerance of their goldens and repeat byte-identical @facade-golden": 0.05,
+      "world-facade.spec.ts › facade goldens @facade-golden › mobile-low: facade-shopfront, facade-bays and facade-night are within the tolerance of their goldens and repeat byte-identical @facade-golden": 0.05,
+      "world-facade.spec.ts › facade goldens @facade-golden › regenerating writes the manifest @facade-golden": 0.05,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › desktop: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 0.05,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › mobile: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 0.05,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › mobile-low: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 0.05,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › legacy: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 0.05,
+      "facade-ledger.spec.ts › facade ledger @facade-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @facade-ledger": 0.05,
+      "art.spec.ts › art mobile surfaces @art-skyline › mobile (M02h7): the walls sample the facade atlas's mobile variant through the albedo seam, and only that variant is requested @art-skyline": 2
     },
     "xr-quest3": {
       "art-city.spec.ts › xr art @xr @art-city › the Quest tier is legacy with one family and standard paint @xr @art-city": 0.19,
@@ -937,7 +982,8 @@
       "xr-smoke.spec.ts › XR smoke @xr @xr-smoke › Enter VR (smoke) presents, renders XR frames, runs the sim, and exiting returns to the flat page @xr @xr-smoke": 0.69,
       "xr/xr-panel.spec.ts › XR UI panel skeleton @xr @xr-panel › a ScreenDef panel opens 1.2 m away on a world anchor, a ray press works, text is 1.5 degrees, it redraws only after a view-model change @xr @xr-panel": 0.55,
       "world-furniture.spec.ts › xr furniture @world-furniture › the Quest tier has no furniture pool, no parked dressing and no layer to switch @xr @world-furniture": 0.3,
-      "furniture-ledger.spec.ts › xr furniture ledger @xr @furniture-ledger › the Quest tier: no furniture pool and no parked dressing, its render objects at or under its baseline @xr @furniture-ledger": 0.4
+      "furniture-ledger.spec.ts › xr furniture ledger @xr @furniture-ledger › the Quest tier: no furniture pool and no parked dressing, its render objects at or under its baseline @xr @furniture-ledger": 0.4,
+      "facade-ledger.spec.ts › xr facade ledger @xr @facade-ledger › the Quest tier: no facade kit (the legacy look has no facade record), its render objects equal to its baseline @xr @facade-ledger": 3
     }
   }
 }

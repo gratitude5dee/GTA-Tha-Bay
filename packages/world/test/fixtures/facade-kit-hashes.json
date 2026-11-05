@@ -1,0 +1,21 @@
+{
+  "$comment": "M02h7 AC-2: sha-256 of the L0 objects of the two busiest tiles per bake on the tiers the kit must not move, from the parent commit of M02h7 (DV_LOOK_WRITE=1 writes).",
+  "areas": {
+    "synth": {
+      "bakeId": "4f9b8ca8f1d43351a4db4c1c6a3fa131916db405a26ff7eec14ed5c4265d1d43",
+      "tiers": {
+        "mobile-low": "7815ba5ce93948c9169e12cad90578d3a9067e60b2f00c4c3ea73bbfe808840f",
+        "xr-quest": "323aede091f763478c7b7de372e9d2551e2c9a6eba142be66251ca85d7912409",
+        "xr-visionpro": "ce2aeffe73536c26f3a8448d8865d526d3446392a4f2a7118982c254eaffd21a"
+      }
+    },
+    "civic-excerpt": {
+      "bakeId": "3c78be752e80b91ed91aaab83ed398746c619ea42bc5e0c45dcb85c60348554e",
+      "tiers": {
+        "mobile-low": "315b7a676bcbe7d4bd4d2f2724192a031a5c992d1c048703b7f6d8c6d7831e33",
+        "xr-quest": "0a8c2305762ce1216eae51dd4ed7a3b914375002d68075c2a03b7532047a781d",
+        "xr-visionpro": "a8af17810b9626bbe41311067b2100a2b8349b44b3227560a4cb063ba7e3e4a4"
+      }
+    }
+  }
+}

@@ -8,6 +8,7 @@
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { TERRAIN_POSTS, decodeL0, decodeP0, sampleHeight, treeFormOfByte, type QualityTierId, type RenderChunk, type SimChunk } from '@dv/shared';
+import { KIT } from '../src/client/chunks/facade-kit.ts';
 import { describe, expect, it } from 'vitest';
 import {
   MESHER, MeshBuilder, TREE_STRIDE, addBuilding, aoRing, formHeights, meshChunk, meshSurfaceAt, profileOf, roadRank, terrainAo, treeHeightCap, trunkRadiusOf, wantNearStride, type MesherProfile,
@@ -200,8 +201,9 @@ describe('vertex ambient occlusion (AC-2)', () => {
     }
   });
 
-  it.each(TIERS)('%s: no building exceeds trisPerBuilding, and no mobile-low L0 unit exceeds 2 MiB', (tier) => {
-    const cap = profileOf(tier).profile.trisPerBuilding;
+  it.each(TIERS)('%s: no building exceeds trisPerBuilding (plus the facade kit, M02h7), and no mobile-low L0 unit exceeds 2 MiB', (tier) => {
+    const { id, profile } = profileOf(tier);
+    const cap = profile.trisPerBuilding + KIT.trisPerBuilding[id];
     for (const s of SAMPLES) {
       for (const distM of [0, 5000]) {
         const m = meshChunk(s.sim, s.render, { tier, distM, maxBytes: tier === 'mobile-low' ? 2 * MIB : null });
