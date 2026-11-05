@@ -312,6 +312,12 @@ export class WorldView implements WorldLayer {
   private coverOn = COVER_FLAG;
   /** M02h7: the facade kit (`setLookLayer('facade', on)`): every L0 mesh request carries it; the shading half is the look's `facade` layer. */
   private facadeOn = true;
+  /**
+   * M02h7: the `facade` layer has been switched at least once (only then can a resident mesh disagree with it), and the L0 keys whose
+   * follow-up re-mesh (`remeshFacade`) is in flight.
+   */
+  private facadeSwitched = false;
+  private readonly facadeDue = new Set<ChunkKey>();
   /** M02h4: the tree set of the vegetation pools, and the `wind` layer (`full` only). */
   private treeSet: TreeSet = 'low';
   private windOn = true;
@@ -643,6 +649,7 @@ export class WorldView implements WorldLayer {
     if (this.frames % 30 === 0) {
       this.remeshFiltered();
       this.remeshNear();
+      this.remeshFacade();
     }
     if (this.host) this.backdrop.sync(this.host.camera as PerspectiveCamera);
     this.sky?.update(f);
@@ -1367,6 +1374,7 @@ export class WorldView implements WorldLayer {
     if (!this.lookView || !this.lookView.setLayer('facade', on)) return false;
     if (on === this.facadeOn) return true;
     this.facadeOn = on;
+    this.facadeSwitched = true;
     if (KIT.trisPerBuilding[profileOf(this.o.tier).id] === 0) return true;
     const due: { key: ChunkKey; masked: number[]; d: number }[] = [];
     for (const u of this.renderer.units.values()) {
@@ -1387,6 +1395,44 @@ export class WorldView implements WorldLayer {
         .finally(() => void this.inflight--);
     }
     return true;
+  }
+
+  /**
+   * M02h7: the `facade` layer's switch re-meshes the units resident at that moment, but a mesh requested before it (a chunk streaming in, a
+   * `remeshFiltered` or `remeshNear` re-mesh, a landmark's prepared chunk, a unit still queued at the upload gate) carries the old
+   * `facade` flag and lands after it, so its kit (or its lack of one) would stay drawn until the chunk unloads (CI run 41928966169: 56 kit
+   * triangles stayed at `mobile` with the layer off). Every 30 frames a resident L0 unit whose mesh disagrees with the layer is meshed
+   * again with the layer's flag, nearest first, at most four per pass, once per key while its re-mesh is in flight. On a kit profile the
+   * mesher sets `stats.kit` exactly when it meshes the kit (`meshChunk`: a kit allowance, a facade record, `facadeKit` not false).
+   */
+  private remeshFacade(): void {
+    if (!this.facadeSwitched || this.disposed) return;
+    if (KIT.trisPerBuilding[profileOf(this.o.tier).id] === 0 || lookProfileFor(this.o.tier) === 'legacy') return;
+    const due: { key: ChunkKey; masked: number[]; d: number }[] = [];
+    for (const u of this.renderer.units.values()) {
+      // a newer mesh of the unit waits at the gate: it is checked once it is drawn
+      if (u.level !== 'l0' || this.facadeDue.has(u.key) || this.renderer.queued('l0', u.key)) continue;
+      if ((u.mesh.stats.kit !== undefined) === this.facadeOn) continue;
+      due.push({ key: u.key, masked: u.mesh.masked, d: this.store ? this.store.distanceTo(u.key) : 0 });
+    }
+    due.sort((a, b) => a.d - b.d || (a.key < b.key ? -1 : 1));
+    const on = this.facadeOn;
+    for (const { key, masked, d } of due.slice(0, 4)) {
+      this.facadeDue.add(key);
+      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: d, priority: 'now', maskProxies: masked, cover: this.coverOn, facade: on };
+      this.inflight++;
+      void this.o.assets
+        .job('world.mesh', args)
+        .then((res) => {
+          const result = res as MeshJobResult;
+          if ('mesh' in result && this.store.ready(key, 'l0') && !this.disposed && this.facadeOn === on) this.renderer.enqueue(result.mesh, -1000 + d / 100);
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          this.facadeDue.delete(key);
+          this.inflight--;
+        });
+    }
   }
 
   /** M02h3: resident L0 chunks with cover whose mesh does not yet follow the layer, all and within `nearM` of the focus. */
