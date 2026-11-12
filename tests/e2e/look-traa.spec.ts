@@ -15,8 +15,9 @@ import { HIDE_ALL, read, world, type W } from './look-fixes-helpers.ts';
  *  2. A cut: from the held shot `traa-cut` the camera turns 90 degrees to `traa-graze` between two frames (`shotMove`). The stack resets the
  *     TRAA history on that frame (`look().traa.resets` goes up by one), and the picture 16 frames after the cut is within the golden
  *     tolerance of the settled picture of the new pose: the picture the QA `shot()` presents, which is the history started again on the
- *     pose and 16 frames (`SHOT_TEMPORAL_FRAMES`). A TRAA picture never stands still (its jitter walks a 32-frame cycle, so frame 16 and
- *     frame 32 of one pose differ on about 2 % of the pixels), which is why the settled picture is the one a fixed count after the reset.
+ *     pose and 16 frames (`SHOT_TEMPORAL_FRAMES`); the case takes it the same way, on the pose the cut left the camera in. A TRAA picture
+ *     never stands still (its jitter walks a 32-frame cycle, so frame 16 and frame 32 of one pose differ on about 2 % of the pixels),
+ *     which is why the settled picture is the one a fixed count after the reset.
  *  3. A slow slide: from `traa-graze` the camera moves 0.0125 m east per frame for eight frames (0.75 m/s at 60 frames a second: every
  *     point of the wall moves by less than half a pixel a frame, the motion at which an edge without a temporal filter hops from pixel
  *     to pixel; the 0.05 m step of the M02g2 pairs moves the near wall by more than a pixel, which is parallax). The share of facade pixels that flicker
@@ -24,8 +25,10 @@ import { HIDE_ALL, read, world, type W } from './look-fixes-helpers.ts';
  *     pixel) is at most 0.2 % in every pair with `traa` on, and its largest pair is no more than the largest pair of the same slide at
  *     level 2 (`smaa`), which the same page runs after `setPostLevel(2)`.
  *
- * One boot per project and never two worlds at once. The frames are counted in the page (`PostStack.frames`) and the loop is stopped on
- * the counted frame (`hold(true)`), so a capture is the frame it names whatever a frame costs. Textures are off (as in the M02g2 and
+ * One boot per project and never two worlds at once, and one QA `shot()` (its waits, its environment bake and its 16 TRAA frames cost
+ * minutes at `desktop` on software GL): the cut, the settled picture and both slides stand on the stream and the sky of that shot. The
+ * frames are counted in the page (`PostStack.frames`) and the loop is stopped on the counted frame (`hold(true)`), so a capture is the
+ * frame it names whatever a frame costs. Textures are off (as in the M02g2 and
  * M02h7 pairs): the measure is the edges of the window rows at a grazing angle, not an albedo's own detail under the parallax.
  * `DV_TRAA_DIR=<dir>` keeps the pictures.
  */
@@ -179,8 +182,8 @@ test.describe('TRAA on desktop @look-traa', () => {
     expect((await world(page, (w) => w.look()))?.traa, `the picture is frame ${CUT_FRAMES} after the cut`).toMatchObject({ resets: after?.resets, framesSinceReset: CUT_FRAMES });
     save('cut16', cut);
     await release(page);
-    // the settled picture of the new pose: the QA shot of it, then its history started again and the same 16 frames, counted in the page
-    await page.evaluate(() => (window as unknown as W).__dvBridge.world.shot('traa-graze', { held: true }));
+    // the settled picture of the new pose: what the QA shot presents, the history started again on the pose and the same 16 frames,
+    // counted in the page (the camera stands where `shotMove` put it, which is where `shot('traa-graze')` would)
     await holdAfterFrames(page, CUT_FRAMES, 'resetNow');
     const settled = await canvasRgba(page);
     expect((await world(page, (w) => w.look()))?.traa?.framesSinceReset).toBe(CUT_FRAMES);
@@ -197,9 +200,13 @@ test.describe('TRAA on desktop @look-traa', () => {
     expect(slid?.framesSinceReset, 'a 1.25 cm step is motion, not a cut: the history ran on through the slide').toBe(CUT_FRAMES + SLIDE_STEPS);
     await release(page);
 
-    // the same slide at level 2 (`smaa`): the stack is built again, the shot stands on the start pose again
-    await page.evaluate(() => ((window as unknown as W).__dvBridge.world.internals() as unknown as Internals).look.setPostLevel(2));
-    await page.evaluate(() => (window as unknown as W).__dvBridge.world.shot('traa-graze', { held: true }));
+    // the same slide at level 2 (`smaa`): the stack is built again and the camera goes back to the start of the slide
+    await page.evaluate((back) => {
+      const lv = ((window as unknown as W).__dvBridge.world.internals() as unknown as Internals).look;
+      if (!lv.shotCamera) throw new Error('no shot is held');
+      lv.setPostLevel(2);
+      lv.shotCamera.x -= back;
+    }, SLIDE_STEPS * SLIDE_STEP_M);
     const level2 = await world(page, (w) => w.look());
     expect(level2?.postNodes).toEqual(adaptForBackend(postNodes(BUDGETS.tiers['desktop']!.features, 2, LOOK.postLevelCap), 'webgl2', { webgl2Unsupported: LOOK.webgl2Unsupported as never, webgl2AaFallback: LOOK.webgl2AaFallback as never }));
     expect(level2?.postNodes).not.toContain('traa');

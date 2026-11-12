@@ -1,0 +1,46 @@
+{
+  "id": "M02h8-quest3",
+  "milestone": "M02h8",
+  "device": "Meta Quest 3, current Quest Browser, immersive-vr session (Enter VR (smoke)); tier xr-quest at 72 Hz; operator Preview built with the synth world (QA build); a computer with chrome://inspect for the remote console",
+  "urlTemplate": "https://<preview>/?tier=xr-quest&perf=1",
+  "steps": [
+    {
+      "id": "1-build",
+      "instruction": "Build one Preview with the synth world and QA flags (Preview builds carry no world on their own, DL-653): pnpm map:build -- --area synth && DV_WORLD=synth VITE_DV_QA=1 pnpm build && pnpm deploy:preview. Write the Preview URL into notes.json as previewUrl."
+    },
+    {
+      "id": "2-open-xr-look",
+      "instruction": "In Quest Browser open <preview>/?tier=xr-quest&perf=1. The HUD must show 'xr-quest  webgl2'. Over remote DevTools (chrome://inspect on the computer) __dvBridge.world.look() must read profile 'xr', pipeline 'direct', postNodes [], shadowPasses 0, layers ['grade','haze','markings','skyReflect','blob','ao'], markings.mode 'flat' and vegetation.set 'low'. On the flat page the street shows painted lanes and crosswalks, a blob shadow under the cars and the player, a graded haze toward the horizon and opaque tree crowns.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "xr-quest" },
+        { "metric": "backend", "op": "==", "value": "webgl2" }
+      ]
+    },
+    {
+      "id": "3-enter-vr-multiview",
+      "instruction": "Press the blue 'Enter VR (smoke)' button with the controller trigger. In the remote console read __dvBridge.world.look().xrMultiview and .viewPassesObserved while the session presents and write them into notes.json as xrMultiview and viewPassesObserved. Expected on Quest Browser: xrMultiview true and viewPassesObserved 1 (the WebGL2 backend with OVR_multiview2 and a projection layer). If xrMultiview reads false, every render object is drawn once per eye: write the render objects of __dvBridge.platform.perf.live() and their product with viewPassesObserved into notes.json as objectsPerPass and objectsTotal; the total must stay at or under 150 (the xr-quest budget), else the decision in step 7 is 'legacy'."
+    },
+    {
+      "id": "4-hold-noon-xr",
+      "instruction": "Still in the session, on the xr look: in the remote console run __dvBridge.world.setHour(13, true); __dvBridge.world.setWeather('clear', 0); then await __dvBridge.platform.perf.run('walk-civic-center', { durationS: 120 }). Look around while it runs: no shimmer on the lane paint, no popping at the chunk edge (the fog hides it). When it ends, save JSON.stringify(__dvBridge.platform.perf.report()) as docs/device-runs/M02h8/quest3/perf.json and write its frames.medianMs into notes.json as medians.xr.noonClearMs.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "xr-quest" },
+        { "metric": "backend", "op": "==", "value": "webgl2" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "5-hold-night-fog-xr",
+      "instruction": "Still on the xr look: __dvBridge.world.setHour(22, true); __dvBridge.world.setWeather('karl-fog', 0); then await __dvBridge.platform.perf.run('walk-civic-center', { durationS: 120 }). The windows glow, the fog is graded (not a flat grey) and the street stays readable. Write the report's frames.medianMs into notes.json as medians.xr.nightFogMs and save the report as docs/device-runs/M02h8/quest3/perf.night-fog.json."
+    },
+    {
+      "id": "6-holds-legacy",
+      "instruction": "Leave the session (the Quest menu button), open <preview>/?tier=xr-quest&perf=1&look=0 (look().profile must read 'legacy', markings.mode 'flat'), press 'Enter VR (smoke)' and repeat both holds: 13:00 clear and 22:00 karl-fog, 120 s each. Write the two medians into notes.json as medians.legacy.noonClearMs and medians.legacy.nightFogMs."
+    },
+    {
+      "id": "7-verify-and-decide",
+      "instruction": "Run pnpm perf:verify -- docs/device-runs/M02h8/quest3/perf.json --tier xr-quest --checklist tools/ci/checklists/M02h8-quest3.json: the median and p95 frame times, the frames over 50 ms and the render and triangle counts must pass at xr-quest on the xr look. Write the decision into notes.json as defaultDecision: 'xr' when the verify passes and both xr medians are within the 72 Hz budget (13.9 ms); otherwise 'legacy', with the reason. The fallback is data: config/world/look.json tierProfile xr-quest 'legacy' (the xr look then stays reachable with ?look=xr); a budget is never raised. Save notes.json to docs/device-runs/M02h8/quest3/."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

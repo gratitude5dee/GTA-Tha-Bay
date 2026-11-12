@@ -418,7 +418,7 @@ test.describe('xr look ledger on the Quest tier @xr @look-xr-ledger', () => {
     expect(c.triangles, 'triangles per view pass').toBeLessThanOrEqual(QUEST_TRIANGLES_MAX);
     // per view pass, with the crowd the ledger frame hides
     expect(c.on + crowdMax(tier), `${c.on} + crowd max ${crowdMax(tier)} per view pass`).toBeLessThanOrEqual(QUEST_PER_PASS_MAX);
-    // `after x viewPassesObserved` holds on a multiview target (the Quest path, one pass). The IWER session has no projection layer, so
+    // `after x viewPassesObserved` holds on a multiview target (the Quest path, one pass). The IWER session does not take three's layers path, so
     // three draws each eye (`xrMultiview` false, two passes): there the per-pass rule above stands and the device run carries the doubled
     // rule (M02h8 Risks, BD-M02h8-03).
     if (passes === 1) expect(total, 'after x viewPassesObserved').toBeLessThanOrEqual(QUEST_PER_PASS_MAX);
@@ -427,7 +427,7 @@ test.describe('xr look ledger on the Quest tier @xr @look-xr-ledger', () => {
       l.xr = {
         baseline: priorXr ?? c.off, after: c.on, perLayer: c.perLayer, triangles: c.triangles, xrMultiview: look.xrMultiview ?? null, viewPassesObserved: passes,
         viewPasses: BUDGETS.tiers[tier]?.render.viewPasses ?? 1, perPassMax: QUEST_PER_PASS_MAX, total,
-        ...(passes !== 1 ? { note: 'the IWER session of the run has no projection layer, so three renders each eye (no multiview, two passes): after is the per-pass count; the doubled total is the emulation\'s, the device figure is the Quest 3 run (AC-11)' } : {}),
+        ...(passes !== 1 ? { note: 'the IWER session of the run does not take the layers path of three, so each eye is rendered (no multiview, two passes): after is the per-pass count; the doubled total is the emulation\'s, the device figure is the Quest 3 run (AC-11)' } : {}),
       };
       writeFileSync(LEDGER, `${JSON.stringify(l, null, 2)}\n`);
     }
