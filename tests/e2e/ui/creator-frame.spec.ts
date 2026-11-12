@@ -328,11 +328,10 @@ test.describe('creator frame @creator-frame', () => {
         window.scrollTo(0, document.documentElement.scrollHeight);
         return window.scrollY;
       });
+      expect(scrolled, 'the creator page is taller than the phone window').toBeGreaterThan(0);
       const end = await expectFramed(page, 'full', { symmetric: false });
-      if (scrolled > 0) {
-        expect(end.l.zoom.top).toBeLessThan(end.l.viewport.height);
-        expect(end.box.bottom).toBeLessThanOrEqual(end.l.zoom.top);
-      }
+      expect(end.l.zoom.top).toBeLessThan(end.l.viewport.height);
+      expect(end.box.bottom).toBeLessThanOrEqual(end.l.zoom.top);
       await page.evaluate(() => window.scrollTo(0, 0));
       await expectFramed(page, 'full', { symmetric: false });
     });
