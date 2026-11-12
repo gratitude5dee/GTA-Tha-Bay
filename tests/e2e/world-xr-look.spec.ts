@@ -13,7 +13,8 @@ import { bakeIdOf, frames, live, read, setSky, world, type W } from './markings-
  *    `xr-quest3` (`?tier=xr-quest&xr-emulate=quest3`): `look()` reports the `xr` profile on the `direct` pipeline with no post node, no
  *    shadow pass and the blob layer, its six layers, the `flat` paint and the `low` trees; on `xr-quest3` an immersive session reports
  *    `xrMultiview` as a boolean and the view passes that follow from it; `?look=0` and `?look=legacy` boot the `legacy` profile with
- *    M02h1's flat paint; and the `xr` boot makes no image or `texture/` request that the `?look=0` boot does not also make.
+ *    M02h1's flat paint; the `xr` boot makes no image or `texture/` request that the `?look=0` boot does not also make; and the story
+ *    start (`?play=story&story=1`) draws the same profile as the default QA scene.
  *  - @look-xr-ledger (AC-5), `chromium-webgl2` and the `@xr` case: the render objects of the ledger frame (DL-758) per row against the
  *    `after` of the latest merged ledger. `xr-quest`: at most one more (the blob mesh), at most 150 per view pass and 750,000 triangles;
  *    `xr-visionpro` (forced flat, counted per view pass; the tier draws two): at most one more than with its layers off and at most 200;
@@ -190,6 +191,8 @@ test.describe('xr look on the Quest tier @xr @world-xr-look', () => {
     await bootAndCollect(browser, tier, '&look=legacy', async (page) => expectLegacyLook(await lookOf(page), tier));
     // `?look=xr` is the configured profile on this build; it is the switch that keeps the xr look reachable if the data falls back to legacy
     await bootAndCollect(browser, tier, '&look=xr', async (page) => expectXrLook(await lookOf(page), tier));
+    // the real story start (`?play=story&story=1`, the new game's first mission) draws the same look as the sandbox scene
+    await bootAndCollect(browser, tier, '&play=story&story=1', async (page) => expectXrLook(await lookOf(page), tier));
     expectNoNewRequests(withLook, withoutLook);
   });
 });

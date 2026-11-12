@@ -7,6 +7,7 @@
  *   - no memory-bomb page or code and no PerfHud (M01c AC-11);
  *   - no entity inspector, physics wireframe, line recorder or QA vehicle commands (M03a1 AC-11);
  *   - no `governor.inject` or `injectMB` (M11a1 AC-10);
+ *   - no QA look or post-level parsing: no `?look=` or `?post=` read and no `dv-qa-post` key (M02h8 AC-10);
  *   - no media-local/ mirror and no `__dvBridge.assets` (M01e AC-10);
  *   - the service worker precache has the simd-compat Rapier chunk and no deterministic-compat entry, while the
  *     deterministic-compat chunk exists in dist so canonical sessions can load it on demand.
@@ -91,6 +92,13 @@ export function verifyDist(dist) {
     if (s.includes('governor.inject') || s.includes('injectMB')) fail(`governor/memory QA injection found in ${rel(f)}`);
   }
 
+  // 2h. No QA look or post-level parsing (M02h8 AC-10): `?look=` (the look off, or an XR tier's profile) and `?post=` (the post-level
+  // cap) are read from the URL only in a QA build, and `dv-qa-post` is the QA-only storage key of the cap.
+  for (const f of textFiles) {
+    const s = text(f);
+    if (/URLSearchParams\([^)]*\)\.get\(\s*["'`](look|post)["'`]\s*\)/.test(s) || s.includes('dv-qa-post')) fail(`QA look or post-level parsing found in ${rel(f)}`);
+  }
+
   // 3. No __dvBridge anywhere.
   for (const f of textFiles) if (text(f).includes('__dvBridge')) fail(`"__dvBridge" found in ${rel(f)}`);
 
@@ -137,6 +145,7 @@ function main() {
     process.exit(1);
   }
   console.log('  ok    no qa/ page, no bot-input module, no memory-bomb, no save-kill, no world-hash, no PerfHud, no __dvBridge string, no media-local');
+  console.log('  ok    no QA look or post-level parsing (?look=, ?post=, dv-qa-post)');
   console.log('  ok    precache has the simd-compat chunk and no deterministic-compat entry');
   console.log('verify:dist passed');
 }
