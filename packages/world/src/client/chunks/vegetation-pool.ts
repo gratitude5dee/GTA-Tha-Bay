@@ -25,10 +25,18 @@
  * (crossing units only); a changed band makes the unit's entry in the affected pools stale, and the stale entries are written at most
  * `writeCap` instance writes per frame (counted against the tier's upload cap too). Thinning (bit 7 only, a positional hash against
  * `keepTree` / `keepShrub`) decides once per record; street trees are never thinned.
+ *
+ * Lens clear (BD-FIX-LENS-CLEAR-01, `chunks/lens-clear.ts`, look.json `vegetation.lens`): while the camera rig obeys a director-placed
+ * cinematic shot (`setLens`, every frame), the tree meshes that crowd the frame or stand between the lens and the subject are written
+ * with zero scale (trunk and crown: no bare trunk, and on `full` no shadow either, since the `near` pools cast from the same instance
+ * matrices). The hidden set is per unit instance and applied at write time from the unit's source (`writeRange`), so a re-banding, a
+ * `tree.drawM` crossing, a capacity doubling, a move between `near` and `far` or `setLook` keeps a hidden tree hidden; a unit that lands
+ * while a decision is in force is judged by the same lenses. Shrubs, hedges and impostor cards are never chosen.
  */
 import { BufferAttribute, BufferGeometry, type Group, InstancedBufferAttribute, InstancedMesh, type Material, Sphere, Vector3 } from 'three/webgpu';
 import { TreeForm, isUnderstoryForm, treeFormOfByte } from '@dv/shared';
 import { IMPOSTOR_IDS, buildImpostorSet } from './impostors.ts';
+import { LensDecider, crownBoxOf, crownOf, lensHidesAny, lensRuleOff, type CrownBox, type LensRule, type LensShot } from './lens-clear.ts';
 import { TREE_STRIDE, laneForm, laneScatter, laneTint } from './mesher.ts';
 import {
   SET_GEOMETRIES, buildTreeSet, buildUnderstorySet, geometryOfForm, instanceScaleOf, tintOf, type TreeGeometryData, type TreeGeometryId, type TreeSet,
@@ -376,8 +384,8 @@ interface Pool {
   mesh: InstancedMesh;
   matrices: Float32Array;
   tints: Float32Array;
-  /** Per unit: its instances' matrices (16 floats) and tints (4 floats), the source of every write. */
-  src: Map<string, { m: Float32Array; t: Float32Array; form: number[] }>;
+  /** Per unit: its instances' matrices (16 floats) and tints (4 floats), the source of every write; `ks` is each one's index in the unit. */
+  src: Map<string, { m: Float32Array; t: Float32Array; form: number[]; ks: number[] }>;
   /** M02h5: the instances the resident units could put here in any band (the capacity reserved for the re-banding). */
   potential: number;
 }
@@ -415,6 +423,30 @@ export interface VegetationPoolsOptions {
   scatter?: ScatterPoolOptions | undefined;
   /** M02h5: the impostor pools' material (the billboard, `look/look-materials.ts`); required when `scatter.impostors`. */
   impostorMaterial?: (() => Material | null) | undefined;
+  /** Lens clear (look.json `vegetation.lens`): absent, no tree is ever hidden for a lens. */
+  lens?: LensRule | undefined;
+}
+
+/** One tree as the QA bridge reads it (`__dvBridge.world.trees`). */
+export interface TreeRead {
+  x: number;
+  y: number;
+  z: number;
+  heightM: number;
+  form: number;
+  band: number;
+  hidden: boolean;
+  crown: { x: number; y: number; z: number; r: number } | null;
+}
+
+/** What the QA bridge reports of the lens-clear rule (`look().vegetation.lens`). */
+export interface LensReport {
+  /** The rig obeys a director-placed cinematic shot this frame. */
+  active: boolean;
+  /** Tree instances hidden right now. */
+  hidden: number;
+  /** Times a set was decided since boot. */
+  decisions: number;
 }
 
 /** What the QA bridge reports (`look().vegetation`): the set, the pools and the per-form instances. */
@@ -510,6 +542,8 @@ interface UnitState {
   dMax: number;
   /** Pools whose entry for the unit no longer matches `inst.band` (the re-banding writes them, capped per frame). */
   stale: Set<Pool>;
+  /** Lens clear: the unit's instances (indices into `inst`) hidden for the shot's lens; null: none. */
+  hidden: Set<number> | null;
 }
 
 export class VegetationPools {
@@ -538,10 +572,20 @@ export class VegetationPools {
   bandOverCap = 0;
   rebands = 0;
   thinned = 0;
+  // lens clear (BD-FIX-LENS-CLEAR-01)
+  private readonly lensRule: LensRule | null;
+  private readonly decider = new LensDecider();
+  private lensLayer = true;
+  private lensActive = false;
+  /** The crown box of each tree geometry of the set (null: the geometry has no crown vertices). */
+  private readonly crownBoxes = new Map<TreeGeometryId, CrownBox | null>();
+  /** Instance writes the lens set caused (outside the re-banding's `writeCap`). */
+  lensWrites = 0;
 
   constructor(private readonly o: VegetationPoolsOptions) {
     this.set = o.set;
     this.sc = o.scatter && o.scatter.enabled ? o.scatter : null;
+    this.lensRule = o.lens && !lensRuleOff(o.lens) ? o.lens : null;
     const bands: ('near' | 'far' | 'all')[] = o.set === 'full' ? ['near', 'far'] : ['all'];
     const datas = buildTreeSet(o.set);
     for (const band of bands) for (const data of datas) this.pools.push(this.makePool(data, band, false, 'mesh'));
@@ -624,6 +668,15 @@ export class VegetationPools {
     if (!s) return;
     p.matrices.set(s.m.subarray(0, len * 16), start * 16);
     p.tints.set(s.t.subarray(0, len * 4), start * 4);
+    // lens clear: a hidden instance is written with zero scale whatever rewrites its range (its neighbours keep their data)
+    const hid = this.units.get(id)?.hidden;
+    if (hid) {
+      for (let j = 0; j < len; j++) {
+        if (!hid.has(s.ks[j] as number)) continue;
+        p.matrices.fill(0, (start + j) * 16, (start + j + 1) * 16);
+        p.tints.fill(0, (start + j) * 4, (start + j + 1) * 4);
+      }
+    }
     if (partial) {
       p.mesh.instanceMatrix.addUpdateRange(start * 16, len * 16);
       const t = p.mesh.geometry.getAttribute('aTint') as InstancedBufferAttribute;
@@ -731,7 +784,9 @@ export class VegetationPools {
     if (this.units.has(id)) this.removeUnit(id);
     if (trees.length < TREE_STRIDE) return;
     const inst = this.instancesOf(trees, ox, oz);
-    const u: UnitState = { trees, ox, oz, near, drawn, inst, dMin: 0, dMax: 0, stale: new Set() };
+    const u: UnitState = { trees, ox, oz, near, drawn, inst, dMin: 0, dMax: 0, stale: new Set(), hidden: null };
+    // a unit that lands while a lens decision is in force is judged by the same lenses (it was never drawn, so nothing vanishes)
+    u.hidden = this.lensHiddenOf(u);
     this.measure(u);
     this.units.set(id, u);
     if (this.sc) this.addPotential(u, this.poolsFor(near), 1);
@@ -812,7 +867,7 @@ export class VegetationPools {
       }
       forms.push(form);
     });
-    p.src.set(id, { m, t, form: forms });
+    p.src.set(id, { m, t, form: forms, ks: list });
     const g0 = p.layout.grows;
     written += this.apply(p, p.layout.add(id, list.length, u.drawn), g0);
     return written;
@@ -1051,6 +1106,158 @@ export class VegetationPools {
     this.scatterLayer = on;
     for (const [id, u] of [...this.units]) this.addUnit(id, u.trees, u.ox, u.oz, u.drawn, u.near);
     return true;
+  }
+
+  // ---- lens clear (BD-FIX-LENS-CLEAR-01) ----------------------------------------------------------------------------------
+
+  private crownBoxOfGeometry(g: TreeGeometryId): CrownBox | null {
+    let b = this.crownBoxes.get(g);
+    if (b === undefined) {
+      const data = this.pools.find((p) => p.mode === 'mesh' && p.geometry === g)?.data;
+      b = data ? crownBoxOf(data.positions, data.leaf) : null;
+      this.crownBoxes.set(g, b);
+    }
+    return b;
+  }
+
+  /**
+   * The instances of a unit the decision in force hides: the trees drawn as meshes whose crown breaks the rule for any lens of the
+   * decision. Never a shrub or a hedge, and never an impostor card (a tree beyond `impostorM` at the decision).
+   */
+  private lensHiddenOf(u: UnitState): Set<number> | null {
+    const rule = this.lensRule;
+    const lenses = this.decider.lenses;
+    if (!rule || !this.lensLayer || lenses.length === 0) return null;
+    let out: Set<number> | null = null;
+    const n = u.inst.idx.length;
+    for (let k = 0; k < n; k++) {
+      const form = u.inst.form[k] as TreeForm;
+      if (isUnderstoryForm(form) || u.inst.band[k] !== BAND_MESH) continue;
+      const box = this.crownBoxOfGeometry(geometryOfForm(this.set, form));
+      if (!box) continue;
+      const o = (u.inst.idx[k] as number) * TREE_STRIDE;
+      const [sx, sy] = instanceScaleOf(this.set, form, u.trees[o + 3] as number);
+      const crown = crownOf(box, u.inst.x[k] as number, u.trees[o + 1] as number, u.inst.z[k] as number, u.trees[o + 4] as number, sx, sy);
+      if (lensHidesAny(lenses, crown, rule)) (out ??= new Set()).add(k);
+    }
+    return out;
+  }
+
+  /**
+   * Once per frame: the director-placed cinematic shot the rig obeys (`CullCamera.lens`; null: none, so every hidden tree is back this
+   * frame). The set is decided on a cut and held through the shot (`LensDecider`).
+   */
+  setLens(shot: LensShot | null): void {
+    this.lensActive = shot !== null;
+    const rule = this.lensRule;
+    if (!rule || !this.lensLayer) return;
+    const step = this.decider.step(shot, rule.redecideM);
+    if (step === 'decide' || step === 'clear') this.applyLens();
+  }
+
+  /** Every unit's hidden set from the decision in force (none: every tree back). */
+  private applyLens(): void {
+    for (const [id, u] of this.units) this.setHidden(id, u, this.lensHiddenOf(u));
+  }
+
+  /**
+   * A unit's hidden set changes: only the instances that change are written, in the pools that draw them now. These writes do not wait
+   * for the re-banding's `writeCap` or the upload cap: the set must reach the GPU on the frame of the cut and is a few instances (a
+   * tree that crowds a lens stands within metres of it). They are counted in the pools' write counters (`bytesThisFrame`,
+   * `totalWrites`) and in `lensWrites`.
+   */
+  private setHidden(id: string, u: UnitState, next: Set<number> | null): void {
+    const prev = u.hidden;
+    if (!prev && !next) return;
+    const changed: number[] = [];
+    if (prev) for (const k of prev) if (!next?.has(k)) changed.push(k);
+    if (next) for (const k of next) if (!prev?.has(k)) changed.push(k);
+    u.hidden = next;
+    if (changed.length === 0) return;
+    for (const p of this.poolsFor(u.near)) {
+      const s = p.src.get(id), r = p.layout.ranges.get(id);
+      if (!s || !r) continue;
+      // a hidden range of the hole layout is zero scale as a whole: its instances are written (from `u.hidden`) when it is drawn again
+      if (!r.drawn && p.layout instanceof HoleLayout) continue;
+      for (const k of changed) {
+        const j = s.ks.indexOf(k);
+        if (j < 0) continue;
+        const at = r.start + j;
+        if (next?.has(k)) {
+          p.matrices.fill(0, at * 16, (at + 1) * 16);
+          p.tints.fill(0, at * 4, (at + 1) * 4);
+        } else {
+          p.matrices.set(s.m.subarray(j * 16, (j + 1) * 16), at * 16);
+          p.tints.set(s.t.subarray(j * 4, (j + 1) * 4), at * 4);
+        }
+        p.mesh.instanceMatrix.addUpdateRange(at * 16, 16);
+        const t = p.mesh.geometry.getAttribute('aTint') as InstancedBufferAttribute;
+        t.addUpdateRange(at * 4, 4);
+        p.mesh.instanceMatrix.needsUpdate = true;
+        t.needsUpdate = true;
+        this.bytesThisFrame += 80;
+        this.maxBytesInFrame = Math.max(this.maxBytesInFrame, this.bytesThisFrame);
+        this.totalWrites++;
+        this.lensWrites++;
+      }
+    }
+  }
+
+  /** QA `setLookLayer('lensClear', on)`: off, every hidden tree is back at once and no lens hides any; false without a rule. */
+  setLensLayer(on: boolean): boolean {
+    if (!this.lensRule) return false;
+    if (this.lensLayer === on) return true;
+    this.lensLayer = on;
+    if (!on) {
+      // forget the decision: when the layer comes back during the same shot, its next frame decides again
+      this.decider.reset();
+      this.applyLens();
+    }
+    return true;
+  }
+
+  lensReport(): LensReport {
+    let hidden = 0;
+    for (const u of this.units.values()) hidden += u.hidden?.size ?? 0;
+    return { active: this.lensActive, hidden, decisions: this.decider.decisions };
+  }
+
+  /**
+   * QA (`__dvBridge.world.trees`): the trees (never a shrub or a hedge) of the drawn units within `radiusM` of (x, z) in plan, nearest
+   * first: the foot, the height, the form, the band (0 mesh, 1 impostor, 2 not drawn), the crown's centre and largest semi-axis, and
+   * whether the lens-clear rule hides it now.
+   */
+  treesNear(x: number, z: number, radiusM: number, max = 64): TreeRead[] {
+    const out: (TreeRead & { d: number })[] = [];
+    for (const u of this.units.values()) {
+      if (!u.drawn) continue;
+      const dx = Math.max(u.ox - x, 0, x - (u.ox + 256)), dz = Math.max(u.oz - z, 0, z - (u.oz + 256));
+      if (Math.hypot(dx, dz) > radiusM) continue;
+      const n = u.inst.idx.length;
+      for (let k = 0; k < n; k++) {
+        const form = u.inst.form[k] as TreeForm;
+        if (isUnderstoryForm(form)) continue;
+        const tx = u.inst.x[k] as number, tz = u.inst.z[k] as number;
+        const d = Math.hypot(tx - x, tz - z);
+        if (d > radiusM) continue;
+        const o = (u.inst.idx[k] as number) * TREE_STRIDE;
+        const y = u.trees[o + 1] as number, h = u.trees[o + 3] as number;
+        const box = this.crownBoxOfGeometry(geometryOfForm(this.set, form));
+        const [sx, sy] = instanceScaleOf(this.set, form, h);
+        const c = box ? crownOf(box, tx, y, tz, u.trees[o + 4] as number, sx, sy) : null;
+        out.push({
+          x: tx, y, z: tz, heightM: h, form, band: u.inst.band[k] as number, hidden: u.hidden?.has(k) === true,
+          crown: c ? { x: c.x, y: c.y, z: c.z, r: Math.max(c.rx, c.ry, c.rz) } : null, d,
+        });
+      }
+    }
+    out.sort((a, b) => a.d - b.d);
+    return out.slice(0, max).map(({ d: _d, ...t }) => t);
+  }
+
+  /** Lens clear (tests): the hidden instances of a unit, as indices into `bandsOf(id)`. */
+  hiddenOf(id: string): number[] {
+    return [...(this.units.get(id)?.hidden ?? [])].sort((a, b) => a - b);
   }
 
   /** Render objects now (pools drawing) and their triangles. */

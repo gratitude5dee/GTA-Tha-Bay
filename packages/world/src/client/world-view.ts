@@ -25,6 +25,7 @@ import { rankUnits, type Focus } from '../sim/streaming/priority.ts';
 import { tileSets, unitExists, type TileSets } from '../sim/streaming/boot.ts';
 import { BackdropLayer, type BackdropInfo, type JobClient } from './backdrop/backdrop-layer.ts';
 import { ChunkRenderer, type RenderLevel } from './chunks/chunk-renderer.ts';
+import type { TreeRead } from './chunks/vegetation-pool.ts';
 import { createWorldMaterials, type WorldMaterials } from './chunks/materials.ts';
 import { LandmarkLayer, type LandmarkSpot, type LandmarksReport, type PrepareCall, type PreparedRemesh } from './chunks/landmark-layer.ts';
 import { mountLandmark } from './chunks/landmark-view.ts';
@@ -413,6 +414,7 @@ export class WorldView implements WorldLayer {
       treeHysteresis: MESHER.tree.drawHysteresis,
       treeSet: this.treeSet,
       scatter,
+      lens: LOOK.vegetation.lens,
       // M02h6: the street furniture pools of the look profile (none on `legacy`)
       furniture: profile === 'legacy' ? null : { profile, sky: this.skyNodes },
     });
@@ -637,7 +639,11 @@ export class WorldView implements WorldLayer {
       this.store.want(focus, ground === null ? 0 : Math.max(0, f.camera.pos[1] - ground));
     }
     const t0 = this.now();
-    const up = this.renderer.update(tSec, { pos: f.camera.pos, dir: f.camera.dir, frustum: this.frustumOf() });
+    // BD-FIX-LENS-CLEAR-01: the director-placed shot the rig obeys (never while a QA `shot()` holds the camera): the trees' lens
+    const placed = held ? null : (f.lens ?? null);
+    const aspect = (this.host?.camera as PerspectiveCamera | undefined)?.aspect;
+    const lens = placed ? { ...placed, aspect: aspect !== undefined && aspect > 0 ? aspect : 16 / 9 } : null;
+    const up = this.renderer.update(tSec, { pos: f.camera.pos, dir: f.camera.dir, frustum: this.frustumOf(), lens });
     if (up) {
       const ms = this.now() - t0;
       this.commitMs.push(ms);
@@ -1331,6 +1337,11 @@ export class WorldView implements WorldLayer {
     return this.renderer.walkLiftAt(x, z);
   }
 
+  /** QA (`__dvBridge.world.trees`): the trees of the drawn units near a point, nearest first (BD-FIX-LENS-CLEAR-01). */
+  treesNear(x: number, z: number, radiusM: number, max?: number): TreeRead[] {
+    return this.renderer?.vegetation.treesNear(x, z, radiusM, max) ?? [];
+  }
+
   /** M02h2 QA (`__dvBridge.world.pedFeet()`): the drawn feet of the pedestrians, the lift and the sidewalk top under each. */
   pedFeet(max = 64): { x: number; y: number; z: number; lift: number; top: number | null }[] {
     const feet = this.peds?.drawnFeet(max) ?? [];
@@ -1489,6 +1500,8 @@ export class WorldView implements WorldLayer {
       return true;
     }
     if (id === 'impostors') return this.renderer.vegetation.setImpostorLayer(on);
+    // BD-FIX-LENS-CLEAR-01: the trees hidden for a director-placed cinematic lens (render only; off, every hidden tree is back at once)
+    if (id === 'lensClear') return this.renderer.vegetation.setLensLayer(on);
     // art-hook:textures begin (M10d0): the surface textures are a layer of the look that has no entry in look.json
     if (id === 'textures') return this.textures?.setOn(on) ?? false;
     // art-hook:textures end

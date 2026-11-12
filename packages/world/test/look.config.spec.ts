@@ -7,7 +7,7 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 import type { QualityTierId } from '@dv/shared';
 import { TIERS } from '@dv/engine/platform/tier-config';
-import { FACADE_KEYS, LOOK, TIER_IDS, facadeClassOf, facadeKeyOf, lookErrors, lookProfileFor, srgbHexToLinear, type LookFile } from '../src/client/look/config.ts';
+import { FACADE_KEYS, LOOK, TIER_IDS, facadeClassOf, facadeKeyOf, lensErrors, lookErrors, lookProfileFor, srgbHexToLinear, type LookFile } from '../src/client/look/config.ts';
 import { GROUND_NAMES, KIND_NAMES, ROAD_NAMES, SURFACE_COUNT, SURFACE_NAMES, Surf, groundSurf, isSurfaceId, roadSurf, roofSurf, wallSurf } from '../src/client/look/surfaces.ts';
 
 const read = (p: string): unknown => JSON.parse(readFileSync(new URL(`../../../${p}`, import.meta.url), 'utf8'));
@@ -51,6 +51,25 @@ describe('config/world/look.json (AC-2)', () => {
     expect(text).toMatch(/casterRadiusM\.mobile 9000 exceeds/);
     expect(text).toMatch(/webgl2Unsupported must not hold tonemap/);
     expect(text).toMatch(/facade\.ResLow: winW/);
+  });
+
+  it('carries the lens-clear rule and names a broken one (BD-FIX-LENS-CLEAR-01)', () => {
+    expect(LOOK.vegetation.lens).toEqual(expect.objectContaining({ maxFrameShare: 0.1, corridorM: 0.5, redecideM: 2 }));
+    expect(lensErrors(LOOK.vegetation.lens)).toEqual([]);
+    // off is a valid file: no share and no corridor
+    expect(lensErrors({ maxFrameShare: 1, corridorM: 0, redecideM: 2 })).toEqual([]);
+    const broken = JSON.parse(JSON.stringify(LOOK)) as LookFile;
+    broken.vegetation.lens = { maxFrameShare: 0, corridorM: -1, redecideM: 0 };
+    const text = lookErrors(broken, shadowDistances()).join('\n');
+    expect(text).toMatch(/vegetation\.lens\.maxFrameShare 0 must be above 0 and at most 1/);
+    expect(text).toMatch(/vegetation\.lens\.corridorM -1 must be 0 or more/);
+    expect(text).toMatch(/vegetation\.lens\.redecideM 0 must be above 0/);
+    expect(lensErrors({ maxFrameShare: 1.2, corridorM: 0.5, redecideM: 2 })).toHaveLength(1);
+    expect(lensErrors(undefined)).toEqual(['vegetation.lens is missing']);
+    // the schema refuses the same file
+    const validate = new Ajv2020({ allErrors: true, strict: false }).compile(read('config/schemas/world-look.schema.json') as object);
+    expect(validate(broken)).toBe(false);
+    expect((validate.errors ?? []).map((e) => e.instancePath).sort()).toEqual(['/vegetation/lens/corridorM', '/vegetation/lens/maxFrameShare', '/vegetation/lens/redecideM']);
   });
 
   it('the facade classes cover the six building kinds and every palette colour parses', () => {

@@ -178,6 +178,47 @@ describe('CameraRig modes and the toggle lock (AC-8, R-PLAT-04)', () => {
     expect(rig.toggleFpTp()).toBe(true);
   });
 
+  it('placedLens is the director-placed shot the rig obeys, and null on every other camera (BD-FIX-LENS-CLEAR-01)', () => {
+    const { rig, directive, camera } = setup();
+    // play cameras: none
+    rig.apply(directive());
+    rig.update(FRAME);
+    expect(rig.placedLens).toBeNull();
+    rig.toggleFpTp();
+    rig.update(FRAME);
+    expect(rig.placedLens).toBeNull();
+    // the rig's own shot kinds carry no `pos`: cinematic, but nothing the director placed
+    const base = { subject: 7, fovDeg: 75, damping: 1, durationTicks: 480, seed: 3 };
+    rig.apply(directive({ mode: 'cinematic', lockPlayerToggle: true, reason: 'mission', shot: { kind: 'wide', ...base } }));
+    rig.update(FRAME);
+    expect(rig.mode).toBe('cinematic');
+    expect(rig.placedLens).toBeNull();
+    // a `fixed` shot the director placed
+    rig.apply(directive({ mode: 'cinematic', lockPlayerToggle: true, reason: 'mission', shot: { kind: 'fixed', ...base, pos: [10, 3, 20], lookAt: [10, 1.6, 0] } }));
+    rig.update(FRAME);
+    expect(rig.placedLens).toEqual({ pos: [10, 3, 20], lookAt: [10, 1.6, 0], fovDeg: 75, key: 'fixed|7|3|480|75', ends: null });
+    expect(camera.pos).toEqual([10, 3, 20]);
+    // a `spline` (a push-in): the director re-places `pos` every tick; the key stays, the ends are the path's
+    const spline = { pts: [[10, 3, 20], [10, 2.66, 15.2]] as [number, number, number][], durationTicks: 480 };
+    rig.apply(directive({ mode: 'cinematic', lockPlayerToggle: true, reason: 'mission', shot: { kind: 'spline', ...base, pos: [10, 2.8, 17.6], lookAt: [10, 1.6, 0], spline } }));
+    rig.update(FRAME);
+    expect(rig.placedLens).toEqual({ pos: [10, 2.8, 17.6], lookAt: [10, 1.6, 0], fovDeg: 75, key: 'spline|7|3|480|75', ends: [[10, 3, 20], [10, 2.66, 15.2]] });
+    // the shot ends: the next update of the play camera has none
+    rig.apply(directive());
+    rig.update(FRAME);
+    expect(rig.placedLens).toBeNull();
+    // XR: the headset drives the camera, a cinematic directive cannot take it, and there is no lens
+    rig.apply(directive({ mode: 'cinematic', lockPlayerToggle: true, reason: 'mission', shot: { kind: 'fixed', ...base, pos: [10, 3, 20], lookAt: [10, 1.6, 0] } }));
+    rig.update(FRAME);
+    expect(rig.placedLens).not.toBeNull();
+    rig.enterXr();
+    expect(rig.placedLens).toBeNull();
+    rig.apply(directive({ mode: 'cinematic', lockPlayerToggle: true, reason: 'mission', shot: { kind: 'fixed', ...base, pos: [10, 3, 20], lookAt: [10, 1.6, 0] } }));
+    rig.update(FRAME);
+    expect(rig.mode).toBe('xr');
+    expect(rig.placedLens).toBeNull();
+  });
+
   it('near planes are 0.1 m (tp) and 0.05 m (fp); FOV is 65 and 75; far is the draw distance', () => {
     const { rig, directive, camera } = setup();
     rig.apply(directive());

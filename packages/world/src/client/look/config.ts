@@ -224,6 +224,16 @@ export function markingsErrors(m: MarkingsFile): string[] {
   return errors;
 }
 
+/** BD-FIX-LENS-CLEAR-01: the rules of `vegetation.lens` (a share of the frame, metres that are not negative, a travel above zero). */
+export function lensErrors(lens: LookFile['vegetation']['lens'] | undefined): string[] {
+  if (!lens) return ['vegetation.lens is missing'];
+  const errors: string[] = [];
+  if (!(lens.maxFrameShare > 0 && lens.maxFrameShare <= 1)) errors.push(`vegetation.lens.maxFrameShare ${String(lens.maxFrameShare)} must be above 0 and at most 1`);
+  if (!(lens.corridorM >= 0 && Number.isFinite(lens.corridorM))) errors.push(`vegetation.lens.corridorM ${String(lens.corridorM)} must be 0 or more`);
+  if (!(lens.redecideM > 0 && Number.isFinite(lens.redecideM))) errors.push(`vegetation.lens.redecideM ${String(lens.redecideM)} must be above 0`);
+  return errors;
+}
+
 /**
  * The structural rules the schema cannot say: every `casterRadiusM` within the tier's shadow distance, the XR tiers `legacy`,
  * `webgl2Unsupported` never holds `tonemap` or an AA node, and the AA substitutions only go to a node that exists.
@@ -252,6 +262,7 @@ export function lookErrors(look: LookFile, shadowDistanceM: Partial<Record<Quali
     const prev = look.windows.litFrac[i - 1];
     if (prev && row[0] <= prev[0]) errors.push(`windows.litFrac[${i}]: hours must increase`);
   }
+  errors.push(...lensErrors(look.vegetation.lens));
   for (const k of FACADE_KEYS) {
     const c = look.facade[k];
     if (c.winW >= c.bayM) errors.push(`facade.${k}: winW ${c.winW} must be less than bayM ${c.bayM}`);

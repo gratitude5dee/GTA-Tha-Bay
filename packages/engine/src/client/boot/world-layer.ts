@@ -4,6 +4,7 @@ import type { SimEvent } from '../../sim/events.ts';
 import type { Pose } from '../snapshot/interpolate.ts';
 import type { SimHostOptions } from '../../sim/sim-host.ts';
 import type { RendererHost } from '../../platform/renderer-host.ts';
+import type { PlacedLens } from '../camera/rig.ts';
 
 /**
  * The seam between the engine and a streamed world (M02b1). The engine never imports `@dv/world`; the app builds a `WorldBoot` from
@@ -26,6 +27,12 @@ export interface WorldFrame {
    * at (the sim junctions read the same tick). Absent in a test frame; -1 before the first snapshot.
    */
   simTick?: number;
+  /**
+   * BD-FIX-LENS-CLEAR-01 (engine-internal, not a contract field): the director-placed cinematic shot the camera rig obeyed this frame
+   * (`CameraRigImpl.placedLens`), or null: play cameras, the vehicle cameras, the free camera, XR and the rig's own shot kinds. The world
+   * layer keeps tree crowns out of this lens. Absent in a test frame.
+   */
+  lens?: PlacedLens | null;
   /** Fog far-plane factor near the county line (M02c1): 1 away from it, 0.4 at the line. Absent in a test frame. */
   boundaryFog?: number;
   /**

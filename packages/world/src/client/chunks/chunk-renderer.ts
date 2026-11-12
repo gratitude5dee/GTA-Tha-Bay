@@ -19,7 +19,8 @@ import {
   BufferAttribute, BufferGeometry, type Frustum, Group, type Material, Mesh, type Object3D, BundleGroup, Sphere, Vector3, type WebGPURenderer,
 } from 'three/webgpu';
 import type { TreeSet } from './tree-forms.ts';
-import { VegetationPools, type ScatterPoolOptions, type VegetationPoolReport } from './vegetation-pool.ts';
+import { VegetationPools, type LensReport, type ScatterPoolOptions, type VegetationPoolReport } from './vegetation-pool.ts';
+import type { LensRule, LensShot } from './lens-clear.ts';
 import { createImpostorMaterial } from './impostors.ts';
 import type { MeshBuffers, UnitMesh } from './mesh-types.ts';
 import type { WorldMaterials } from './materials.ts';
@@ -54,6 +55,11 @@ export interface CullCamera {
   pos: [number, number, number];
   dir: [number, number, number];
   frustum?: Frustum | null;
+  /**
+   * Lens clear (BD-FIX-LENS-CLEAR-01): the director-placed cinematic shot the camera rig obeys this frame (mode `cinematic`, the shot
+   * carries `pos` and `lookAt`), or null: play cameras, XR, the rig's own shot kinds and QA `shot()` cameras never set it.
+   */
+  lens?: LensShot | null;
 }
 
 export interface RenderedUnit {
@@ -119,6 +125,8 @@ export interface ChunkRendererOptions {
   scatter?: ScatterPoolOptions;
   /** M02h6: the street furniture pools of the look profile (absent or null on `legacy`: none). */
   furniture?: { profile: FurnitureProfile; sky: SkyNodes } | null;
+  /** Lens clear: look.json `vegetation.lens` (absent: no tree is hidden for a lens). */
+  lens?: LensRule;
 }
 
 /** The trees of the resident L0 units as the camera sees them (QA, `look().vegetation`). */
@@ -147,6 +155,8 @@ export interface VegetationReport {
   poolTris: VegetationPoolReport['poolTris'];
   /** M02h5: the drawn vegetation triangles over every pool. */
   triangles: number;
+  /** Lens clear: whether a director-placed shot is obeyed now, the tree instances hidden for it, and the sets decided since boot. */
+  lens: LensReport;
 }
 
 export class ChunkRenderer {
@@ -206,6 +216,7 @@ export class ChunkRenderer {
       receiveShadow: () => this.look?.receive ?? false,
       scatter: o.scatter,
       impostorMaterial: () => this.impostorMaterial(),
+      lens: o.lens,
     });
     this.furniture = o.furniture ? new FurniturePools({ parent: this.root, profile: o.furniture.profile, sky: o.furniture.sky, receiveShadow: () => this.look?.receive ?? false }) : null;
   }
@@ -499,6 +510,9 @@ export class ChunkRenderer {
     this.o.materials.setTime(nowSec);
     this.uploadsThisFrame = 0;
     this.vegetation.startFrame();
+    // lens clear: the hidden set follows the director's shot before anything else is written this frame (decided on the cut, held through
+    // the shot, cleared the frame the shot ends)
+    this.vegetation.setLens(cam.lens ?? null);
     this.furniture?.setFocus(cam.pos[0], cam.pos[2]);
     let uploaded: RenderedUnit | null = null;
 
@@ -642,6 +656,7 @@ export class ChunkRenderer {
       set: pools.set, pools: pools.pools, drawnPools: pools.drawnPools, forms: pools.forms, wind: this.windNow,
       drawnInstances: this.vegetation.drawnInstances(), pendingCrossings: this.crossQueue.size,
       scatter: pools.scatter, poolTris: pools.poolTris, triangles: this.vegetation.totals().triangles,
+      lens: this.vegetation.lensReport(),
     };
   }
 

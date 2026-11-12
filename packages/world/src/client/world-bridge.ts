@@ -3,6 +3,7 @@ import type { Level } from '../sim/streaming/chunk-store.ts';
 import type { StreamingPlan } from '../sim/streaming/plan.ts';
 import type { BackdropInfo } from './backdrop/backdrop-layer.ts';
 import type { LandmarksReport, LandmarkSwapEvent } from './chunks/landmark-layer.ts';
+import type { TreeRead } from './chunks/vegetation-pool.ts';
 import type { LumaOptions, LumaSample, SkyInfo } from './sky/sky-view.ts';
 import type { LookReport } from './look/look-view.ts';
 import { lookShot } from './look/shots.ts';
@@ -89,6 +90,8 @@ export interface WorldBridge {
    * M02g1: one layer of the look's profile (`grade`, `haze`, `blob`, `casters`, `skyReflect`, `windows`) on or off; false when the profile has no such layer.
    * M02h4: `wind` sways the street trees on the `full` set (desktop tiers; false elsewhere); `look().vegetation` reports the tree set, the pools,
    * the instances per form and the wind amplitude.
+   * BD-FIX-LENS-CLEAR-01: `lensClear` is the rule that hides the trees crowding a director-placed cinematic lens (every tier; off, every
+   * hidden tree is back at once); `look().vegetation.lens` reports `{ active, hidden, decisions }`.
    */
   setLookLayer(id: string, on: boolean): boolean;
   /**
@@ -169,6 +172,12 @@ export interface WorldBridge {
    * and the top of the resident sidewalk ribbon under it (null off a ribbon); at most `max` (default 64).
    */
   pedFeet(max?: number): { x: number; y: number; z: number; lift: number; top: number | null }[];
+  /**
+   * BD-FIX-LENS-CLEAR-01: the trees (no shrub or hedge) of the drawn units within `radiusM` of (x, z), nearest first: the foot, the height,
+   * the form, the band (0 mesh, 1 impostor card, 2 not drawn), the crown's centre and largest semi-axis, and whether the lens-clear rule
+   * hides it now (`look().vegetation.lens`; the layer `lensClear`).
+   */
+  trees(x: number, z: number, radiusM: number, max?: number): TreeRead[];
   /** Counts of the pedestrians inside sim.worker (`debug.world` op `peds`); `head` sets the XR head pose they keep clear of. */
   pedsSim(head?: { x: number; z: number } | null, timeoutMs?: number): Promise<unknown>;
   /** A `crowd.attract` source at (x, z): the pedestrians within 40 m gather (3 live at most). Returns its id, or 0 when 3 are live. */
@@ -384,6 +393,7 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
     },
     // art-hook:peds end
     pedFeet: (max) => view.pedFeet(max),
+    trees: (x, z, radiusM, max) => view.treesNear(x, z, radiusM, max),
     pedsSim: (head, timeoutMs) => call('peds', head === undefined ? undefined : head === null ? { clearHead: true } : { headX: head.x, headZ: head.z }, timeoutMs),
     attract: async (x, z) => (await call('attract', { x, z, by: 'qa' })) as { id: number } | null,
     releaseAttract: (id) => call('attract', { release: id }),
