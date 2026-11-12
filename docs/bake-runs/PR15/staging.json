@@ -1,0 +1,172 @@
+{
+  "schema": "bake-run/1",
+  "milestone": "release PR #15 (M02h3 AC-12, M02h5 AC-11, M10d2: the operator steps up to the PR)",
+  "ac": "re-derive OSM, re-bake sf and publish it to staging; the merge, the staging deploy, check:smoke and the browser frames follow the merge",
+  "operator": "Architect release run 2026-11-12",
+  "date": "2026-11-12",
+  "area": "sf",
+  "bakeId": "4ff51c268cde85151641bc620616d5a9b97ef1c80f32c7281251478afef554b9",
+  "previousBakeId": "bf9c29c4ba5369f9de50aef5b9c1845dad637837443e9c640775f794e0d1a9ae",
+  "baseCommit": "6a5bf4b57d36 (release content; the ODbL tarball is its git archive)",
+  "baseBranch": "claude/release/pr15",
+  "toolchain": {
+    "node": "v22.22.0",
+    "pnpm": "12.14.0",
+    "rclone": "v1.75.2",
+    "osmium": "1.16.0",
+    "mapTool": "0.5.0"
+  },
+  "rawSnapshot": {
+    "lock": "content/world/raw.lock.sf.json",
+    "retrieved": "2026-10-19",
+    "overlay": "the worktree's .cache/map/raw/sf links only the inputs that are read (osm-source.osm.pbf, the eight DataSF .jsonl files, the terrarium set) and holds copies of osm-source.json and of the committed lock; the files the osmium steps write (landmark-ids.txt, osm-sf*.osm.pbf, osm-backdrop.osm.pbf, osm.geojsonl) are not linked, so no step can write through into the snapshot; the snapshot's listing was equal before and after the run",
+    "osm": {
+      "extractSha256": "8b3c8d0d7a4dcc76e046825c90c75c0fd90265e00a30b58c73e8064d6dea249b",
+      "exportSha256": "279d02614753e22fac5ff1843e0e96701eb6441efedda3ef3fa307cf052fe63d",
+      "rows": 562293,
+      "previousExportSha256": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "previousRows": 561193
+    },
+    "note": "the eight DataSF files were hashed against the committed lock before the run (all equal); the lock writer orders the sources by id and the osm entry takes retrievedAt from the extract's sidecar (BD-M02h5-10)"
+  },
+  "locks": {
+    "assets/assets.lock.json": "ae527de2874e8d284c2737e115b3bb7865265fb5a295cc64ae69f84984b942b8",
+    "assets/world/sf.lock.json": "df3d6a5670bff924e54141628e4564a61ef57b64ac3261f2b5dd6f9d7dd36ddf",
+    "dataWorldIndex": "193f4ee4169cdd99b4211cb8d8aa6870ac98bfac0737b3b9f75772ee6dbf18d1"
+  },
+  "pointer": {
+    "file": "assets/world/pointer.staging.json",
+    "key": "manifests/assets-fea0b35574391dd947b14db31eb274f9f931952c7807cb9e037d88c781dae949.json",
+    "sha256": "fea0b35574391dd947b14db31eb274f9f931952c7807cb9e037d88c781dae949",
+    "bytes": 655741,
+    "buildId": "b8a7d1f01342969b"
+  },
+  "baseCatalog": {
+    "key": "manifests/assets-f981f541169fde516458d9d8f3392a31e2c4381ba66d52c9daee64254a3be2cf.json",
+    "assets": 359,
+    "blobs": 773,
+    "buildId": "81df442b83cf2e14",
+    "uploaded": "468 of 774 objects"
+  },
+  "bucket": "tha-bay-media-staging",
+  "offerUrl": "https://tha-bay-web-staging.gratitude-8f4.workers.dev/media/odbl/4ff51c268cde85151641bc620616d5a9b97ef1c80f32c7281251478afef554b9/index.json",
+  "offer": {
+    "index": "200 application/json, schema odbl-offer/1, licence ODbL-1.0, 410 world packs listed",
+    "bake-scripts.tar.gz": {
+      "sha256": "d09cc168b60fd353673dc878fe15919c4dd2546f51a69f63b8c68dd3953d2573",
+      "bytes": 418169,
+      "http": 200
+    },
+    "sf.lock.json": {
+      "sha256": "df3d6a5670bff924e54141628e4564a61ef57b64ac3261f2b5dd6f9d7dd36ddf",
+      "bytes": 133723,
+      "http": 200
+    },
+    "replaced": "the first upload of this run (11:04Z, tarball 2f5757e6..., 418161 B) was archived before the re-derived raw lock was committed and carried the previous content/world/raw.lock.sf.json; nothing referenced it yet, so its three objects were saved locally, deleted, and the offer was archived again from the release commit (11:32Z). The served tarball's raw lock, sources.json and the served sf.lock.json equal the committed files."
+  },
+  "commands": [
+    {
+      "cmd": "pnpm map:fetch -- --area sf --only osm --no-download",
+      "result": "osmium extract, tags-filter, getid, merge, export and the backdrop extract from the cached extract (48 s); map:fetch: wrote content/world/raw.lock.sf.json (10 sources)"
+    },
+    {
+      "cmd": "pnpm map:build -- --area sf --repro",
+      "result": "repro: 415 outputs identical across both runs (4 min 57 s); 0 gate FAIL; gate WARN identical to the previous bake's (s8.connectivity, s9.tag-limit, s9.breakers, s10.arrival-far, s13.pack-warn sf-geocode.v1.pack)"
+    },
+    {
+      "cmd": "pnpm map:pack -- --target r2:staging",
+      "result": "map:pack ok: 410 new objects of 410 at r2:tha-bay-media-staging; wrote assets/world/sf.lock.json and 421 provenance records"
+    },
+    {
+      "cmd": "pnpm assets:publish -- --env staging",
+      "result": "verify ok (359 assets, 773 blobs, build 81df442b83cf2e14); uploaded 468 of 774 objects"
+    },
+    {
+      "cmd": "pnpm assets:publish -- --env staging --world assets/world/sf.lock.json --pointer-out assets/world/pointer.staging.json",
+      "result": "world merged: 408 added, 2 replaced; ODbL offer uploaded; manifest manifests/assets-fea0b35574391dd947b14db31eb274f9f931952c7807cb9e037d88c781dae949.json (first attempt failed: BD-FIX-ODBL-02)"
+    },
+    {
+      "cmd": "pnpm map:races compile && pnpm map:races par",
+      "result": "four races on bake 4ff51c268cde; lengths, gates, par times, bot hashes and medals equal the previous bake's; map:races validate ok; par --check equal"
+    },
+    {
+      "cmd": "pnpm check:assets -- --release-strict",
+      "result": "ok (release-strict: every world pointer that release.json names matches the current locks)"
+    }
+  ],
+  "stageMs": {
+    "water": 6324,
+    "terrain": 8518,
+    "roads": 4065,
+    "junctions": 1655,
+    "grading": 2172,
+    "buildings": 9556,
+    "ped": 13207,
+    "tags": 2718,
+    "places": 39624,
+    "district-grid": 4,
+    "lod": 20280,
+    "map": 7179
+  },
+  "report": {
+    "packs": "407 packs, largest 2,747,988 B (sf-geocode.v1); the largest l0 or l1 pack is l1-15-16 at 0.85 MiB",
+    "cover": {
+      "cells": {
+        "none": 3086847,
+        "yard": 1116416,
+        "dirt": 10588,
+        "mixed": 730042,
+        "driveway": 5915,
+        "vacant": 129169,
+        "scrub": 720116,
+        "park": 1321978
+      },
+      "driveways": 748,
+      "blocks": 10305,
+      "sectionBytes": 10766436
+    },
+    "scatter": {
+      "records": 469195,
+      "wood": {
+        "polys": 254,
+        "m2": 3865820,
+        "trees": 68265,
+        "shrubs": 95662
+      },
+      "scrub": {
+        "m2": 3264891,
+        "shrubs": 134185
+      },
+      "park": {
+        "groves": 7187,
+        "trees": 40612,
+        "shrubs": 9238
+      },
+      "hedge": {
+        "lines": 199,
+        "blocks": 2283
+      },
+      "yard": {
+        "hedgeLots": 18786,
+        "hedgeBlocks": 30198,
+        "shrubs": 88752
+      }
+    },
+    "streetTrees": "110,695 street trees over 2,871.64 km of sidewalk (38.55 per km)",
+    "far": {
+      "boxes": 3106,
+      "cards": 24,
+      "cardsBytes": 105411
+    }
+  },
+  "checks": {
+    "pnpm check:unit -- racing, shared racing, race.validate, attribution, fetch.only-osm, uploader-rclone, verifiers-lock, golden-guard": "Test Files 21 passed; Tests 175 passed | 2 skipped",
+    "pnpm provenance:check": "see the PR's CI ip job",
+    "pnpm check:missions (sf bake present)": "m.a1.01, m.a1.05, m.a1.07, m.a1.08, m.a1.10, m.dev.sample and m.dev.talk pass on 3 seeds x 2 runs with equal end hashes; m.a1.04 passes seeds 1 (832 s) and 2 (437 s) and times out on seed 3: the test bot paces at the first waypoint of the service stealth path until tick 99,231 (25,381 on seed 2) and stands still in the last stage; the static world there is unchanged by this bake (the world seed, the first four bytes of the bake id, changed). Open item, not fixed in this release."
+  },
+  "pending": [
+    "merge PR #15; deploy.yml deploys staging from main",
+    "pnpm check:smoke -- https://tha-bay-web-staging.gratitude-8f4.workers.dev",
+    "browser frames of M02h3 AC-12 (docs/look/M02h3-sf/) and M02h5 AC-11 (sf-ggp-woods, sf-presidio-woods; docs/look/M02h5-sf/) from the PR preview or staging after the merge"
+  ]
+}
