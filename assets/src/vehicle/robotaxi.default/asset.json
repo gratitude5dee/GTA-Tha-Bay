@@ -1,0 +1,65 @@
+{
+  "kind": "vehicle",
+  "id": "robotaxi.default",
+  "variants": {
+    "desktop": "assets/src/vehicle/robotaxi.default/desktop.glb",
+    "mobile": "assets/src/vehicle/robotaxi.default/mobile.glb",
+    "mobile-low": "assets/src/vehicle/robotaxi.default/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 4088,
+      "verts": 2774,
+      "primitives": 16,
+      "materials": 4
+    },
+    "mobile": {
+      "tris": 2504,
+      "verts": 1860,
+      "primitives": 16,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 720,
+      "verts": 720,
+      "primitives": 14,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "class:traffic",
+    "art:m10d1"
+  ],
+  "extras": {
+    "t": "vehicle",
+    "class": "traffic",
+    "fictionalMake": "Halcyon Mobility",
+    "wheelRadiusM": 0.36,
+    "nodes": {
+      "body": "body",
+      "wheels": [
+        "wheel_fl",
+        "wheel_fr",
+        "wheel_rl",
+        "wheel_rr"
+      ],
+      "steer": [
+        "steer_fl",
+        "steer_fr"
+      ],
+      "lights": [
+        "light_head_l",
+        "light_head_r",
+        "light_brake_l",
+        "light_brake_r"
+      ],
+      "collider": "collider_hull"
+    }
+  },
+  "status": "active",
+  "visibility": "public"
+}

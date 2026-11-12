@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "7f4e6886d2432feac7769cdcf6d4d1e1d668c82dabe5ba4ea1e7e6e8ee13d6c8",
+  "paths": [
+    "assets/src/vehicle/robotaxi.default/mobile-low.glb"
+  ],
+  "kind": "vehicle",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "5d72c79e80eec49f633dfd9ad8aec5dff0ab0c771fc20be21c689b54b286a16a"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

@@ -27,10 +27,18 @@ export interface LookNodes {
   /** M02g1: the share of the windows of a lit building that are lit, `[min, max]` by the hour (`look/windows.ts`). */
   uLitMin: U<number>;
   uLitMax: U<number>;
+  /** M02h1: the street markings layer on (1) or off (0), and the antialiasing of the paint on (1) or off (0: hard edges, to show the sparkle the fade removes). */
+  uMarkings: U<number>;
+  uMarkAA: U<number>;
+  /** M02h2: the `curbs`, `bump`, `macro` and `lots` layers on (1) or off (0). */
+  uCurbs: U<number>;
+  uBump: U<number>;
+  uMacro: U<number>;
+  uLots: U<number>;
 }
 
 export function createLookNodes(sky: SkyNodes, fadeSeconds: number): LookNodes {
-  return { sky, uTime: uniform(0), uFade: uniform(fadeSeconds), uLook: uniform(0), uWindowGlow: uniform(0), uEnv: uniform(1), uLitMin: uniform(0.55), uLitMax: uniform(0.85) };
+  return { sky, uTime: uniform(0), uFade: uniform(fadeSeconds), uLook: uniform(0), uWindowGlow: uniform(0), uEnv: uniform(1), uLitMin: uniform(0.55), uLitMax: uniform(0.85), uMarkings: uniform(1), uMarkAA: uniform(1), uCurbs: uniform(1), uBump: uniform(1), uMacro: uniform(1), uLots: uniform(1) };
 }
 
 /** The `surf` attribute decoded: surface id (flat across a triangle), palette index, kind/roof code, flags. */

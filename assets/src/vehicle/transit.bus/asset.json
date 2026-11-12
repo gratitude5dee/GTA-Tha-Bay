@@ -1,0 +1,65 @@
+{
+  "kind": "vehicle",
+  "id": "transit.bus",
+  "variants": {
+    "desktop": "assets/src/vehicle/transit.bus/desktop.glb",
+    "mobile": "assets/src/vehicle/transit.bus/mobile.glb",
+    "mobile-low": "assets/src/vehicle/transit.bus/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 2932,
+      "verts": 2030,
+      "primitives": 15,
+      "materials": 4
+    },
+    "mobile": {
+      "tris": 1716,
+      "verts": 1310,
+      "primitives": 15,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 668,
+      "verts": 631,
+      "primitives": 13,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "class:traffic",
+    "art:m10d1"
+  ],
+  "extras": {
+    "t": "vehicle",
+    "class": "traffic",
+    "fictionalMake": "Cityline Transit",
+    "wheelRadiusM": 0.5,
+    "nodes": {
+      "body": "body",
+      "wheels": [
+        "wheel_fl",
+        "wheel_fr",
+        "wheel_rl",
+        "wheel_rr"
+      ],
+      "steer": [
+        "steer_fl",
+        "steer_fr"
+      ],
+      "lights": [
+        "light_head_l",
+        "light_head_r",
+        "light_brake_l",
+        "light_brake_r"
+      ],
+      "collider": "collider_hull"
+    }
+  },
+  "status": "active",
+  "visibility": "public"
+}

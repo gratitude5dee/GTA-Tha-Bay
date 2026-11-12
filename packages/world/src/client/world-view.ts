@@ -32,7 +32,8 @@ import { MESHER, profileOf, wantNearStride } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
 import { LOOK, LOOK_LAYERS, lookProfileFor, type LookLayer } from './look/config.ts';
-import { LookView, type LookReport } from './look/look-view.ts';
+import { LookView, markingsReportOf, type LookReport, type ShotCamera } from './look/look-view.ts';
+import { lookShot, shotQuaternion, type LookShot } from './look/shots.ts';
 // art-hook:textures begin (M10d0)
 import { TEXTURES_FLAG } from './textures/config.ts';
 import { SurfaceTextures, installSurfaceTextures, installedSurfaceTextures } from './textures/surface-textures.ts';
@@ -42,9 +43,15 @@ import { SkyView, type LumaOptions, type LumaSample, type SkyInfo } from './sky/
 import { TeleportFade } from './teleport-fade.ts';
 import { trafficCap } from '../sim/traffic/density.ts';
 import { TrafficRenderer, type TrafficInfo } from './traffic/instances.ts';
+// art-hook:vehicles begin (M10d1)
+import { art, type ArtLoader } from '@dv/engine/client/vehicle/art';
+import { artMaterialFactory } from './traffic/materials.ts';
+import { artVariantOf, type VehicleJobArgs, type VehicleJobResult } from './vehicles/vehicle-job.ts';
+// art-hook:vehicles end
 import { NEAR_PED_CAP, pedCap } from '../sim/peds/density.ts';
+import { PED_ASSETS } from '../sim/peds/components.ts';
 import { PedRenderer, type PedInfo } from './peds/instances.ts';
-import { TransitRenderer, type TransitInfo } from './transit/render.ts';
+import { TransitRenderer, isTransitKey, type TransitInfo } from './transit/render.ts';
 import { MapLayer } from './map/layer.ts';
 import type { AreaBannerPatch } from './map/banner.ts';
 
@@ -63,6 +70,19 @@ export interface AssetsLike extends JobClient {
    */
   bytesSeen?(): number;
 }
+
+// art-hook:vehicles begin (M10d1)
+export interface ArtReport {
+  profile: string;
+  families: string[];
+  objects: number;
+  refs: string[];
+  materialKind: 'physical' | 'standard';
+  loaded: number;
+  pool: { variant: string; loaded: string[]; pending: string[]; failed: string[] };
+  renderKeys: string[];
+}
+// art-hook:vehicles end
 
 /** The ambient traffic as the perf scenarios drive it (QA builds): see `WorldView.trafficLink`. */
 export interface TrafficLink {
@@ -127,6 +147,22 @@ export interface ChunksReport {
   frame: number;
 }
 
+/** The pedestrian bodies' render keys (the blob shadows ask which group draws an ambient actor). */
+const PED_KEYS: ReadonlySet<string> = new Set<string>(PED_ASSETS);
+
+/** The held-camera rig of a look shot (`WorldView.shotRig`). */
+export interface ShotRig {
+  holdShot(id: string): LookShot;
+  placeShot(id: string, groundY: number): void;
+  /** Moves the held camera to another shot's x and z, keeping its height (M02h1). */
+  shiftShot(id: string): void;
+  releaseShot(): void;
+  freezeClock(on: boolean): void;
+  refreshEnvironment(): boolean;
+  envBakes(): number;
+  held(): boolean;
+}
+
 export interface BootReport {
   revealed: boolean;
   revealMs: number | null;
@@ -186,6 +222,14 @@ export class WorldView implements WorldLayer {
   peds: PedRenderer | null = null;
   /** Buses, trains, cable cars, ferries, airliners and station entrances (M03b2); set in `attach`. */
   transit: TransitRenderer | null = null;
+  /**
+   * M02h2 repair: whether the renderer group that draws an ambient record of this render key is shown (pedestrian bodies: `peds`; transit
+   * assets: `transit`; every other ambient record: `traffic`). The blob shadows skip an actor whose group is hidden.
+   */
+  private readonly ambientShown = (key: string): boolean => {
+    const r = PED_KEYS.has(key) ? this.peds : isTransitKey(key) ? this.transit : this.traffic;
+    return r?.group.visible !== false;
+  };
   /** The teleport fade (M02c1): the veil the sim's `world.teleport` events drive. */
   readonly fade: TeleportFade;
   /** The maps of the world (M02c2): the HUD minimap, the banner and the full map; null when the view was built with `map: false`. */
@@ -205,6 +249,11 @@ export class WorldView implements WorldLayer {
       isOn: () => this.lookView?.on ?? false,
       setOn: (on) => this.setLook(on),
       nodes: () => this.lookView?.report().postNodes ?? [],
+      markings: {
+        available: () => this.materials?.markings.base != null,
+        aaOn: () => this.materials?.markings.aaOn() ?? true,
+        setAA: (on) => this.materials?.markings.setAA(on),
+      },
     },
   };
 
@@ -271,7 +320,9 @@ export class WorldView implements WorldLayer {
       });
     }
     // art-hook:textures end
-    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK }, depthPolicy: host.depthPolicy });
+    // M02h1: an XR tier (the look profile `legacy` in look.json) keeps the legacy materials and draws the flat street paint on its roads
+    const xrMarkings = this.o.look?.enabled === true && lookProfileFor(this.o.tier, true) === 'legacy';
+    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK }, depthPolicy: host.depthPolicy, xrMarkings });
     // The world pass draws over the backdrop pass: no scene background of its own.
     host.scene.background = null;
     const hemi = new HemisphereLight(0xdbe9ff, 0x6a6f64, 3.4);
@@ -400,12 +451,30 @@ export class WorldView implements WorldLayer {
       .then(() => host.warm())
       .catch((e: unknown) => console.warn('world backdrop failed to load', e));
 
-    this.traffic = new TrafficRenderer({ parent: host.scene, sky: this.skyNodes, cap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier) });
-    this.peds = new PedRenderer({ parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier] });
+    // art-hook:vehicles begin (M10d1): the vehicle and prop models load through asset.worker; the traffic and the object pool draw them.
+    // The QA switch `?art=0` keeps the gray-box stand-ins (one legacy family, no model requests): the baseline of the M10d1 ledger.
+    const artOff = this.o.qa === true && new URLSearchParams(globalThis.location?.search ?? '').get('art') === '0';
+    const artProfile = this.o.look && !artOff ? lookProfileFor(this.o.tier, this.o.look.enabled) : 'legacy';
+    const artLoader: ArtLoader | undefined = artOff
+      ? undefined
+      : async (ref, variant) => {
+          const r = (await this.o.assets.job('world.vehicle', { ref, variant } satisfies VehicleJobArgs)) as VehicleJobResult;
+          return 'model' in r ? r.model : null;
+        };
+    art.configure({ loader: artLoader ?? null, profile: artProfile, variant: artVariantOf(this.o.tier), factory: artMaterialFactory(artProfile, this.skyNodes) });
+    this.traffic = new TrafficRenderer({
+      parent: host.scene, sky: this.skyNodes, cap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier), profile: artProfile, ...(artLoader ? { load: artLoader } : {}),
+    });
+    // art-hook:vehicles end
+    this.peds = new PedRenderer({
+      parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier],
+      lift: (x, z) => this.renderer.walkLiftAt(x, z),
+    });
     this.transit = new TransitRenderer({
       parent: host.scene,
       trafficCap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier),
       carsDrawn: () => this.traffic?.instances ?? 0,
+      ...(artLoader ? { load: artLoader, sky: this.skyNodes, profile: artProfile, variant: artVariantOf(this.o.tier) } : {}), // art-hook:vehicles (M10d1)
     });
     this.makeOverlays();
     this.lastFocus = { x: this.o.spawn.x, z: this.o.spawn.z, vx: 0, vz: 0 };
@@ -428,7 +497,7 @@ export class WorldView implements WorldLayer {
     if (this.disposed) return;
     this.frames++;
     let f = frameIn;
-    const held = this.lookView?.shotCamera;
+    const held = this.lookView?.shotCamera ?? this.legacyHeld;
     if (held && this.host) {
       // A look shot holds the camera: the host's camera, the culling and the sky all see the shot's pose.
       const cam = this.host.camera as PerspectiveCamera;
@@ -472,10 +541,12 @@ export class WorldView implements WorldLayer {
     if (this.host) this.backdrop.sync(this.host.camera as PerspectiveCamera);
     this.sky?.update(f);
     this.traffic?.update(f, tSec);
+    this.lastPoseKeys = f.poseKeys ?? null; // art-hook:vehicles (M10d1)
     if (this.lookView && this.host) this.lookView.frame(f.dtSec, this.host.camera as PerspectiveCamera);
     this.peds?.update(f, tSec);
     // M02g1: the blob shadows follow the poses the traffic, the pedestrians and the object pool just drew.
-    this.lookView?.feedBlobs(f);
+    // M02h2 repair: an ambient actor whose renderer group is hidden (the goldens hide traffic, pedestrians and transit) casts no blob.
+    this.lookView?.feedBlobs(f, this.ambientShown);
     this.transit?.update(f);
     this.updateOverlays();
     this.map?.frame(f);
@@ -555,6 +626,7 @@ export class WorldView implements WorldLayer {
     this.sky = null;
     this.traffic?.dispose();
     this.traffic = null;
+    art.reset(); // art-hook:vehicles (M10d1)
     this.peds?.dispose();
     this.peds = null;
     this.transit?.dispose();
@@ -725,6 +797,33 @@ export class WorldView implements WorldLayer {
   trafficReport(): TrafficInfo | null {
     return this.traffic?.info() ?? null;
   }
+
+  // art-hook:vehicles begin (M10d1)
+  /** The newest snapshot's render keys by record (set every frame, read only by `artReport`). */
+  private lastPoseKeys: ReadonlyMap<number, string> | null = null;
+
+  /**
+   * The final vehicle and prop art for the QA bridge (`__dvBridge.world.art()`): the look profile, the traffic families and their base
+   * models, the render objects of the traffic, the material class, the object pool's models (loaded, pending, failed) and the distinct
+   * asset keys of the newest snapshot. Null before `attach`.
+   */
+  artReport(): ArtReport | null {
+    const t = this.traffic;
+    if (!t) return null;
+    const info = t.info();
+    const st = art.status();
+    return {
+      profile: t.profile,
+      families: t.familyNames,
+      objects: info.objects,
+      refs: t.refs,
+      materialKind: t.materialKind,
+      loaded: info.loaded,
+      pool: { variant: st.variant, loaded: st.loaded, pending: st.pending, failed: st.failed },
+      renderKeys: this.lastPoseKeys ? [...new Set(this.lastPoseKeys.values())].sort() : [],
+    };
+  }
+  // art-hook:vehicles end
 
   /** The instanced pedestrians' counts for the QA bridge (`__dvBridge.world.peds()`); null before `attach`. */
   pedsReport(): PedInfo | null {
@@ -958,6 +1057,52 @@ export class WorldView implements WorldLayer {
     else this.host.startLoop();
   }
 
+  /** M02h1 QA: the camera a shot holds on a tier without a look view (the XR tiers on the flat canvas). */
+  private legacyHeld: ShotCamera | null = null;
+
+  /**
+   * The rig the bridge's `shot()` drives: the look view's when there is one; on a tier without a look view (the XR tiers, which still draw
+   * the flat street paint) a held camera and the frozen sky clock, with no look clock and no environment bake. Null without a look config.
+   */
+  shotRig(): ShotRig | null {
+    const lv = this.lookView;
+    if (lv) {
+      return {
+        holdShot: (id) => lv.holdShot(id),
+        placeShot: (id, gy) => lv.placeShot(id, gy),
+        shiftShot: (id) => lv.shiftShot(id),
+        releaseShot: () => lv.releaseShot(),
+        freezeClock: (on) => lv.freezeClock(on),
+        refreshEnvironment: () => lv.refreshEnvironment(),
+        envBakes: () => lv.report().envBakes,
+        held: () => lv.shotCamera !== null,
+      };
+    }
+    if (!this.o.look || !this.host) return null;
+    return {
+      holdShot: (id) => {
+        const s = lookShot(id);
+        this.legacyHeld = { x: s.x, y: 40 + s.y, z: s.z, quat: shotQuaternion(s.yawDeg, s.pitchDeg), fovDeg: s.fovDeg };
+        return s;
+      },
+      placeShot: (id, gy) => {
+        if (this.legacyHeld) this.legacyHeld.y = gy + lookShot(id).y;
+      },
+      shiftShot: (id) => {
+        const s = lookShot(id);
+        if (this.legacyHeld) {
+          this.legacyHeld.x = s.x;
+          this.legacyHeld.z = s.z;
+        }
+      },
+      releaseShot: () => void (this.legacyHeld = null),
+      freezeClock: (on) => this.sky?.freezeTime(on),
+      refreshEnvironment: () => false,
+      envBakes: () => 0,
+      held: () => this.legacyHeld !== null,
+    };
+  }
+
   lookReport(): LookReport | null {
     if (this.lookView) return this.lookView.report();
     if (!this.o.look || !this.host) return null;
@@ -969,7 +1114,23 @@ export class WorldView implements WorldLayer {
       pipeline: this.host.tier?.features.pipeline ?? 'direct', sun: null,
       layers: [], blobs: 0, dynamicCasters: [], skyReflect: false, gradeOn: null, windowLit: [0.55, 0.85],
       vegetation: this.renderer.vegetationReport(),
+      markings: markingsReportOf(this.materials, this.renderer),
+      curbs: this.renderer.curbsCounts(),
     };
+  }
+
+  /**
+   * M02h2: the render lift of a foot at world (x, z): the curb height on a curbed sidewalk of a resident L0 chunk, else 0 (chunks/sidewalks.ts
+   * walk masks). The pedestrians and the on-foot player figure add it to their drawn height; the sim never sees it.
+   */
+  walkLiftAt(x: number, z: number): number {
+    return this.renderer.walkLiftAt(x, z);
+  }
+
+  /** M02h2 QA (`__dvBridge.world.pedFeet()`): the drawn feet of the pedestrians, the lift and the sidewalk top under each. */
+  pedFeet(max = 64): { x: number; y: number; z: number; lift: number; top: number | null }[] {
+    const feet = this.peds?.drawnFeet(max) ?? [];
+    return feet.map((f) => ({ ...f, lift: this.renderer.walkLiftAt(f.x, f.z), top: this.renderer.walkTopAt(f.x, f.z) }));
   }
 
   /** M02e QA: the look on or off at runtime; false when the tier has none. */
@@ -982,6 +1143,13 @@ export class WorldView implements WorldLayer {
     // art-hook:textures begin (M10d0): the surface textures are a layer of the look that has no entry in look.json
     if (id === 'textures') return this.textures?.setOn(on) ?? false;
     // art-hook:textures end
+    // M02h1: the debug toggle of the street paint's antialiasing, and the paint layer of a tier without a look view (the XR tiers)
+    if (id === 'markings.aa') {
+      if (this.materials.markings.base === null) return false;
+      this.materials.markings.setAA(on);
+      return true;
+    }
+    if (id === 'markings' && !this.lookView) return this.materials.markings.setLayer(on);
     if (!this.lookView || !(LOOK_LAYERS as readonly string[]).includes(id)) return false;
     return this.lookView.setLayer(id as LookLayer, on);
   }
@@ -1023,6 +1191,21 @@ export class WorldView implements WorldLayer {
   setFocus(f: Focus | null): void {
     this.focusOverride = f;
     if (f) this.lastFocus = f;
+  }
+
+  /**
+   * QA (BD-REPAIR-M02h1-01): `settle()` with the world's draw held (`RendererHost.holdWorld('cover')`, the hold `streamAtPlan` of the e2e
+   * ledger helpers takes). The loop, the sim and the upload gate run as before and only the render call is skipped, so the gate's one unit
+   * per presented frame (C08 rule 13) is not paced by a draw that takes seconds on software GL. The draw resumes when it resolves. Without
+   * a host it is `settle()`.
+   */
+  async settleHeld(timeoutMs = 30_000): Promise<{ settled: boolean; pending: number; queued: number }> {
+    const release = this.host?.holdWorld('cover') ?? null;
+    try {
+      return await this.settle(timeoutMs);
+    } finally {
+      release?.();
+    }
   }
 
   /** Resolves when nothing is requested, queued or rebuilding for a few frames in a row, or the timeout passes. */

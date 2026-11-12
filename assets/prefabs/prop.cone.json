@@ -3,7 +3,7 @@
   "kind": "prop",
   "version": 1,
   "render": {
-    "asset": "prop/graybox.cone"
+    "asset": "prop/cone"
   },
   "physics": {
     "body": "dynamic",

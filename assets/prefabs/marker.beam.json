@@ -2,7 +2,7 @@
   "id": "marker.beam",
   "kind": "marker",
   "version": 1,
-  "render": { "asset": "prop/graybox.beam" },
+  "render": { "asset": "prop/marker.beam" },
   "physics": null,
   "components": {
     "Transform": { "qw": 1 },

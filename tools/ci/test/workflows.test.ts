@@ -106,7 +106,16 @@ describe('ci.yml (AC-8)', () => {
     // Both halves run the shard's share; each shard writes its outcome even after a failure and uploads it under its own name.
     const runs = stepsOf(shard).filter((s) => s.includes('pnpm check:e2e'));
     expect(runs).toHaveLength(2);
-    for (const s of runs) expect(s).toContain(`--shard=\${{ matrix.shard }}/${n}`);
+    // BD-FIX-CI-DURSHARD-01: the shard's share is the test list tools/ci/e2e-plan.ts packs by measured minutes, planned before both runs.
+    const steps = stepsOf(shard);
+    const plan = steps.findIndex((s) => s.includes('tools/ci/e2e-plan.ts plan'));
+    expect(plan).toBeGreaterThanOrEqual(0);
+    expect(steps[plan]).toContain(`--project \${{ matrix.project }} --shards ${n} --shard \${{ matrix.shard }} --out "$RUNNER_TEMP/e2e-tests.txt"`);
+    for (const s of runs) {
+      expect(s).toContain('--test-list "$RUNNER_TEMP/e2e-tests.txt"');
+      expect(s).not.toContain('--shard=');
+      expect(steps.indexOf(s)).toBeGreaterThan(plan);
+    }
     const result = stepsOf(shard).find((s) => s.includes('name: Shard result')) ?? '';
     expect(result).toContain('if: always()');
     expect(result).toContain('echo "${{ job.status }}" > "e2e-result/${{ matrix.project }}-${{ matrix.shard }}.txt"');
@@ -143,9 +152,9 @@ describe('ci.yml (AC-8)', () => {
     expect(step).toContain('BUILD_RESULT: ${{ needs.build.result }}');
     expect(step).toContain('SHARDS_RESULT: ${{ needs.e2e-shard.result }}');
     const shards = Number(/E2E_SHARDS: '(\d+)'/.exec(step)?.[1] ?? 0);
-    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four, BD-INTEG-M02g1-01 to six, BD-FIX-CI-SHARD8-01 to eight, BD-REPAIR-M02g2-03 to nine).
+    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four, BD-INTEG-M02g1-01 to six, BD-FIX-CI-SHARD8-01 to eight, BD-REPAIR-M02g2-03 to nine, BD-FIX-CI-SHARD12-01 to twelve).
     const matrix = /^ {8}shard: \[([\d, ]+)\]$/m.exec(jobs['e2e-shard'] ?? '')?.[1]?.split(',').length ?? 0;
-    expect(shards).toBe(9);
+    expect(shards).toBe(12);
     expect(shards).toBe(matrix);
     const all = (r: string | null): (string | null)[] => Array.from({ length: shards }, () => r);
     const withAt = (i: number, r: string | null): (string | null)[] => all('success').map((v, j) => (j === i ? r : v));
@@ -324,7 +333,7 @@ describe('Playwright system packages: mirror-resilient install, one apt cache pe
     expect(nightly['e2e-full']).not.toContain('check:coi');
     // check:perf runs chromium-webgl2 and webkit-webgl2 (tools/ci/perf-check.ts PERF_PROJECTS); the preview job runs check:coi.
     const both = [
-      ['ci perf', ci['perf']],
+      ['ci perf-group', ci['perf-group']],
       ['nightly perf', nightly['perf']],
       ['preview', jobsOf(wf('preview.yml'))['preview']],
     ] as const;
@@ -381,7 +390,7 @@ describe('world builds in CI (M02b1 AC-12)', () => {
   it('ci.yml: unit, e2e and perf restore or build the bakes before their test step; unit requires them', () => {
     bakeBefore(ciJobs['unit'] ?? '', /pnpm check:unit/, 'unit');
     bakeBefore(ciJobs['e2e-shard'] ?? '', /pnpm check:e2e/, 'e2e-shard');
-    bakeBefore(ciJobs['perf'] ?? '', /pnpm check:perf/, 'perf');
+    bakeBefore(ciJobs['perf-group'] ?? '', /pnpm check:perf/, 'perf-group');
     expect(ciJobs['unit']).toContain("DV_REQUIRE_BAKE: '1'");
   });
 
@@ -401,9 +410,11 @@ describe('world builds in CI (M02b1 AC-12)', () => {
   });
 
   it('ci.yml perf: DV_WORLD=synth with DV_SKIP_BUILD empty on the check:perf step, warnings only, not in the e2e legs', () => {
-    const perf = ciJobs['perf'] ?? '';
+    const perf = ciJobs['perf-group'] ?? '';
     const step = stepsOf(perf).find((s) => s.includes('pnpm check:perf')) ?? '';
-    expect(step).toContain('run: pnpm check:perf\n');
+    // BD-FIX-CI-PERFSPLIT-01: each leg runs its scenario group.
+    expect(step).toContain('run: pnpm check:perf -- --scenario "$PERF_SCENARIO_SET"\n');
+    expect(step).toContain('PERF_SCENARIO_SET: ${{ matrix.scenarios }}');
     expect(step).toContain('DV_WORLD: synth');
     expect(step).toContain("DV_SKIP_BUILD: ''");
     expect(step).not.toContain('--fail');
@@ -429,6 +440,41 @@ describe('world builds in CI (M02b1 AC-12)', () => {
     expect(perf).toContain("DV_SKIP_BUILD: ''");
     for (const [name, block] of Object.entries(nightlyJobs)) expect(block, `nightly ${name}`).not.toMatch(JOB_LEVEL_SKIP);
     expect(nightly.split('\njobs:')[0]).not.toContain('DV_SKIP_BUILD');
+  });
+});
+
+/** The `scenarios:` list of a job's matrix: one entry per leg, each a comma-separated set of scenario ids. */
+function scenarioGroups(job: string): string[] {
+  const m = /^ {8}scenarios:\n((?: {10}- .*\n)+)/m.exec(job);
+  return m ? (m[1] as string).trim().split('\n').map((l) => l.trim().replace(/^- /, '')) : [];
+}
+
+describe('perf scenario groups (BD-FIX-CI-PERFSPLIT-01)', () => {
+  const ciJobs = jobsOf(wf('ci.yml'));
+  const nightlyJobs = jobsOf(wf('nightly.yml'));
+  const registered = JSON.parse(readFileSync(path.join(repoRoot, 'config', 'perf', 'scenarios.json'), 'utf8')) as string[];
+
+  it('ci.yml and nightly.yml run the same groups, which cover every registered scenario exactly once', () => {
+    const ci = scenarioGroups(ciJobs['perf-group'] ?? '');
+    expect(ci.length).toBeGreaterThan(1);
+    expect(scenarioGroups(nightlyJobs['perf'] ?? '')).toEqual(ci);
+    const ids = ci.flatMap((g) => g.split(','));
+    expect([...ids].sort()).toEqual([...registered].sort());
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('each leg uploads its reports under its own name', () => {
+    expect(ciJobs['perf-group']).toContain('name: perf-reports-${{ strategy.job-index }}');
+    expect(nightlyJobs['perf']).toContain('name: perf-reports-${{ strategy.job-index }}');
+    expect(stepsOf(nightlyJobs['perf'] ?? '').find((s) => s.includes('check:perf'))).toContain('--scenario "$PERF_SCENARIO_SET"');
+  });
+
+  it('ci.yml keeps one `perf` check that passes only when every group passed', () => {
+    const job = ciJobs['perf'] ?? '';
+    expect(job).toContain('needs: perf-group');
+    expect(job).toContain('if: ${{ !cancelled() }}');
+    expect(job).toContain('GROUPS_RESULT: ${{ needs.perf-group.result }}');
+    expect(job).toContain('test "${GROUPS_RESULT}" = success');
   });
 });
 

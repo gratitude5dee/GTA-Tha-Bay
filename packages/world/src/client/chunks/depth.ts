@@ -67,8 +67,12 @@ export class DepthRules {
   }
 }
 
-/** The coarse levels (L1, L2) sit this far behind a detailed L0 surface in the same place (factor and units, M02e: 64). */
-export const COARSE_BACK: DepthBias = { factor: -64, units: -64 };
+/**
+ * The coarse levels (L1, L2) sit this far behind a detailed L0 surface in the same place (factor and units). M02e wrote 64; M02h1 raised it
+ * to 512: the street paint made a coarse ribbon that wins the depth test where the L0 ribbon stands visible (at a graze of 1 m the double
+ * yellow broke into horizontal stripes where an L1 or L2 road came through the L0 one; the stripes were gone from 128 up, DL/BD-M02h1-09).
+ */
+export const COARSE_BACK: DepthBias = { factor: -512, units: -512 };
 /** A road ribbon over the terrain under it: `config/world/mesher.json` `depth.roadFactor` and `roadUnits` are the standard-depth values (-1, -4), nearer. */
 export const roadBias = (factor: number, units: number): DepthBias => ({ factor: -factor, units: -units });
 /** A landmark over the hand-over proxy it replaces (the chunk's extrusion, masked a frame later) and its plinth over the terrain. */

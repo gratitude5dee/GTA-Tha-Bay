@@ -1,0 +1,39 @@
+{
+  "kind": "prop",
+  "id": "county-barrier",
+  "variants": {
+    "desktop": "assets/src/prop/county-barrier/desktop.glb",
+    "mobile": "assets/src/prop/county-barrier/mobile.glb",
+    "mobile-low": "assets/src/prop/county-barrier/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 180,
+      "verts": 360,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile": {
+      "tris": 132,
+      "verts": 264,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile-low": {
+      "tris": 84,
+      "verts": 168,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "prop:street",
+    "art:m10d1"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

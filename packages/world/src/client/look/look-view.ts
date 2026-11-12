@@ -45,6 +45,29 @@ export interface LookTune {
 }
 export const DEFAULT_TUNE: LookTune = { hemi: 1, env: 0.55, sun: 1, desat: 0.5 };
 
+/** M02h1: the street paint as the QA bridge reports it (`look().markings`): the mode in force and what the resident L0 roads hold. */
+export interface MarkingsReport {
+  mode: 'worn' | 'flat' | 'off';
+  roadVerts: number;
+  patches: number;
+  crosswalks: number;
+  stopBars: number;
+  /** The antialiasing and distance fade of the paint (`markings.aa`). */
+  aa: boolean;
+}
+
+export function markingsReportOf(materials: WorldMaterials, chunks: ChunkRenderer): MarkingsReport {
+  return { mode: materials.markings.mode(), ...chunks.markingsCounts(), aa: materials.markings.aaOn() };
+}
+
+/** M02h2: the sidewalks as the QA bridge reports them (`look().curbs`): what the resident L0 roads objects hold. */
+export interface CurbsReport {
+  ribbons: number;
+  /** Metres of curb line with a curb (or the painted band on `mobile-low`). */
+  curbedM: number;
+  rampCount: number;
+}
+
 export interface LookReport {
   /** `legacy` while the look is off. */
   profile: LookProfile;
@@ -85,6 +108,10 @@ export interface LookReport {
   windowLit: [number, number];
   /** M02g2: the trees of the L0 units: units drawing theirs and the distance of the farthest, against `tree.drawM`. */
   vegetation: VegetationReport;
+  /** M02h1: the street paint, its mode and counts. */
+  markings: MarkingsReport;
+  /** M02h2: the curbs and sidewalk ribbons of the resident chunks. */
+  curbs: CurbsReport;
 }
 
 export interface LookViewOptions {
@@ -424,6 +451,13 @@ export class LookView {
     if (on) this.layerSet.add(id);
     else this.layerSet.delete(id);
     if (id === 'blob') this.blobs?.setEnabled(on);
+    if (id === 'markings') this.o.materials.markings.setLayer(on);
+    // M02h2: the curbs, the bump, the macro variation and the lots are shader switches (look/common.ts)
+    const ln = this.o.materials.lookNodes;
+    if (id === 'curbs') ln.uCurbs.value = on ? 1 : 0;
+    if (id === 'bump') ln.uBump.value = on ? 1 : 0;
+    if (id === 'macro') ln.uMacro.value = on ? 1 : 0;
+    if (id === 'lots') ln.uLots.value = on ? 1 : 0;
     if (id === 'casters') {
       this.applyDynamicCasters(true);
       this.o.chunks.refreshTreeCasters();
@@ -431,12 +465,12 @@ export class LookView {
     return true;
   }
 
-  /** M02g1: the pose loop for the blob shadows, once a frame after the traffic and the pedestrians drew. */
-  feedBlobs(f: Pick<WorldFrame, 'poses' | 'poseCount' | 'poseKeys' | 'camera'>): void {
+  /** M02g1: the pose loop for the blob shadows, once a frame after the traffic and the pedestrians drew (`ambientShown`: `BlobShadows.feed`). */
+  feedBlobs(f: Pick<WorldFrame, 'poses' | 'poseCount' | 'poseKeys' | 'camera'>, ambientShown?: (key: string) => boolean): void {
     const b = this.blobs;
     if (!b || !this.on || !b.enabled) return;
     b.begin();
-    b.feed(f);
+    b.feed(f, ambientShown);
     b.commit();
   }
 
@@ -485,6 +519,15 @@ export class LookView {
     if (this.shotCamera) this.shotCamera.y = groundY + s.y;
   }
 
+  /** Moves the held camera to another shot's x and z and keeps its height and direction (M02h1: a pair that differs by the sideways step alone). */
+  shiftShot(id: string): void {
+    const s = lookShot(id);
+    if (this.shotCamera) {
+      this.shotCamera.x = s.x;
+      this.shotCamera.z = s.z;
+    }
+  }
+
   releaseShot(): void {
     this.shotCamera = null;
   }
@@ -522,6 +565,8 @@ export class LookView {
       gradeOn: on && this.layerSet.has('grade') ? this.stack?.gradeOwner ?? null : null,
       windowLit: [this.lastLitRange[0], this.lastLitRange[1]],
       vegetation: this.o.chunks.vegetationReport(),
+      markings: markingsReportOf(this.o.materials, this.o.chunks),
+      curbs: this.o.chunks.curbsCounts(),
     };
   }
 

@@ -140,6 +140,6 @@ How to see it:
 
 ## Notes for the Builder
 - Read first: `02-world.md` §5.2–§5.4; `02-world-contracts.md` rules 10–12; `02-world-living.md` §1.4, §1.6, §2.6, §4, §7; `02-world-bake.md` §6 and spawn capacities; the M02g1, M02h2, M03b1, M10d1 files; the look study (render audit item 11: `mesher.ts:4`, `s13-pack.ts:194`; capture study "Props and street furniture") and the plan's Phase 1 row.
-- Original sign faces only (no agency files or fonts); the target image is never committed, sampled or fed to a tool; no fal call.
+- Original sign faces only (no agency files or fonts); the target image is never committed; since DL-OWN-10 the owner's look references may be used as look inputs (a fal reference input, a side-by-side comparison, a palette), read from outside the repository; no fal call.
 - Rebuild the pools in `onRendererReplaced`. `shot()` freezes the aspect clock.
 - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for AC-9 and AC-10 (SKIP locally). AC-10 needs Q-13's device, else "Blocked on: Q-13". Branch `m02h6-street-furniture-parking`.

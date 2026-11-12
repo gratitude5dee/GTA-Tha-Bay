@@ -33,6 +33,8 @@ export { contentTypeOf } from './assets/content-type.ts';
 // M10d0: the art half of credits.json (CC-BY entries and CC0 courtesy lines).
 export { isCourtesy } from './assets/credits.ts';
 export type { ArtCredit, ArtCreditCcBy, ArtCreditCourtesy } from './assets/credits.ts';
+// M10d1: part ids and node names of the vehicle and prop models.
+export * from './assets/art-parts.ts';
 export * from './telemetry.ts';
 export * from './world/index.ts';
 export * from './platform/xr-comfort.ts';

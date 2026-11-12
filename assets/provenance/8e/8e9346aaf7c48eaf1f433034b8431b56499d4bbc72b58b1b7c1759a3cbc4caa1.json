@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "8e9346aaf7c48eaf1f433034b8431b56499d4bbc72b58b1b7c1759a3cbc4caa1",
+  "paths": [
+    "assets/src/prop/county-barrier/mobile.glb"
+  ],
+  "kind": "prop",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "d8d35d9821fa3b5d06aaea7e93ec2eafe1fdb0ad35c4951a12e7113cd52d8435"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}

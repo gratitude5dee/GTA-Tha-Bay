@@ -122,6 +122,6 @@ How to see it:
 ## Notes for the Builder
 - Read first: `02-world-contracts.md` §3–§4, `02-world-living.md` §4.1, and the M02e, M02g1 and M02g2 files.
 - Study anchors (look study, 2026-10-26; render audit area 1): `mesher.ts:436` (`ROAD_LIFT_M`), `:439` (`addRibbon`, no road coordinates), `:548–556`; `look-materials.ts:152` (roads share the terrain material); `chunk-renderer.ts:304`; `noise.ts:57` (`edgeLineAA` fades to 0, unfit for paint). Capture frames `desktop-03-third-st-bayview-1300-clear.png` and `staging-prod-autotier-mobile-low-02-intro.png`.
-- Original content only († = design values; no text, sign faces or logos). The target image is never committed, sampled or fed to fal. C08 is read-only: a missing field means stop and propose. The mesher runs in `asset.worker`: no `three`, no `Math.random`.
+- Original content only († = design values; no text, sign faces or logos). The target image is never committed; since DL-OWN-10 the owner's look references may be used as look inputs (a fal reference input, a side-by-side comparison, a palette), read from outside the repository. C08 is read-only: a missing field means stop and propose. The mesher runs in `asset.worker`: no `three`, no `Math.random`.
 - Goldens: `DV_UPDATE_GOLDEN=1` outside CI, under the `golden-update` label.
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for AC-11 and AC-12 (SKIP locally). Device: Q-13. Branch `m02h1-street-markings`.

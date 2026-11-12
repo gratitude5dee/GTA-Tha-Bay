@@ -1,0 +1,39 @@
+{
+  "kind": "prop",
+  "id": "transit.airliner",
+  "variants": {
+    "desktop": "assets/src/prop/transit.airliner/desktop.glb",
+    "mobile": "assets/src/prop/transit.airliner/mobile.glb",
+    "mobile-low": "assets/src/prop/transit.airliner/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 688,
+      "verts": 548,
+      "primitives": 2,
+      "materials": 2
+    },
+    "mobile": {
+      "tris": 608,
+      "verts": 488,
+      "primitives": 2,
+      "materials": 2
+    },
+    "mobile-low": {
+      "tris": 576,
+      "verts": 464,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "prop:backdrop",
+    "art:m10d1"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

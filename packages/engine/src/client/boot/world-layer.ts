@@ -44,6 +44,11 @@ export interface WorldLayer {
    * QA bridge call them.
    */
   debug?: WorldLayerDebug;
+  /**
+   * M02h2: the render lift of a foot at world (x, z) (the curb height on a curbed sidewalk); the on-foot player figure draws that much higher.
+   * Render only: the sim and the collision keep their heights. Absent: 0.
+   */
+  walkLiftAt?(x: number, z: number): number;
   dispose(): void;
 }
 
@@ -61,6 +66,8 @@ export interface WorldLayerDebug {
     setOn(on: boolean): boolean;
     /** The post nodes running now, in order (empty when the look is off). */
     nodes(): readonly string[];
+    /** M02h1: the antialiasing of the street paint (`markings.aa`); absent where the tier draws no paint. Off shows the sparkle the fade removes. */
+    markings?: { available(): boolean; aaOn(): boolean; setAA(on: boolean): void };
   };
 }
 

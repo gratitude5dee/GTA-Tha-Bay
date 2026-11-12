@@ -4,7 +4,7 @@
   "version": 1,
   "nameKey": "transit.vehicle.bus",
   "render": {
-    "asset": "vehicle/graybox.bus"
+    "asset": "vehicle/transit.bus"
   },
   "physics": {
     "body": "kinematic",

@@ -4,7 +4,7 @@
   "version": 1,
   "nameKey": "transit.entrance",
   "render": {
-    "asset": "prop/graybox.transit-entrance"
+    "asset": "prop/transit-entrance"
   },
   "physics": {
     "body": "fixed",

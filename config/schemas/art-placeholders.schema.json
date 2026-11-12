@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/art-placeholders.schema.json",
+  "title": "config/art-placeholders.json (the registry of gray-box placeholders and the milestone that replaces each, M10d1, DL-390, DL-741)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "rows"],
+  "properties": {
+    "schema": { "const": "art-placeholders/1" },
+    "note": { "type": "string" },
+    "rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "what", "owner", "match", "replacedBy"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+          "what": { "type": "string", "minLength": 8 },
+          "owner": { "enum": ["M10d1", "M10d4", "M10d5", "M10d2", "M10d3"] },
+          "match": {
+            "type": "string",
+            "minLength": 3,
+            "description": "A regular expression over AssetRef strings (`^vehicle/graybox\\.`), or `code:<name>` for a placeholder that lives in code and has no AssetRef."
+          },
+          "replacedBy": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[a-z_]+/[a-z0-9][a-z0-9._*-]*$" },
+            "uniqueItems": true,
+            "description": "The AssetRefs that stand in the placeholder's place (a trailing `*` names a family the owner fills in). Required non-empty for rows owned by M10d1."
+          },
+          "repoint": {
+            "type": "object",
+            "propertyNames": { "pattern": "^[a-z_]+/[a-z0-9][a-z0-9._-]*$" },
+            "additionalProperties": { "type": "string", "pattern": "^[a-z_]+/[a-z0-9][a-z0-9._-]*$" },
+            "description": "Old AssetRef to new AssetRef; `assets:vehicle -- --repoint` rewrites prefab `render.asset` with it."
+          }
+        }
+      }
+    }
+  }
+}

@@ -4,7 +4,7 @@
   "version": 1,
   "nameKey": "transit.vehicle.airliner",
   "render": {
-    "asset": "vehicle/graybox.airliner"
+    "asset": "prop/transit.airliner"
   },
   "physics": {
     "body": "kinematic",

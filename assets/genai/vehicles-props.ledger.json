@@ -1,0 +1,8 @@
+{
+  "schema": "vehicles-props-ledger/1",
+  "line": "vehiclesProps",
+  "lineCapMicros": 14000000,
+  "bodiesCapMicros": 1704000,
+  "totalMicros": 0,
+  "entries": []
+}

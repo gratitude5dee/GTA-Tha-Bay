@@ -4,7 +4,7 @@
   "version": 1,
   "nameKey": "transit.vehicle.ferry",
   "render": {
-    "asset": "vehicle/graybox.ferry"
+    "asset": "prop/transit.ferry"
   },
   "physics": {
     "body": "kinematic",

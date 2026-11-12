@@ -3,7 +3,7 @@
   "kind": "portal",
   "version": 1,
   "nameKey": "place.golden-gate-bridge",
-  "render": { "asset": "prop/graybox.portal-closure" },
+  "render": { "asset": "prop/portal-closure" },
   "physics": { "body": "fixed", "shape": "box", "dims": [8, 2, 0.5], "groups": ["static"] },
   "components": {
     "Transform": { "qw": 1 },

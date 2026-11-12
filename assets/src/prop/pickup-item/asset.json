@@ -1,0 +1,39 @@
+{
+  "kind": "prop",
+  "id": "pickup-item",
+  "variants": {
+    "desktop": "assets/src/prop/pickup-item/desktop.glb",
+    "mobile": "assets/src/prop/pickup-item/mobile.glb",
+    "mobile-low": "assets/src/prop/pickup-item/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 296,
+      "verts": 195,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile": {
+      "tris": 124,
+      "verts": 92,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile-low": {
+      "tris": 52,
+      "verts": 46,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "prop:street",
+    "art:m10d1"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

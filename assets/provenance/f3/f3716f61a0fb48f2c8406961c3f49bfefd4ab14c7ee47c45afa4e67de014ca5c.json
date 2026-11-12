@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "f3716f61a0fb48f2c8406961c3f49bfefd4ab14c7ee47c45afa4e67de014ca5c",
+  "paths": [
+    "assets/src/prop/police.heli/mobile-low.glb"
+  ],
+  "kind": "prop",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets vehicle",
+    "version": "1.0.0",
+    "args_sha256": "6a9c819a15cfbc80a0391f4f5aadc9e575d9015a67912f0cf6e81407c02cd1e5"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-29T00:00:00Z"
+}
