@@ -36,7 +36,9 @@
 import { BufferAttribute, BufferGeometry, type Group, InstancedBufferAttribute, InstancedMesh, type Material, Sphere, Vector3 } from 'three/webgpu';
 import { TreeForm, isUnderstoryForm, treeFormOfByte } from '@dv/shared';
 import { IMPOSTOR_IDS, buildImpostorSet } from './impostors.ts';
-import { LensDecider, crownBoxOf, crownOf, lensHidesAny, lensRuleOff, type CrownBox, type LensRule, type LensShot } from './lens-clear.ts';
+import {
+  LensDecider, crownBoxOf, crownOf, frameShare, inCorridor, lensHidesAny, lensRuleOff, type CrownBox, type LensRule, type LensShot,
+} from './lens-clear.ts';
 import { TREE_STRIDE, laneForm, laneScatter, laneTint } from './mesher.ts';
 import {
   SET_GEOMETRIES, buildTreeSet, buildUnderstorySet, geometryOfForm, instanceScaleOf, tintOf, type TreeGeometryData, type TreeGeometryId, type TreeSet,
@@ -437,6 +439,11 @@ export interface TreeRead {
   band: number;
   hidden: boolean;
   crown: { x: number; y: number; z: number; r: number } | null;
+  /**
+   * What the rule measures for the decision in force (null: none): the largest share of the frame the crown covers over the decision's
+   * lenses, and whether it is in the corridor to the subject. For tuning `vegetation.lens` and for the specs.
+   */
+  lens: { share: number; corridor: boolean } | null;
 }
 
 /** What the QA bridge reports of the lens-clear rule (`look().vegetation.lens`). */
@@ -1122,22 +1129,29 @@ export class VegetationPools {
 
   /**
    * The instances of a unit the decision in force hides: the trees drawn as meshes whose crown breaks the rule for any lens of the
-   * decision. Never a shrub or a hedge, and never an impostor card (a tree beyond `impostorM` at the decision).
+   * decision. Never a shrub or a hedge, and never an impostor card: a tree is a mesh for a lens when it stands within `impostorM`
+   * (with its hysteresis) of where that lens stands. The band the instance holds now is not asked: a cut can move the camera further
+   * than `impostorM`, and the bands follow it only after the decision (the re-banding, capped per frame), so the tree beside the new
+   * lens may still be a card on the frame of the cut.
    */
   private lensHiddenOf(u: UnitState): Set<number> | null {
     const rule = this.lensRule;
     const lenses = this.decider.lenses;
     if (!rule || !this.lensLayer || lenses.length === 0) return null;
+    const bo = this.bandOpts();
+    const meshM = bo.impostorPools ? bo.impostorM * (1 + bo.hysteresis) : Infinity;
     let out: Set<number> | null = null;
     const n = u.inst.idx.length;
     for (let k = 0; k < n; k++) {
       const form = u.inst.form[k] as TreeForm;
-      if (isUnderstoryForm(form) || u.inst.band[k] !== BAND_MESH) continue;
+      if (isUnderstoryForm(form)) continue;
+      const tx = u.inst.x[k] as number, tz = u.inst.z[k] as number;
+      if (meshM < Infinity && !lenses.some((l) => Math.hypot(tx - l.pos[0], tz - l.pos[2]) <= meshM)) continue;
       const box = this.crownBoxOfGeometry(geometryOfForm(this.set, form));
       if (!box) continue;
       const o = (u.inst.idx[k] as number) * TREE_STRIDE;
       const [sx, sy] = instanceScaleOf(this.set, form, u.trees[o + 3] as number);
-      const crown = crownOf(box, u.inst.x[k] as number, u.trees[o + 1] as number, u.inst.z[k] as number, u.trees[o + 4] as number, sx, sy);
+      const crown = crownOf(box, tx, u.trees[o + 1] as number, tz, u.trees[o + 4] as number, sx, sy);
       if (lensHidesAny(lenses, crown, rule)) (out ??= new Set()).add(k);
     }
     return out;
@@ -1245,9 +1259,14 @@ export class VegetationPools {
         const box = this.crownBoxOfGeometry(geometryOfForm(this.set, form));
         const [sx, sy] = instanceScaleOf(this.set, form, h);
         const c = box ? crownOf(box, tx, y, tz, u.trees[o + 4] as number, sx, sy) : null;
+        const lenses = this.decider.lenses;
         out.push({
           x: tx, y, z: tz, heightM: h, form, band: u.inst.band[k] as number, hidden: u.hidden?.has(k) === true,
-          crown: c ? { x: c.x, y: c.y, z: c.z, r: Math.max(c.rx, c.ry, c.rz) } : null, d,
+          crown: c ? { x: c.x, y: c.y, z: c.z, r: Math.max(c.rx, c.ry, c.rz) } : null,
+          lens: c && lenses.length > 0
+            ? { share: Math.max(...lenses.map((l) => frameShare(l, c))), corridor: lenses.some((l) => inCorridor(l, c, this.lensRule?.corridorM ?? 0)) }
+            : null,
+          d,
         });
       }
     }

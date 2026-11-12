@@ -246,7 +246,7 @@ describe('lens clear: the vegetation pools (BD-FIX-LENS-CLEAR-01)', () => {
     expect(pools.hiddenOf(ID)).not.toContain(SHRUB);
     pools.dispose();
 
-    // a tree 70 m down the line of sight: a card on `min` (beyond impostorM 50), never chosen; the same tree as a mesh (no cards) is in the corridor
+    // a tree 75 m down the line of sight: a card on `min` (beyond impostorM 50 from the lens), never chosen; the same tree as a mesh (no cards) is in the corridor
     const far: Rec[] = [[100, 30, 12, TreeForm.Plane]];
     const down: LensShot = { key: 'fixed|7|1|480|28', pos: [100, 10, 104.5], lookAt: [100, 10, 0], fovDeg: 28, aspect: 16 / 9 };
     const cards = make('low', SCATTER);
@@ -263,6 +263,29 @@ describe('lens clear: the vegetation pools (BD-FIX-LENS-CLEAR-01)', () => {
     expect(meshes.bandsOf(ID)[0]!.band).toBe(BAND_MESH);
     expect(meshes.lensReport().hidden).toBe(1);
     meshes.dispose();
+  });
+
+  it('a cut that jumps the camera hides the tree beside the new lens although it is still a card on that frame', () => {
+    const pools = make('low', SCATTER);
+    // the play camera stands 400 m away: every tree of the unit is an impostor card
+    drain(pools, 500, 104.5, null);
+    pools.addUnit(ID, trees(UNIT), 0, 0, true, false);
+    expect(pools.bandsOf(ID)[A]!.band).toBe(BAND_IMPOSTOR);
+    // the cut: the lens is decided before the bands have followed the camera
+    pools.startFrame();
+    pools.setLens(SHOT);
+    expect(pools.hiddenOf(ID)).toEqual([A]);
+    expect(pools.bandsOf(ID)[A]!.band).toBe(BAND_IMPOSTOR);
+    // its card is gone at once, and the mesh the re-banding writes at the lens is zero scale from its first write
+    expect(check(pools, 'cut').zeroed).toBe(1);
+    pools.update(100, 104.5);
+    drain(pools, 100, 104.5, SHOT);
+    expect(pools.bandsOf(ID)[A]!.band).toBe(BAND_MESH);
+    expect(check(pools, 're-banded at the lens')).toEqual({ zeroed: 1, live: UNIT.length - 1 });
+    expect(pools.lensReport()).toEqual({ active: true, hidden: 1, decisions: 1 });
+    // a tree further than impostorM from the lens stays a card and is never chosen, whatever stands on the line to it
+    expect(pools.treesNear(160, 100, 1)[0]).toMatchObject({ band: BAND_IMPOSTOR, hidden: false });
+    pools.dispose();
   });
 
   it('a unit that lands during the shot is judged by the same lenses; a moved lens decides again', () => {
@@ -332,6 +355,13 @@ describe('lens clear: the vegetation pools (BD-FIX-LENS-CLEAR-01)', () => {
     expect(near[0]!.heightM).toBe(9);
     expect(near[0]!.crown!.y).toBeGreaterThan(2 + 4);
     expect(near[0]!.crown!.r).toBeGreaterThan(2);
+    // what the rule measured for the shot's lens: A crowds the frame, B is at its edge
+    expect(near[0]!.lens!.share).toBeGreaterThan(RULE.maxFrameShare);
+    expect(near[1]!.lens!.share).toBeLessThanOrEqual(RULE.maxFrameShare);
+    expect(near[1]!.lens!.corridor).toBe(false);
+    // no decision in force: nothing measured
+    frame(pools, 100, 104.5, null);
+    expect(pools.treesNear(100, 104.5, 30).map((t) => [t.hidden, t.lens])).toEqual([[false, null], [false, null]]);
     expect(pools.treesNear(100, 104.5, 30, 1)).toHaveLength(1);
     pools.dispose();
   });
