@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "cea1b62611fee0faee50fe69ec7d7d35954800d781a053aa6e9123aa4927cf5d",
+  "paths": [
+    "assets/src/character/pc-top-hoodie/desktop.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "5c9b8a7f47b861483e3033154cf66a63918872b0fa471522b8b2b37ca16da990"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

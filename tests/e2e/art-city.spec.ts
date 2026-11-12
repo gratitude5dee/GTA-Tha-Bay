@@ -223,7 +223,8 @@ async function measure(page: Page, tier: QualityTierId): Promise<{
   after: number; baseline: number; trianglesAfter: number; trianglesBaseline: number;
   traffic: { triangles: number; instances: number; cap: number; drawn: number; casters: number; passes: number };
 }> {
-  await bootWorld(page, tier, '', TINY);
+  // `&furniture=0` (DL-758): the later M02h6 row's street furniture and parked dressing stay out of this row's frame
+  await bootWorld(page, tier, '&furniture=0', TINY);
   await setSky(page, 13, 'clear');
   if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));
   await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);

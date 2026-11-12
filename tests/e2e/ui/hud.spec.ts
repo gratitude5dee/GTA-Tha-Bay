@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { qaStorageState } from '../../support/qa-storage.ts';
 import { act, observe, SMALL_VIEWPORT, terrainAt, waitForEngine } from '../engine-helpers.ts';
 import { hideQaPanels } from './helpers.ts';
 import { waitSandboxReady } from './sandbox-helpers.ts';
@@ -279,6 +280,61 @@ test.describe('pause and phone on the synth world @ui-pause', () => {
     expect(JSON.stringify(state)).toContain('modeExit');
   });
 
+  test('the pause page and the phone over the game never hold its frames or restart its clocks @ui-pause', async ({ page }) => {
+    // BD-FIX-MENU-BOOT-01, second round (CI run 41518357422): the menus' UiHold skips whole frame callbacks, the engine hand-off that sends
+    // the sim its frame signal included, and the first frame after a hold restarts the clocks (FramePacer, governor, sampler, the engine's
+    // dt). With the pause page and the phone noting it, a weather change made in the phone's Sandbox app reached the sky three heavy frames
+    // after Resume instead of two (sandbox-world.spec.ts:50). The pacer counts the callbacks it sees since its last reset, and only that
+    // restart resets it in a visible page, so every frame from the HUD through Pause, the phone and back must count on from the last.
+    await hideQaPanels(page);
+    await bootSynth(page);
+    await expect(page.getByTestId('hud')).toBeVisible();
+    const notes = (): Promise<number | null> =>
+      page.evaluate(() => (window as unknown as { __dvBridge: { uiHold?: { notes(): number } } }).__dvBridge.uiHold?.notes() ?? null);
+    const notes0 = await notes();
+    await page.evaluate(() => {
+      type W = { __dvBridge: { platform: { governor: { pacer(): { seen: number } } } }; __dvPacerSeen?: { n: number; restarts: number[][]; stop: boolean } };
+      const w = window as unknown as W;
+      const rec = { n: 0, restarts: [] as number[][], stop: false };
+      w.__dvPacerSeen = rec;
+      let last = -1;
+      const step = (): void => {
+        if (rec.stop) return;
+        const seen = w.__dvBridge.platform.governor.pacer().seen;
+        if (last >= 0 && seen < last) rec.restarts.push([last, seen]);
+        last = seen;
+        rec.n += 1;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+    const frames = (): Promise<number> => page.evaluate(() => (window as unknown as { __dvBridge: { platform: { pacing(): { frames: number } } } }).__dvBridge.platform.pacing().frames);
+
+    // Pause, the phone, its Sandbox app, the phone's home, close, Resume: the steps of sandbox-world.spec.ts.
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('btn-pause-resume')).toBeVisible();
+    await page.getByTestId('btn-pause-phone').click();
+    await expect(page.getByTestId('list-phone-apps')).toBeVisible();
+    await page.getByTestId('row-phone-apps-sandbox').click();
+    await page.getByTestId('tab-sandbox-tabs-weather').click();
+    await page.getByTestId('btn-phone-home').click();
+    await page.getByTestId('btn-phone-close').click();
+    await page.getByTestId('btn-pause-resume').click();
+    await expect(page.getByTestId('hud')).toBeVisible();
+    // A few frames of play after Resume: a hold noted by the last page change would end in one of them and restart the clocks.
+    const resumed = await frames();
+    await expect.poll(frames, { timeout: 60_000 }).toBeGreaterThanOrEqual(resumed + 3);
+    const rec = await page.evaluate(() => {
+      const r = (window as unknown as { __dvPacerSeen: { n: number; restarts: number[][]; stop: boolean } }).__dvPacerSeen;
+      r.stop = true;
+      return { n: r.n, restarts: r.restarts };
+    });
+    expect(rec.n).toBeGreaterThan(3);
+    expect(rec.restarts, 'the clocks restarted in play: a frame was held').toEqual([]);
+    expect(typeof notes0).toBe('number');
+    expect(await notes(), 'the shell noted a hold in play').toBe(notes0);
+  });
+
   test('the sandbox heat toggle shows its stars on the HUD @ui-pause', async ({ page }, testInfo) => {
     await bootSynth(page);
     await expect(page.getByTestId('hud-heat')).toHaveAttribute('data-level', '0');
@@ -292,6 +348,16 @@ test.describe('pause and phone on the synth world @ui-pause', () => {
   });
 });
 
+/** What the page saw of one toast (the boundary-toast case below records it in the page). */
+interface ToastSeen {
+  /** It had a box and was not hidden at some moment (what `toBeVisible` asks). */
+  visible: boolean;
+  text: string;
+  regionText: string;
+  /** The most elements with the toast's id at any one time. */
+  max: number;
+}
+
 const camYawFor = (dx: number, dz: number): number => {
   let yaw = Math.atan2(-dx, -dz);
   if (yaw < 0) yaw += 2 * Math.PI;
@@ -300,7 +366,7 @@ const camYawFor = (dx: number, dz: number): number => {
 
 test.describe('boundary toast @ui-boundary-toast', () => {
   test.describe.configure({ timeout: 600_000 });
-  test.use({ storageState: { cookies: [], origins: [{ origin: `http://localhost:${process.env.DV_E2E_PORT ?? 8790}`, localStorage: [{ name: 'dv-qa-play', value: 'sandbox' }] }] } });
+  test.use({ storageState: qaStorageState(Number(process.env.DV_E2E_PORT ?? 8790)) });
 
   test('walking out toward a county line shows the toast once, in the toast region, with the en.json text @ui-boundary-toast', async ({ page }) => {
     await page.setViewportSize(SMALL_VIEWPORT);
@@ -324,16 +390,41 @@ test.describe('boundary toast @ui-boundary-toast', () => {
       }
     }
     expect(placed).toBe(true);
+    // BD-FIX-TOAST-RACE-01: a sim toast lives 5 s (`SIM_TOAST_TTL_MS`, expired on a 500 ms timer). Reading it in four Playwright round
+    // trips raced that lifetime: in CI run 43230527183 (chromium-webgl2 shard 3, the other worker in a world-booting test) the toast was
+    // seen with its text and had expired before its count was read, on both attempts. So the page records what the toast region shows,
+    // from before the walk, and the assertions read the record: they hold for the toast's whole life, not for one late sample.
+    await page.evaluate(() => {
+      const rec: ToastSeen = { visible: false, text: '', regionText: '', max: 0 };
+      (window as unknown as { __dvToastSeen: ToastSeen }).__dvToastSeen = rec;
+      const read = (): void => {
+        const els = document.querySelectorAll<HTMLElement>('[data-toast-id="world.boundary.countyLine"]');
+        const el = els[0];
+        if (!el) return;
+        rec.max = Math.max(rec.max, els.length);
+        const box = el.getBoundingClientRect();
+        if (box.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== 'hidden') rec.visible = true;
+        const text = el.textContent ?? '';
+        if (text !== '') rec.text = text;
+        const region = el.closest<HTMLElement>('[data-testid="toasts"]')?.textContent ?? '';
+        if (region !== '') rec.regionText = region;
+      };
+      // the observer sees the toast the moment it is added; the timer follows it while it stands (an enter transition, a second copy)
+      new MutationObserver(read).observe(document.body, { childList: true, subtree: true, characterData: true });
+      setInterval(read, 100);
+      read();
+    });
     expect(await act(page, { t: 'debug.bot', script: [{ from: 0, to: 45 * 60, moveY: -127, camYaw: camYawFor(fwd[0], fwd[1]) }] })).toBe(true);
-    const toast = page.locator('[data-toast-id="world.boundary.countyLine"]');
-    await expect(toast).toBeVisible({ timeout: 150_000 });
-    await expect(toast).toContainText('Leaving SF — coming soon');
-    await expect(page.getByTestId('toasts')).toContainText('Leaving SF');
-    await expect(toast).toHaveCount(1);
+    await page.waitForFunction(() => (window as unknown as { __dvToastSeen: ToastSeen }).__dvToastSeen.visible, undefined, { timeout: 150_000 });
     // Still pressing against the barrier: the approach fired one event and the sim raised one toast.
     await page.waitForTimeout(3000);
     expect(await page.evaluate(() => (window as unknown as WorldW).__dvBridge.world.boundaryEvents())).toBe(1);
     const raised = await page.evaluate(() => (window as unknown as { __dvBridge: { engine: { modes: { toasts(): { id: string }[] } } } }).__dvBridge.engine.modes.toasts().filter((x) => x.id === 'world.boundary.countyLine').length);
     expect(raised).toBe(1);
+    // What the page showed, over the toast's life so far (3 s and more): the en.json text, inside the toast region, never two at once.
+    const shown = await page.evaluate(() => (window as unknown as { __dvToastSeen: ToastSeen }).__dvToastSeen);
+    expect(shown.text).toContain('Leaving SF — coming soon');
+    expect(shown.regionText).toContain('Leaving SF');
+    expect(shown.max).toBe(1);
   });
 });

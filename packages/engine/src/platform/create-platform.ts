@@ -14,7 +14,10 @@ import type { AssetClient, WorkerPort } from '../assets/client.ts';
 import { startAssets } from '../assets/spawn.ts';
 import { requestPersist } from '../assets/store/persist.ts';
 import { DeviceProbe, type ProbeEnv } from './device-probe.ts';
+import { FramePacer } from './governor/frame-pacer.ts';
+import { QualityGovernor } from './governor/governor.ts';
 import { LifecycleController } from './lifecycle.ts';
+import { MemoryBudget, type MemoryActions } from './memory/memory-budget.ts';
 import { createIdbStore, type PlatformStore } from './platform-store.ts';
 import type { ByteSource } from './perf/probe.ts';
 import { FrameSampler, readMemory, type MemoryCounters } from './perf/probe.ts';
@@ -26,6 +29,7 @@ import { TelemetryClient, osMajorOf, type TimerApi } from './telemetry/client.ts
 import { ErrorReporter } from './telemetry/errors.ts';
 import { Heartbeat, RafWatchdog, type KeyValueStorage } from './telemetry/heartbeat.ts';
 import { TIERS } from './tier-config.ts';
+import type { UiHoldGate } from './ui-hold.ts';
 
 /**
  * `createPlatform` (C13 section 5.1, boot sequence). Order: heartbeat and telemetry start, `DeviceProbe` and `classifyDevice`,
@@ -70,10 +74,21 @@ export interface CreatePlatformOptions {
   /** Creates asset.worker when no client is passed: the app supplies the composed worker with the world jobs (M02b1). Default: the engine's own. */
   spawnAssetWorker?: () => WorkerPort;
   /**
+   * Runs right after asset.worker is spawned (or the passed client taken), before the tier decision and the benchmark: the app spawns
+   * sim.worker here (01-engine.md section 5 boot order, BD-FIX-WEBKIT-ATTACH-01). Outside the asset worker's own error handling, so its
+   * failure never costs the pack store; a throw is logged and the boot goes on (BD-FIX-WEBKIT-ATTACH-02).
+   */
+  afterAssetWorker?: () => void;
+  /**
    * `BootConfig.region` for the telemetry gate (BD-FIX-CI-01): a blocked region never calls the gated `POST /api/v1/t`. Default: one
    * `GET /api/v1/boot` (geo-exempt) where there is a page and `fetch`; `null` sends without waiting (unit tests).
    */
   region?: Promise<'ok' | 'blocked'> | null;
+  /**
+   * The page's UI before the next 3D frame (BD-FIX-MENU-BOOT-01): while it holds, the benchmark and the render loop skip their frame
+   * callbacks, so a page the shell has just put up paints at once. Default: none (every frame callback draws, as before).
+   */
+  uiHold?: UiHoldGate | null;
 }
 
 /** Reads `region` from `GET /api/v1/boot`. Anything but an explicit 'blocked' counts as 'ok' (offline, an error, an old Worker). */
@@ -96,6 +111,16 @@ export interface Platform {
   readonly heartbeat: Heartbeat;
   readonly errors: ErrorReporter;
   readonly sampler: FrameSampler;
+  /** The runtime quality governor (M11a1). Disabled by `?governor=off` in a QA build; on otherwise. */
+  readonly governor: QualityGovernor;
+  /** Renders the 30 fps tiers on 60 and 90 Hz displays (M11a1); the host asks it for every rAF callback outside XR. */
+  readonly pacer: FramePacer;
+  /** The accounted-memory budget (M11a1): 85 % soft, 95 % hard. Its evictors and radius actions are filled in by the app. */
+  readonly memoryBudget: MemoryBudget;
+  /** What the hard response does to the world; the app replaces both once the world exists (the defaults do nothing). */
+  readonly memoryActions: MemoryActions;
+  /** The player's `fpsCap` and `renderScale` (DL-727): a fixed scale pins the governor's renderScale, the cap lowers the pacer's target. */
+  applyPlayerSettings(s: Pick<PlatformSettings, 'fpsCap' | 'renderScale'>): void;
   /** Null where there is no document (unit tests). */
   readonly lifecycle: LifecycleController | null;
   readonly decision: TierDecision;
@@ -230,6 +255,11 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
           tier: () => quality?.tier.id ?? 'mobile-low',
           onTelemetry: (name, props) => telemetry.emit(name, props),
         });
+  try {
+    o.afterAssetWorker?.();
+  } catch (error) {
+    console.error('afterAssetWorker failed', error);
+  }
 
   const selector = new TierSelector({
     profile,
@@ -277,7 +307,7 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
   let selection = early;
   const flat = (id: QualityTierId): QualityTier => TIERS[id];
   if (!selection) {
-    const run: RunBenchmark = (tier) => (o.benchmark ? o.benchmark(host, tier) : runSyntheticBenchmark(host, tier));
+    const run: RunBenchmark = (tier) => (o.benchmark ? o.benchmark(host, tier) : runSyntheticBenchmark(host, tier, { hold: o.uiHold ?? null }));
     selector.useBenchmark(run, backend);
     selection = await selector.benchmarkSelection();
   }
@@ -325,6 +355,48 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
   // Frame sampler: the continuous frame ring for perf.minute, the HUD and the stall watchdog.
   const info = (): Parameters<typeof readMemory>[0] => (host.ready ? (host.renderer as unknown as { info: Parameters<typeof readMemory>[0] }).info : null);
   const sampler = new FrameSampler(info);
+
+  // The governor, the frame pacer and the memory budget (M11a1). The governor moves `dynamic`; the pacer holds its targetFps on the
+  // display's callbacks; the budget answers memory pressure. Their consumers (renderScale here, the world knobs in the app) listen to
+  // `quality.onDynamicChange`.
+  const qs = quality;
+  const governor = new QualityGovernor({ quality: qs, enabled: o.flags.governor !== 'off', note: (line) => heartbeat.note(line) });
+  const pacer = new FramePacer(governor.targetFps());
+  const syncPacer = (): void => pacer.setTarget(governor.targetFps());
+  qs.onDynamicChange((q) => {
+    host.setDynamicScale(q.renderScale);
+    syncPacer();
+  });
+  const memoryActions: MemoryActions = { dropRadius: () => false, restoreRadius: () => {} };
+  const memoryBudget = new MemoryBudget({
+    quality: qs,
+    actions: { dropRadius: () => memoryActions.dropRadius(), restoreRadius: () => memoryActions.restoreRadius() },
+    read: () => {
+      const m = readMemory(info(), bytes);
+      return { texturesMB: m.texturesMB, gpuMB: m.gpuMB, heapMB: m.wasmMB, mediaMB: 0 };
+    },
+    note: (line) => heartbeat.note(line),
+  });
+  const applyPlayerSettings = (s: Pick<PlatformSettings, 'fpsCap' | 'renderScale'>): void => {
+    governor.setFpsCap(s.fpsCap === 'auto' ? null : s.fpsCap);
+    governor.setRenderScalePinned(s.renderScale !== 'auto');
+    syncPacer();
+  };
+  applyPlayerSettings(settings);
+  let lastFrameT = -1;
+  let frameCount = 0;
+  host.addFrameListener({
+    before: (t) => {
+      const presenting = host.isPresenting;
+      governor.setXr(presenting);
+      pacer.setBypass(presenting);
+      if (lastFrameT >= 0) governor.frame(t - lastFrameT);
+      lastFrameT = t;
+      // The budget reads the counters about once a second (60 rendered frames), on the same clock as the frames.
+      frameCount += 1;
+      if (frameCount % 60 === 0) memoryBudget.sample(t);
+    },
+  });
   const watchdog = new RafWatchdog(perfNow, timers, () => heartbeat.note('raf.stall'));
   host.addFrameListener({
     before: (t) => {
@@ -332,6 +404,32 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
       watchdog.frame();
     },
     after: () => sampler.after(),
+  });
+  // After a gap in the frames (the page hidden, a hold for the page's UI) no clock counts the gap: the governor and the sampler see no
+  // long frame and the engine clamps its next dt.
+  let engineBinding: { setPaused: (p: boolean) => void; resetClock: () => void } | null = null;
+  const resumeClocks = (): void => {
+    sampler.resetClock();
+    governor.resetClock();
+    pacer.reset();
+    lastFrameT = -1;
+    engineBinding?.resetClock();
+  };
+  // The frame gate: the page's UI first (BD-FIX-MENU-BOOT-01), then the pacer. A held callback draws nothing; the loop is alive, so the
+  // stall watchdog hears from it. XR frames never reach the gate (the host skips it while presenting).
+  const uiHold = o.uiHold ?? null;
+  let heldUi = false;
+  host.setFrameGate((t) => {
+    if (uiHold?.held(t)) {
+      heldUi = true;
+      watchdog.frame();
+      return false;
+    }
+    if (heldUi) {
+      heldUi = false;
+      resumeClocks();
+    }
+    return pacer.shouldRender(t);
   });
 
   // Events: app.start, tier.decision, app.ready. `store` is what the asset worker's open() returned.
@@ -382,7 +480,6 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
   }, 60_000);
 
   // Lifecycle, error and watchdog listeners.
-  let engineBinding: { setPaused: (p: boolean) => void; resetClock: () => void } | null = null;
   const lifecycle =
     typeof document !== 'undefined' && typeof window !== 'undefined'
       ? new LifecycleController({
@@ -391,10 +488,7 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
           heartbeat,
           telemetry,
           setPaused: (p) => engineBinding?.setPaused(p),
-          clampNextDt: () => {
-            sampler.resetClock();
-            engineBinding?.resetClock();
-          },
+          clampNextDt: resumeClocks,
         })
       : null;
   let uninstallErrors: (() => void) | null = null;
@@ -413,6 +507,11 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
     heartbeat,
     errors,
     sampler,
+    governor,
+    pacer,
+    memoryBudget,
+    memoryActions,
+    applyPlayerSettings,
     lifecycle,
     get decision() {
       return decision;
@@ -433,6 +532,9 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
     },
     dispose: () => {
       timers.clearInterval(minuteTimer);
+      host.setFrameGate(null);
+      governor.dispose();
+      memoryBudget.dispose();
       lifecycle?.detach();
       uninstallErrors?.();
       watchdog.stop();

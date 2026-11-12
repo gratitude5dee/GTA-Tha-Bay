@@ -81,13 +81,15 @@ describe('look.json markings (AC-2)', () => {
 });
 
 describe('the surface ids of the paint (AC-3)', () => {
-  it('adds Junction 35, Crosswalk 36 and StopBar 37; M02h2 takes 38 to 41, so the table ends at 42', () => {
+  it('adds Junction 35, Crosswalk 36 and StopBar 37; M02h2 takes 38 to 41, M02h3 42 to 48 and M02h7 Awning 49, so the table ends at 50', () => {
     expect([Surf.Junction, Surf.Crosswalk, Surf.StopBar]).toEqual([35, 36, 37]);
-    expect(SURFACE_COUNT).toBe(42);
+    expect(SURFACE_COUNT).toBe(SURFACE_NAMES.length);
+    expect(SURFACE_NAMES.indexOf('awning') + 1).toBe(SURFACE_COUNT);
+    expect(SURFACE_NAMES.indexOf('cover.park') + 2).toBe(SURFACE_COUNT);
     expect(SURFACE_NAMES.slice(35, 38)).toEqual(['junction', 'crosswalk', 'stopbar']);
     expect(isSurfaceId(37)).toBe(true);
     expect(isSurfaceId(41)).toBe(true);
-    expect(isSurfaceId(42)).toBe(false);
+    expect(isSurfaceId(SURFACE_COUNT)).toBe(false);
   });
 
   it('are bound to the asphalt set in the surface textures, so the painted quads match the road around them', () => {

@@ -1,0 +1,36 @@
+{
+  "$comment": "The facade atlas of the desktop building shader (M10d2; 02-world-bake.md section 6 desktop row). texture/facade-atlas is a 4 x 4 grid of wall materials, authored by tools/assets/src/recipes/facade-atlas.ts: grey detail whose linear mean is `mean`, so the shader multiplies the class palette colour (the per-building tint) by `sample / mean` and the wall keeps its brightness. `tileM` is the wall width one tile covers; `classes` lists, in BuildingKind order (ResLow, ResMid, Commercial, Tower, Industrial, Civic), the tiles a building of that class picks from by its seed. Variants: desktop 1024 px (desktop-ultra, desktop), mobile 512 px (bound on `mobile` through M02h7's albedo seam, DL-740), mobile-low 256 px (the catalog's tier rule; mobile-low never requests it). No text, signs, logos or murals.",
+  "schema": "facade-atlas/1",
+  "asset": "texture/facade-atlas",
+  "grid": 4,
+  "sizePx": { "desktop": 1024, "mobile": 512, "mobile-low": 256 },
+  "mean": 0.5,
+  "strength": 0.85,
+  "fade": { "startM": 120, "endM": 260 },
+  "tiles": [
+    { "name": "lap-siding", "tileM": 2.0 },
+    { "name": "shingle", "tileM": 2.0 },
+    { "name": "stucco-smooth", "tileM": 4.0 },
+    { "name": "stucco-rough", "tileM": 4.0 },
+    { "name": "brick-running", "tileM": 2.4 },
+    { "name": "brick-flemish", "tileM": 2.4 },
+    { "name": "stone-ashlar", "tileM": 4.0 },
+    { "name": "stone-rusticated", "tileM": 4.0 },
+    { "name": "concrete-panel", "tileM": 6.0 },
+    { "name": "metal-panel", "tileM": 4.0 },
+    { "name": "corrugated", "tileM": 2.0 },
+    { "name": "concrete-block", "tileM": 3.2 },
+    { "name": "board-vertical", "tileM": 2.0 },
+    { "name": "terracotta-panel", "tileM": 3.2 },
+    { "name": "precast-fin", "tileM": 6.0 },
+    { "name": "plaster-banded", "tileM": 4.0 }
+  ],
+  "classes": [
+    [0, 1, 12, 2],
+    [2, 3, 15, 4],
+    [4, 5, 13, 3],
+    [8, 9, 14, 8],
+    [10, 11, 8, 4],
+    [6, 7, 5, 6]
+  ]
+}

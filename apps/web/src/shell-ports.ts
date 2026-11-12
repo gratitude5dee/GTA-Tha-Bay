@@ -112,6 +112,8 @@ export function createPlatformPort(
   return {
     settings: () => current,
     ...(offline ? { offline } : {}),
+    // The FramePacer exists (M11a1): the Graphics frame-cap row is live.
+    framePacer: true,
     onFrameStats: (cb) => {
       statSubs.add(cb);
       offFrames ??= platform.host.addFrameListener({ before: (time) => feed.before(time) });

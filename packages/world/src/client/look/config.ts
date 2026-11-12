@@ -6,6 +6,7 @@ import type { PostNode, QualityTierId, ShadowMode, WeatherPreset } from '@dv/sha
 import lookJson from '../../../../../config/world/look.json';
 import flagsJson from '../../../../../config/platform-flags.json';
 import type { LayoutConfig } from './road-layout.ts';
+import type { VegetationLook } from './wind.ts';
 
 /** `legacy` is the M02b1/M02b2 material set, unchanged. */
 export type LookProfile = 'full' | 'lite' | 'min' | 'legacy';
@@ -24,6 +25,28 @@ export interface FacadeClass {
   wallRoughness: number;
   /** sRGB hex. */
   palette: readonly string[];
+}
+
+/** M02h7: the facade kit's shading (storefront, sign panel, awning cloth, window reveal, wall-top tilt). Heights are metres below the ground-floor line. */
+export interface FacadeKitLook {
+  /** sRGB hex: awning cloth colours (stripes by seed with `awningStripe`). */
+  awningPalette: readonly string[];
+  awningStripe: string;
+  awningRoughness: number;
+  /** sRGB hex: plain sign panels, one colour per shop by seed (no text, glyph or logo). */
+  signPalette: readonly string[];
+  signTopBelowGfM: number;
+  signBottomBelowGfM: number;
+  transomBelowGfM: number;
+  kickM: number;
+  pilasterM: number;
+  /** The depth of the window reveal of the bump, metres. */
+  recessM: number;
+  /** How far the wall top tilts its normal up where there is no cornice geometry. */
+  corniceTilt: number;
+  /** Linear multipliers of the night glow of the sign panel and of the shop glass. */
+  signGlow: readonly [number, number, number];
+  shopGlow: readonly [number, number, number];
 }
 
 export interface RoofClass {
@@ -92,7 +115,7 @@ export interface MarkingsFile extends LayoutConfig {
  * The layers of the M02g1 look-tune (and `markings`, M02h1; `curbs`, `bump`, `macro` and `lots`, M02h2); each is gated per look profile by
  * `LookFile.layers`.
  */
-export const LOOK_LAYERS = ['grade', 'haze', 'blob', 'casters', 'skyReflect', 'windows', 'markings', 'curbs', 'bump', 'macro', 'lots'] as const;
+export const LOOK_LAYERS = ['grade', 'haze', 'blob', 'casters', 'skyReflect', 'windows', 'markings', 'curbs', 'bump', 'macro', 'lots', 'facade'] as const;
 export type LookLayer = (typeof LOOK_LAYERS)[number];
 
 export interface LookFile {
@@ -118,14 +141,21 @@ export interface LookFile {
   grade: Record<WeatherPreset, GradePreset>;
   /** The aerial perspective per weather preset (M02g1). */
   haze: Record<WeatherPreset, HazePreset>;
-  /** `litFrac`: rows of `[hour, min, max]`, the share of a lit building's windows that are lit, cyclic over 24 h (M02g1). */
-  windows: { litFrac: readonly (readonly [hour: number, min: number, max: number])[] };
+  /**
+   * `litFrac`: rows of `[hour, min, max]`, the share of a lit building's windows that are lit, cyclic over 24 h (M02g1). `shop` (M02h7): rows
+   * of `[hour, level]`, the night glow of shop signs and shop glass, cyclic over 24 h.
+   */
+  windows: { litFrac: readonly (readonly [hour: number, min: number, max: number])[]; shop: readonly (readonly [hour: number, level: number])[] };
+  /** M02h7: the shading values of the facade kit (`look/facade.ts`). */
+  facadeKit: FacadeKitLook;
   /** The layer ids each look profile enables; `legacy` only `markings` (the XR tiers draw the flat paint, M02h1) and nothing else (M02g1). */
   layers: Record<LookProfile, readonly LookLayer[]>;
   /** M02h2: the strength of the ground bump (`groundNodes().height` through `look-materials.ts`) per look profile; 0 on `min` and `legacy`. */
   bump: Record<LookProfile, number>;
   /** The street markings (M02h1). */
   markings: MarkingsFile;
+  /** M02h4: the wind sway of the street trees (`full` only, `look/wind.ts`). */
+  vegetation: VegetationLook;
   /** Trees and traffic within this many metres of the focus cast shadows on the `casters` layer (M02g1). */
   dynamicCasterRadiusM: number;
   /** `gtao-half`, `bloom` or `fsr1` when they fail on the WebGL2 backend (each with a spec/03 section 7 row). Never `tonemap` or an AA node. */
@@ -138,6 +168,15 @@ export const LOOK: LookFile = lookJson as unknown as LookFile;
 
 /** `config/platform-flags.json` `world.look` (default true): false is the full rollback to the M02b1/M02b2 look. */
 export const LOOK_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.look'] !== false;
+/**
+ * M02h3: `config/platform-flags.json` `world.cover` (default true), the rollback switch of the ground cover: false meshes every terrain
+ * post from its GROUND class alone, as before M02h3 (the cover in section 21 is not read).
+ */
+export const COVER_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.cover'] !== false;
+/** M02h4: `config/platform-flags.json` `world.treeForms` (default true): false draws M02b1's cone as one vegetation pool. */
+export const TREE_FORMS_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.treeForms'] !== false;
+/** M02h5: `config/platform-flags.json` `world.scatter` (default true): false skips the scatter records (bit 7) and the impostors. */
+export const SCATTER_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.scatter'] !== false;
 
 export const TIER_IDS: readonly QualityTierId[] = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low', 'xr-quest', 'xr-visionpro'];
 

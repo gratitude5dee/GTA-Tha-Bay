@@ -50,7 +50,7 @@ export function poiAt(id: string, x: number, z: number, kind: PoiRecord['kind'] 
 
 export function indexOf(o: { landmarks?: LandmarkRecord[]; pois?: PoiRecord[]; portals?: Portal[]; transit?: WorldIndex['transit']; districts?: WorldIndex['districts'] } = {}): WorldIndex {
   return {
-    schema: 'world-index/1', c08: '1.0.0', bakeId: BAKE, worldSeed: 1, areas: [], tiles: { p0: [], l0: [], l1: [], l2: [] },
+    schema: 'world-index/1', c08: '1.1.0', bakeId: BAKE, worldSeed: 1, areas: [], tiles: { p0: [], l0: [], l1: [], l2: [] },
     landmarks: o.landmarks ?? [], pois: o.pois ?? [], districts: o.districts ?? [], portals: o.portals ?? [], transit: o.transit ?? [], sources: [],
   };
 }

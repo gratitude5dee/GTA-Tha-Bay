@@ -4,8 +4,10 @@ import netProfilesJson from '../../../../config/perf/net-profiles.json';
 /**
  * The single parser for QA URL flags (11-platform-perf.md section 4).
  * It parses nothing unless the build is a QA build (VITE_DV_QA === '1'); production builds ignore every flag.
- * M00 handles ?gl=1, ?tier=, ?xr-emulate=quest3, ?probe=gpu and ?unsupported=1; M01c adds ?gpu=1, ?perf=1, ?governor=off
- * (parsed, inert until M11a), ?limits= and ?scenario= (the platform flags of 11-platform-perf.md section 4).
+ * M00 handles ?gl=1, ?tier=, ?xr-emulate=quest3, ?probe=gpu and ?unsupported=1; M01c adds ?gpu=1, ?perf=1, ?governor=off,
+ * ?limits= and ?scenario= (the platform flags of 11-platform-perf.md section 4). M11a1: ?governor=off turns the runtime governor off and
+ * ?governor=on forces it on; the QA-only localStorage key `dv-qa-governor` supplies the value when the URL has none (the e2e page
+ * fixture sets `off`, so look goldens, render-object ledgers and perf counts never follow CI frame times).
  */
 export interface QaFlags {
   readonly enabled: boolean;
@@ -29,8 +31,8 @@ export interface QaFlags {
   readonly gpu: boolean;
   /** ?perf=1 shows the PerfHud. */
   readonly perf: boolean;
-  /** ?governor=off disables the runtime governor. Parsed and inert until M11a. */
-  readonly governor: 'off' | null;
+  /** ?governor=off disables the runtime governor and ?governor=on forces it on; null leaves it to the build (on). From the URL, else `dv-qa-governor`. */
+  readonly governor: 'off' | 'on' | null;
   /** ?limits=name:value lowers adapter limits for weak-device emulation. */
   readonly limits: Readonly<Record<string, number>>;
   /** ?scenario=<id> starts a perf scenario at boot. */
@@ -80,6 +82,8 @@ export interface QaFlags {
 export type QaPlay = 'sandbox' | 'story' | 'off';
 /** The QA-only localStorage key that supplies `play` when the URL has none (Playwright's storage state sets it). */
 export const QA_PLAY_KEY = 'dv-qa-play';
+/** The QA-only localStorage key that supplies `governor` when the URL has none (the e2e page fixture sets `off`, DL-756). */
+export const QA_GOVERNOR_KEY = 'dv-qa-governor';
 
 export const NO_QA_FLAGS: QaFlags = Object.freeze({
   enabled: false,
@@ -165,7 +169,25 @@ function storedPlay(): QaPlay | null {
   }
 }
 
-export function parseQaFlags(search: string, enabled: boolean = isQaBuild(), stored: () => QaPlay | null = storedPlay): QaFlags {
+function asGovernor(v: string | null | undefined): 'off' | 'on' | null {
+  return v === 'off' || v === 'on' ? v : null;
+}
+
+/** The stored `dv-qa-governor` value; unavailable storage reads as unset. */
+function storedGovernor(): 'off' | 'on' | null {
+  try {
+    return asGovernor(globalThis.localStorage?.getItem(QA_GOVERNOR_KEY));
+  } catch {
+    return null;
+  }
+}
+
+export function parseQaFlags(
+  search: string,
+  enabled: boolean = isQaBuild(),
+  stored: () => QaPlay | null = storedPlay,
+  storedGov: () => 'off' | 'on' | null = storedGovernor,
+): QaFlags {
   if (!enabled) return NO_QA_FLAGS;
   const q = new URLSearchParams(search);
   const tier = q.get('tier');
@@ -182,7 +204,7 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild(), sto
     debug: q.get('debug') === '1',
     gpu: q.get('gpu') === '1',
     perf: q.get('perf') === '1',
-    governor: q.get('governor') === 'off' ? 'off' : null,
+    governor: asGovernor(q.get('governor')) ?? storedGov(),
     limits: parseLimits(q.get('limits')),
     scenario,
     world: q.get('world') && /^[a-z0-9-]{1,40}$/.test(q.get('world') as string) ? (q.get('world') as string) : null,

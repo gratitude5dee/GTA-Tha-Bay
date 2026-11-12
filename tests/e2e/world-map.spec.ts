@@ -303,6 +303,11 @@ test.describe('map attribution and credits @world-attribution', () => {
     await expect(fresh.getByTestId('credits')).toBeVisible();
     for (const e of file.entries) await expect(fresh.getByTestId(`credit-${e.id}`), e.id).toContainText(e.text);
     await expect(fresh.getByTestId('odbl-notice')).toContainText('ODbL');
+    // The capture needs a frame the page has presented: headless Chromium answers Page.captureScreenshot for a page that has not
+    // presented one yet with "Unable to capture screenshot" at once, without waiting for one. This page boots its own engine beside the
+    // first page's software-rendered world, all on one software GPU process, so its first frame can come a second or more after its
+    // content is in the DOM (BD-FIX-CREDITS-SHOT-01). The paint timing entry is queued once that frame is presented.
+    await fresh.waitForFunction(() => performance.getEntriesByType('paint').some((e) => e.name === 'first-contentful-paint'), undefined, { timeout: 60_000 });
     await fresh.screenshot({ path: testInfo.outputPath('credits.png') });
     await fresh.close();
   });

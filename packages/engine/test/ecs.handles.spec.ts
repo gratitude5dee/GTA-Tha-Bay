@@ -56,6 +56,33 @@ describe('entity handles', () => {
     expect(w.resolve(b)).toBe(idA);
   });
 
+  it('onDespawn hears the dense id of each applied despawn before the id is reused, and not after unsubscribing (BD-FIX-VEHICLE-SLOT-01)', () => {
+    const w = newWorld();
+    const heard: number[] = [];
+    const off = w.onDespawn((id) => {
+      // the entity is still there while the listener runs; its id is free only once the listener returns
+      expect(w.hasId(id, Transform)).toBe(true);
+      heard.push(id);
+    });
+    const a = spawn(w);
+    const b = spawn(w);
+    expect(heard).toEqual([]);
+    w.commands.despawn(a);
+    expect(heard, 'heard before the command was applied').toEqual([]);
+    w.flush();
+    expect(heard).toEqual([idOfHandle(a)]);
+    // a stale handle despawns nothing
+    w.commands.despawn(a);
+    w.flush();
+    expect(heard).toEqual([idOfHandle(a)]);
+    const c = spawn(w);
+    expect(idOfHandle(c)).toBe(idOfHandle(a));
+    off();
+    w.commands.despawn(b);
+    w.flush();
+    expect(heard).toEqual([idOfHandle(a)]);
+  });
+
   it('generation 4,095 wraps to 1', () => {
     expect(nextGeneration(0)).toBe(1);
     expect(nextGeneration(1)).toBe(2);

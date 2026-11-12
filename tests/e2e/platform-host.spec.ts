@@ -47,19 +47,25 @@ test.describe('renderer host @renderer-host', () => {
 
   test('boots to a working tier without ?tier= (the benchmark picks one) and persists the decision', async ({ page }) => {
     test.setTimeout(120_000);
+    // sim.worker spawns right after asset.worker, before the benchmark (01-engine.md section 5 boot order; BD-FIX-WEBKIT-ATTACH-01/-02):
+    // its script is asked for before the benchmark has decided the tier, not after the platform, the catalog and the world.
+    let simWorkerAskedAt: number | null = null;
+    page.on('request', (req) => {
+      if (simWorkerAskedAt === null && /\/assets\/sim\.worker-[^/]+\.js$/.test(req.url())) simWorkerAskedAt = Date.now();
+    });
     await page.goto('/');
     await waitForPlatform(page);
     const tier = await bridge(page, (b) => b.tier());
     expect(['desktop-ultra', 'desktop', 'mobile', 'mobile-low']).toContain(tier);
     const stored = await page.evaluate(
       () =>
-        new Promise<{ tier?: string; source?: string; v?: number } | null>((resolve) => {
+        new Promise<{ tier?: string; source?: string; v?: number; decidedAt?: number } | null>((resolve) => {
           const req = indexedDB.open('dv-platform');
           req.onsuccess = () => {
             const db = req.result;
             if (!db.objectStoreNames.contains('tier-decision')) return resolve(null);
             const get = db.transaction('tier-decision', 'readonly').objectStore('tier-decision').get('current');
-            get.onsuccess = () => resolve((get.result as { tier?: string; source?: string; v?: number } | undefined) ?? null);
+            get.onsuccess = () => resolve((get.result as { tier?: string; source?: string; v?: number; decidedAt?: number } | undefined) ?? null);
             get.onerror = () => resolve(null);
           };
           req.onerror = () => resolve(null);
@@ -68,6 +74,9 @@ test.describe('renderer host @renderer-host', () => {
     expect(stored?.v).toBe(1);
     expect(stored?.tier).toBe(tier);
     expect(stored?.source).toBe('auto-benchmark');
+    // `decidedAt` is the page's Date.now() when the benchmark ended; the runner and the browser share the machine's clock.
+    expect(simWorkerAskedAt).not.toBeNull();
+    expect(simWorkerAskedAt as unknown as number).toBeLessThan(stored?.decidedAt as number);
   });
 });
 

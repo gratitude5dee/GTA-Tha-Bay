@@ -20,22 +20,6 @@
       "licence": "PDDL-1.0"
     },
     {
-      "id": "sfmta-patterns",
-      "url": "https://data.sf.gov/resource/9exe-acju.json",
-      "retrievedAt": "2026-10-19T14:26:12Z",
-      "sha256": "232c12ee880f9cb00845b8e005282b6772ab598367d95893bff5eb208a59a2ee",
-      "rows": 135,
-      "licence": "PDDL-1.0"
-    },
-    {
-      "id": "sfmta-stops",
-      "url": "https://data.sf.gov/resource/i28k-bkz6.json",
-      "retrievedAt": "2026-10-19T14:26:12Z",
-      "sha256": "501afabd1d8e3abf48b7263ec6f5b2c5413984296498272802cbbf513d7fe455",
-      "rows": 3260,
-      "licence": "PDDL-1.0"
-    },
-    {
       "id": "datasf-neighborhoods",
       "url": "https://data.sf.gov/resource/j2bu-swwd.json",
       "retrievedAt": "2026-10-19T14:24:55Z",
@@ -70,15 +54,31 @@
     {
       "id": "osm",
       "url": "https://download.geofabrik.de/north-america/us/california/norcal-latest.osm.pbf",
-      "retrievedAt": "2026-10-19T14:30:08Z",
-      "sha256": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
-      "rows": 561193,
+      "retrievedAt": "2026-10-19T15:48:51Z",
+      "sha256": "279d02614753e22fac5ff1843e0e96701eb6441efedda3ef3fa307cf052fe63d",
+      "rows": 562293,
       "licence": "ODbL-1.0",
       "extract": {
         "sha256": "8b3c8d0d7a4dcc76e046825c90c75c0fd90265e00a30b58c73e8064d6dea249b",
         "bytes": 654271307,
         "route": 0
       }
+    },
+    {
+      "id": "sfmta-patterns",
+      "url": "https://data.sf.gov/resource/9exe-acju.json",
+      "retrievedAt": "2026-10-19T14:26:12Z",
+      "sha256": "232c12ee880f9cb00845b8e005282b6772ab598367d95893bff5eb208a59a2ee",
+      "rows": 135,
+      "licence": "PDDL-1.0"
+    },
+    {
+      "id": "sfmta-stops",
+      "url": "https://data.sf.gov/resource/i28k-bkz6.json",
+      "retrievedAt": "2026-10-19T14:26:12Z",
+      "sha256": "501afabd1d8e3abf48b7263ec6f5b2c5413984296498272802cbbf513d7fe455",
+      "rows": 3260,
+      "licence": "PDDL-1.0"
     },
     {
       "id": "terrarium",

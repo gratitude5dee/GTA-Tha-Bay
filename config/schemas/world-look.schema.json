@@ -4,11 +4,25 @@
   "title": "config/world/look.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "tierProfile", "postLevelCap", "exposureBias", "casterRadiusM", "shadowsOff", "facade", "roof", "ground", "water", "sky", "bloom", "grade", "haze", "windows", "layers", "bump", "markings", "dynamicCasterRadiusM", "webgl2Unsupported", "webgl2AaFallback"],
+  "required": ["schema", "tierProfile", "postLevelCap", "exposureBias", "casterRadiusM", "shadowsOff", "facade", "roof", "ground", "water", "sky", "bloom", "grade", "haze", "windows", "layers", "bump", "markings", "vegetation", "dynamicCasterRadiusM", "webgl2Unsupported", "webgl2AaFallback", "facadeKit"],
   "$defs": {
     "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
     "tier": { "enum": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"] },
     "profile": { "enum": ["full", "lite", "min", "legacy"] },
+    "vegProfileM": {
+      "type": "object", "additionalProperties": false, "required": ["desktop", "visionpro", "mobile", "low"],
+      "properties": {
+        "desktop": { "type": "number", "minimum": 0, "maximum": 2000 }, "visionpro": { "type": "number", "minimum": 0, "maximum": 2000 },
+        "mobile": { "type": "number", "minimum": 0, "maximum": 2000 }, "low": { "type": "number", "minimum": 0, "maximum": 2000 }
+      }
+    },
+    "vegKeep": {
+      "type": "object", "additionalProperties": false, "required": ["full", "lite", "min", "legacy"],
+      "properties": {
+        "full": { "type": "number", "minimum": 0, "maximum": 1 }, "lite": { "type": "number", "minimum": 0, "maximum": 1 },
+        "min": { "type": "number", "minimum": 0, "maximum": 1 }, "legacy": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
     "perWeather": {
       "type": "object",
       "additionalProperties": false,
@@ -45,7 +59,7 @@
         "ext": { "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
-    "layerList": { "type": "array", "uniqueItems": true, "items": { "enum": ["grade", "haze", "blob", "casters", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots"] } },
+    "layerList": { "type": "array", "uniqueItems": true, "items": { "enum": ["grade", "haze", "blob", "casters", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots", "facade"] } },
     "facadeClass": {
       "type": "object",
       "additionalProperties": false,
@@ -211,11 +225,37 @@
         "golden": { "$ref": "#/$defs/hazePreset" }
       }
     },
+    "facadeKit": {
+      "$comment": "M02h7: the shading of the facade kit (packages/world/src/client/look/facade.ts)",
+      "type": "object", "additionalProperties": false,
+      "required": ["awningPalette", "awningStripe", "awningRoughness", "signPalette", "signTopBelowGfM", "signBottomBelowGfM", "transomBelowGfM", "kickM", "pilasterM", "recessM", "corniceTilt", "signGlow", "shopGlow"],
+      "properties": {
+        "$comment": { "type": "string" },
+        "awningPalette": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" } },
+        "awningStripe": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "awningRoughness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "signPalette": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" } },
+        "signTopBelowGfM": { "type": "number", "minimum": 0 },
+        "signBottomBelowGfM": { "type": "number", "minimum": 0 },
+        "transomBelowGfM": { "type": "number", "minimum": 0 },
+        "kickM": { "type": "number", "minimum": 0 },
+        "pilasterM": { "type": "number", "minimum": 0 },
+        "recessM": { "type": "number", "minimum": 0, "maximum": 0.5 },
+        "corniceTilt": { "type": "number", "minimum": 0, "maximum": 1 },
+        "signGlow": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number", "minimum": 0 } },
+        "shopGlow": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number", "minimum": 0 } }
+      }
+    },
     "windows": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["litFrac"],
+      "required": ["litFrac", "shop"],
       "properties": {
+        "shop": {
+          "$comment": "M02h7: rows of [hour, level], the night glow of shop signs and shop glass, cyclic over 24 h (look/windows.ts)",
+          "type": "array", "minItems": 2,
+          "items": { "type": "array", "minItems": 2, "maxItems": 2, "prefixItems": [{ "type": "number", "minimum": 0, "exclusiveMaximum": 24 }, { "type": "number", "minimum": 0, "maximum": 1 }], "items": false }
+        },
         "litFrac": {
           "type": "array",
           "minItems": 2,
@@ -338,6 +378,39 @@
             "barM": { "type": "number", "minimum": 0.1, "maximum": 1 },
             "rungM": { "type": "number", "minimum": 0.1, "maximum": 1 },
             "rungPeriodM": { "type": "number", "minimum": 0.4, "maximum": 3 }
+          }
+        }
+      }
+    },
+    "vegetation": {
+      "type": "object", "additionalProperties": false, "required": ["wind", "freq", "waveK", "dirDeg"],
+      "$comment": "M02h4: the wind sway of the street trees (full profile only)",
+      "properties": {
+        "$comment": { "type": "string" },
+        "wind": {
+          "type": "object", "additionalProperties": false, "required": ["clear", "karl-fog", "overcast", "rain", "smoke", "golden"],
+          "properties": {
+            "clear": { "type": "number", "minimum": 0, "maximum": 0.3 }, "karl-fog": { "type": "number", "minimum": 0, "maximum": 0.3 },
+            "overcast": { "type": "number", "minimum": 0, "maximum": 0.3 }, "rain": { "type": "number", "minimum": 0, "maximum": 0.3 },
+            "smoke": { "type": "number", "minimum": 0, "maximum": 0.3 }, "golden": { "type": "number", "minimum": 0, "maximum": 0.3 }
+          }
+        },
+        "freq": { "type": "number", "minimum": 0, "maximum": 10 },
+        "waveK": { "type": "number", "minimum": 0, "maximum": 2 },
+        "dirDeg": { "type": "number", "minimum": -360, "maximum": 360 },
+        "scatter": {
+          "type": "object", "additionalProperties": false,
+          "required": ["impostorM", "shrubDrawM", "hysteresis", "rebandM", "writeCap", "scatterKeep", "shrubKeep"],
+          "$comment": "M02h5: impostor bands, understory draw distance, re-banding and thinning of the scatter",
+          "properties": {
+            "$comment": { "type": "string" },
+            "impostorM": { "$ref": "#/$defs/vegProfileM" },
+            "shrubDrawM": { "$ref": "#/$defs/vegProfileM" },
+            "hysteresis": { "type": "number", "minimum": 0, "maximum": 0.5 },
+            "rebandM": { "type": "number", "minimum": 1, "maximum": 256 },
+            "writeCap": { "type": "integer", "minimum": 64, "maximum": 65536 },
+            "scatterKeep": { "$ref": "#/$defs/vegKeep" },
+            "shrubKeep": { "$ref": "#/$defs/vegKeep" }
           }
         }
       }

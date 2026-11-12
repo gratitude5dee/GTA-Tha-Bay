@@ -1,44 +1,46 @@
 {
   "commit": "local",
-  "bakeId": "3537499f7cc5c17703cea67785128b51f3262dc2d693a344409c031cb9f33136",
+  "bakeId": "4f9b8ca8f1d43351a4db4c1c6a3fa131916db405a26ff7eec14ed5c4265d1d43",
   "tiers": {
     "desktop-ultra": {
-      "baseline": 603,
-      "after": 706,
+      "baseline": 589,
+      "after": 704,
       "perLayer": {
         "grade": 0,
         "haze": 0,
         "blob": 1,
-        "casters": 102,
+        "casters": 114,
         "skyReflect": 0,
         "windows": 0,
         "markings": 0,
         "curbs": 0,
         "bump": 0,
         "macro": 0,
-        "lots": 0
+        "lots": 0,
+        "facade": 0
       }
     },
     "desktop": {
-      "baseline": 435,
-      "after": 538,
+      "baseline": 421,
+      "after": 536,
       "perLayer": {
         "grade": 0,
         "haze": 0,
         "blob": 1,
-        "casters": 102,
+        "casters": 114,
         "skyReflect": 0,
         "windows": 0,
         "markings": 0,
         "curbs": 0,
         "bump": 0,
         "macro": 0,
-        "lots": 0
+        "lots": 0,
+        "facade": 0
       }
     },
     "mobile": {
-      "baseline": 143,
-      "after": 144,
+      "baseline": 136,
+      "after": 137,
       "perLayer": {
         "grade": 0,
         "haze": 0,
@@ -49,12 +51,13 @@
         "curbs": 0,
         "bump": 0,
         "macro": 0,
-        "lots": 0
+        "lots": 0,
+        "facade": 0
       }
     },
     "mobile-low": {
-      "baseline": 72,
-      "after": 73,
+      "baseline": 66,
+      "after": 67,
       "perLayer": {
         "grade": 0,
         "haze": 0,
@@ -62,7 +65,8 @@
         "skyReflect": 0,
         "windows": 0,
         "markings": 0,
-        "curbs": 0
+        "curbs": 0,
+        "facade": 0
       }
     }
   },

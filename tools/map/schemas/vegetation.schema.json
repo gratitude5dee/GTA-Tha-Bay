@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/vegetation.schema.json",
+  "title": "config/world/vegetation.json (M02h5): the vegetation scatter of S13 and the street-tree density rules of S3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "enabled", "seed", "wood", "park", "scrub", "hedge", "yard", "exclusion", "streetTrees"],
+  "$defs": {
+    "share": { "type": "number", "minimum": 0, "maximum": 1 },
+    "metres": { "type": "number", "exclusiveMinimum": 0, "maximum": 500 },
+    "mix": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "plane": { "$ref": "#/$defs/share" },
+        "ficus": { "$ref": "#/$defs/share" },
+        "conifer": { "$ref": "#/$defs/share" },
+        "eucalyptus": { "$ref": "#/$defs/share" },
+        "palm": { "$ref": "#/$defs/share" }
+      }
+    }
+  },
+  "properties": {
+    "schema": { "const": "world-vegetation/1" },
+    "note": { "type": "string" },
+    "enabled": { "type": "boolean" },
+    "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+    "wood": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rMin", "mix", "understory"],
+      "properties": {
+        "rMin": { "$ref": "#/$defs/metres" },
+        "mix": { "$ref": "#/$defs/mix" },
+        "understory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rMin", "share"],
+          "properties": { "rMin": { "$ref": "#/$defs/metres" }, "share": { "$ref": "#/$defs/share" } }
+        }
+      }
+    },
+    "park": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["centreRMin", "groveMin", "groveMax", "groveRadiusM", "treeRMin", "mix", "edgeShrubShare", "edgeShrubM", "shrubRMin", "excludeLeisure"],
+      "properties": {
+        "centreRMin": { "$ref": "#/$defs/metres" },
+        "groveMin": { "type": "integer", "minimum": 1, "maximum": 32 },
+        "groveMax": { "type": "integer", "minimum": 1, "maximum": 32 },
+        "groveRadiusM": { "$ref": "#/$defs/metres" },
+        "treeRMin": { "$ref": "#/$defs/metres" },
+        "mix": { "$ref": "#/$defs/mix" },
+        "edgeShrubShare": { "$ref": "#/$defs/share" },
+        "edgeShrubM": { "$ref": "#/$defs/metres" },
+        "shrubRMin": { "$ref": "#/$defs/metres" },
+        "excludeLeisure": { "type": "array", "items": { "type": "string", "pattern": "^[a-z_]{2,32}$" }, "uniqueItems": true }
+      }
+    },
+    "scrub": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rMin", "share"],
+      "properties": { "rMin": { "$ref": "#/$defs/metres" }, "share": { "$ref": "#/$defs/share" } }
+    },
+    "hedge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockM", "hedgeShare", "lotM", "insetM"],
+      "properties": {
+        "blockM": { "$ref": "#/$defs/metres" },
+        "hedgeShare": { "$ref": "#/$defs/share" },
+        "lotM": { "type": "integer", "minimum": 4, "maximum": 64 },
+        "insetM": { "type": "number", "minimum": 0, "maximum": 4 }
+      }
+    },
+    "yard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["shrubShare", "shrubRMin"],
+      "properties": { "shrubShare": { "$ref": "#/$defs/share" }, "shrubRMin": { "$ref": "#/$defs/metres" } }
+    },
+    "exclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["footprintM", "roadM", "pedM", "landmarkM"],
+      "properties": {
+        "footprintM": { "type": "number", "minimum": 0, "maximum": 50 },
+        "roadM": { "type": "number", "minimum": 0, "maximum": 50 },
+        "pedM": { "type": "number", "minimum": 0, "maximum": 50 },
+        "landmarkM": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "streetTrees": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dedupeM", "treeRowM"],
+      "properties": { "dedupeM": { "$ref": "#/$defs/metres" }, "treeRowM": { "$ref": "#/$defs/metres" } }
+    }
+  }
+}

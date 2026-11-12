@@ -57,3 +57,21 @@ export function lampEmissive(sky: SkyNodes, halfWidth: number, halfLength: numbe
   void float;
   return { uTime, emissive: asNode(head.add(tail).add(amber).add(cyan)) };
 }
+
+/** M02h6: the `aAspect` codes of the signal heads (`furniture/signals.ts` writes them from C08 `signalAspect`). */
+export const ASPECT_CODE = { dark: 0, green: 1, amber: 2, red: 3 } as const;
+
+/**
+ * M02h6: the emissive colour of a signal head's lenses, read from the instance's `aAspect` (`ASPECT_CODE`) as `lampEmissive` reads `aLights`:
+ * the lens whose `lamp` id (1 red, 2 amber, 3 green, `furniture/kit.ts` `LAMP`) matches the aspect glows, brighter after dark; `dark` (a
+ * blackout) lights none. No per-head uniform, no extra draw.
+ */
+export function signalEmissive(sky: SkyNodes, aspect: L, lamp: L): ReturnType<typeof asNode> {
+  const lit = (lampId: number, code: number): L => lamp.sub(lampId).abs().lessThan(0.5).toFloat().mul(aspect.sub(code).abs().lessThan(0.5).toFloat());
+  const dark = (sky.uDark as unknown as L).clamp(0, 1);
+  const gain = float(2.4).add(dark.mul(1.6));
+  const red = vec3(1, 0.06, 0.03).mul(lit(1, ASPECT_CODE.red));
+  const amber = vec3(1, 0.55, 0.04).mul(lit(2, ASPECT_CODE.amber));
+  const green = vec3(0.1, 1, 0.55).mul(lit(3, ASPECT_CODE.green));
+  return asNode(red.add(amber).add(green).mul(gain));
+}

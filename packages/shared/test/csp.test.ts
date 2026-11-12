@@ -32,6 +32,6 @@ describe('buildCspReportOnly', () => {
   });
 
   it('points the Reporting-Endpoints group at route 4', () => {
-    expect(REPORTING_ENDPOINTS).toBe('csp="/api/v1/reports/browser"');
+    expect(REPORTING_ENDPOINTS).toBe('csp="/api/v1/reports/browser", crash-reporting="/api/v1/reports/browser", default="/api/v1/reports/browser"');
   });
 });

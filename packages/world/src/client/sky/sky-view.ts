@@ -17,6 +17,7 @@ import type { WorldFrame } from '@dv/engine/client/boot/world-layer';
 import type { RendererHost } from '@dv/engine/platform/renderer-host';
 import type { QualityTierId } from '@dv/shared';
 import { createAtmosphereAdapter } from './atmosphere.ts';
+import type { AtmosphereStatus } from './atmosphere-takram.ts';
 import { applyBoundaryFog } from '../boundary-fog.ts';
 import { centreDome, createDome } from './dome.ts';
 import { createBackdropFog, createWorldFog } from './fog.ts';
@@ -93,6 +94,8 @@ export interface SkyInfo {
   decals: number;
   streaksDrawn: number;
   overlay: boolean;
+  /** M10d2: the desktop-ultra atmosphere adapter's state, null where none is built (every tier but desktop-ultra, or the flag off). */
+  atmosphere: AtmosphereStatus | null;
   /** Render objects the sky adds to a frame: dome, rain, overlay, lamps, halos, decals as mounted. */
   objects: number;
 }
@@ -145,7 +148,7 @@ export class SkyView {
   private overlay: RainOverlay | null = null;
   private readonly night: NightLights;
   private readonly probe: SkyProbe;
-  private adapter: AtmosphereAdapter | null = null;
+  private adapter: (AtmosphereAdapter & { status(): AtmosphereStatus }) | null = null;
   private enabled: boolean;
   private uniforms: SkyUniforms;
   private input: SkyInput = DEFAULT_INPUT;
@@ -180,7 +183,11 @@ export class SkyView {
     this.mountRain();
 
     this.probe = new SkyProbe((u) => this.bakeAmbient(u));
-    this.adapter = createAtmosphereAdapter({ enabled: o.flags.atmosphere, level: this.config.level });
+    // M10d2: the takram adapter (desktop-ultra, flag on, level 2); it falls back to the M02e sky on WebGL2 or any failure
+    this.adapter = createAtmosphereAdapter({
+      enabled: o.flags.atmosphere, level: this.config.level, tier: this.config.tier, scene: o.backdrop.scene,
+      backend: () => (o.host.ready ? o.host.backend : null),
+    });
     void this.adapter?.init(o.host.renderer);
     this.applyEnabled();
   }
@@ -366,6 +373,7 @@ export class SkyView {
     const u = this.uniforms;
     return {
       enabled: this.enabled,
+      atmosphere: this.adapter?.status() ?? null,
       tier: this.o.tier,
       level: this.config.level,
       config: this.config,

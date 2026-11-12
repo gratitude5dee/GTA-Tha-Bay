@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "62076b1e513e4698e8218bace3db725bffb5f6c0bb643339c02e2d43adf1010c",
+  "paths": [
+    "assets/src/character/pc-face-castro/desktop.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "684d1839feb75059bfc0d0eb6baa90c087cfe530fc112244ef49e0c9d23d44b9"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

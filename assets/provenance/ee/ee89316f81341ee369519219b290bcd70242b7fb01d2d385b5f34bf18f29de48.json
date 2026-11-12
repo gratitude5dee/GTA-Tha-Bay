@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "ee89316f81341ee369519219b290bcd70242b7fb01d2d385b5f34bf18f29de48",
+  "paths": [
+    "assets/src/character/pc-face-karl/mobile.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "ced3f151e59e91d118a4840e366363ad0d1974771007f4982f797390c119215b"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

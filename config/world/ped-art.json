@@ -1,0 +1,27 @@
+{
+  "schema": "ped-art/1",
+  "note": "The final art of the ambient pedestrians (M10d4, 02-world-living.md 4.5). `bodies` maps each sim key (PED_ASSETS) to its kit: a near body, a far figure. `outfits` are the twenty outfit assets in palette order. Colours are sRGB. The renderer keeps the mannequin as the fallback when the kit fails to load; the sim, the caps and CrowdLimits do not change.",
+  "bodies": {
+    "character/ped.ambient.a": { "body": "character/ped.body.a", "far": "prop/ped.far.a", "hair": "#2a1c14" },
+    "character/ped.ambient.b": { "body": "character/ped.body.b", "far": "prop/ped.far.b", "hair": "#4a3020" },
+    "character/ped.ambient.c": { "body": "character/ped.body.c", "far": "prop/ped.far.c", "hair": "#1c1410" },
+    "character/ped.ambient.d": { "body": "character/ped.body.d", "far": "prop/ped.far.d", "hair": "#8a6a3a" },
+    "character/ped.ambient.e": { "body": "character/ped.body.e", "far": "prop/ped.far.e", "hair": "#3a2a1c" },
+    "character/ped.ambient.f": { "body": "character/ped.body.f", "far": "prop/ped.far.f", "hair": "#5a3a22" },
+    "character/ped.ambient.g": { "body": "character/ped.body.g", "far": "prop/ped.far.g", "hair": "#2a1c14" },
+    "character/ped.ambient.h": { "body": "character/ped.body.h", "far": "prop/ped.far.h", "hair": "#6a4a2a" }
+  },
+  "outfits": [
+    "character/ped.outfit.01", "character/ped.outfit.02", "character/ped.outfit.03", "character/ped.outfit.04", "character/ped.outfit.05",
+    "character/ped.outfit.06", "character/ped.outfit.07", "character/ped.outfit.08", "character/ped.outfit.09", "character/ped.outfit.10",
+    "character/ped.outfit.11", "character/ped.outfit.12", "character/ped.outfit.13", "character/ped.outfit.14", "character/ped.outfit.15",
+    "character/ped.outfit.16", "character/ped.outfit.17", "character/ped.outfit.18", "character/ped.outfit.19", "character/ped.outfit.20"
+  ],
+  "atlas": "texture/ped.atlas",
+  "clips": "anim/ped.moves",
+  "skinTones": ["#f1c9a5", "#c58c5f", "#8d5a3b", "#e0ac86", "#6b4430", "#d29c76", "#a8724f", "#f5cfb0"],
+  "limits": {
+    "textureMegabytes": { "full": 8, "lite": 3, "min": 1, "legacy": 3 },
+    "farMeshes": 8
+  }
+}

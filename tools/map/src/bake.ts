@@ -10,9 +10,9 @@
 import v8 from 'node:v8';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { canonicalize, chunkKeyAt, enuFromLatLng, sha256Hex, type ChunkKey, type SourceStamp } from '../../../packages/shared/src/index.ts';
+import { canonicalize, chunkBounds, chunkKeyAt, enuFromLatLng, isScatterByte, sha256Hex, type ChunkKey, type RenderChunk, type SourceStamp } from '../../../packages/shared/src/index.ts';
 import {
-  CACHE_ROOT, DEFAULT_LAMP_PITCH_M, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadDensity, loadBounds, loadRoadClass, loadSources, loadSynth, mapSchema, rawDirOf,
+  CACHE_ROOT, DEFAULT_LAMP_PITCH_M, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadCover, loadDensity, loadBounds, loadTreeForms, loadRoadClass, loadSources, loadSynth, loadVegetation, loadFurniture, mapSchema, rawDirOf,
   type AreaGrid, type AreaId, type SourcesConfig, type SynthConfig,
 } from './config.ts';
 import { CONTENT_STAMP_AT, CONTENT_STAMP_ID, contentRows, contentStamp, loadContentWorld, type ContentWorld } from './content.ts';
@@ -33,7 +33,7 @@ import { runSpawn } from './stages/s9-spawn.ts';
 import { hoodAt, runPlaces, type PlacesProduct } from './stages/s10-places.ts';
 import { runTransit, type RouteRow, type StopRow, type TransitRoutes } from './stages/s10-transit.ts';
 import { runLod } from './stages/s11-lod.ts';
-import { runFar } from './stages/s11-far.ts';
+import { cardsPreviewPng, encodeCards, runFar } from './stages/s11-far.ts';
 import { districtGridBytes, runDistrictGrid, type DistrictGridProduct } from './stages/s12-district-grid.ts';
 import { runMap, type MapProduct, type MapStreetRow } from './stages/s12-map.ts';
 import { runGeocode, type EasRow, type GeocodeReport } from './stages/s12-geocode.ts';
@@ -141,7 +141,7 @@ function cachePath(c: Ctx, stage: string): string {
   return path.join(c.o.cacheRoot ?? CACHE_ROOT, 'stages', stage, `${key}.bin`);
 }
 
-async function stage<T>(c: Ctx, id: StageId, selected: boolean, ms: Record<string, number>, run: () => T): Promise<T> {
+async function stage<T>(c: Ctx, id: StageId, selected: boolean, ms: Record<string, number>, run: () => T | Promise<T>): Promise<T> {
   const file = cachePath(c, id);
   if (!selected || (!c.o.force && existsSync(file))) {
     if (existsSync(file)) {
@@ -151,7 +151,7 @@ async function stage<T>(c: Ctx, id: StageId, selected: boolean, ms: Record<strin
     throw new Error(`stage ${id} is not selected and has no cached output for bake ${c.bakeId.slice(0, 12)}; run it first (pnpm map:build -- --area ${c.area} --stage ${id})`);
   }
   const t0 = Date.now();
-  const out = run();
+  const out = await run();
   ms[id] = Date.now() - t0;
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, v8.serialize(out));
@@ -170,7 +170,7 @@ interface TagsStage { tags: TagsProduct; spawn: Map<ChunkKey, SpawnTable>; spawn
 interface PlacesStage { places: PlacesProduct; transit: TransitRoutes; transitReport: Record<string, unknown>; gates: GateResult[] }
 interface DistrictStage { product: DistrictGridProduct; gates: GateResult[] }
 interface MapStage { product: MapProduct; geocode: Uint8Array; geoReport: GeocodeReport; gates: GateResult[] }
-interface LodStage { files: { name: string; family: 'l1' | 'l2'; x: number; y: number; units: number; bytes: Uint8Array }[]; far: { dem: Uint8Array; massing: Uint8Array; cards: Uint8Array }; report: Record<string, unknown>; farReport: Record<string, unknown> }
+interface LodStage { files: { name: string; family: 'l1' | 'l2'; x: number; y: number; units: number; bytes: Uint8Array }[]; far: { dem: Uint8Array; massing: Uint8Array; cards: Uint8Array; cardsPreview: Uint8Array }; report: Record<string, unknown>; farReport: Record<string, unknown> }
 
 export async function runBake(o: BakeOptions): Promise<BakeResult> {
   const log = o.log ?? ((l: string) => console.log(l));
@@ -222,7 +222,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     const hoods = jsonlOrEmpty<HoodRow>(path.join(rawDir, 'j2bu-swwd.jsonl'));
     const trees = jsonlOrEmpty<TreeRow>(path.join(rawDir, 'tkzw-k3nq.jsonl'));
     const product = runWater({
-      grid, osm: osmOf(c), parks, hoods, trees, minRingKm2: def.gates.s3.minRingKm2,
+      grid, osm: osmOf(c), parks, hoods, trees, treeForms: loadTreeForms(), vegetation: loadVegetation(), minRingKm2: def.gates.s3.minRingKm2,
       // Only used when no coastline reaches the box: land when most box corners are above 0.5 m.
       baseLandHint: () => {
         const m = mosaicOf(c);
@@ -367,7 +367,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
   gates.push(...districtStage.gates);
 
   // S11 LOD packs and the far backdrop
-  const lodStage = await stage<LodStage>(c, 'lod', wanted.has('lod'), ms, () => {
+  const lodStage = await stage<LodStage>(c, 'lod', wanted.has('lod'), ms, async () => {
     const lod = runLod({
       bakeId, grid, terrain: graded, landRings: water.product.landRings, landuse: water.product.landuse, buildings: buildings.product, segs: grading.product.segs, districtAt,
     });
@@ -376,7 +376,11 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       bakeId, bounds: loadBounds(), mosaic12: z12, mosaic15: mosaicOf(c), area: gridBox, areaHeight: (x, z) => graded.heightAt(x, z), isLand,
       buildings: buildings.product, segs: grading.product.segs,
     });
-    return { files: lod.files, far: { dem: far.dem, massing: far.massing, cards: far.cards }, report: lod.report as unknown as Record<string, unknown>, farReport: far.report as unknown as Record<string, unknown> };
+    const cards = await encodeCards(far.cards);
+    return {
+      files: lod.files, far: { dem: far.dem, massing: far.massing, cards, cardsPreview: cardsPreviewPng(far.cards) },
+      report: lod.report as unknown as Record<string, unknown>, farReport: { ...far.report, cardsBytes: cards.byteLength } as unknown as Record<string, unknown>,
+    };
   });
 
   // S12 map: sf-map.v1, sf-map-bldg.v1 and sf-geocode.v1 (M02c2)
@@ -405,8 +409,39 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       segs: grading.product.segs, nodes: grading.product.nodes, edges: grading.product.edges, junctions: junctions.product.junctions,
       slabs: grading.product.slabs, hoods: grading.product.hoods, ped: ped.product, tags: tagStage.tags.tags, lamps: tagStage.tags.lamps, portals: tagStage.tags.portals, spawn: tagStage.spawn,
       places: placesStage.places, lod: lodStage.files,
-      far: [{ name: 'far-bay-dem.pack', bytes: lodStage.far.dem }, { name: 'far-bay-massing.pack', bytes: lodStage.far.massing }, { name: 'far-bay-cards.png', bytes: lodStage.far.cards }],
+      far: [{ name: 'far-bay-dem.pack', bytes: lodStage.far.dem }, { name: 'far-bay-massing.pack', bytes: lodStage.far.massing }, { name: 'far-bay-cards.ktx2', bytes: lodStage.far.cards }],
+      cover: { cfg: loadCover(), osm: osmOf(c) },
+      scatter: { cfg: loadVegetation() },
+      furniture: { cfg: loadFurniture() },
     });
+    // M02h5: what the scatter placed, and the street trees per km of sidewalk in each neighbourhood (one with sidewalks and no tree warns)
+    const streetTrees = streetTreeDensity(outputs.renders, ped.product.sidewalkM, (x, z) => hoodAt(water.product.hoods, x, z));
+    if (outputs.scatter) {
+      const sc = outputs.scatter;
+      gates.push({
+        id: 's13.scatter', stage: 'S13', level: sc.records > 0 ? 'pass' : 'warn',
+        detail: `scatter ${sc.records} records: wood ${sc.wood.polys} polygons ${sc.wood.m2} m2 (${sc.wood.trees} trees, ${sc.wood.shrubs} shrubs); scrub ${sc.scrub.m2} m2 (${sc.scrub.shrubs} shrubs); parks ${sc.park.groves} groves (${sc.park.trees} trees, ${sc.park.shrubs} shrubs); hedges ${sc.hedge.blocks} blocks on ${sc.hedge.lines} lines, ${sc.yard.hedgeBlocks} in ${sc.yard.hedgeLots} yard lots; ${sc.yard.shrubs} yard shrubs`,
+        values: { records: sc.records, woodM2: sc.wood.m2 },
+      });
+      log(`pack: ${gates[gates.length - 1]?.detail ?? ''}`);
+    }
+    const bare = streetTrees.hoods.filter((h) => h.sidewalkKm > 0 && h.trees === 0).map((h) => h.name);
+    gates.push({
+      id: 's13.street-trees', stage: 'S13', level: bare.length === 0 ? 'pass' : 'warn',
+      detail: `${streetTrees.trees} street trees over ${streetTrees.sidewalkKm} km of sidewalk (${streetTrees.perKm} per km)${bare.length ? `; no street tree in ${bare.join(', ')}` : ''}`,
+      values: { trees: streetTrees.trees, perKm: streetTrees.perKm },
+    });
+    if (outputs.cover) {
+      // M02h3: cells per class; a class without a cell warns (the sf snapshot may lack a tag, the synth sources never do)
+      const empty = Object.entries(outputs.cover.cells).filter(([k, v]) => k !== 'none' && v === 0).map(([k]) => k);
+      const cells = Object.entries(outputs.cover.cells).map(([k, v]) => `${k} ${v}`).join(', ');
+      gates.push({
+        id: 's13.cover-classes', stage: 'S13', level: empty.length === 0 ? 'pass' : 'warn',
+        detail: `cover cells: ${cells}; ${outputs.cover.driveways.ways} driveways; section 21 ${outputs.cover.sectionBytes} B${empty.length ? `; no cell of ${empty.join(', ')}` : ''}`,
+        values: { ...outputs.cover.cells, sectionBytes: outputs.cover.sectionBytes },
+      });
+      log(`pack: cover ${cells}; blocks ${outputs.cover.blocks.total} (residential ${outputs.cover.blocks.residentialByLanduse} by landuse, ${outputs.cover.blocks.residentialByBuildings} by buildings, ${outputs.cover.blocks.tooLarge} too large); driveways ${outputs.cover.driveways.ways}; l0 section 21 ${outputs.cover.sectionBytes} B in ${outputs.cover.sectionRecords} rectangles`);
+    }
     outputs.files.push({
       name: 'sf-graph.v1.pack', family: 'graph', x: 0, y: 0, chunks: 1,
       bytes: graphBytes(bakeId, grading.product.nodes, grading.product.edges, grading.product.segs),
@@ -429,6 +464,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       { name: RAW_LOCK_NAME, bytes: Buffer.from(rawLockText(bakeLock)) },
       { name: 'attribution.world.json', bytes: Buffer.from(stableJson(attributionFor(cfg, o.area))) },
       { name: 'preview.png', bytes: renderPreview(grid, outputs.sims, outputs.renders) },
+      { name: 'far-bay-cards.preview.png', bytes: lodStage.far.cardsPreview },
     ];
     gates.push(...s13Gates(outputs.files.map((f) => ({ name: f.name, bytes: f.bytes.length })), [...outputs.files.map((f) => ({ name: f.name, bytes: f.bytes })), ...extra], def.gates.s13));
 
@@ -449,6 +485,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
         packs: outputs.files.length,
         buildings: buildings.product.report.records,
         trees: Math.floor(water.product.trees.length / 4),
+        scatter: outputs.scatter?.records ?? 0,
       },
       terrain: terrain.product.stats,
       water: water.product.stats,
@@ -467,6 +504,13 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       map: mapStage.product.report,
       geocode: mapStage.geoReport,
       packs: outputs.files.map((f) => ({ name: f.name, bytes: f.bytes.length, chunks: f.chunks })),
+      ...(outputs.cover ? { cover: outputs.cover } : {}),
+      // M02h4: trees per form and the most frequent names no row of config/world/tree-forms.json matched
+      treeForms: water.product.treeReport.forms,
+      treeUnmatched: water.product.treeReport.unmatched,
+      // M02h5: the scatter per kind, and the street trees per km of sidewalk per neighbourhood with their sources
+      ...(outputs.scatter ? { scatter: outputs.scatter } : {}),
+      streetTrees: { ...streetTrees, sources: water.product.treeReport.street },
     };
     const writeReport = (g: GateResult[]): void => {
       const report = { ...baseReport, gates: g, ok: failed(g).length === 0 };
@@ -500,6 +544,31 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     : {};
   const hashes = outputs ? hashTree(outDir) : mapHashes;
   return { ok: failed(gates).length === 0, bakeId, outDir, gates, hashes, ms };
+}
+
+/**
+ * M02h5: the street trees (TREE records without the scatter bit) per km of sidewalk, per neighbourhood. A chunk's trees and its S8
+ * sidewalk length count for the neighbourhood its centre lies in.
+ */
+export function streetTreeDensity(
+  renders: ReadonlyMap<ChunkKey, RenderChunk>, sidewalkM: ReadonlyMap<ChunkKey, number>, hoodOf: (x: number, z: number) => string | null,
+): { trees: number; sidewalkKm: number; perKm: number; hoods: { name: string; trees: number; sidewalkKm: number; perKm: number }[] } {
+  const by = new Map<string, { trees: number; m: number }>();
+  const keys = new Set<ChunkKey>([...renders.keys(), ...sidewalkM.keys()]);
+  for (const key of [...keys].sort()) {
+    const b = chunkBounds(key);
+    const name = hoodOf((b.minX + b.maxX) / 2, (b.minZ + b.maxZ) / 2) ?? '(none)';
+    const row = by.get(name) ?? { trees: 0, m: 0 };
+    const t = renders.get(key)?.trees;
+    if (t) for (let i = 3; i < t.length; i += 4) if (!isScatterByte(t[i] as number)) row.trees++;
+    row.m += sidewalkM.get(key) ?? 0;
+    by.set(name, row);
+  }
+  const r = (v: number): number => Math.round(v * 100) / 100;
+  const hoods = [...by.entries()].sort((a, b) => cmp(a[0], b[0])).map(([name, v]) => ({ name, trees: v.trees, sidewalkKm: r(v.m / 1000), perKm: v.m > 0 ? r(v.trees / (v.m / 1000)) : 0 }));
+  const trees = hoods.reduce((n, h) => n + h.trees, 0);
+  const m = [...by.values()].reduce((n, h) => n + h.m, 0);
+  return { trees, sidewalkKm: r(m / 1000), perKm: m > 0 ? r(trees / (m / 1000)) : 0, hoods };
 }
 
 /** relative path to sha256 of every file below `dir`, bake-times.json excluded. */

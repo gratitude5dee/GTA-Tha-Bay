@@ -1,0 +1,27 @@
+{
+  "schema": "world-tree-forms/1",
+  "note": "M02h4 (DL-741): the tree form class of the TREE byte. The bake (S3) matches the lowercased genus (the first word of the botanical name) of a DataSF street tree (`species`, `Genus species :: Common name`) or an OSM natural=tree (`species`, then `genus`, then leaf_type=needleleaved as conifer) against `genus`; an unmatched name takes a hash-keyed split, `planeShare` Plane and the rest Ficus. Rows beyond the milestone's eleven were tuned from the genus counts of the sf raw snapshot (tkzw-k3nq.jsonl, 144,519 rows, read 2026-11-01). `forms.*.heightM` is the triangular [min, mode, max] of the mesher's height draw, in metres; `asset` (absent) may later name an AssetRef for a near LOD. M02h5: `shrub` and `hedge` are the understory forms of the scatter (bytes 5 and 6); `skipSpecies` drops DataSF rows whose lowercased genus or whole name is listed: planting sites and stumps are no tree (2,117 rows of the sf snapshot, tuned from M02h4 treeUnmatched). Design values.",
+  "genus": {
+    "platanus": "plane", "patanus": "plane", "acer": "plane", "ulmus": "plane", "quercus": "plane", "liquidambar": "plane", "fraxinus": "plane",
+    "ginkgo": "plane", "zelkova": "plane", "tilia": "plane", "celtis": "plane", "liriodendron": "plane", "gleditsia": "plane", "betula": "plane",
+    "ficus": "ficus", "magnolia": "ficus", "tristaniopsis": "ficus", "pittosporum": "ficus", "lophostemon": "ficus", "metrosideros": "ficus",
+    "prunus": "ficus", "arbutus": "ficus", "olea": "ficus", "pyrus": "ficus", "laurus": "ficus", "eriobotrya": "ficus", "rhaphiolepis": "ficus",
+    "cupressus": "conifer", "pinus": "conifer", "sequoia": "conifer", "juniperus": "conifer", "podocarpus": "conifer", "afrocarpus": "conifer",
+    "cedrus": "conifer", "araucaria": "conifer", "cupressocyparis": "conifer", "thuja": "conifer", "taxus": "conifer", "calocedrus": "conifer",
+    "picea": "conifer", "pseudotsuga": "conifer", "metasequoia": "conifer", "chamaecyparis": "conifer", "sequoiadendron": "conifer",
+    "eucalyptus": "eucalyptus", "corymbia": "eucalyptus", "angophora": "eucalyptus", "casuarina": "eucalyptus",
+    "phoenix": "palm", "washingtonia": "palm", "syagrus": "palm", "trachycarpus": "palm", "chamaerops": "palm", "brahea": "palm",
+    "archontophoenix": "palm", "howea": "palm", "butia": "palm", "cordyline": "palm", "palm": "palm"
+  },
+  "fallback": { "planeShare": 0.6 },
+  "forms": {
+    "plane": { "heightM": [6, 10, 16] },
+    "ficus": { "heightM": [4, 6, 9] },
+    "conifer": { "heightM": [6, 12, 20] },
+    "eucalyptus": { "heightM": [10, 18, 30] },
+    "palm": { "heightM": [6, 10, 16] },
+    "shrub": { "heightM": [0.6, 1.2, 2.5] },
+    "hedge": { "heightM": [0.9, 1.4, 2.2] }
+  },
+  "skipSpecies": ["planting", "stump"]
+}

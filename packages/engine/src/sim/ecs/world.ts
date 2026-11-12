@@ -96,6 +96,7 @@ export class EcsWorld implements EcsApi {
   private orderVersion = -1;
   private orderCache: Uint32Array = new Uint32Array(0);
   private readonly bitmap = new Uint32Array(BITMAP_WORDS);
+  private readonly despawnListeners: ((id: EntityId) => void)[] = [];
 
   constructor(opts: EcsWorldOptions = {}) {
     this.registry = new ComponentRegistry([...ENGINE_COMPONENTS, ...(opts.components ?? [])]);
@@ -166,6 +167,20 @@ export class EcsWorld implements EcsApi {
   /** Apply the queued commands now (SimCore calls this at the end of every stage). */
   flush(): void {
     this.commands.apply();
+  }
+
+  /**
+   * Calls `fn` with the dense id of every entity a despawn command removes, when the command is applied and before the id is freed for
+   * the next spawn (BD-FIX-VEHICLE-SLOT-01). For engine state kept outside the stores and keyed by the dense id, which must go with its
+   * entity: the id is reused, last freed first, by the next spawn. A snapshot restore replaces the world without calling it. Returns the
+   * unsubscribe function.
+   */
+  onDespawn(fn: (id: EntityId) => void): () => void {
+    this.despawnListeners.push(fn);
+    return () => {
+      const i = this.despawnListeners.indexOf(fn);
+      if (i >= 0) this.despawnListeners.splice(i, 1);
+    };
   }
 
   /** Reserved plus live entities. */
@@ -412,6 +427,7 @@ export class EcsWorld implements EcsApi {
       applyDespawn: (handle) => {
         const id = this.alloc.resolve(handle);
         if (id === null) return;
+        for (const fn of this.despawnListeners) fn(id);
         this.keyToId.delete(this.strings.get(this.keyStore[id] as number));
         for (const ref of getEntityComponents(this.bw, id)) {
           const l = this.layouts.get((ref as ComponentDef).id);

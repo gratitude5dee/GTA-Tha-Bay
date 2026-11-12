@@ -35,12 +35,38 @@ function demoRace(): RaceDef {
   };
 }
 
+/**
+ * QA only (M11a1): the stand-ins the perf scenarios `race-sprint` and `race-pursuit-heat4` run when the world is the synth city of CI,
+ * which has none of the baked `sf` streets the real races are compiled for. A 1,000 m straight north along the street at x = 3100
+ * from z = 440 (the street the scenario `downtown-rush` drives), with the demo's 24 m gates. The pursuit one is the same road with the
+ * police on at heat 4. The page puts the player at the grid first, so the colliders are streamed in before the race loads.
+ */
+export const PERF_SPRINT_RACE = 'qa.perf.sprint';
+export const PERF_PURSUIT_RACE = 'qa.perf.pursuit';
+export const PERF_AT = { x: 3100, y: 10, z: 440 } as const;
+
+function perfRace(id: string, police: boolean): RaceDef {
+  const d = straightRaceDef({ lengthM: 1000, gates: 5, widthM: 24 });
+  return {
+    ...d,
+    id,
+    titleKey: 'race.demo.straight',
+    opponents: [],
+    police: police ? { enabled: true, startHeat: 4, maxHeat: 4, success: 'evade' } : d.police,
+    line: { ...d.line, start: [PERF_AT.x * 10, PERF_AT.z * 10] },
+    elevation: d.elevation.map((e) => ({ s: e.s, y: PERF_AT.y })),
+    gates: d.gates.map((g) => ({ ...g, at: [g.at[0] + PERF_AT.x, PERF_AT.y, g.at[2] + PERF_AT.z] as [number, number, number] })),
+  };
+}
+
 export const RACE_DEFS: Readonly<Record<RaceId, RaceDef>> = {
   'sf.sprint.ferry-ocean-beach': ferryOceanBeach as unknown as RaceDef,
   'sf.circuit.embarcadero-vanness': embarcaderoVanness as unknown as RaceDef,
   'sf.downhill.twin-peaks-mission': twinPeaksMission as unknown as RaceDef,
   'sf.pursuit.bayview-escape': bayviewEscape as unknown as RaceDef,
   [DEMO_RACE]: demoRace(),
+  [PERF_SPRINT_RACE]: perfRace(PERF_SPRINT_RACE, false),
+  [PERF_PURSUIT_RACE]: perfRace(PERF_PURSUIT_RACE, true),
 };
 
 export { DEFAULT_RACE };

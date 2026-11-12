@@ -57,6 +57,22 @@ describe('settings binding (AC-11)', () => {
     binder.flush();
   });
 
+  it('tells the shell about a device change at once, so a device row shows the new choice (BD-REPAIR-M11a1-03)', () => {
+    const changed = vi.fn();
+    let settings: PlatformSettings = { ...DEFAULT_SETTINGS };
+    const platform = {
+      settings: () => settings,
+      update: (p: Partial<PlatformSettings>) => {
+        settings = { ...settings, ...p };
+        return Promise.resolve();
+      },
+    } as unknown as PlatformPort;
+    const binder = new SettingsBinder({ base: () => null, sendUi: () => true, platform: () => platform, prefs: memoryPrefs(defaultPrefs()), changed });
+    binder.set({ scope: 'device', path: 'fpsCap' }, 30);
+    expect(changed).toHaveBeenCalledTimes(1);
+    expect(binder.get({ scope: 'device', path: 'fpsCap' })).toBe(30);
+  });
+
   it('shows a profile change at once (overlay) and drops it when the sim echoes the value', () => {
     const { binder, base } = setup();
     expect(binder.get({ scope: 'profile', path: 'audio.master' })).toBe(1);

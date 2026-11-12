@@ -3,8 +3,9 @@ import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { PlatformBridge } from '../../packages/engine/src/platform/probe.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
-import { decodePng, encodePng, identical, type Rgba } from '../support/image-diff.ts';
+import { encodePng, identical, type Rgba } from '../support/image-diff.ts';
 import { FLICKER_BASELINE_FILE, FLICKER_FLOOR, FLICKER_PAIRS, FLICKER_THRESHOLD, FLICKER_VIEWPORT, flickerLimit, flickerShare, flickerShareRaw, type FlickerBaseline, type FlickerPairId } from '../support/flicker.ts';
+import { canvasRgba } from './canvas-capture.ts';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
 
 /**
@@ -90,10 +91,10 @@ export async function captureShot(page: Page, shot: string, how: 'shot' | 'move'
   });
   await frames(page, 3);
   // the sky's blend and the exposure settle over a few presented frames: the picture counts once two consecutive frames agree
-  let img = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+  let img = await canvasRgba(page);
   for (let i = 0; i < 5; i++) {
     await frames(page, 2);
-    const next = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+    const next = await canvasRgba(page);
     const same = identical(img, next);
     img = next;
     if (same) break;
@@ -159,6 +160,16 @@ export function registerFlickerPair(pairId: FlickerPairId): void {
       // moves by whole pixels near the camera (10 px at 1.5 m: parallax, not sparkle), so the layer is off here; the paint's own pair, with its
       // own region and threshold, is `markings-flicker-*.spec.ts` (@markings-golden). Tiers without the layer ignore the call.
       await page.evaluate(() => (window as unknown as W).__dvBridge.world.setLookLayer('markings', false));
+      // M02h6 (BD-M02h6-15): the street furniture is off here for the same reason. A utility pole 12 to 20 m from the camera is a thin
+      // vertical edge the 5 cm step moves by 2 px (parallax): on the synth bake of M10d2 one stands in `civic-hall-graze` and its edges
+      // alone read 0.13 % with the one-pixel window and under 0.02 % with a two-pixel one. These pairs count the depth fights and fades
+      // M02g2 fixed; the furniture has its own checks (@world-furniture, @furniture-ledger, the `junction-noon` goldens). The parked
+      // dressing is hidden with the traffic by `captureShot` (BD-M02h6-04); its layer goes off too.
+      await page.evaluate(() => {
+        const w = (window as unknown as W).__dvBridge.world;
+        w.setLookLayer('furniture', false);
+        w.setLookLayer('parked', false);
+      });
       const t1 = Date.now();
       const a = await captureShot(page, pair.id, 'shot');
       const t2 = Date.now();

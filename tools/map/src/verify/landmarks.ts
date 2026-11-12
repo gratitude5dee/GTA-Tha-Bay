@@ -79,7 +79,21 @@ export function validateLandmarksInBake(bakeDir: string, area: string): Finding[
 }
 
 /** `--build [--slug <id>] [--check]`: the landmark models (M02d1). */
-export interface LandmarkBuildResult { findings: Finding[]; plans: AssetPlan[]; written: string[] }
+export interface LandmarkBuildResult { findings: Finding[]; plans: AssetPlan[]; written: string[]; replaced: string[] }
+
+/** The tag of a `building/lm.<slug>` asset whose files are a supplied Blender model, not the recipe output (M10d2 landmark art pass). */
+export const AUTHORED_TAG = 'art:authored';
+
+/** Whether the landmark's committed asset is a supplied model (its asset.json carries `art:authored`): the recipe build skips it. */
+export function isReplacedLandmark(root: string, id: string): boolean {
+  const spec = path.join(root, 'assets', 'src', 'building', id, 'asset.json');
+  if (!existsSync(spec)) return false;
+  try {
+    return ((JSON.parse(readFileSync(spec, 'utf8')) as { tags?: string[] }).tags ?? []).includes(AUTHORED_TAG);
+  } catch {
+    return false;
+  }
+}
 
 /** The recipe id of `--slug` (`lm.coit-tower` or `coit-tower`), or null for all. */
 export const normalizeSlug = (slug: string): string => (slug.startsWith('lm.') ? slug : `lm.${slug}`);
@@ -89,14 +103,20 @@ export async function buildLandmarks(opts: { root?: string; slug?: string | unde
   const findings: Finding[] = [];
   const plans: AssetPlan[] = [];
   const written: string[] = [];
+  const replaced: string[] = [];
   const seeds = new Map(loadContentWorld().landmarks.map((l) => [l.id, l] as const));
   const want = opts.slug ? normalizeSlug(opts.slug) : null;
   if (want && !RECIPES.some((r) => r.id === want)) {
     findings.push({ level: 'fail', id: 'landmarks.build-slug', detail: `${want} has no recipe (${RECIPES.map((r) => r.id).join(', ')})` });
-    return { findings, plans, written };
+    return { findings, plans, written, replaced };
   }
   for (const def of RECIPES) {
     if (want && def.id !== want) continue;
+    // M10d2: a supplied model at the same AssetId replaces the recipe; the build neither writes nor checks it, and lists it
+    if (isReplacedLandmark(root, def.id)) {
+      replaced.push(def.id);
+      continue;
+    }
     const seed = seeds.get(def.id);
     if (!seed) { findings.push({ level: 'fail', id: 'landmarks.build-seed', detail: `${def.id} is not in content/world/landmarks.json` }); continue; }
     if (!seed.recipe) { findings.push({ level: 'fail', id: 'landmarks.build-recipe', detail: `${def.id}: no recipe key in content/world/landmarks.json` }); continue; }
@@ -111,7 +131,7 @@ export async function buildLandmarks(opts: { root?: string; slug?: string | unde
       written.push(plan.dir);
     }
   }
-  return { findings, plans, written };
+  return { findings, plans, written, replaced };
 }
 
 // ---- catalog completeness (M02d2) -----------------------------------------------------------------------------------------------

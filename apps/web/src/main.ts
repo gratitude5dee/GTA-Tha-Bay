@@ -1,11 +1,13 @@
-import { collectDiagnosticSignals, createPlatform, fetchBootRegion, formatDiagnostics, parseQaFlags } from '@dv/engine';
+import { collectDiagnosticSignals, createPlatform, fetchBootRegion, formatDiagnostics, parseQaFlags, UiHold } from '@dv/engine';
 import { storyBoot } from './story-content.ts';
 import { bootEngine, type EngineHandle } from '@dv/engine/client/boot';
+import { earlySimWorker, type EarlySimWorker } from '@dv/engine/client/boot/spawn-worker';
 import type { WorkerPort } from '@dv/engine/assets/client';
 import type { WorkerLike } from '@dv/engine/sim';
 import { bootChoice } from '@dv/world/sim/boot';
 import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/client';
 import platformFlags from '../../../config/platform-flags.json';
+import lookConfig from '../../../config/world/look.json';
 import { createVoicePreview, creatorVoiceRef, CREATOR_VOICES, loadPrefs, memoryPrefs, defaultPrefs, mountShell, registerTexts, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps, type VoicePreview } from '@dv/ui';
 import type { TtsAudioHost } from '@dv/npc/voice';
 import type { FighterUiHandle } from './fighter-ui.ts';
@@ -15,7 +17,9 @@ import type { CutsceneGlue } from './cutscene.ts';
 import { createEnginePort, createPlatformPort, createSavesPort } from './shell-ports.ts';
 import './engine.css';
 import { afterWindowLoad, createPwaUpdateController, isRegistration } from './pwa-update.ts';
+import { wireUiHold } from './ui-hold.ts';
 import { catalogFailureCode, worldIndexFailureCode } from './world-failure.ts';
+import { bodyAssets } from './body-assets.ts';
 // The M01f gray-box fixture packs, as hashed static files (M01e replaces this with the pack store).
 import grayboxL0Url from '../../../tests/fixtures/world/civic-graybox/l0-64-64.pack?url';
 import grayboxP0Url from '../../../tests/fixtures/world/civic-graybox/p0-64-64.pack?url';
@@ -113,6 +117,10 @@ const shellProps = (unsupported: boolean): ShellProps => ({
 });
 const shell: ShellHandle = mountShell(root, shellProps(flags.unsupported));
 applyView();
+// The shell's pages and the gates' input go before the next frame of the tier benchmark or of the world behind the menus
+// (BD-FIX-MENU-BOOT-01): each such frame is one long main-thread task on a slow GPU.
+const uiHold = new UiHold();
+wireUiHold({ core: shell.core, root, hold: uiHold });
 if (QA) installIdentityBridge(identity);
 
 /** The reload prompt after a second device loss (11-platform.md section 5.8). */
@@ -152,6 +160,23 @@ function showReadOnlyNotice(): void {
 // The platform (device probe, tier decision, renderer host, telemetry) and the engine (sim.worker, Rapier, the debug cube
 // view on the host's scene). Skipped on the unsupported screen. WebGL2 failing as well shows the unsupported page.
 async function boot(): Promise<void> {
+  // The composed sim worker: the engine sim plus the world streaming module (M02b1, DL-651); the literal form Vite bundles. It spawns right
+  // after asset.worker, before the tier benchmark (01-engine.md section 5 boot order: both workers before heavy work), and loads its script
+  // while the benchmark runs; its `init` still waits for the tier and the world (BD-FIX-WEBKIT-ATTACH-01).
+  const simWorker: EarlySimWorker = earlySimWorker(
+    () => new Worker(new URL('./workers/sim.worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike,
+  );
+  try {
+    await bootPlatformAndEngine(simWorker);
+  } catch (error) {
+    // A failure anywhere before the engine took the early worker leaves no worker running; one the engine took is the engine's
+    // (BD-FIX-WEBKIT-ATTACH-02).
+    simWorker.dispose();
+    throw error;
+  }
+}
+
+async function bootPlatformAndEngine(simWorker: EarlySimWorker): Promise<void> {
   const container = document.createElement('div');
   container.id = 'dv-engine';
   // Translators and accessibility tools skip the canvas container (M04b5, 10-ui-hud-xr.md section 2.14 rule 5).
@@ -180,6 +205,10 @@ async function boot(): Promise<void> {
       build: BUILD,
       // The composed asset worker: the engine's pack store plus the world jobs (M02b1).
       spawnAssetWorker: () => new Worker(new URL('./workers/asset.worker.ts', import.meta.url), { type: 'module', name: 'asset' }) as unknown as WorkerPort,
+      // sim.worker right after it, outside the asset worker's error handling: a sim worker that cannot be made costs neither the pack store
+      // nor a leaked asset worker (BD-FIX-WEBKIT-ATTACH-02).
+      afterAssetWorker: () => simWorker.start(),
+      uiHold,
       // Before the Terms are accepted nothing is sent: consent starts off and the Terms card sets it (10-ui-pages.md 2.4 rule 6).
       ...(termsOk ? {} : { consent: { diagnostics: false, analytics: false } }),
       // The region probe (`GET /api/v1/boot`) waits for the age screen to pass; a device that is blocked never asks (BD-M04b1-04).
@@ -191,16 +220,46 @@ async function boot(): Promise<void> {
     });
   } catch (error) {
     console.error('platform failed to start', error);
+    simWorker.dispose();
     shell.core.fire('unsupported');
     return;
   }
   void import('@dv/engine/client/creator-stage').then((m) => {
-    creatorStage = m.createCreatorStage(platform.host) as unknown as CreatorStagePort;
+    // The part models of the creator (M10d4): the stage loads `character/pc-<part>` and the atlas pages through the asset client; without
+    // the client (or a catalog that is not ready) it keeps the mannequin figure.
+    const store = platform.assets;
+    const stageAssets = store
+      ? {
+          load: async (ref: string): Promise<ArrayBuffer> => {
+            if ((await store.loadCatalog()) !== 'ready') throw new Error('catalog not ready');
+            return store.get(ref as `character/${string}`);
+          },
+          texture: async (ref: string): Promise<ImageBitmap | null> => {
+            if ((await store.loadCatalog()) !== 'ready') return null;
+            return createImageBitmap(new Blob([await store.get(ref as `texture/${string}`)], { type: 'image/png' }));
+          },
+        }
+      : undefined;
+    creatorStage = m.createCreatorStage(platform.host, stageAssets) as unknown as CreatorStagePort;
+    // QA builds only: the stage state (figure, parts, triangles, textures) for the @art-creator case.
+    if (import.meta.env.VITE_DV_QA === '1') Object.defineProperty(window, '__dvCreatorStage', { configurable: true, get: () => (creatorStage as unknown as { state: unknown } | null)?.state ?? null });
   });
   platformPort = createPlatformPort(platform, (name, props) => platform.telemetry.emit(name, props), {
     // The player's render scale reaches the canvas at once (M04b5); the engine may not exist yet, and takes the stored value at boot.
-    onChange: (next) => engineRef?.setRenderScale(next.renderScale),
+    // The frame cap and a fixed scale reach the pacer and the governor too (M11a1, DL-727).
+    onChange: (next) => {
+      engineRef?.setRenderScale(next.renderScale);
+      platform.applyPlayerSettings(next);
+    },
   });
+  // The governor never touches a knob that nothing in the page reads (BD-M11a1-03). The world adds its knobs once it exists.
+  platform.governor.setLiveKnobs(['renderScale', 'targetFps']);
+  platform.governor.setPostLevelCap(lookConfig.postLevelCap);
+  // A tier change (the governor's demotion, the memory budget's, a Settings override) lands only at a safe point: the title, a menu, the
+  // pause menu or a loading screen, never in the middle of play (11-platform.md section 5.3).
+  const syncSafePoint = (): void => platform.quality.setSafePoint(shell.core.state !== 'InMode' && shell.core.state !== 'Recovering');
+  shell.core.subscribe(syncSafePoint);
+  syncSafePoint();
   shell.attachPlatform(platformPort);
   applyPendingConsent();
 
@@ -325,8 +384,8 @@ async function boot(): Promise<void> {
     tier: platform.quality.tier.id,
     ...(flags.profile ? { profile: flags.profile } : {}),
     labels: { recovering: t('engine.recovering') },
-    // The composed sim worker: the engine sim plus the world streaming module (M02b1, DL-651); the literal form Vite bundles.
-    spawn: () => new Worker(new URL('./workers/sim.worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike,
+    // The sim worker spawned with asset.worker for the first start, a fresh one for every restart.
+    spawn: () => simWorker.spawn(),
     headless,
     ...(prepared
       ? { world: prepared.boot }
@@ -343,8 +402,11 @@ async function boot(): Promise<void> {
     onPhone: () => shell.core.togglePhone(),
     // Toasts the sim raises (unlocks, refused modes, boundary notices) are drawn by the shell.
     onToast: (toast) => shell.onToast(toast),
+    // M10d5: the on-foot bodies of the streamed world (the player's creator parts, the mission actors' ped kit)
+    ...(prepared && assets && !(QA && new URLSearchParams(location.search).get('art') === '0') ? { bodies: bodyAssets(assets, prepared.view.whenRevealed()) } : {}),
   }).catch((error: unknown) => {
     console.error('engine failed to start', error);
+    simWorker.dispose();
     return null;
   });
   engineRef = engine;
@@ -443,7 +505,19 @@ async function boot(): Promise<void> {
   if (prepared) {
     const view = prepared.view;
     view.setAtmosphereLevel(platform.quality.dynamic.atmosphereLevel);
+    // The governor's streaming and crowd knobs, and the memory budget's responses (M11a1).
+    platform.governor.setLiveKnobs(['renderScale', 'buildingDistanceScale', 'lodBias', 'crowdDensity', 'postLevel', 'atmosphereLevel', 'targetFps']);
+    const worldKnobs = (q: Readonly<typeof platform.quality.dynamic>): void =>
+      view.setQualityKnobs({ lodBias: q.lodBias, buildingDistanceScale: q.buildingDistanceScale, crowdDensity: q.crowdDensity });
+    worldKnobs(platform.quality.dynamic);
+    const memory = view.memoryHooks();
+    platform.memoryBudget.evictors.register('world-chunks', () => {
+      memory.evict();
+    });
+    platform.memoryActions.dropRadius = memory.dropRadius;
+    platform.memoryActions.restoreRadius = memory.restoreRadius;
     platform.quality.onDynamicChange((q) => {
+      worldKnobs(q);
       view.setAtmosphereLevel(q.atmosphereLevel);
       // The governor's postLevel moves the post stack (M02e; the effective level is capped by look.json postLevelCap).
       view.lookView?.setPostLevel(q.postLevel);
@@ -479,6 +553,11 @@ async function boot(): Promise<void> {
     const npcAudio = !engine?.audioService ? null : { host: engine.audioService as unknown as TtsAudioHost, unlock: () => engine.audioUnlock() };
     void import('./qa/npc.ts').then((m) => m.installNpcQa(identity, npcAudio, attestedGate, engine ? (engine.vm as never) : null, (name, props) => platform.telemetry.emit(name, props))).catch((e: unknown) => console.warn('npc qa panel failed', e));
     if (assets) installAssetsBridge(assets);
+    // window.__dvBridge.uiHold: what the menus' hold has done (BD-FIX-MENU-BOOT-01); the in-play spec reads that play notes nothing.
+    {
+      const w = window as unknown as { __dvBridge?: Record<string, unknown> };
+      w.__dvBridge = { ...(w.__dvBridge ?? {}), uiHold: { notes: () => uiHold.notes, releases: () => uiHold.releases } };
+    }
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});
     if (prepared && qaChunks.world) (await qaChunks.world).installWorldBridge(prepared.view, platform.quality.tier.id, prepared.prefetch);

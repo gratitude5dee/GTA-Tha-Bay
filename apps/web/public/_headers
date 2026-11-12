@@ -3,7 +3,7 @@
   Cross-Origin-Embedder-Policy: require-corp
   Cross-Origin-Resource-Policy: same-origin
   Content-Security-Policy-Report-Only: %CSP_REPORT_ONLY%
-  Reporting-Endpoints: csp="/api/v1/reports/browser"
+  Reporting-Endpoints: csp="/api/v1/reports/browser", crash-reporting="/api/v1/reports/browser", default="/api/v1/reports/browser"
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
 /assets/*

@@ -79,6 +79,8 @@ export class AssetService {
   private lock: TabLock | null = null;
   private fetchHook: FetchFn;
   private readonly aborts = new Map<number, AbortController>();
+  /** When each request still unanswered was taken up (`clock`), for the `held` op. */
+  private readonly takenAt = new Map<number, number>();
   private readonly errCounts = new Map<string, number>();
   private readonly pinnedHashes = new Set<string>();
   private base = { hits: 0, evictions: 0, prefetchStops: 0 };
@@ -234,14 +236,37 @@ export class AssetService {
     }
     const ac = new AbortController();
     this.aborts.set(msg.id, ac);
+    // Taken up now, before the first await: a request is held from here until its reply is posted (the `held` op reads this).
+    this.takenAt.set(msg.id, this.clock());
     try {
       const out = await this.dispatch(msg, ac.signal);
+      this.takenAt.delete(msg.id);
       this.d.post({ t: 'res', id: msg.id, ok: true, result: out.result, bytes: this.stats().bytes }, out.transfer);
     } catch (e) {
+      this.takenAt.delete(msg.id);
       this.d.post({ t: 'res', id: msg.id, ok: false, error: toWire(e), bytes: this.stats().bytes });
     } finally {
       this.aborts.delete(msg.id);
     }
+  }
+
+  /** Milliseconds for `held`: the injected clock, else the worker's monotonic one. */
+  private clock(): number {
+    return this.d.now ? this.d.now() : performance.now();
+  }
+
+  /**
+   * The `held` op (BD-FIX-LANDMARK-PREPARE-01). The worker takes requests up in the order they arrive (each `handle` registers its id
+   * before its first await) but finishes them in any order (a job may wait on the store while later ones run). A caller that asks about
+   * requests it sent earlier therefore learns, per request, whether the worker still holds it and for how long; this answer is posted in
+   * order with every other reply, so a request reported as not held has had its reply posted before this one.
+   */
+  private held(ids: readonly number[]): (number | null)[] {
+    const now = this.clock();
+    return ids.map((id) => {
+      const at = this.takenAt.get(id);
+      return at === undefined ? null : Math.max(0, now - at);
+    });
   }
 
   private async refOf(target: Target, tier: RpcOps['get'][0]['tier']): Promise<PackRef> {
@@ -397,6 +422,8 @@ export class AssetService {
         if (!job) throw new Error(`unknown asset job: ${p.name}`);
         return job(this, p.args, signal);
       }
+      case 'held':
+        return { result: this.held((msg.p as RpcOps['held'][0]).ids) };
       default:
         throw new Error(`unknown asset op: ${String(op)}`);
     }

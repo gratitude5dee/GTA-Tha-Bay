@@ -976,6 +976,28 @@
         "reason"
       ],
       "additionalProperties": false
+    },
+    "app.crash": {
+      "type": "object",
+      "description": "A browser crash report received on route 4 (M11a1, C16 1.2, DL-224). Server-only: the reason (Chromium reports oom or unresponsive) and the build; the page path goes to the log line, never to the event.",
+      "properties": {
+        "reason": {
+          "enum": [
+            "oom",
+            "unresponsive",
+            "other"
+          ]
+        },
+        "build": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "reason",
+        "build"
+      ],
+      "additionalProperties": false
     }
   }
 }

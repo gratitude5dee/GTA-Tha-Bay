@@ -87,7 +87,10 @@
         "npcBrainsBMax": { "type": "integer", "minimum": 0 },
         "npcBrainMsMean": { "type": "number", "minimum": 0 },
         "npcBrainMsMax": { "type": "number", "minimum": 0 },
-        "npcBrainTicks": { "type": "integer", "minimum": 0 }
+        "npcBrainTicks": { "type": "integer", "minimum": 0 },
+        "raceRivals": { "type": "integer", "minimum": 0 },
+        "racePoliceMax": { "type": "integer", "minimum": 0 },
+        "raceHeatMax": { "type": "integer", "minimum": 0 }
       }
     },
     "memory": {

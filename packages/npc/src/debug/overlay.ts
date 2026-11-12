@@ -24,6 +24,14 @@ export interface DebugTurnResult {
   aiCharacter: boolean;
 }
 
+/** A `hud.subtitle` value as the page's view model held it (C06 1.1 `{speaker, text, startMs, endMs}`). */
+export interface DebugSubtitleCue {
+  speaker?: string;
+  text: string;
+  startMs?: number;
+  endMs?: number;
+}
+
 export interface NpcBridge {
   /** One turn through the runtime. `turn` defaults to a greeting. */
   talk(npcId?: string, turn?: NPCDialogueRequest['turn']): Promise<DebugTurnResult>;
@@ -32,6 +40,12 @@ export interface NpcBridge {
   open(npcId?: string): void;
   /** M06a5: the `npc.*` telemetry events this page's runtime emitted (counts and enums only), newest last. */
   telemetry(): readonly { name: string; props: Record<string, string | number | boolean> }[];
+  /**
+   * Every `hud.subtitle` cue the page's view model received, oldest first (each value once, as it was set; the clears are not listed).
+   * A cue is on screen for `max(1.5 s, 60 ms per character)` only, so a test reads this record instead of racing the clear with a poll
+   * (BD-FIX-DIALOGUE-SUBTITLE-01). Empty where the page has no view model.
+   */
+  subtitles(): readonly DebugSubtitleCue[];
   /** Ends the encounter with the NPC (the next turn opens a new one). */
   end(npcId?: string): void;
   /** Subscribes to changes of the shown state; returns the unsubscribe. */
@@ -51,6 +65,8 @@ export interface NpcBridgeHooks {
   onVoice?: (on: boolean) => void;
   /** The telemetry events the page's runtime emitted, for the bridge to show. */
   telemetry?: () => readonly { name: string; props: Record<string, string | number | boolean> }[];
+  /** The `hud.subtitle` cues the page's view model received, for the bridge to show. */
+  subtitles?: () => readonly DebugSubtitleCue[];
   /** Called before each bridge turn: open the dialogue panel for the NPC (the page patches `sys.dialogue.open`). */
   openPanel?: (npcId: string) => void;
   /** Runs the turn in place of `runtime.talk` (the panel's session does, so it sees the same events). A null result means the turn did not run. */
@@ -63,6 +79,27 @@ export interface NpcBridgeHooks {
 }
 
 export const DEBUG_NPC_ID = 'npc_test';
+
+/** How many `hud.subtitle` cues `subtitleRecorder` keeps (the newest). */
+export const SUBTITLE_RECORD_MAX = 100;
+
+/**
+ * Records every value a view-model key takes as it is set (`subscribe` is the page's `ViewModelStore.subscribe` for `hud.subtitle`):
+ * each non-null value once, copied, oldest first; the clears are not listed and the newest `max` are kept. `cues()` is what the bridge's
+ * `subtitles()` hands out (BD-FIX-DIALOGUE-SUBTITLE-01).
+ */
+export function subtitleRecorder(
+  subscribe: (cb: (v: unknown) => void) => () => void,
+  max: number = SUBTITLE_RECORD_MAX,
+): { cues(): readonly DebugSubtitleCue[]; stop(): void } {
+  const cues: DebugSubtitleCue[] = [];
+  const stop = subscribe((v) => {
+    if (v === undefined || v === null || typeof v !== 'object') return;
+    cues.push({ ...(v as DebugSubtitleCue) });
+    if (cues.length > max) cues.splice(0, cues.length - max);
+  });
+  return { cues: () => cues, stop };
+}
 
 /** A neutral story-mode scene: nothing offered, nothing nearby. */
 export function debugContext(voice: NPCDialogueContext['voice'] = 'off'): NPCDialogueContext {
@@ -131,6 +168,7 @@ export function installNpcBridge(
     last: () => last,
     open: (npcId = DEBUG_NPC_ID) => hooks.openPanel?.(npcId),
     telemetry: () => hooks.telemetry?.() ?? [],
+    subtitles: () => hooks.subtitles?.() ?? [],
     end: (npcId = DEBUG_NPC_ID) => runtime.endEncounter(npcId),
     onChange(fn) {
       listeners.add(fn);

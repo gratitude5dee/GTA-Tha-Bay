@@ -1,8 +1,8 @@
 /**
  * The L0 mesher (02-world.md section 5.2 rule 4, 02-world-bake.md section 6; M02b1). Turns a decoded chunk (`SimChunk` for
  * the heightfield, ground classes and road segments, `RenderChunk` for the footprints and trees) into at most six render
- * objects: `terrain`, `buildings`, `roads` and `vegetation` (the tree instances); `furniture` and `extras` stay empty until their
- * milestones. It imports nothing from `three`, so it runs in asset.worker, and it is deterministic: the same chunk and options
+ * objects: `terrain`, `buildings`, `roads` and `vegetation` (the tree instances); the chunk `furniture` object and `extras` stay empty
+ * (since M02h6 the street furniture is records, `UnitMesh.furniture`, drawn by global pools, C08 1.1 rule 12). It imports nothing from `three`, so it runs in asset.worker, and it is deterministic: the same chunk and options
  * give the same bytes.
  *
  *  - terrain: every 1st / 2nd / 4th post (desktop / mobile / mobile-low), so every vertex lies on the physics surface, with the
@@ -15,27 +15,40 @@
  *    when the triangle budget has room, and the pitched eaves;
  *  - roads: ribbons along the `p0` segment centrelines, lifted 0.12 m plus 0.01 m per class rank (the busier road on top, drawn
  *    last), at the carriageway width;
- *  - trees: one instance record per tree (x, y, z, scale, species), drawn as one instanced mesh; the foot is the lowest terrain
- *    under the trunk and the height stays under the nearest eave.
+ *  - trees: one instance record per tree (x, y, z, height, yaw, form and tint; M02h4), drawn by the global vegetation pools; the
+ *    foot is the lowest terrain under the trunk and the height, drawn from the form's distribution, stays under the nearest eave;
+ *  - furniture (M02h6): the `RenderChunk.furniture` records, or `placeFurniture`'s when the pack has none (DL-740: the bake fill stays
+ *    off in v1), plus a signal assembly per approach of each Signal junction and (`full`) trolley wires, as `UnitMesh.furniture` records;
+ *    the look profile's pools decide which kinds are kept (none on `legacy`).
  *
  * Positions are local to the chunk's north-west corner (`x`, `z`), with `y` absolute, so a float32 position keeps its precision
  * 10 km from the origin.
  */
 import earcut from 'earcut';
 import {
-  NodeControl, PedEdgeKind, PedNodeFlag, TERRAIN_POSTS, chunkBounds, sampleHeight, type BuildingRecord, type ChunkKey, type QualityTierId, type RenderChunk, type SimChunk,
+  ambientKey, ctrU32, datan2, densityCap, placeFurniture, signalHeads, wireSpans, worldSeedOf, type FurnitureFile, type ParkedSlot,
+  NodeControl, PedEdgeKind, PedNodeFlag, TERRAIN_POSTS, VEG_FORM_NAMES, chunkBounds, isScatterByte, isUnderstoryForm, sampleHeight, treeFormOfByte, triangularQuantile, type BuildingRecord, type ChunkKey,
+  type QualityTierId, type RenderChunk, type SimChunk, type TreeForm, type TreeFormTable, type VegFormName,
 } from '@dv/shared';
 import mesherJson from '../../../../../config/world/mesher.json';
+import treeFormsJson from '../../../../../config/world/tree-forms.json';
+import furnitureJson from '../../../../../config/world/furniture.json';
+import densityJson from '../../../../../config/world/density.json';
+import { pointAlong, polylineLength } from '../../sim/graph/geometry.ts';
 import { LOOK, LOOK_FLAG, facadeClassOf, lookProfileFor } from '../look/config.ts';
 import { packRoad, roadFields, roadVertex, wrapAlong, type RoadFields } from '../look/road-layout.ts';
-import { FLAG_PARAPET, Surf, facadeDm, facadeSignedDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
+import { COVER_SURFACE_NAMES, FLAG_BAY, FLAG_CORNICE, FLAG_PARAPET, FLAG_SHOP, Surf, coverSurf, facadeDm, facadeSignedDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
 import {
   approachesOf, clipKey, clippedPolyline, armsOf, crosswalkQuad, planRoads, ribbonSides, roadsContext, simplifyPoints, stopBarQuad, tileOf, type DecalQuad, type PlannedJunction,
   type RibbonPoint, type RoadsContext, type RoadsPlan,
 } from './junction-patch.ts';
-import { meshBytes, type MeshBuffers, type MeshStats, type UnitMesh } from './mesh-types.ts';
+import { FURNITURE_STRIDE, FurnitureKind, meshBytes, type FurnitureHead, type MeshBuffers, type MeshStats, type UnitMesh } from './mesh-types.ts';
 import { bakeMacro } from './macro.ts';
-import { CURBS, GUTTER_COLOR, buildSidewalks, curbedSides, type CurbSample, type CurbStats } from './sidewalks.ts';
+import {
+  AWNING_TRIS, BAY_TRIS, CORNICE_TRIS_PER_EDGE, KIT, bayLayout, corniceRing, emptyKitStats, inRing, isBayKind, isCorniceKind, isShopKind, isStreetWall, kitHash, localSegments,
+  planKit, type BaySpot, type BuildingKit, type KitPart, type KitStats,
+} from './facade-kit.ts';
+import { CURBS, GUTTER_COLOR, buildSidewalks, curbedSides, walkLiftAt, type CurbSample, type CurbStats } from './sidewalks.ts';
 
 // ---- configuration -------------------------------------------------------------------------------------------------------
 
@@ -92,8 +105,14 @@ export interface MesherConfig {
   lotPlaza: { plazaM: number; lot: string; plaza: string };
   /** M02h2: the macro variation (chunks/macro.ts reads the block). */
   macro: unknown;
+  /** M02h3: the vertex colours of the ground cover classes. */
+  cover: Record<(typeof COVER_SURFACE_NAMES)[number], string>;
 }
 export const MESHER: MesherConfig = mesherJson as unknown as MesherConfig;
+/** M02h6: `config/world/furniture.json`. */
+export const FURNITURE: FurnitureFile = furnitureJson as unknown as FurnitureFile;
+/** M02h4: the tree forms' table (`config/world/tree-forms.json`): the mesher reads the height draws. */
+export const TREE_FORM_TABLE: TreeFormTable = treeFormsJson as unknown as TreeFormTable;
 
 export type Rgb = readonly [number, number, number];
 const srgbToLinear = (c: number): number => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
@@ -117,6 +136,8 @@ const ROAD_COLORS = {
 };
 export const LOT_COLOR: Rgb = hexToLinear(MESHER.lotPlaza.lot);
 export const PLAZA_COLOR: Rgb = hexToLinear(MESHER.lotPlaza.plaza);
+/** M02h3: the vertex colour of each `CoverClass` (index 0, `None`, is unused). */
+export const COVER_COLORS: readonly Rgb[] = [GROUND[3] as Rgb, ...COVER_SURFACE_NAMES.map((n) => hexToLinear(MESHER.cover[n]))];
 export const roadColor = (cls: number): Rgb =>
   cls === 0 ? ROAD_COLORS.freeway : cls === 1 ? ROAD_COLORS.ramp : cls === 2 ? ROAD_COLORS.arterial : cls === 5 ? ROAD_COLORS.service : ROAD_COLORS.local;
 
@@ -341,6 +362,12 @@ export interface TerrainOptions {
    * with that colour; absent: `Paved` as before.
    */
   plaza?: Uint8Array | null | undefined;
+  /**
+   * M02h3: the ground cover of the chunk's 64 x 64 cells (`CoverClass`, C08 1.1 section 21). A post reads the cell its ground class comes
+   * from; a post with cover gets surface `cover.<class>` and the colour `mesher.json` `cover.<class>`, and the M02h2 lot and plaza rule
+   * applies to the posts without cover only. Absent: as before M02h3 (the same vertices and triangles either way).
+   */
+  cover?: Uint8Array | null | undefined;
 }
 
 /**
@@ -355,9 +382,15 @@ export function terrainMesh(heights: Int16Array, ground: Uint8Array, cellM: numb
     for (let i = 0; i < verts; i++) {
       const col = i * stride;
       const row = j * stride;
-      const cls = ground[Math.min(63, row + (stride >> 1)) * 64 + Math.min(63, col + (stride >> 1))] ?? 3;
+      const cell = Math.min(63, row + (stride >> 1)) * 64 + Math.min(63, col + (stride >> 1));
+      const cls = ground[cell] ?? 3;
       let color = GROUND[cls] ?? (GROUND[3] as Rgb);
-      if (cls === 3 && o.plaza) {
+      const cv = o.cover ? (o.cover[cell] as number) : 0;
+      if (cv > 0 && cv < COVER_COLORS.length) {
+        // M02h3: a post with ground cover
+        color = COVER_COLORS[cv] as Rgb;
+        b.setSurf(coverSurf(cv));
+      } else if (cls === 3 && o.plaza) {
         // M02h2: a paved post is a plaza near a plaza ped edge or node, else a lot
         const plaza = o.plaza[row * n + col] === 1;
         color = plaza ? PLAZA_COLOR : LOT_COLOR;
@@ -533,6 +566,11 @@ export function addBuilding(
    * the nominal foot, so the floors and bands do not move; the extra depth is below them (a negative `v`).
    */
   footIn?: number,
+  /**
+   * M02h7: the facade kit (awnings on street shop walls, bays on ResLow/ResMid street walls, a cornice ring) within `kit.allowance` triangles
+   * on top of `profile.trisPerBuilding`; only with a facade record. Absent, or with an allowance of 0, the building meshes as before.
+   */
+  kit?: BuildingKit,
 ): number {
   let ring = ringIn.slice();
   if (signedArea(ring) < 0) {
@@ -581,6 +619,9 @@ export function addBuilding(
   const seed15 = rec.seed & 0x7fff;
   const code = (rec.kind & 15) | ((rec.roof & 3) << 4);
 
+  // M02h7: the kit's plan: street walls, shop walls, bays, the cornice ring, and what fits in the allowance
+  const plan = withFacade && surfOverride === undefined && kit && kit.allowance > 0 ? planBuildingKit(ring, base, eave, wallTop, pitched, rec, kit) : null;
+
   // Walls: outward normal (dz, 0, -dx) for a counter-clockwise ring in (x, z). The foot is the foundation skirt, 1.5 m under the ground.
   b.setSurf(surfOverride ?? wallSurf(rec.kind), rec.palette, code, parapet ? FLAG_PARAPET : 0);
   const nominalFoot = base - foundation;
@@ -596,6 +637,7 @@ export function addBuilding(
     const len = Math.sqrt(dx * dx + dz * dz) || 1;
     const nrm: Rgb = [dz / len, 0, -dx / len];
     const uEnd = facadeDm(withFacade ? Math.max(1, Math.round(len / bayM)) * bayM : len);
+    if (plan) b.setSurf(wallSurf(rec.kind), rec.palette, code, (parapet ? FLAG_PARAPET : 0) | (plan.shop[i] ? FLAG_SHOP : 0) | (plan.cornice ? FLAG_CORNICE : 0));
     const v0 = b.vertex(x0, footY, z0, nrm, scale(wall, 0.72), AO_BASE, [0, footV, wallHdm, seed15]);
     const v1 = b.vertex(x1, footY, z1, nrm, scale(wall, 0.72), AO_BASE, [uEnd, footV, wallHdm, seed15]);
     const v2 = b.vertex(x1, wallTop, z1, nrm, wall, 1, [uEnd, wallHdm, wallHdm, seed15]);
@@ -672,7 +714,8 @@ export function addBuilding(
     face([[p2x, wallTop, p2z], [p3x, wallTop, p3z], ridgeA, ridgeB]);
     face([[p1x, wallTop, p1z], [p2x, wallTop, p2z], ridgeB]);
     face([[p3x, wallTop, p3z], [p0x, wallTop, p0z], ridgeA]);
-    return wallRow ? tris + rowTris : tris;
+    const kitTris = plan ? emitKit(b, ring, plan, rec, code, base - foundation, wallHdm, seed15, wall) : 0;
+    return (wallRow ? tris + rowTris : tris) + kitTris;
   }
 
   const idx = earcut(ring);
@@ -697,7 +740,175 @@ export function addBuilding(
       tris -= 10;
     }
   }
-  return tris;
+  return tris + (plan ? emitKit(b, ring, plan, rec, code, base - foundation, wallHdm, seed15, wall) : 0);
+}
+
+// ---- the facade kit (M02h7) ----------------------------------------------------------------------------------------------
+
+interface KitPlan {
+  /** Per wall of the (simplified, counter-clockwise) ring. */
+  shop: boolean[];
+  /** Kept awnings and bays: the wall index and, for a bay, its spot. */
+  awnings: number[];
+  bays: { wall: number; spot: BaySpot }[];
+  /** The cornice ring when it is kept. */
+  cornice: number[] | null;
+  base: number;
+  eave: number;
+  wallTop: number;
+  stats: KitStats;
+}
+
+const KIT_AWNING_COLORS: readonly Rgb[] = LOOK.facadeKit.awningPalette.map((h) => hexToLinear(h));
+
+function planBuildingKit(ring: readonly number[], base: number, eave: number, wallTop: number, pitched: boolean, rec: Pick<BuildingRecord, 'kind' | 'roof' | 'palette' | 'seed'>, kit: BuildingKit): KitPlan {
+  const n = ring.length / 2;
+  const gf = facadeClassOf(rec.kind).groundFloorM;
+  const shop: boolean[] = [];
+  const parts: (KitPart & { wall: number; spot?: BaySpot })[] = [];
+  const bayY0 = base + gf, bayY1 = eave - KIT.bay.eaveGapM;
+  const shopKind = isShopKind(rec.kind, rec.seed);
+  const bayKind = isBayKind(rec.kind) && kit.bays > 0 && bayY1 - bayY0 >= KIT.bay.minHeightM;
+  const blocked = (x: number, z: number): boolean => {
+    if (inRing(ring, x, z)) return true;
+    for (let k = 0; k < kit.others.length; k++) if (k !== kit.self && inRing(kit.others[k] as number[], x, z)) return true;
+    return false;
+  };
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const x0 = ring[i * 2] as number, z0 = ring[i * 2 + 1] as number, x1 = ring[j * 2] as number, z1 = ring[j * 2 + 1] as number;
+    const street = isStreetWall(x0, z0, x1, z1, kit.segs);
+    shop.push(street && shopKind);
+    if (!street) continue;
+    const len = Math.hypot(x1 - x0, z1 - z0);
+    if (shopKind && len > 2 * KIT.awning.insetM + 1) parts.push({ kind: 'awning', tris: AWNING_TRIS, wall: i });
+    if (!bayKind) continue;
+    const tx = (x1 - x0) / len, tz = (z1 - z0) / len, nx = tz, nz = -tx;
+    for (const spot of bayLayout(len, rec.seed, i, kit.bays)) {
+      // the two front corners, the front midpoint and the side midpoints, just outside the wall
+      const at = (s: number, o: number): [number, number] => [x0 + tx * s + nx * o, z0 + tz * s + nz * o];
+      const s0 = spot.c - spot.w / 2, s1 = spot.c + spot.w / 2;
+      const probes = [at(s0 + spot.d, spot.d), at(s1 - spot.d, spot.d), at(spot.c, spot.d), at(s0 + spot.d / 2, spot.d / 2), at(s1 - spot.d / 2, spot.d / 2)];
+      if (probes.some(([x, z]) => blocked(x, z))) {
+        kit.stats.baysBlocked++;
+        continue;
+      }
+      parts.push({ kind: 'bay', tris: BAY_TRIS, wall: i, spot });
+    }
+  }
+  const cring = kit.cornice && !pitched && isCorniceKind(rec.kind) ? corniceRing(ring) : null;
+  if (cring) parts.push({ kind: 'cornice', tris: n * CORNICE_TRIS_PER_EDGE, wall: -1 });
+  const keep = planKit(parts, kit.allowance);
+  const plan: KitPlan = { shop, awnings: [], bays: [], cornice: null, base, eave, wallTop, stats: kit.stats };
+  parts.forEach((p, k) => {
+    if (!keep[k]) return;
+    if (p.kind === 'awning') plan.awnings.push(p.wall);
+    else if (p.kind === 'bay') plan.bays.push({ wall: p.wall, spot: p.spot as BaySpot });
+    else plan.cornice = cring;
+  });
+  kit.stats.shopWalls += shop.filter(Boolean).length;
+  return plan;
+}
+
+/** One quad of four corners wound to face (nx, ny, nz): two triangles. */
+function kitQuad(b: MeshBuilder, p: readonly (readonly [number, number, number])[], nrm: Rgb, c: Rgb, ao: number, fac: (q: readonly [number, number, number], k: number) => [number, number, number, number]): void {
+  const ids = p.map((q, k) => b.vertex(q[0], q[1], q[2], nrm, c, ao, fac(q, k)));
+  b.triFacing(ids[0] as number, ids[1] as number, ids[2] as number, nrm[0], nrm[1], nrm[2]);
+  b.triFacing(ids[0] as number, ids[2] as number, ids[3] as number, nrm[0], nrm[1], nrm[2]);
+}
+
+/** Emits the kept parts of `plan` (after the building's walls and roof) and returns their triangle count. */
+function emitKit(b: MeshBuilder, ring: readonly number[], plan: KitPlan, rec: Pick<BuildingRecord, 'kind' | 'seed' | 'palette'>, code: number, nominalFoot: number, wallHdm: number, seed15: number, wallColor: Rgb): number {
+  const before = b.triangleCount;
+  const n = ring.length / 2;
+  const gf = facadeClassOf(rec.kind).groundFloorM;
+  const dm = (y: number): number => facadeSignedDm(y - nominalFoot);
+  // a facade `v` above the wall top: the shader's window grid leaves such a surface plain (the bay caps and the cornice ring)
+  const plainDm = Math.min(wallHdm + facadeDm(MESHER.foundationM + 1), 32767);
+  const corner = (i: number): [number, number] => [ring[(i % n) * 2] as number, ring[(i % n) * 2 + 1] as number];
+  const axis = (i: number): { x0: number; z0: number; tx: number; tz: number; nx: number; nz: number; len: number } => {
+    const [x0, z0] = corner(i);
+    const [x1, z1] = corner(i + 1);
+    const len = Math.hypot(x1 - x0, z1 - z0) || 1;
+    const tx = (x1 - x0) / len, tz = (z1 - z0) / len;
+    return { x0, z0, tx, tz, nx: tz, nz: -tx, len };
+  };
+
+  // Awnings: a canopy along the wall (less `insetM` per end), its top under the ground-floor line, `depthM` out and `dropM` down
+  for (const w of plan.awnings) {
+    const a = axis(w);
+    const k = Math.floor(kitHash(rec.seed, 20 + w) * KIT_AWNING_COLORS.length) % KIT_AWNING_COLORS.length;
+    b.setSurf(Surf.Awning, k, code, 0);
+    const col = KIT_AWNING_COLORS[k] as Rgb;
+    const yTop = plan.base + gf - KIT.awning.topBelowGfM, yLow = yTop - KIT.awning.dropM, d = KIT.awning.depthM;
+    const s0 = KIT.awning.insetM, s1 = a.len - KIT.awning.insetM;
+    const P = (s: number, o: number, y: number): [number, number, number] => [a.x0 + a.tx * s + a.nx * o, y, a.z0 + a.tz * s + a.nz * o];
+    const fac = (s: number) => (q: readonly [number, number, number]): [number, number, number, number] => [facadeDm(s), dm(q[1]), wallHdm, seed15];
+    const sl = Math.hypot(d, KIT.awning.dropM);
+    const up: Rgb = [(a.nx * KIT.awning.dropM) / sl, d / sl, (a.nz * KIT.awning.dropM) / sl];
+    const top = [P(s0, 0, yTop), P(s1, 0, yTop), P(s1, d, yLow), P(s0, d, yLow)] as const;
+    const facS = (k2: number): number => (k2 === 0 || k2 === 3 ? s0 : s1);
+    kitQuad(b, top, up, col, 0.95, (q, k2) => fac(facS(k2))(q));
+    kitQuad(b, top, [-up[0], -up[1], -up[2]], scale(col, 0.7), 0.7, (q, k2) => fac(facS(k2))(q));
+    // the cheeks: wall top corner, outer corner, wall at the outer height
+    for (const [s, sign] of [[s0, -1], [s1, 1]] as const) {
+      const nrm: Rgb = [a.tx * sign, 0, a.tz * sign];
+      const ids = [P(s, 0, yTop), P(s, d, yLow), P(s, 0, yLow)].map((q) => b.vertex(q[0], q[1], q[2], nrm, scale(col, 0.85), 0.85, fac(s)(q)));
+      b.triFacing(ids[0] as number, ids[1] as number, ids[2] as number, nrm[0], nrm[1], nrm[2]);
+    }
+    plan.stats.awnings++;
+  }
+
+  // Bays: three faces with 45 degree sides from the ground-floor line to under the eave, a cap and an underside
+  if (plan.bays.length > 0) {
+    const bayM = facadeClassOf(rec.kind).bayM;
+    for (const { wall, spot } of plan.bays) {
+      const a = axis(wall);
+      b.setSurf(wallSurf(rec.kind), rec.palette, code, FLAG_BAY);
+      const y0 = plan.base + gf, y1 = plan.eave - KIT.bay.eaveGapM;
+      const s0 = spot.c - spot.w / 2, s1 = spot.c + spot.w / 2, d = spot.d;
+      const P = (s: number, o: number): [number, number] => [a.x0 + a.tx * s + a.nx * o, a.z0 + a.tz * s + a.nz * o];
+      const W0 = P(s0, 0), F0 = P(s0 + d, d), F1 = P(s1 - d, d), W1 = P(s1, 0);
+      const r = Math.SQRT1_2;
+      const faces: [[number, number], [number, number], Rgb, number, number][] = [
+        [W0, F0, [(a.nx - a.tx) * r, 0, (a.nz - a.tz) * r], bayM * 0.25, bayM * 0.75],
+        [F0, F1, [a.nx, 0, a.nz], 0, bayM],
+        [F1, W1, [(a.nx + a.tx) * r, 0, (a.nz + a.tz) * r], bayM * 0.25, bayM * 0.75],
+      ];
+      for (const [A, B, nrm, u0, u1] of faces) {
+        const quad = [[A[0], y0, A[1]], [B[0], y0, B[1]], [B[0], y1, B[1]], [A[0], y1, A[1]]] as const;
+        kitQuad(b, quad, nrm, scale(wallColor, 0.9), 0.9, (q, k) => [facadeDm(k === 0 || k === 3 ? u0 : u1), dm(q[1]), wallHdm, seed15]);
+      }
+      const plate = (y: number, nrm: Rgb, c: Rgb): void => {
+        const ids = [W0, F0, F1, W1].map((q) => b.vertex(q[0], y, q[1], nrm, c, 0.9, [0, plainDm, wallHdm, seed15]));
+        b.triFacing(ids[0] as number, ids[1] as number, ids[2] as number, nrm[0], nrm[1], nrm[2]);
+        b.triFacing(ids[0] as number, ids[2] as number, ids[3] as number, nrm[0], nrm[1], nrm[2]);
+      };
+      plate(y1, UP, wallColor);
+      plate(y0, [0, -1, 0], scale(wallColor, 0.6));
+      plan.stats.bays++;
+    }
+  }
+
+  // The cornice: the ring offset outward, `heightM` tall under the wall top: a front and an underside per edge
+  if (plan.cornice) {
+    const c = plan.cornice;
+    b.setSurf(wallSurf(rec.kind), rec.palette, code, FLAG_CORNICE);
+    const y1 = plan.wallTop, y0 = plan.wallTop - KIT.cornice.heightM;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      const a = axis(i);
+      const cx0 = c[i * 2] as number, cz0 = c[i * 2 + 1] as number, cx1 = c[j * 2] as number, cz1 = c[j * 2 + 1] as number;
+      const [px0, pz0] = corner(i), [px1, pz1] = corner(j);
+      const u1 = a.len;
+      kitQuad(b, [[cx0, y0, cz0], [cx1, y0, cz1], [cx1, y1, cz1], [cx0, y1, cz0]], [a.nx, 0, a.nz], scale(wallColor, 1.05), 0.95, (_q, k) => [facadeDm(k === 0 || k === 3 ? 0 : u1), plainDm, wallHdm, seed15]);
+      kitQuad(b, [[px0, y0, pz0], [px1, y0, pz1], [cx1, y0, cz1], [cx0, y0, cz0]], [0, -1, 0], scale(wallColor, 0.55), 0.7, (_q, k) => [facadeDm(k === 0 || k === 3 ? 0 : u1), plainDm, wallHdm, seed15]);
+    }
+    plan.stats.cornices++;
+  }
+  const added = b.triangleCount - before;
+  plan.stats.triangles += added;
+  return added;
 }
 
 /** An axis-aligned box standing on y0 (five faces, 10 triangles). */
@@ -973,6 +1184,21 @@ export interface MeshChunkOptions {
   curbs?: boolean | undefined;
   /** M02h2, tests: keep the curb samples (`UnitMesh.curbSamples`). */
   curbDebug?: boolean | undefined;
+  /**
+   * M02h3: the chunk's ground cover (4,096 `CoverClass` cells, `decodeCover`), or null / absent for none: the terrain posts then mesh as
+   * before M02h3. The caller passes it only with the `cover` layer on (`platform-flags.json` `world.cover`, `setLookLayer('cover', on)`).
+   */
+  cover?: Uint8Array | null | undefined;
+  /**
+   * M02h6: the furniture records' look profile (the pools that draw them); defaults to the tier's profile under the `world.look` flag. `legacy`
+   * meshes none.
+   */
+  furnitureProfile?: 'full' | 'lite' | 'min' | 'legacy' | undefined;
+  /**
+   * M02h7: the facade kit (awnings, bays, cornices, shop-wall flags) on the profiles that have a kit allowance and a facade record; default on.
+   * False is the `facade` layer off (`setLookLayer('facade', false)`): the buildings mesh as before M02h7.
+   */
+  facadeKit?: boolean | undefined;
 }
 
 /**
@@ -1025,18 +1251,37 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
   const cellM = sim.height.cellM;
   const ao = terrainAo(candidates.map((c) => c.ring), cellM);
   const plaza = curbsOn ? plazaPosts(sim, tileOf(sim, o.tile)) : null;
-  const terrain = terrainMesh(sim.height.dm, sim.ground, cellM, stride, { ao, skirtM: mixedStrides ? MESHER.terrain.skirtM : 0, plaza });
+  const cover = o.cover && o.cover.length === 64 * 64 ? o.cover : null;
+  const terrain = terrainMesh(sim.height.dm, sim.ground, cellM, stride, { ao, skirtM: mixedStrides ? MESHER.terrain.skirtM : 0, plaza, cover });
+  if (cover) {
+    // M02h3: cells per class for the QA bridge (`look().cover.cells`)
+    const n = [0, 0, 0, 0, 0, 0, 0, 0];
+    for (let k = 0; k < cover.length; k++) {
+      const c = cover[k] as number;
+      if (c < n.length) n[c] = (n[c] as number) + 1;
+    }
+    stats.cover = n;
+  }
   objects.push(terrain);
 
   // M02e: the facade record rides on the building vertices unless the tier's look is `legacy`.
   const withFacade = lookProfileFor(o.tier) !== 'legacy';
+  // M02h7: the facade kit, where the profile has an allowance and the buildings a facade record
+  const kitAllowance = withFacade && o.facadeKit !== false ? KIT.trisPerBuilding[profileId] : 0;
+  const kitSegs = kitAllowance > 0 ? localSegments(sim.segments, ox, oz) : [];
+  const kitRings = kitAllowance > 0 ? candidates.map((c) => c.ring) : [];
+  let kitStats: KitStats | null = null;
   const meshBuildings = (list: readonly Candidate[]): { built: MeshBuffers | null; maxTris: number } => {
     const bb = new MeshBuilder({ facade: withFacade });
     let maxTris = 0;
+    kitStats = kitAllowance > 0 ? emptyKitStats() : null;
     for (const c of list) {
       const base = c.rec.baseDm / 10;
       const foot = wallFoot(sim.height.dm, cellM, stride, c.ring, base, (x, z) => sampleHeight(sim.height, ox + x, oz + z));
-      const t = addBuilding(bb, c.ring, base, c.height, c.rec, profile, undefined, foot);
+      const kit: BuildingKit | undefined = kitStats
+        ? { segs: kitSegs, others: kitRings, self: candidates.indexOf(c), allowance: kitAllowance, bays: KIT.bay.perWall[profileId], cornice: KIT.cornice.profiles.includes(profileId), stats: kitStats }
+        : undefined;
+      const t = addBuilding(bb, c.ring, base, c.height, c.rec, profile, undefined, foot, kit);
       if (t > maxTris) maxTris = t;
     }
     return { built: bb.build('buildings'), maxTris };
@@ -1044,7 +1289,9 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
   let kept: readonly Candidate[] = candidates;
   let b0 = meshBuildings(kept);
   const trees = treeRecords(sim, render, ox, oz, { stride, buildings: candidates.map((c) => ({ ring: c.ring, height: c.height })) });
-  const bytesOf = (): number => meshBytes(b0.built ? [...objects, b0.built] : objects, trees);
+  // M02h6: the street furniture records (the walk mask of the curbs lifts them onto the sidewalk tops, so they follow the roads below)
+  let furn: { records: Float32Array; heads: FurnitureHead[]; source: 'bake' | 'mesher' | 'none' } = { records: new Float32Array(0), heads: [], source: 'none' };
+  const bytesOf = (): number => meshBytes(b0.built ? [...objects, b0.built] : objects, trees, furn.records);
   for (let pass = 0; pass < 6 && o.maxBytes && bytesOf() > o.maxBytes && kept.length > 1; pass++) {
     // Over the tier's upload cap: keep the largest footprints that fit.
     const ratio = Math.max(0.05, (o.maxBytes / bytesOf()) * 0.9);
@@ -1055,9 +1302,15 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
   stats.buildings = kept.length;
   stats.skipped += candidates.length - kept.length;
   stats.maxBuildingTris = b0.maxTris;
+  if (kitStats) {
+    stats.kit = kitStats;
+    stats.kitTriangles = (kitStats as KitStats).triangles;
+  }
   if (b0.built) objects.push(b0.built);
 
   const roads = buildRoads(sim, ox, oz, o.markings ?? LOOK_FLAG, o.tile, curbsOn ? { profile: profileId, ...(o.curbDebug ? { debug: true } : {}) } : undefined);
+  furn = furnitureRecords(sim, render, o, ox, oz, roads.walk && roads.walkLiftM ? { mask: roads.walk, liftM: roads.walkLiftM } : null);
+  stats.furniture = { source: furn.source, records: furn.records.length / FURNITURE_STRIDE, heads: furn.heads.length };
   if (roads.mesh) {
     objects.push(roads.mesh);
     stats.markings = roads.stats;
@@ -1072,10 +1325,11 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
     stats.triangles += obj.indices.length / 3;
     stats.vertices += obj.positions.length / 3;
   }
-  stats.bytes = meshBytes(objects, trees);
+  stats.bytes = meshBytes(objects, trees, furn.records);
   const sorted = (set: ReadonlySet<number>): number[] => [...set].sort((a, b) => a - b);
   return {
-    level: 'l0', key: sim.key as ChunkKey, originX: ox, originZ: oz, objects, trees, lamps: lampRecords(sim, render, ox, oz), stats,
+    level: 'l0', key: sim.key as ChunkKey, originX: ox, originZ: oz, objects, trees, lamps: lampRecords(sim, render, ox, oz), furniture: furn.records, heads: furn.heads,
+    parked: parkedDressingRecords(sim, o.tier, o.furnitureProfile ?? lookProfileFor(o.tier)), stats,
     proxies: sorted(proxies), masked: sorted(masked),
     ...(roads.walk ? { walk: roads.walk, walkLiftM: roads.walkLiftM ?? 0 } : {}),
     ...(roads.samples ? { curbSamples: roads.samples } : {}),
@@ -1107,8 +1361,11 @@ export interface TreeContext {
   buildings: readonly { ring: readonly number[]; height: number }[];
 }
 
-/** The most a tree may be tall next to a building: its nearest eave within `tree.eaveRadiusM`, never under `minHeightM`. */
-export function treeHeightCap(x: number, z: number, buildings: readonly { ring: readonly number[]; height: number }[]): number {
+/**
+ * The most a tree may be tall next to a building: its nearest eave within `tree.eaveRadiusM` less `eaveClearM`, never over `max` (the
+ * form's tallest, M02h4; `tree.maxHeightM` for M02b1's cone) and never under `minHeightM`.
+ */
+export function treeHeightCap(x: number, z: number, buildings: readonly { ring: readonly number[]; height: number }[], max: number = MESHER.tree.maxHeightM): number {
   const T = MESHER.tree;
   let best = Infinity;
   let eave = Infinity;
@@ -1130,27 +1387,73 @@ export function treeHeightCap(x: number, z: number, buildings: readonly { ring: 
       eave = b.height;
     }
   }
-  return Math.max(T.minHeightM, Math.min(T.maxHeightM, eave - T.eaveClearM));
+  return Math.max(T.minHeightM, Math.min(max, eave - T.eaveClearM));
 }
 
 /**
- * One record per tree: local x, y, z, scale, species. The foot is the lowest terrain under the trunk (the heightfield and the mesh
- * the player sees, nine points over the trunk disc) minus `tree.sinkM`, so no root hangs in the air on a slope; the scale puts the
- * 6.2 m cone between `minHeightM` and the cap under the nearest eave.
+ * Floats per tree record (M02h4): local x, y, z, height in metres, yaw in radians, `form + 8 x tint` (M02h5: `+ 64` on a scatter record,
+ * the TREE byte's bit 7; `laneForm`, `laneTint`, `laneScatter` read it back).
+ */
+export const TREE_STRIDE = 6;
+/** M02h5: the parts of a record's lane. */
+export const laneForm = (lane: number): TreeForm => (lane & 7) as TreeForm;
+export const laneTint = (lane: number): number => (lane >> 3) & 7;
+export const laneScatter = (lane: number): boolean => (lane & 64) !== 0;
+/** Tints per form (the record's `tint`, 0..7; `chunks/tree-forms.ts` turns it into a crown colour). */
+export const TREE_TINTS = 8;
+
+/** The height draw of a form: the triangular `[min, mode, max]` of `config/world/tree-forms.json`. */
+export function formHeights(form: TreeForm): readonly [number, number, number] {
+  const f = (TREE_FORM_TABLE.forms as Partial<Record<VegFormName, { heightM: [number, number, number] }>>)[VEG_FORM_NAMES[form] as VegFormName];
+  // M02h5: a table without the understory rows (an older config) draws a shrub or a hedge 1 m tall
+  return f ? f.heightM : [0.8, 1, 1.2];
+}
+
+/**
+ * The height of a tree of `form` before the eave cap: the form's triangular quantile of `u = (scale - 0.75) / 0.5` (the baked scale is
+ * one of 17 steps from 0.75 to 1.25) moved by `jitter` in [0, 1) times 1/17, so the steps do not show as height bands. `u` is clamped
+ * to [0, 1]: `min` at `u = 0`, `max` at `u = 1`, the mode at `(mode - min) / (max - min)`.
+ */
+export function treeHeightOf(form: TreeForm, scale: number, jitter: number): number {
+  const [min, mode, max] = formHeights(form);
+  const u = Math.min(1, Math.max(0, (scale - 0.75) / 0.5 + (jitter - 0.5) / 17));
+  return triangularQuantile(u, min, mode, max);
+}
+
+/** A hash of a float pair in [0, 1): the tree's own jitter, yaw and tint (deterministic, `three`-free). */
+function hash01(x: number, z: number, salt: number): number {
+  let h = (Math.imul(Math.round(x * 64) | 0, 73856093) ^ Math.imul(Math.round(z * 64) | 0, 19349663) ^ Math.imul(salt, 83492791)) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/** The trunk radius of a tree `heightM` tall (the cone's 0.22 m at its 6.2 m, within 0.6x .. 2.5x of it). */
+export const trunkRadiusOf = (heightM: number): number => MESHER.tree.trunkRadiusM * Math.min(2.5, Math.max(0.6, heightM / MESHER.tree.heightM));
+
+/**
+ * One record per tree (M02h4): local x, y, z, height in metres, yaw in radians and `form + 8 x tint` (+ 64 on a scatter record, M02h5). The form is the TREE byte of a C08
+ * 1.1 index (`treeFormOfByte`: a reserved value draws as `Plane`; a 1.0 index's species hash is read the same way). The height is the
+ * form's draw (`treeHeightOf`) under M02g2's eave cap (`min(max, eave - 0.5)` within 8 m, never under 3.5 m). The foot is the lowest
+ * terrain under the trunk (the heightfield and the mesh the player sees, nine points over the trunk disc) minus `tree.sinkM`, so no root
+ * hangs in the air on a slope.
  */
 function treeRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: number, ctx: TreeContext): Float32Array {
   if (!render || render.trees.length < 4) return new Float32Array(0);
   const T = MESHER.tree;
   const count = Math.floor(render.trees.length / 4);
-  const trees = new Float32Array(count * 5);
+  const trees = new Float32Array(count * TREE_STRIDE);
   const cellM = sim.height.cellM;
   for (let i = 0; i < count; i++) {
     const x = render.trees[i * 4] as number, z = render.trees[i * 4 + 1] as number;
     const lx = Math.min(256, Math.max(0, x - ox)), lz = Math.min(256, Math.max(0, z - oz));
     const s0 = (render.trees[i * 4 + 2] as number) || 1;
-    const height = Math.max(T.minHeightM, Math.min(treeHeightCap(lx, lz, ctx.buildings), T.heightM * s0));
-    const s = height / T.heightM;
-    const r = T.trunkRadiusM * s;
+    const byte = render.trees[i * 4 + 3] as number;
+    const form = treeFormOfByte(byte);
+    const draw = treeHeightOf(form, s0, hash01(x, z, 1));
+    // M02h5: a shrub or a hedge keeps its own draw (no eave cap, no tree minimum)
+    const height = isUnderstoryForm(form) ? draw : Math.max(T.minHeightM, Math.min(treeHeightCap(lx, lz, ctx.buildings, formHeights(form)[2]), draw));
+    const r = trunkRadiusOf(height);
     let low = Infinity;
     for (let k = 0; k < 9; k++) {
       const a = (k / 8) * Math.PI * 2;
@@ -1158,11 +1461,13 @@ function treeRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: 
       const pz = Math.min(256, Math.max(0, lz + (k === 8 ? 0 : Math.sin(a) * r)));
       low = Math.min(low, sampleHeight(sim.height, ox + px, oz + pz), meshSurfaceAt(sim.height.dm, cellM, ctx.stride, px, pz));
     }
-    trees[i * 5] = lx;
-    trees[i * 5 + 1] = low - T.sinkM;
-    trees[i * 5 + 2] = lz;
-    trees[i * 5 + 3] = s;
-    trees[i * 5 + 4] = render.trees[i * 4 + 3] as number;
+    const o = i * TREE_STRIDE;
+    trees[o] = lx;
+    trees[o + 1] = low - T.sinkM;
+    trees[o + 2] = lz;
+    trees[o + 3] = height;
+    trees[o + 4] = hash01(x, z, 2) * Math.PI * 2;
+    trees[o + 5] = form + 8 * Math.floor(hash01(x, z, 3) * TREE_TINTS) + (isScatterByte(byte) ? 64 : 0);
   }
   return trees;
 }
@@ -1181,5 +1486,146 @@ function lampRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: 
   return lamps;
 }
 
-/** Render objects of a chunk mesh as the renderer counts them: the mesh objects plus the instanced vegetation. */
-export const objectCountOf = (m: UnitMesh): number => m.objects.length + (m.trees.length > 0 ? 1 : 0);
+// ---- street furniture (M02h6) ---------------------------------------------------------------------------------------------------
+
+/** The pool that draws each `FurnitureKind` (`furniture/pools.ts`). */
+export const POOL_OF_KIND: readonly string[] = ['post', 'post', 'post', 'shelter', 'shelter', 'pole', 'post', 'signal', 'wire'];
+/** The kinds a look profile keeps: those whose pool it has; `min` leaves out the meters (02-world.md 5.4, M02h6 table). */
+export function furnitureKindsOf(profile: 'full' | 'lite' | 'min' | 'legacy', cfg: FurnitureFile = FURNITURE): Set<number> {
+  const out = new Set<number>();
+  if (profile === 'legacy') return out;
+  const pools = cfg.pools[profile];
+  POOL_OF_KIND.forEach((pool, kind) => {
+    if (pools[pool] === undefined) return;
+    if (profile === 'min' && kind === FurnitureKind.meter) return;
+    out.add(kind);
+  });
+  return out;
+}
+
+/**
+ * The furniture records of one L0 chunk: the pack's `RenderChunk.furniture` when it has any (a bake with `bakeFill`), else `placeFurniture`
+ * at mesh time (DL-740), the signal assemblies and (where the profile has the `wire` pool) the trolley wire spans; only the kinds the
+ * profile's pools draw. Local x and z, absolute y: the terrain under the item (its own tile chunk's), plus the curb's walk lift on a curbed
+ * sidewalk of this chunk.
+ */
+export function furnitureRecords(
+  sim: SimChunk,
+  render: RenderChunk | null,
+  o: Pick<MeshChunkOptions, 'tier' | 'tile' | 'furnitureProfile'>,
+  ox: number,
+  oz: number,
+  walk: { mask: Uint8Array; liftM: number } | null,
+): { records: Float32Array; heads: FurnitureHead[]; source: 'bake' | 'mesher' | 'none' } {
+  const profile = o.furnitureProfile ?? lookProfileFor(o.tier);
+  const kinds = furnitureKindsOf(profile);
+  if (kinds.size === 0) return { records: new Float32Array(0), heads: [], source: 'none' };
+  const tile = tileOf(sim, o.tile);
+  const cfg = { rules: FURNITURE.place, worldSeed: worldSeedOf(sim.bakeId), tile };
+  let recs: Float32Array;
+  let source: 'bake' | 'mesher';
+  if (render && render.furniture.length >= 4) {
+    recs = render.furniture;
+    source = 'bake';
+  } else {
+    const avoid: number[] = [];
+    if (render) {
+      for (let i = 0; i + 2 < render.lamps.length; i += 3) avoid.push(render.lamps[i] as number, render.lamps[i + 1] as number);
+      for (let i = 0; i + 3 < render.trees.length; i += 4) avoid.push(render.trees[i] as number, render.trees[i + 1] as number);
+    }
+    recs = placeFurniture(sim, { ...cfg, avoid });
+    source = 'mesher';
+  }
+  const heightAt = (x: number, z: number): number => {
+    for (const c of tile) {
+      const b = chunkBounds(c.key);
+      if (x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ) return sampleHeight(c.height, x, z);
+    }
+    const b = chunkBounds(sim.key);
+    return sampleHeight(sim.height, Math.min(b.maxX, Math.max(b.minX, x)), Math.min(b.maxZ, Math.max(b.minZ, z)));
+  };
+  const liftAt = (lx: number, lz: number): number => (walk && lx >= 0 && lz >= 0 && lx < 256 && lz < 256 ? walkLiftAt(walk.mask, walk.liftM, lx, lz) : 0);
+  const out: number[] = [];
+  for (let i = 0; i + 3 < recs.length; i += 4) {
+    const type = recs[i + 3] as number;
+    if (!kinds.has(type)) continue;
+    const x = recs[i] as number, z = recs[i + 1] as number;
+    out.push(type, x - ox, heightAt(x, z) + liftAt(x - ox, z - oz), z - oz, recs[i + 2] as number, 0);
+  }
+  const heads: FurnitureHead[] = [];
+  if (kinds.has(FurnitureKind.signal)) {
+    const byId = new Map(sim.junctions.map((j) => [j.id, j] as const));
+    for (const h of signalHeads(sim, cfg, FURNITURE.signal.inset)) {
+      const j = byId.get(h.junction);
+      if (!j?.program) continue;
+      out.push(FurnitureKind.signal, h.x - ox, heightAt(h.x, h.z) + liftAt(h.x - ox, h.z - oz), h.z - oz, h.yaw, heads.length);
+      heads.push({ junction: h.junction, movement: h.movement, program: j.program });
+    }
+  }
+  if (kinds.has(FurnitureKind.wire)) {
+    for (const w of wireSpans(sim, cfg, FURNITURE.wires)) out.push(FurnitureKind.wire, w.x - ox, w.y + FURNITURE.wires.heightM, w.z - oz, w.yaw, w.lengthM);
+  }
+  return { records: Float32Array.from(out), heads, source };
+}
+
+// ---- parked dressing (M02h6) -----------------------------------------------------------------------------------------------------
+
+/** Floats per `UnitMesh.parked` record: local x, road y, local z, yaw, slot, density profile. */
+export const PARKED_STRIDE = 6;
+const PARKED_FACTOR = (densityJson as unknown as { tierFactors: { parked: Record<QualityTierId, number> } }).tierFactors.parked;
+const PARKED_WORK = new Float64Array(6);
+
+/**
+ * Where a baked parked slot stands, as the sim's `parkedPose` (`sim/traffic/spawn.ts`, which the asset worker does not bundle: it pulls the
+ * traffic sim in): `widthM / 2 - 1.15` m from the centreline on its side, facing the way traffic runs in that lane; x, y, z, the yaw jitter
+ * and the heading in `out`. `packages/world/test/parked-dressing.spec.ts` holds the two equal.
+ */
+export function dressingPose(c: SimChunk, p: ParkedSlot, out: Float64Array): boolean {
+  const seg = c.segments.find((s) => s.id === p.seg);
+  if (!seg) return false;
+  const poly = polylineLength(seg.pts);
+  const sAt = seg.lengthM > 0 ? (p.s * poly) / seg.lengthM : p.s;
+  pointAlong(seg.pts, sAt, false, out);
+  const tx = out[3] as number, tz = out[4] as number;
+  const off = (seg.widthM / 2 - 1.15) * p.side;
+  const x = (out[0] as number) - tz * off;
+  const z = (out[2] as number) + tx * off;
+  const dir = p.side > 0 ? 1 : -1;
+  out[0] = x;
+  out[2] = z;
+  out[3] = p.yawJitterDm * 0.01;
+  out[4] = tx * dir;
+  out[5] = tz * dir;
+  return true;
+}
+
+/**
+ * The parked slots the render-only dressing may draw on `tier` (M02h6, C08 1.1 rule 12): only those with an index at or past
+ * `densityCap(capacity, tierFactors.parked[tier])`, which the sim never fills on that tier (C01 prefix rule), thinned to `dressShare` by a
+ * seeded draw of the slot's own plan stream. None on the `legacy` look. The archetype and the colour are the sim's draws, made by the
+ * renderer (`traffic/parked-dressing.ts`) from the slot and the profile.
+ */
+export function parkedDressingRecords(sim: SimChunk, tier: QualityTierId, profile: 'full' | 'lite' | 'min' | 'legacy'): Float32Array {
+  if (profile === 'legacy') return new Float32Array(0);
+  const list = sim.spawn.parked;
+  const first = densityCap(list.length, PARKED_FACTOR[tier] ?? 1);
+  const share = FURNITURE.parked.dressShare[profile];
+  const seed = worldSeedOf(sim.bakeId);
+  const out: number[] = [];
+  const b = chunkBounds(sim.key);
+  for (let i = first; i < list.length; i++) {
+    const slot = list[i] as ParkedSlot;
+    if (ctrU32(seed, ambientKey(sim.key as ChunkKey, slot.slot), 1 * 8 + 6) / 4294967296 >= share) continue;
+    if (!dressingPose(sim, slot, PARKED_WORK)) continue;
+    let yaw = datan2(-(PARKED_WORK[4] as number), -(PARKED_WORK[5] as number)) + (PARKED_WORK[3] as number);
+    if (yaw < 0) yaw += Math.PI * 2;
+    out.push((PARKED_WORK[0] as number) - b.minX, PARKED_WORK[1] as number, (PARKED_WORK[2] as number) - b.minZ, yaw, slot.slot, sim.spawn.densityProfile);
+  }
+  return Float32Array.from(out);
+}
+
+/**
+ * Render objects of a chunk mesh as the renderer counts them: the mesh objects. Since M02h4 the trees are drawn by a few global pools
+ * (`chunks/vegetation-pool.ts`, C08 1.1 rule 12) that the ledger counts once per profile, not per unit.
+ */
+export const objectCountOf = (m: UnitMesh): number => m.objects.length;
