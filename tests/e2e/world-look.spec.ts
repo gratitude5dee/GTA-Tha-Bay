@@ -4,6 +4,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { adaptForBackend, postNodes } from '../../packages/engine/src/platform/post/levels.ts';
 import { composeGrid, decodePng, encodePng, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
 import { waitForEngine } from './engine-helpers.ts';
+import { lap, secs, tierOf } from './lap.ts';
 import { streamAtPlan } from './ledger-helpers.ts';
 import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, world, type W } from './world-look-helpers.ts';
 
@@ -32,6 +33,7 @@ const BUDGETS = read<{ tiers: Record<string, { features: Parameters<typeof postN
 
 /** Sets the sky through the sim and waits until the page's sky shows it. */
 async function setSky(page: Page, hour: number, weather: string): Promise<void> {
+  const t0 = Date.now();
   await page.evaluate(
     ([h, w]) => {
       const world = (window as unknown as W).__dvBridge.world;
@@ -40,6 +42,7 @@ async function setSky(page: Page, hour: number, weather: string): Promise<void> 
     },
     [hour, weather] as const,
   );
+  const t1 = Date.now();
   await page.waitForFunction(
     ([h, w]) => {
       const s = (window as unknown as W).__dvBridge.world.sky();
@@ -48,6 +51,7 @@ async function setSky(page: Page, hour: number, weather: string): Promise<void> 
     [hour, weather] as const,
     { timeout: 120_000 },
   );
+  lap(`setSky ${tierOf(page)} ${hour} ${weather}`, `set ${secs(t0, t1)} s, wait ${secs(t1)} s`);
 }
 
 /** The nodes `AC-5` expects: the tier list at the effective level, for the backend the page reports. */

@@ -3,6 +3,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { decodePng, diffImages, encodePng, goldenFailures, identical, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
 import { canvasRgba } from './canvas-capture.ts';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
+import { lap, secs, settleText, tierOf, timed } from './lap.ts';
 import { veg } from './trees-helpers.ts';
 import { FLAT_TIERS, GOLDEN_VIEWPORT, HIDE, bootWorld, clearActors, frames, world, type W } from './markings-helpers.ts';
 
@@ -27,10 +28,13 @@ const scatter = async (page: Page): Promise<Scatter> => (await veg(page)).scatte
 
 /** The stream quiet at the shot and the bands written (nothing pending). */
 async function scatterSettled(page: Page): Promise<void> {
-  await page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(240_000));
+  // BD-FIX-CI-PLAN-01: the seconds of the settle and of the whole call, as lap lines; the waits are the same
+  const t0 = Date.now();
+  await timed(`scatterSettled ${tierOf(page)}: settle(240 s)`, () => page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(240_000)), settleText);
   await expect.poll(async () => (await scatter(page)).bandWrites.pending, { timeout: 180_000, intervals: [500] }).toBe(0);
   await frames(page, 4);
   await expect.poll(async () => (await scatter(page)).bandWrites.pending, { timeout: 180_000, intervals: [500] }).toBe(0);
+  lap(`scatterSettled ${tierOf(page)}`, `whole call ${secs(t0)} s`);
 }
 
 const canvas = async (page: Page): Promise<Rgba> => await canvasRgba(page);

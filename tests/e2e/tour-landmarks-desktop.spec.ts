@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { boot, SKYLINE, shown, teleport, world } from './world-landmarks-helpers.ts';
+import { lap, secs, timed } from './lap.ts';
+import { boot, landmarksAndKit, SKYLINE, shown, teleport, world } from './world-landmarks-helpers.ts';
 
 /**
  * The desktop cases of the M02d1 and M02d2 landmarks (`world-landmarks.spec.ts` holds the rest), on a `DV_WORLD=synth` QA build. They are
@@ -33,9 +34,11 @@ test.describe('landmarks @world', () => {
     expect(shown(r)).toContain('lm.city-hall');
     expect(r.resident.length).toBeLessThanOrEqual(r.cap);
     expect(r.failed).toEqual([]);
+    // BD-FIX-CI-PLAN-01: the seconds of each of the four screenshots and of the 960 x 540 part as a whole, as lap lines
+    const tPart = Date.now();
     await page.setViewportSize({ width: 960, height: 540 });
     await page.waitForTimeout(1500);
-    await page.screenshot({ path: 'test-results/world-landmarks/skyline-default-desktop.png' });
+    await timed('tour screenshot skyline-default-desktop 960x540', () => page.screenshot({ path: 'test-results/world-landmarks/skyline-default-desktop.png' }));
     await page.keyboard.press('F4');
     await page.keyboard.down('Shift');
     await page.keyboard.down('Space');
@@ -43,7 +46,7 @@ test.describe('landmarks @world', () => {
     await page.keyboard.up('Space');
     await page.keyboard.up('Shift');
     await page.waitForTimeout(2500);
-    await page.screenshot({ path: 'test-results/world-landmarks/skyline-city-hall-free-cam-desktop.png' });
+    await timed('tour screenshot skyline-city-hall-free-cam-desktop 960x540', () => page.screenshot({ path: 'test-results/world-landmarks/skyline-city-hall-free-cam-desktop.png' }));
     await page.keyboard.press('F4');
     // and from Twin Peaks, the overlook: the whole skyline is in front of the camera
     const tp = await teleport(page, 'lm.twin-peaks');
@@ -51,7 +54,7 @@ test.describe('landmarks @world', () => {
     await expect.poll(async () => shown(await world(page, (w) => w.landmarks())), { timeout: 180_000, intervals: [500, 1000, 2000] }).toContain('lm.twin-peaks');
     await world(page, (w) => w.settle(60_000));
     await page.waitForTimeout(1500);
-    await page.screenshot({ path: 'test-results/world-landmarks/skyline-twin-peaks-desktop.png' });
+    await timed('tour screenshot skyline-twin-peaks-desktop 960x540', () => page.screenshot({ path: 'test-results/world-landmarks/skyline-twin-peaks-desktop.png' }));
     // the free camera (F4) lifts the view above the roofs: the picture the owner looks at (see packages/world/README.md)
     await page.keyboard.press('F4');
     await page.keyboard.down('Shift');
@@ -60,8 +63,9 @@ test.describe('landmarks @world', () => {
     await page.keyboard.up('Space');
     await page.keyboard.up('Shift');
     await page.waitForTimeout(2500);
-    await page.screenshot({ path: 'test-results/world-landmarks/skyline-twin-peaks-free-cam-desktop.png' });
+    await timed('tour screenshot skyline-twin-peaks-free-cam-desktop 960x540', () => page.screenshot({ path: 'test-results/world-landmarks/skyline-twin-peaks-free-cam-desktop.png' }));
     await page.keyboard.press('F4');
+    lap('tour 960x540 part', `${secs(tPart)} s from the resize to the last free-camera key`);
     const tr = (await world(page, (w) => w.landmarks()))!;
     expect(tr.skyline.entries.filter((e) => e.distM <= tr.skyline.rangeM).every((e) => e.visible || e.hiddenBy === 'full')).toBe(true);
     expect(tr.frames.holes).toBe(0);
@@ -73,10 +77,14 @@ test.describe('landmarks @world', () => {
     for (const id of ['lm.painted-ladies', 'lm.fort-point', 'lm.hunters-point-yard', 'lm.flower-conservatory', 'lm.saint-mary-cathedral']) {
       const result = await teleport(page, id);
       expect(result.ok, `${id}: ${JSON.stringify(result)}`).toBe(true);
+      const tReply = Date.now();
       await expect
         .poll(async () => shown(await world(page, (w) => w.landmarks())), { timeout: 180_000, intervals: [500, 1000, 2000], message: id })
         .toContain(id);
-      const r = (await world(page, (w) => w.landmarks()))!;
+      const shownS = secs(tReply);
+      const read = await landmarksAndKit(page);
+      lap(`world-landmarks desktop ${id}`, `shown ${shownS} s after the teleport reply, pedestrian kit ${String(read.kit)}`);
+      const r = read.r!;
       const e = r.resident.find((x) => x.id === id)!;
       console.log(`world-landmarks desktop ${id}: ${e.fidelity} ${e.objects} objects ${e.triangles} tris`);
       expect(e.fidelity).toBe('hi');

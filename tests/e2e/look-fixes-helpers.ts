@@ -7,6 +7,7 @@ import { encodePng, identical, type Rgba } from '../support/image-diff.ts';
 import { FLICKER_BASELINE_FILE, FLICKER_FLOOR, FLICKER_PAIRS, FLICKER_THRESHOLD, FLICKER_VIEWPORT, flickerLimit, flickerShare, flickerShareRaw, type FlickerBaseline, type FlickerPairId } from '../support/flicker.ts';
 import { canvasRgba } from './canvas-capture.ts';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
+import { lap, secs, settleText, tierOf } from './lap.ts';
 
 /**
  * What the M02g2 look-fix specs share (BD-REPAIR-M02g2-03): `world-sky-look-fixes.spec.ts` (the `mobile-low` pair, the environment-map case, the
@@ -28,10 +29,14 @@ export const HIDE_ALL = '* { visibility: hidden !important } #dv-engine-canvas {
 
 export async function bootWorld(page: Page, tier: string, size: { width: number; height: number } = SMALL_VIEWPORT, query = ''): Promise<void> {
   await page.setViewportSize(size);
+  const t0 = Date.now();
   await page.goto(`/?tier=${tier}&debug=1${query}`);
   await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world !== undefined, undefined, { timeout: 180_000 });
   await page.waitForFunction(() => (window as unknown as W).__dvBridge.world.boot().revealed, undefined, { timeout: 240_000 });
-  await page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(90_000));
+  const t1 = Date.now();
+  const s = await page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(90_000));
+  // BD-FIX-CI-PLAN-01: what the closing settle costs and whether it ran out (its result was discarded before)
+  lap(`bootWorld ${tier} ${size.width}x${size.height}`, `reveal ${secs(t0, t1)} s, closing settle ${secs(t1)} s, ${settleText(s)}`);
 }
 
 export const world = <T>(page: Page, fn: (w: WorldBridge) => T | Promise<T>): Promise<T> =>
@@ -44,6 +49,7 @@ export const frames = async (page: Page, n: number): Promise<void> => {
 };
 
 export async function setSky(page: Page, hour: number, weather: string): Promise<void> {
+  const t0 = Date.now();
   await page.evaluate(
     ([h, w]) => {
       const bridge = (window as unknown as W).__dvBridge.world;
@@ -52,6 +58,7 @@ export async function setSky(page: Page, hour: number, weather: string): Promise
     },
     [hour, weather] as const,
   );
+  const t1 = Date.now();
   await page.waitForFunction(
     ([h, w]) => {
       const s = (window as unknown as W).__dvBridge.world.sky();
@@ -60,6 +67,7 @@ export async function setSky(page: Page, hour: number, weather: string): Promise
     [hour, weather] as const,
     { timeout: 120_000 },
   );
+  lap(`setSky ${tierOf(page)} ${hour} ${weather}`, `set ${secs(t0, t1)} s, wait ${secs(t1)} s`);
 }
 
 /**

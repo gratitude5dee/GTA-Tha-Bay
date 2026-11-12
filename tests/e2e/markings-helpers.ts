@@ -6,6 +6,7 @@ import type { WorldBridge } from '../../packages/world/src/client/world-bridge.t
 import { identical, type Rgba } from '../support/image-diff.ts';
 import { canvasRgba } from './canvas-capture.ts';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
+import { lap, secs, settleText, tierOf } from './lap.ts';
 
 /**
  * What the M02h1 street-markings specs share: `world-markings.spec.ts` (@world-markings), `markings-golden.spec.ts` and
@@ -35,10 +36,14 @@ export const world = <T>(page: Page, fn: (w: WorldBridge) => T | Promise<T>): Pr
 export async function bootWorld(page: Page, tier: string, query = '', size: { width: number; height: number } = SMALL_VIEWPORT): Promise<void> {
   await page.setViewportSize(size);
   const xr = tier.startsWith('xr-') ? '&xr-emulate=quest3' : '';
+  const t0 = Date.now();
   await page.goto(`/?play=sandbox&tier=${tier}&debug=1${xr}${query}`);
   await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world !== undefined, undefined, { timeout: 180_000 });
   await page.waitForFunction(() => (window as unknown as W).__dvBridge.world.boot().revealed, undefined, { timeout: 240_000 });
-  await page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(90_000));
+  const t1 = Date.now();
+  const s = await page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(90_000));
+  // BD-FIX-CI-PLAN-01: what the closing settle costs and whether it ran out (its result was discarded before)
+  lap(`bootWorld ${tier} ${size.width}x${size.height}`, `reveal ${secs(t0, t1)} s, closing settle ${secs(t1)} s, ${settleText(s)}`);
 }
 
 /** Frames the page presents after now. */
@@ -75,6 +80,7 @@ export const live = (page: Page): Promise<{ renderObjects: number; triangles: nu
   page.evaluate(() => (window as unknown as W).__dvBridge.platform.perf.live());
 
 export async function setSky(page: Page, hour: number, weather: string): Promise<void> {
+  const t0 = Date.now();
   await page.evaluate(
     ([h, w]) => {
       const bridge = (window as unknown as W).__dvBridge.world;
@@ -83,6 +89,7 @@ export async function setSky(page: Page, hour: number, weather: string): Promise
     },
     [hour, weather] as const,
   );
+  const t1 = Date.now();
   await page.waitForFunction(
     ([h, w]) => {
       const s = (window as unknown as W).__dvBridge.world.sky();
@@ -91,6 +98,7 @@ export async function setSky(page: Page, hour: number, weather: string): Promise
     [hour, weather] as const,
     { timeout: 120_000 },
   );
+  lap(`setSky ${tierOf(page)} ${hour} ${weather}`, `set ${secs(t0, t1)} s, wait ${secs(t1)} s`);
 }
 
 export type { QualityTierId };

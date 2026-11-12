@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { expect, type Page } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
+import { lap, secs, settleText, tierOf } from './lap.ts';
 
 /**
  * The frame every render-object and triangle ledger of `docs/look` measures (DL-758, BD-FIX-LEDGER-SETTLED-01): one whose stream has
@@ -27,6 +28,7 @@ import type { WorldBridge } from '../../packages/world/src/client/world-bridge.t
  * one around the focus at the call.
  */
 export async function streamAtPlan(page: Page, timeoutMs = 600_000): Promise<void> {
+  const t0 = Date.now();
   const r = await page.evaluate(async (t) => {
     const w = (window as unknown as { __dvBridge: { world: WorldBridge } }).__dvBridge.world;
     const host = (w.internals().view as unknown as { host: { holdWorld(kind: 'cover'): () => void } }).host;
@@ -37,6 +39,9 @@ export async function streamAtPlan(page: Page, timeoutMs = 600_000): Promise<voi
       release();
     }
   }, timeoutMs);
+  // BD-FIX-CI-PLAN-01: what a held settle of this plan costs, then what the six frames drawn with the whole plan resident cost
+  const t1 = Date.now();
+  lap(`streamAtPlan ${tierOf(page)}`, `held settle ${secs(t0, t1)} s, ${settleText(r)}`);
   expect(r.settled, `the stream holds its plan (pending ${r.pending}, queued ${r.queued})`).toBe(true);
   await page.evaluate(() => {
     type G = { group: { visible: boolean } } | null;
@@ -44,7 +49,9 @@ export async function streamAtPlan(page: Page, timeoutMs = 600_000): Promise<voi
     for (const r of [view.transit, view.peds]) if (r) r.group.visible = false;
   });
   const f0 = (await page.evaluate(() => (window as unknown as { __dvBridge: { world: WorldBridge } }).__dvBridge.world.chunks().frame)) as number;
+  const t2 = Date.now();
   await page.waitForFunction((n) => (window as unknown as { __dvBridge: { world: WorldBridge } }).__dvBridge.world.chunks().frame >= n, f0 + 6, { timeout: 180_000, polling: 250 });
+  lap(`streamAtPlan ${tierOf(page)}`, `hide and frame read after the release ${secs(t1, t2)} s, six frames ${secs(t2)} s`);
   const c = await page.evaluate(() => {
     const w = (window as unknown as { __dvBridge: { world: WorldBridge } }).__dvBridge.world;
     const k = w.chunks();

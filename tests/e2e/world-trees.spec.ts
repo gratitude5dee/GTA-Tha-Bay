@@ -3,6 +3,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { decodePng, diffImages, encodePng, goldenFailures, identical, type Rgba } from '../support/image-diff.ts';
 import { canvasRgba } from './canvas-capture.ts';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
+import { settleText, timed } from './lap.ts';
 import { veg } from './trees-helpers.ts';
 import { FLAT_TIERS, GOLDEN_VIEWPORT, HIDE, bootWorld, clearActors, frames, world, type W } from './markings-helpers.ts';
 
@@ -52,14 +53,17 @@ const cameraXZ = (page: Page): Promise<{ x: number; z: number }> =>
   });
 
 /** The stream quiet and the pools' crossing queue empty: the drawn prefix follows the units. */
-async function treesSettled(page: Page): Promise<void> {
-  await page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(240_000));
-  await expect.poll(async () => (await veg(page)).pendingCrossings, { timeout: 180_000, intervals: [500] }).toBe(0);
+async function treesSettled(page: Page, where: string): Promise<void> {
+  // BD-FIX-CI-PLAN-01: `timed` runs each wait as it is and prints its seconds (a lap line); nothing else changes
+  await timed(`world-trees ${where}: settle(240 s)`, () => page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(240_000)), settleText);
+  await timed(`world-trees ${where}: crossings poll`, () => expect.poll(async () => (await veg(page)).pendingCrossings, { timeout: 180_000, intervals: [500] }).toBe(0));
   // one visibility pass after the settle (every 8 frames), so every unit has its drawM state for this camera
-  await frames(page, 10);
-  await expect.poll(async () => (await veg(page)).pendingCrossings, { timeout: 180_000, intervals: [500] }).toBe(0);
+  await timed(`world-trees ${where}: frames(10)`, () => frames(page, 10));
+  await timed(`world-trees ${where}: crossings poll after the frames`, () => expect.poll(async () => (await veg(page)).pendingCrossings, { timeout: 180_000, intervals: [500] }).toBe(0));
   // M02h5: and the scatter's band writes (capped per frame) have all landed, so the pools draw the bands the units hold
-  await expect.poll(async () => ((await veg(page)).scatter as { bandWrites?: { pending: number } } | undefined)?.bandWrites?.pending ?? 0, { timeout: 180_000, intervals: [500] }).toBe(0);
+  await timed(`world-trees ${where}: band-writes poll`, () =>
+    expect.poll(async () => ((await veg(page)).scatter as { bandWrites?: { pending: number } } | undefined)?.bandWrites?.pending ?? 0, { timeout: 180_000, intervals: [500] }).toBe(0),
+  );
 }
 
 test.describe('world trees @world-trees', () => {
@@ -96,8 +100,10 @@ test.describe('world trees @world-trees', () => {
       const home = await cameraXZ(page);
       let away = false;
       for (const [dx, dz] of [[2000, 0], [-2000, 0], [0, 2000], [0, -2000]] as const) {
-        await page.evaluate((p) => (window as unknown as W).__dvBridge.world.teleport({ x: p.x, z: p.z }), { x: home.x + dx, z: home.z + dz });
-        await page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(240_000));
+        await timed(`world-trees ${tier} away: teleport (${dx}, ${dz})`, () =>
+          page.evaluate((p) => (window as unknown as W).__dvBridge.world.teleport({ x: p.x, z: p.z }), { x: home.x + dx, z: home.z + dz }),
+        );
+        await timed(`world-trees ${tier} away: settle(240 s) after the teleport`, () => page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(240_000)), settleText);
         const at = await cameraXZ(page);
         if (Math.hypot(at.x - home.x, at.z - home.z) > 1500) {
           away = true;
@@ -105,9 +111,9 @@ test.describe('world trees @world-trees', () => {
         }
       }
       expect(away, 'the player teleported 2 km away').toBe(true);
-      await treesSettled(page);
-      await page.evaluate((p) => (window as unknown as W).__dvBridge.world.teleport({ x: p.x, z: p.z }), home);
-      await treesSettled(page);
+      await treesSettled(page, `${tier} away`);
+      await timed(`world-trees ${tier} home: teleport`, () => page.evaluate((p) => (window as unknown as W).__dvBridge.world.teleport({ x: p.x, z: p.z }), home));
+      await treesSettled(page, `${tier} home`);
       const back = await cameraXZ(page);
       expect(Math.hypot(back.x - home.x, back.z - home.z), 'back home').toBeLessThan(50);
 

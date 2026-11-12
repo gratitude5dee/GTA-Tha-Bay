@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { decodePng, type Rgba } from '../support/image-diff.ts';
+import { lap, secs, tierOf } from './lap.ts';
 
 /**
  * The engine canvas as the look goldens, the flicker pairs and the look captures read it: a page screenshot clipped to the canvas's
@@ -17,6 +18,7 @@ export async function canvasPng(page: Page): Promise<Buffer> {
   const vp = page.viewportSize();
   if (!vp) throw new Error('canvasPng: the page has no fixed viewport, so the canvas clip is unknown');
   const clip = { x: 0, y: 0, width: vp.width, height: vp.height };
+  const t0 = Date.now();
   const [rect, png] = await Promise.all([
     page.evaluate(() => {
       const c = document.getElementById('dv-engine-canvas');
@@ -27,6 +29,8 @@ export async function canvasPng(page: Page): Promise<Buffer> {
     }),
     page.screenshot({ clip }),
   ]);
+  // BD-FIX-CI-PLAN-01: what one capture costs on CI (the test process's clock; no page call is added)
+  lap(`canvasPng ${tierOf(page)} ${vp.width}x${vp.height}`, `${secs(t0)} s`);
   const ok =
     rect !== null && rect.x === clip.x && rect.y === clip.y && rect.width === clip.width && rect.height === clip.height &&
     rect.scrollX === 0 && rect.scrollY === 0 && rect.visibility === 'visible' && rect.display !== 'none';

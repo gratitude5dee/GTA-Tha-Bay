@@ -10,7 +10,15 @@ test.describe('platform', () => {
 
     mkdirSync('test-results', { recursive: true });
     writeFileSync(`test-results/gpu-probe.${testInfo.project.name}.json`, `${JSON.stringify(probe, null, 2)}\n`);
-    console.log(`gpu-probe ${testInfo.project.name}: backend=${String(probe.backend)} adapter=${String(probe.adapter)} fallback=${String(probe.isFallbackAdapter)} arch=${String(probe.architecture)}`);
+    // BD-FIX-CI-PLAN-01: the WebGL renderer string of this launch, in the log line only (the probe file keeps its shape). One page read on
+    // the probe page, which draws no world.
+    const glRenderer = await page.evaluate(() => {
+      const gl = document.createElement('canvas').getContext('webgl2');
+      if (!gl) return 'no webgl2 context';
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      return String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+    });
+    console.log(`gpu-probe ${testInfo.project.name}: backend=${String(probe.backend)} adapter=${String(probe.adapter)} fallback=${String(probe.isFallbackAdapter)} arch=${String(probe.architecture)} glRenderer=${glRenderer}`);
 
     // The recording is the criterion for chromium-webgpu; the fields must be present.
     expect(probe).toHaveProperty('adapter');

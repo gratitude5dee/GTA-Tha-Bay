@@ -8,6 +8,7 @@ import type { WorldBridge } from '../../packages/world/src/client/world-bridge.t
 import { composeGrid, decodePng, diffImages, encodePng, goldenFailures, identical, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
 import { canvasRgba } from './canvas-capture.ts';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
+import { lap, secs, tierOf } from './lap.ts';
 import { crowdMax, streamAtPlan } from './ledger-helpers.ts';
 
 /**
@@ -49,6 +50,7 @@ const world = <T>(page: Page, fn: (w: WorldBridge) => T | Promise<T>): Promise<T
   page.evaluate(`(${fn.toString()})(window.__dvBridge.world)`) as Promise<T>;
 
 async function setSky(page: Page, hour: number, weather: string): Promise<void> {
+  const t0 = Date.now();
   await page.evaluate(
     ([h, w]) => {
       const bridge = (window as unknown as W).__dvBridge.world;
@@ -57,6 +59,7 @@ async function setSky(page: Page, hour: number, weather: string): Promise<void> 
     },
     [hour, weather] as const,
   );
+  const t1 = Date.now();
   await page.waitForFunction(
     ([h, w]) => {
       const s = (window as unknown as W).__dvBridge.world.sky();
@@ -65,6 +68,7 @@ async function setSky(page: Page, hour: number, weather: string): Promise<void> 
     [hour, weather] as const,
     { timeout: 120_000 },
   );
+  lap(`setSky ${tierOf(page)} ${hour} ${weather}`, `set ${secs(t0, t1)} s, wait ${secs(t1)} s`);
 }
 
 /** Frames the page presents after now. */

@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
+import { lap, secs, tierOf } from './lap.ts';
 import { crowdMax, streamAtPlan } from './ledger-helpers.ts';
 
 /**
@@ -40,6 +41,7 @@ const frames = async (page: Page, n: number): Promise<void> => {
 };
 
 async function setSky(page: Page, hour: number, weather: string): Promise<void> {
+  const t0 = Date.now();
   await page.evaluate(
     ([h, w]) => {
       const bridge = (window as unknown as W).__dvBridge.world;
@@ -48,6 +50,7 @@ async function setSky(page: Page, hour: number, weather: string): Promise<void> 
     },
     [hour, weather] as const,
   );
+  const t1 = Date.now();
   await page.waitForFunction(
     ([h, w]) => {
       const sky = (window as unknown as W).__dvBridge.world.sky();
@@ -56,6 +59,7 @@ async function setSky(page: Page, hour: number, weather: string): Promise<void> 
     [hour, weather] as const,
     { timeout: 120_000 },
   );
+  lap(`setSky ${tierOf(page)} ${hour} ${weather}`, `set ${secs(t0, t1)} s, wait ${secs(t1)} s`);
 }
 
 /** What the art of one tier looks like (the look profile, the traffic families, the material class). */
