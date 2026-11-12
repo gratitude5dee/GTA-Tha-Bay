@@ -242,7 +242,7 @@ async function bootPlatformAndEngine(simWorker: EarlySimWorker): Promise<void> {
       : undefined;
     creatorStage = m.createCreatorStage(platform.host, stageAssets) as unknown as CreatorStagePort;
     // QA builds only: the stage state (figure, parts, triangles, textures, frame) for the @art-creator and @creator-frame cases, and
-    // where the drawn figure is on the canvas (its vertices projected on each read, so it is its own global: BD-FIX-CREATOR-FRAME-03).
+    // where the drawn figure is on the canvas (its vertices projected on each read, so it is its own global: BD-FIX-CREATOR-FRAME-05).
     if (import.meta.env.VITE_DV_QA === '1') {
       const stage = (): { state: unknown; measure(): unknown } | null => creatorStage as unknown as { state: unknown; measure(): unknown } | null;
       Object.defineProperty(window, '__dvCreatorStage', { configurable: true, get: () => stage()?.state ?? null });
