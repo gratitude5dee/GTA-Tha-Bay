@@ -11,8 +11,10 @@ import { HOME, hideQaPanels, NO_BYPASS, passGates, waitForEngineReady } from './
  *    figure of part models;
  *  - the canvas itself agrees: with the page hidden, the columns from the free area's edge to the right (the panel's side, where the
  *    figure's right half used to be drawn) hold only the stage's background, and every figure pixel is inside the reported box;
- *  - the frame follows the window: a smaller window, a one-column portrait window (no free area: the centred picture, as before), a
- *    scrolled page, and the Edit appearance page (`/menu/creator`), which uses the same editor.
+ *  - the frame follows the window: a smaller window, a portrait tablet window (the panel beside a column a third as wide as the head
+ *    picture at its full size: the head picture shrinks to the column, BD-FIX-CREATOR-FRAME-06), a one-column portrait window (no
+ *    free area: the centred picture, as before), a scrolled page, and the Edit appearance page (`/menu/creator`), which uses the
+ *    same editor.
  *
  * The turntable is still (reduced motion) and turned to the front by dragging the preview, so the figure's box is symmetric about the
  * axis and its middle can be compared to the pixel.
@@ -48,6 +50,8 @@ interface Figure {
   canvas: { width: number; height: number };
   figure: Box | null;
   floor: { x: number; y: number };
+  /** The highest row the floor disc is drawn on; past the canvas's bottom edge where the picture does not show the floor. */
+  floorTop: number;
 }
 /** The page's own layout, viewport CSS pixels. */
 interface Layout {
@@ -130,7 +134,7 @@ async function faceFront(page: Page): Promise<void> {
 }
 
 /** The stage's report at one zoom preset: axis, middle and box of the figure against the free area and the panel. */
-async function expectFramed(page: Page, zoom: 'full' | 'head', opts: { symmetric: boolean; want?: (s: Stage) => boolean }): Promise<{ free: Box; box: Box; l: Layout }> {
+async function expectFramed(page: Page, zoom: 'full' | 'head', opts: { symmetric: boolean; want?: (s: Stage) => boolean }): Promise<{ free: Box; box: Box; l: Layout; frame: Frame; floorTop: number }> {
   const { s, l, free } = await framed(page, zoom, opts.want);
   const m = (await figure(page)) as Figure;
   const frame = s.frame as Frame;
@@ -151,11 +155,14 @@ async function expectFramed(page: Page, zoom: 'full' | 'head', opts: { symmetric
   expect(box.top, why).toBeGreaterThanOrEqual(free.top);
   // it is a figure, not a speck: at least a fifth of the free width at either preset
   expect(box.right - box.left, why).toBeGreaterThan(40);
-  // the picture ends where the zoom buttons begin, so neither the buttons nor the "Look data" line under them cover it
+  // The preset's picture (the canvas-high view of the centred stage, moved and scaled) ends where the zoom buttons begin, and the
+  // "Look data" line is under the buttons. At Full body that clears both of the figure: the drawn figure's box is checked below. At
+  // Head it does not: the torso runs on under the picture to the canvas's bottom edge, behind the buttons and the line
+  // (BD-FIX-CREATOR-FRAME-02), so only the picture's own box is checked here.
   expect(frame.subject.bottom, why).toBeLessThanOrEqual(Math.min(l.zoom.top, l.viewport.height) + 0.5);
   expect(l.summary.top, why).toBeGreaterThanOrEqual(l.zoom.bottom);
   if (zoom === 'full') {
-    // head to feet inside the free area: above the buttons
+    // the drawn figure, head to feet, is inside the free area: above the buttons and the "Look data" line
     expect(box.bottom, why).toBeLessThanOrEqual(free.bottom);
     expect(box.bottom - box.top, why).toBeGreaterThan((free.bottom - free.top) * 0.5);
   }
@@ -163,14 +170,15 @@ async function expectFramed(page: Page, zoom: 'full' | 'head', opts: { symmetric
     type: 'creator-frame report',
     description: `${why}: viewport ${l.viewport.width} x ${l.viewport.height}, panel from x = ${l.panel.left}, free area ${JSON.stringify(free)}, scale ${frame.scale.toFixed(3)}, floor disc centre x = ${m.floor.x.toFixed(2)}, figure box ${JSON.stringify(box)}`,
   });
-  return { free, box, l };
+  return { free, box, l, frame, floorTop: m.floorTop };
 }
 
 /**
  * The canvas, with the page hidden: figure pixels (anything that is not the stage's flat background) in the rows where only the figure
- * can be (above the floor disc at Full body, every row at Head).
+ * can be: above the floor disc. At Full body that is the upper three quarters of the figure; at Head every row down to `floorTop`,
+ * the disc's far edge as the stage reports it, which is under the canvas unless the head picture is drawn small (a portrait tablet).
  */
-async function expectPixels(page: Page, zoom: 'full' | 'head', free: Box, box: Box): Promise<void> {
+async function expectPixels(page: Page, zoom: 'full' | 'head', free: Box, box: Box, floorTop = Infinity): Promise<void> {
   const hide = await page.addStyleTag({ content: 'body > *:not(#dv-engine) { visibility: hidden !important }' });
   try {
     let last = '';
@@ -190,7 +198,7 @@ async function expectPixels(page: Page, zoom: 'full' | 'head', free: Box, box: B
         };
         const bg = at(2, 2);
         const y0 = Math.max(0, Math.ceil(box.top));
-        const y1 = zoom === 'full' ? Math.floor(box.top + (box.bottom - box.top) * 0.75) : img.height;
+        const y1 = zoom === 'full' ? Math.floor(box.top + (box.bottom - box.top) * 0.75) : Math.min(img.height, Math.floor(floorTop) - pad);
         const edge = Math.ceil(free.right);
         let inFree = 0;
         let panelSide = 0;
@@ -198,8 +206,8 @@ async function expectPixels(page: Page, zoom: 'full' | 'head', free: Box, box: B
         let stray = '';
         // The outermost ring of the capture is left out: WebKit's screenshot of a touch viewport has an off-colour pixel at (0, 0),
         // there with the canvas hidden too (measured: 47,55,70 on a page background of 11,20,38), so it is not the stage's.
-        for (let y = 1; y < img.height - 1; y++) {
-          const rows = y >= y0 && y < y1;
+        for (let y = 1; y < Math.min(y1, img.height - 1); y++) {
+          const rows = y >= y0;
           if (!rows && zoom === 'full') continue;
           for (let x = 1; x < img.width - 1; x++) {
             const p = at(x, y);
@@ -252,9 +260,9 @@ async function bothFigures(page: Page): Promise<void> {
   await faceFront(page);
   for (const zoom of ['full', 'head'] as const) {
     await zoomTo(page, zoom);
-    const { free, box } = await expectFramed(page, zoom, { symmetric: true });
+    const { free, box, floorTop } = await expectFramed(page, zoom, { symmetric: true });
     expect((await stage(page))?.figure).toBe('mannequin');
-    await expectPixels(page, zoom, free, box);
+    await expectPixels(page, zoom, free, box, floorTop);
   }
   // a realistic body and face: the figure is assembled from the part models, at the widest build
   await zoomTo(page, 'full');
@@ -266,8 +274,8 @@ async function bothFigures(page: Page): Promise<void> {
   const models = (s: Stage): boolean => s.figure === 'models' && part(s, 'body') === 'character/pc-body-broad' && part(s, 'face') === 'character/pc-face-karl';
   for (const zoom of ['full', 'head'] as const) {
     await zoomTo(page, zoom);
-    const { free, box } = await expectFramed(page, zoom, { symmetric: false, want: models });
-    await expectPixels(page, zoom, free, box);
+    const { free, box, floorTop } = await expectFramed(page, zoom, { symmetric: false, want: models });
+    await expectPixels(page, zoom, free, box, floorTop);
   }
   await zoomTo(page, 'full');
 }
@@ -285,6 +293,33 @@ test.describe('creator frame @creator-frame', () => {
       const small = await expectFramed(page, 'full', { symmetric: false });
       expect(small.l.viewport).toEqual({ width: 1024, height: 600 });
       await expectPixels(page, 'full', small.free, small.box);
+
+      // A portrait tablet: the panel is still beside the preview, which is a column of 327 px. The head picture at its full size needs
+      // 1.01 canvas heights of width; it was drawn at that size on the canvas centre, the head half behind the panel
+      // (BD-FIX-CREATOR-FRAME-06). It is drawn as wide as the column instead, and the widest figure on stage is inside it.
+      await page.setViewportSize({ width: 768, height: 1024 });
+      const tablet = { full: 0, head: 0 };
+      for (const zoom of ['full', 'head'] as const) {
+        await zoomTo(page, zoom);
+        const at = await expectFramed(page, zoom, { symmetric: false });
+        expect(at.l.viewport).toEqual({ width: 768, height: 1024 });
+        expect(at.l.panel.left, 'the panel is beside the preview').toBeGreaterThan(at.l.section.right);
+        expect(at.box.right, `${zoom}: the figure against the panel's left edge`).toBeLessThan(at.l.panel.left);
+        // drawn canvas pixels per metre of figure: the picture's height over the height the preset's camera sees at the axis
+        tablet[zoom] = (at.frame.scale * 1024) / (2 * (zoom === 'full' ? 3.9 : 1.15) * Math.tan((16 * Math.PI) / 180));
+        if (zoom === 'head') {
+          // the column's width is what limits the head picture: its box is the column, and the picture is far smaller than the canvas
+          expect(at.frame.subject.left).toBeCloseTo(at.free.left, 1);
+          expect(at.frame.subject.right).toBeCloseTo(at.free.right, 1);
+          expect(at.frame.scale).toBeLessThan(0.35);
+          // so small a head picture shows the far edge of the floor disc above the canvas's bottom edge
+          expect(at.floorTop).toBeLessThan(1024);
+        }
+        await expectPixels(page, zoom, at.free, at.box, at.floorTop);
+      }
+      // Head is still the closer view of the two
+      expect(tablet.head).toBeGreaterThan(tablet.full * 1.1);
+      await zoomTo(page, 'full');
 
       // A narrow portrait window: one column, the panel covers the whole width, so there is no free area and the picture is centred.
       await page.setViewportSize({ width: 390, height: 844 });
