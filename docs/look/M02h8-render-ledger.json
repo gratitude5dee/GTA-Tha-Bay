@@ -1,0 +1,65 @@
+{
+  "commit": "local",
+  "bakeId": "4f9b8ca8f1d43351a4db4c1c6a3fa131916db405a26ff7eec14ed5c4265d1d43",
+  "baselineFrom": "docs/look/M02h7-render-ledger.json",
+  "tiers": {
+    "desktop": {
+      "baseline": 495,
+      "after": 495,
+      "perLayer": {
+        "traa": 0
+      },
+      "triangles": 4524117
+    },
+    "mobile-low": {
+      "baseline": 71,
+      "after": 71,
+      "perLayer": {},
+      "triangles": 276743
+    },
+    "legacy": {
+      "baseline": 67,
+      "after": 67,
+      "perLayer": {},
+      "triangles": 215329
+    },
+    "xr-visionpro": {
+      "baseline": 142,
+      "after": 143,
+      "perLayer": {
+        "grade": 0,
+        "haze": 0,
+        "markings": 0,
+        "skyReflect": 0,
+        "blob": 1,
+        "ao": 0
+      },
+      "triangles": 913216,
+      "xrMultiview": null,
+      "viewPassesObserved": 1,
+      "viewPasses": 2,
+      "perPassMax": 200,
+      "total": 286,
+      "note": "forced flat on chromium-webgl2: counted per view pass; the device run is M11b1"
+    }
+  },
+  "xr": {
+    "baseline": 77,
+    "after": 78,
+    "perLayer": {
+      "grade": 0,
+      "haze": 0,
+      "markings": 0,
+      "skyReflect": 0,
+      "blob": 1,
+      "ao": 0
+    },
+    "triangles": 326291,
+    "xrMultiview": false,
+    "viewPassesObserved": 2,
+    "viewPasses": 1,
+    "perPassMax": 150,
+    "total": 156,
+    "note": "the IWER session of the run has no projection layer, so three renders each eye (no multiview, two passes): after is the per-pass count; the doubled total is the emulation's, the device figure is the Quest 3 run (AC-11)"
+  }
+}

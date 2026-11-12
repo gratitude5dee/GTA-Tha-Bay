@@ -150,15 +150,13 @@ test.describe('facade ledger @facade-ledger', () => {
 });
 
 test.describe('xr facade ledger @xr @facade-ledger', () => {
-  test('the Quest tier: no facade kit (the legacy look has no facade record), its render objects equal to its baseline @xr @facade-ledger', async ({ page }) => {
+  test('the Quest tier: no facade kit (its look has no facade layer), its render objects equal to its baseline @xr @facade-ledger', async ({ page }) => {
     test.setTimeout(900_000);
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    // the protocol of the XR rows of the earlier ledgers: 256 x 144, traffic resident, the frame of the plan (DL-758).
-    // `&look=legacy` (M02h8): this row is the legacy look's frame, as M02h7 measured it; the `xr` look's own object (the blob mesh) is
-    // the `@look-xr-ledger` row of `world-xr-look.spec.ts`
+    // the protocol of the XR rows of the earlier ledgers: 256 x 144, traffic resident, the frame of the plan (DL-758)
     await page.setViewportSize({ width: 256, height: 144 });
-    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1&look=legacy');
+    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1');
     await waitForEngine(page);
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
     await expect
@@ -167,12 +165,17 @@ test.describe('xr facade ledger @xr @facade-ledger', () => {
     await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 180_000, intervals: [500] }).toBeGreaterThan(0);
     await streamAtPlan(page);
     await world(page, (w) => w.hold(true));
+    // M02h8: the Quest tier draws the `xr` look, whose one render object is the blob mesh (the `@look-xr-ledger` row of
+    // `world-xr-look.spec.ts`); this row is the frame M02h7 measured, so the count is taken with that layer off. On a `legacy` Quest tier
+    // (the data fallback) there is no such layer and the call answers false.
+    await world(page, (w) => w.setLookLayer('blob', false));
     const objects = (await live(page)).renderObjects;
     const f = await facadeOf(page);
+    await world(page, (w) => w.setLookLayer('blob', true));
     await world(page, (w) => w.hold(false));
     expect(f.kit, 'the Quest tier meshes no kit').toBe(false);
     expect(f.kitTriangles).toBe(0);
-    expect(await world(page, (w) => w.setLookLayer('facade', false)), 'no facade layer on the legacy look').toBe(false);
+    expect(await world(page, (w) => w.setLookLayer('facade', false)), 'no facade layer on the Quest tier (the xr look has none, nor has legacy)').toBe(false);
     const priorXr = prior().ledger.xr?.after;
     console.log(`facade ledger xr: ${objects} render objects (baseline ${String(priorXr)}); facade ${JSON.stringify(f)}`);
     if (priorXr !== undefined) expect(objects, `xr after against the baseline ${priorXr}`).toBeLessThanOrEqual(priorXr);
