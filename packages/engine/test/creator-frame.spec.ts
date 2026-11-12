@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { PerspectiveCamera, Vector3 } from 'three/webgpu';
-import { FRAME_MIN_SCALE, creatorFrame, cylinderHalfWidth, type CreatorFrame, type FrameRect, type FrameSize } from '../src/client/creator-frame.ts';
+import { FRAME_MIN_AREA_PX, creatorFrame, cylinderHalfWidth, shownDownTo, type CreatorFrame, type FrameRect, type FrameSize } from '../src/client/creator-frame.ts';
 
 const FOV = 32;
 /** The stage's two presets: camera, look-at point and the figure's cylinder radius. */
@@ -137,7 +137,7 @@ describe('creator frame', () => {
     }
   });
 
-  it('a free area narrower than the figure shrinks the picture to its width; one too narrow to use keeps the centred picture', () => {
+  it('a free area narrower than the figure shrinks the picture to its width, however narrow; under a pixel of it is none', () => {
     const canvas = { width: 1600, height: 900 };
     const figure = half(FULL) * 900;
     expect(figure).toBeGreaterThan(300);
@@ -153,14 +153,92 @@ describe('creator frame', () => {
     expectInside(narrow);
     expectDrawn(canvas, FULL, narrow);
 
-    // under the smallest scale the figure could not be read: the centred picture stays
-    const sliver = creatorFrame(canvas, { x: 0, y: 0, width: figure * FRAME_MIN_SCALE - 1, height: 900 }, half(FULL));
-    expect(sliver.shifted).toBe(false);
-    expect(sliver.offset).toBeNull();
-    const edge = creatorFrame(canvas, { x: 0, y: 0, width: figure * FRAME_MIN_SCALE + 1, height: 900 }, half(FULL));
-    expect(edge.shifted).toBe(true);
-    // the same rule for a free area too low
-    expect(creatorFrame(canvas, { x: 0, y: 0, width: 700, height: 900 * FRAME_MIN_SCALE - 1 }, half(FULL)).shifted).toBe(false);
+    // No width at which the picture goes back behind the panel (BD-FIX-CREATOR-FRAME-06): from a wide area down to two pixels, at both
+    // presets, the figure is in the area, on its centre line, and never larger in a narrower one.
+    for (const p of [FULL, HEAD]) {
+      let last = Infinity;
+      for (let width = 720; width >= 2; width -= width > 40 ? 7 : 1) {
+        const free = { x: 16, y: 16, width, height: 780 };
+        const f = creatorFrame(canvas, free, half(p));
+        expect(f.shifted, `${p.radius} ${width}`).toBe(true);
+        expect(f.centre.x, `${p.radius} ${width}`).toBeCloseTo(16 + width / 2, 9);
+        expect(f.scale, `${p.radius} ${width}`).toBeCloseTo(Math.min(780 / 900, width / (half(p) * 900)), 12);
+        expect(f.scale).toBeLessThanOrEqual(last);
+        last = f.scale;
+        expectInside(f);
+      }
+      expectDrawn(canvas, p, creatorFrame(canvas, { x: 16, y: 16, width: 60, height: 780 }, half(p)));
+      // and no height either: a low area holds a small figure
+      const low = creatorFrame(canvas, { x: 16, y: 16, width: 700, height: 90 }, half(p));
+      expect(low.shifted).toBe(true);
+      expect(low.scale).toBeCloseTo(Math.min(0.1, 700 / (half(p) * 900)), 12);
+      expectInside(low);
+      expectDrawn(canvas, p, low);
+    }
+
+    // less than a pixel of free area on the canvas is none: the centred picture
+    for (const free of [{ x: 0, y: 0, width: FRAME_MIN_AREA_PX - 0.01, height: 900 }, { x: 0, y: 0, width: 700, height: FRAME_MIN_AREA_PX - 0.01 }, { x: 1599.5, y: 0, width: 300, height: 900 }]) {
+      const none = creatorFrame(canvas, free, half(FULL));
+      expect(none.shifted).toBe(false);
+      expect(none.offset).toBeNull();
+      expect(none.centre).toEqual({ x: 800, y: 450 });
+    }
+    expect(creatorFrame(canvas, { x: 0, y: 0, width: FRAME_MIN_AREA_PX, height: FRAME_MIN_AREA_PX }, half(FULL)).shifted).toBe(true);
+  });
+
+  it('head preset in a portrait window with the panel beside the preview: the head and shoulders are in the left column, not behind the panel', () => {
+    // The two-column page of a portrait tablet and of a tall desktop window: 16 px padding, the preview column (W - 48) / 2.2 wide,
+    // 16 px to the panel, the zoom buttons 124 px above the canvas's bottom edge. The head picture needs a free width of 1.01 canvas
+    // heights at its full size, far more than the column: it was drawn at full size on the canvas centre, half behind the panel.
+    for (const [width, height] of [[768, 1024], [1024, 1366], [740, 900], [721, 800], [720.5, 800], [1080, 1920], [800, 1700]] as const) {
+      const canvas = { width, height };
+      const column = (width - 48) / 2.2;
+      const free = { x: 16, y: 16, width: column, height: height - 140 };
+      const panel = 16 + column + 16;
+      for (const p of [HEAD, FULL]) {
+        const why = `${width} x ${height}, radius ${p.radius}`;
+        const f = creatorFrame(canvas, free, half(p));
+        expect(f.shifted, why).toBe(true);
+        expect(f.centre.x, why).toBeCloseTo(16 + column / 2, 9);
+        expect(f.centre.y, why).toBeCloseTo(16 + (height - 140) / 2, 9);
+        expectInside(f);
+        expect(f.subject.right, why).toBeLessThan(panel);
+        expectDrawn(canvas, p, f);
+      }
+      // the head picture is as wide as the column: its width is what limits it in a portrait window
+      const head = creatorFrame(canvas, free, half(HEAD));
+      expect(head.scale).toBeCloseTo(column / (half(HEAD) * height), 12);
+      expect(head.subject.right - head.subject.left).toBeCloseTo(column, 6);
+    }
+    // 768 x 1024: the numbers of the page (free width 327.27 px, panel from x = 359.27)
+    const tablet = creatorFrame({ width: 768, height: 1024 }, { x: 16, y: 16, width: 327.265625, height: 884 }, half(HEAD));
+    expectNear(tablet.centre, { x: 179.6328125, y: 458 });
+    expect(tablet.scale).toBeCloseTo(0.3163, 4);
+    expect(tablet.subject.left).toBeCloseTo(16, 6);
+    expect(tablet.subject.right).toBeCloseTo(343.265625, 6);
+  });
+
+  it('shownDownTo is the height drawn at the canvas\'s bottom edge', () => {
+    for (const [canvas, free] of [
+      [{ width: 1600, height: 900 }, { x: 16, y: 16, width: 705, height: 760 }],
+      [{ width: 844, height: 390 }, { x: 16, y: 16, width: 362, height: 374 }],
+      [{ width: 768, height: 1024 }, { x: 16, y: 16, width: 327, height: 884 }],
+      [{ width: 1080, height: 1920 }, { x: 16, y: 16, width: 469, height: 1780 }],
+      [{ width: 390, height: 844 }, null],
+    ] as const) {
+      for (const p of [HEAD, FULL]) {
+        const f = creatorFrame(canvas, free, half(p));
+        const low = shownDownTo(f, canvas.height, p.at[1], -p.eye[2], FOV);
+        // the point of the turntable axis at that height is drawn on the bottom edge, within the 2 % the camera's slight tilt costs
+        const drawn = camera(canvas, p, f)(0, low, 0);
+        expect(Math.abs(drawn.y - canvas.height), `${canvas.width} x ${canvas.height}, radius ${p.radius}: ${low} m at y = ${drawn.y}`).toBeLessThan(canvas.height * 0.02);
+        expect(drawn.x).toBeCloseTo(f.centre.x, 6);
+      }
+    }
+    // the centred head picture ends at the chest, a full-body picture under the floor; a small head picture shows the legs
+    expect(shownDownTo(creatorFrame({ width: 1600, height: 900 }, null, half(HEAD)), 900, 1.58, 1.15, FOV)).toBeCloseTo(1.58 - 1.15 * Math.tan((16 * Math.PI) / 180), 9);
+    expect(shownDownTo(creatorFrame({ width: 1600, height: 900 }, null, half(FULL)), 900, 0.92, 3.9, FOV)).toBeLessThan(0);
+    expect(shownDownTo(creatorFrame({ width: 768, height: 1024 }, { x: 16, y: 16, width: 327, height: 884 }, half(HEAD)), 1024, 1.58, 1.15, FOV)).toBeLessThan(0.6);
   });
 
   it('a free area that reaches past the canvas is cut to it, and the picture is never enlarged', () => {

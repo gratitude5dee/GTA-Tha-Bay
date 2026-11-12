@@ -5,8 +5,9 @@
  * "The picture" is what the stage camera draws with no view offset: the turntable axis on the canvas's vertical centre line, the zoom
  * preset's look-at point at the canvas centre, the whole canvas height. The frame moves that picture, as a whole and never stretched,
  * so that its centre is the centre of the free area, and scales it down (never up) until its height fits the free area's height and
- * the figure's turntable cylinder fits the free area's width. A picture that would have to shrink below `FRAME_MIN_SCALE` has no usable
- * free area: the stage then keeps the centred picture.
+ * the figure's turntable cylinder fits the free area's width. Every free area that is one on the canvas is used, however narrow: a
+ * smaller figure beside the panel, never a larger one behind it (BD-FIX-CREATOR-FRAME-06). Only without one (none reported, or less
+ * than a pixel of it on the canvas) does the stage keep the centred picture.
  */
 export interface FrameSize {
   width: number;
@@ -39,9 +40,9 @@ export interface FrameOffset {
 }
 
 export interface CreatorFrame {
-  /** False for the centred picture (no free area, or one too small to use). */
+  /** False for the centred picture (no free area on the canvas). */
   shifted: boolean;
-  /** Size of the picture against the centred one, `FRAME_MIN_SCALE` .. 1. */
+  /** Size of the picture against the centred one: 1 or less, as small as the free area asks. */
   scale: number;
   /** Where the turntable axis and the preset's look-at point are drawn. */
   centre: { x: number; y: number };
@@ -53,8 +54,8 @@ export interface CreatorFrame {
   offset: FrameOffset | null;
 }
 
-/** Below this the figure is too small to read; the stage keeps the centred picture instead. */
-export const FRAME_MIN_SCALE = 0.35;
+/** A free area with less than this of the canvas, in CSS pixels either way, is none. */
+export const FRAME_MIN_AREA_PX = 1;
 
 /**
  * Half the drawn width of a vertical cylinder of radius `radiusM` on the camera's axis, `distanceM` away, in half canvas heights of a
@@ -93,10 +94,9 @@ export function creatorFrame(canvas: FrameSize, free: FrameRect | null, halfWidt
   const bottom = Math.min(H, free.y + free.height);
   const fw = right - left;
   const fh = bottom - top;
-  if (!(fw > 0) || !(fh > 0)) return centred(canvas, halfWidth);
+  if (!(fw >= FRAME_MIN_AREA_PX) || !(fh >= FRAME_MIN_AREA_PX)) return centred(canvas, halfWidth);
   const figureWidth = halfWidth * H;
   const scale = Math.min(1, fh / H, fw / figureWidth);
-  if (!(scale >= FRAME_MIN_SCALE)) return centred(canvas, halfWidth);
   const cx = left + fw / 2;
   const cy = top + fh / 2;
   const fullWidth = W * scale;
@@ -111,4 +111,15 @@ export function creatorFrame(canvas: FrameSize, free: FrameRect | null, halfWidt
     // The whole frustum is drawn on a `fullWidth` x `fullHeight` sheet; the canvas is the window of it that starts at (x, y).
     offset: { fullWidth, fullHeight, x: fullWidth / 2 - cx, y: fullHeight / 2 - cy, width: W, height: H },
   };
+}
+
+/**
+ * The lowest height the frame shows of the turntable axis, in metres: what is drawn at the canvas's bottom edge. `atY` is the height
+ * of the preset's look-at point, `distanceM` the camera's distance from it and `fovDeg` the camera's vertical field of view. A picture
+ * drawn smaller than the canvas shows more of the figure than the preset was made for: the head preset in a narrow, tall free area
+ * shows the figure to the knees or to the feet. (The camera looks along the horizontal within about a degree, which this leaves out.)
+ */
+export function shownDownTo(f: CreatorFrame, canvasHeight: number, atY: number, distanceM: number, fovDeg: number): number {
+  const pxPerMetre = (f.scale * canvasHeight) / (2 * distanceM * Math.tan((fovDeg * Math.PI) / 360));
+  return atY - (canvasHeight - f.centre.y) / pxPerMetre;
 }

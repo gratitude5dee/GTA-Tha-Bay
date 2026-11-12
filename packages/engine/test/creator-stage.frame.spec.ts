@@ -9,7 +9,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PerspectiveCamera } from 'three/webgpu';
 import { createCreatorStage, type CreatorStage, type StageAssets, type StageHost, type StageMeasure, type StageParams, type StagePart } from '../src/client/creator-stage.ts';
-import type { FrameBox, FrameRect } from '../src/client/creator-frame.ts';
+import { cylinderHalfWidth, type FrameBox, type FrameRect } from '../src/client/creator-frame.ts';
 
 const repo = path.resolve(import.meta.dirname, '../../..');
 const assets: StageAssets = {
@@ -62,6 +62,14 @@ afterEach(() => {
 
 const DESKTOP = { canvas: [1600, 900] as const, free: { x: 16, y: 16, width: 705, height: 780 }, panel: 737 };
 const PHONE = { canvas: [844, 390] as const, free: { x: 16, y: 16, width: 363, height: 270 }, panel: 395 };
+/** A portrait tablet: the panel is beside the preview, and the head picture at its full size is three times as wide as the column. */
+const TABLET = { canvas: [768, 1024] as const, free: { x: 16, y: 16, width: 327.265625, height: 884 }, panel: 359.265625 };
+
+/** The page's two-column layout in a window: 16 px padding, columns 1 : 1.2 with a 16 px gap, the zoom buttons 124 px above the bottom. */
+function pageOf(width: number, height: number): { free: FrameRect; panel: number } {
+  const column = (width - 48) / 2.2;
+  return { free: { x: 16, y: 16, width: column, height: height - 140 }, panel: 32 + column };
+}
 
 function expectInFree(box: FrameBox, free: FrameRect, why: string): void {
   expect(box.left, `${why} left`).toBeGreaterThanOrEqual(free.x);
@@ -86,7 +94,7 @@ function sweep(stage: CreatorStage): { box: FrameBox; floor: StageMeasure['floor
 }
 
 describe('creator stage framing', () => {
-  for (const [name, view] of [['desktop 1600 x 900', DESKTOP], ['phone 844 x 390', PHONE]] as const) {
+  for (const [name, view] of [['desktop 1600 x 900', DESKTOP], ['phone 844 x 390', PHONE], ['portrait tablet 768 x 1024', TABLET]] as const) {
     it(`${name}: the mannequin is centred in the free area and inside it, full body and head`, () => {
       const { host } = fakeHost(view.canvas[0], view.canvas[1]);
       const stage = createCreatorStage(host);
@@ -144,6 +152,64 @@ describe('creator stage framing', () => {
       stage.hide();
     });
   }
+
+  it('every window with the panel beside the preview: the widest and the tallest figure stay in the free area at both presets, whatever the head picture then shows of them', async () => {
+    // Landscape and portrait, down to the narrowest two-column window (721 px) and to windows more than twice as high as wide. The
+    // head picture is as wide as the reach of what it shows: head and shoulders on a desktop and a phone, the figure to the knees on a
+    // portrait tablet (the skirt's hem is wider than the shoulders), the whole figure in a very tall window (so are the shoes).
+    const WINDOWS: readonly (readonly [number, number, number])[] = [
+      [1600, 900, 0.32], [844, 390, 0.32], [1024, 600, 0.32], [2000, 700, 0.32],
+      [721, 800, 0.34], [740, 900, 0.34], [768, 1024, 0.34], [834, 1194, 0.34], [1024, 1366, 0.34],
+      [1080, 1920, 0.4], [800, 1700, 0.4], [760, 2400, 0.4],
+    ];
+    // The tallest figure has the skirt's hem and the shoes' tops at their highest. (At the height slider's end its hair is above the
+    // full-body picture's top edge, 2.04 m, as it was before the picture was framed; its head is checked at the slider's middle.)
+    const tallest: StagePart[] = [model('body', 'body-tall'), ...WIDEST.slice(1)];
+    for (const [who, parts, heightScale] of [['widest', WIDEST, 1], ['tallest', tallest, 1.08]] as const) {
+      const { host, canvas } = fakeHost(1600, 900);
+      const stage = createCreatorStage(host, assets);
+      stage.setReducedMotion(true);
+      stage.show(params(parts, heightScale, 1.18));
+      await settle();
+      expect(stage.state.figure).toBe('models');
+      for (const [width, height, reach] of WINDOWS) {
+        canvas.clientWidth = width;
+        canvas.clientHeight = height;
+        tick();
+        const { free, panel } = pageOf(width, height);
+        stage.setFreeArea(free);
+        const centre = free.x + free.width / 2;
+        for (const zoom of ['full', 'head'] as const) {
+          const why = `${who}, ${width} x ${height}, ${zoom}`;
+          stage.setZoom(zoom);
+          const frame = stage.state.frame;
+          expect(frame, why).toMatchObject({ shifted: true, canvas: { width, height } });
+          expect(frame?.centre.x, why).toBeCloseTo(centre, 6);
+          const { box, floor } = sweep(stage);
+          expect(floor.x, why).toBeCloseTo(centre, 4);
+          expectInFree(box, free, why);
+          expect(box.right, why).toBeLessThan(panel);
+          if (zoom === 'full') {
+            // head to feet inside the free area
+            if (heightScale === 1) expect(box.top, why).toBeGreaterThanOrEqual(free.y);
+            expect(box.bottom, why).toBeLessThanOrEqual(free.y + free.height);
+          }
+          // the cylinder the picture was framed with: the whole figure's at Full body, the reach of what is shown at Head
+          const drawn = ((frame?.subject.right ?? 0) - (frame?.subject.left ?? 0)) / ((frame?.scale ?? 1) * height);
+          const distance = zoom === 'full' ? 3.9 : 1.15;
+          expect(drawn, why).toBeCloseTo(cylinderHalfWidth(zoom === 'full' ? 0.4 : reach, distance, 32), 9);
+          // and the figure fills it: no picture is framed wider than what it shows needs (the widest figure reaches 0.30 to 0.35 m)
+          if (who === 'widest') expect(box.right - box.left, why).toBeGreaterThan(((frame?.subject.right ?? 0) - (frame?.subject.left ?? 0)) * 0.84);
+          // the floor disc's far edge: above its centre in every picture, and under the canvas where the picture shows no floor
+          const { floorTop } = stage.measure() as StageMeasure;
+          expect(floorTop, why).toBeLessThan(floor.y);
+          if (zoom === 'full' || reach === 0.4) expect(floorTop, why).toBeLessThan(height);
+          else if (reach === 0.32) expect(floorTop, why).toBeGreaterThan(height);
+        }
+      }
+      stage.hide();
+    }
+  });
 
   it('the figure is not stretched: the canvas aspect ratio is set at show, not at the host\'s next resize', () => {
     const { host, camera } = fakeHost(1600, 900);

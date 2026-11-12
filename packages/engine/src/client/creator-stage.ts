@@ -5,7 +5,7 @@ import {
 import { buildPlaceholderRig } from './anim/placeholder-rig.ts';
 import { assembleAvatar, type AssemblySlot, type Assembly, type AssembledPart } from './avatar/assemble.ts';
 import { parsePersonGlb, type PersonMesh } from './avatar/person-glb.ts';
-import { creatorFrame, cylinderHalfWidth, type CreatorFrame, type FrameBox, type FrameRect, type FrameSize } from './creator-frame.ts';
+import { creatorFrame, cylinderHalfWidth, shownDownTo, type CreatorFrame, type FrameBox, type FrameRect, type FrameSize } from './creator-frame.ts';
 
 /**
  * The creator preview (10-ui-pages.md 2.8, M04b2): one `bay_rig_v1` mannequin on the shared canvas through the renderer host's menu scene
@@ -74,6 +74,11 @@ export interface StageMeasure {
   figure: FrameBox | null;
   /** The centre of the floor disc, where the turntable axis meets the floor. */
   floor: { x: number; y: number };
+  /**
+   * The highest row the floor disc is drawn on (its far edge); past the canvas's bottom edge where the picture does not show the floor.
+   * The disc is wider than the figure: from this row down it can run past the free area, behind the panel.
+   */
+  floorTop: number;
 }
 
 export interface CreatorStage {
@@ -84,8 +89,8 @@ export interface CreatorStage {
   /**
    * The part of the viewport the page leaves free for the figure (CSS pixels, viewport coordinates: the area beside the options panel
    * and above the zoom buttons), or null for none. The stage shifts its projection so that the figure and the floor disc are centred in
-   * it, at both zoom presets, and scales the picture down when the area is smaller than the figure (BD-FIX-CREATOR-FRAME-01). The area
-   * is forgotten at `hide`.
+   * it, at both zoom presets, and scales the picture down when the area is smaller than the figure, however small that makes it
+   * (BD-FIX-CREATOR-FRAME-01, -06). The area is forgotten at `hide`.
    */
   setFreeArea(area: FrameRect | null): void;
   /** Projects the drawn figure's vertices: where the figure really is on the canvas. For the QA bridge and tests; null while hidden or without a canvas. */
@@ -123,21 +128,39 @@ const SHOE_BONES = new Set(['l_foot', 'r_foot', 'l_toes', 'r_toes']);
 /** Turntable speed, radians per second. */
 const SPIN = 0.5;
 const FOV_DEG = 32;
-/**
- * The zoom presets: where the camera stands and looks, and the radius of the cylinder the turning figure stays inside in the picture
- * (metres, at the widest build of 1.18). Full body: every part model reaches at most 0.30 m from the turntable axis (the toes of the
- * widest shoes), 0.354 m at the widest build. Head: above the hips the widest body with the widest top reaches 0.253 m, 0.299 m at the
- * widest build. The rest is margin.
- */
+/** The zoom presets: where the camera stands and where it looks. The turntable axis is the y axis. */
 const PRESETS = {
-  full: { eye: [0, 1.05, -3.9], at: [0, 0.92, 0], radius: 0.4 },
-  head: { eye: [0, 1.6, -1.15], at: [0, 1.58, 0], radius: 0.32 },
+  full: { eye: [0, 1.05, -3.9], at: [0, 0.92, 0] },
+  head: { eye: [0, 1.6, -1.15], at: [0, 1.58, 0] },
 } as const;
-/** The figure's half width in the centred picture of each preset, in half canvas heights. */
-const HALF_WIDTH = {
-  full: cylinderHalfWidth(PRESETS.full.radius, -PRESETS.full.eye[2], FOV_DEG),
-  head: cylinderHalfWidth(PRESETS.head.radius, -PRESETS.head.eye[2], FOV_DEG),
-} as const;
+/**
+ * How far the turning figure reaches from the turntable axis, by how far down a picture shows it: the radius of the cylinder the
+ * figure stays inside (metres, with margin, at the widest build of 1.18 and the tallest figure). Measured over every part model:
+ * above 0.64 m (0.74 m on the tallest figure) the widest body with the widest top reaches 0.253 m, 0.299 m at the widest build; the
+ * hem of the skirt, from there down, 0.272 m and 0.321 m; the toes of the widest shoes, under 0.06 m, 0.300 m and 0.354 m.
+ * A picture is framed with the first row of `UPPER_REACH` it does not show below, or else with the whole figure's radius
+ * (BD-FIX-CREATOR-FRAME-06): the full body always with the whole figure's; the head preset with the first row on a desktop or a
+ * phone, and with a later one where a narrow, tall free area makes its picture so small that the canvas shows the figure to the knees
+ * or to the feet.
+ */
+const UPPER_REACH = [
+  { downTo: 0.9, radius: 0.32 },
+  { downTo: 0.2, radius: 0.34 },
+] as const;
+const WHOLE_REACH = 0.4;
+/** The floor disc under the figure, metres. */
+const FLOOR_RADIUS = 0.9;
+
+/** The frame of a preset's picture on the canvas (`creatorFrame`), as wide as the part of the figure it shows reaches. */
+function frameOf(preset: (typeof PRESETS)[keyof typeof PRESETS], canvas: FrameSize, free: FrameRect | null): CreatorFrame {
+  // The camera's distance from the turntable axis; its eye and its look-at point are within 13 cm of one height.
+  const distance = -preset.eye[2];
+  for (const reach of UPPER_REACH) {
+    const f = creatorFrame(canvas, free, cylinderHalfWidth(reach.radius, distance, FOV_DEG));
+    if (shownDownTo(f, canvas.height, preset.at[1], distance, FOV_DEG) >= reach.downTo) return f;
+  }
+  return creatorFrame(canvas, free, cylinderHalfWidth(WHOLE_REACH, distance, FOV_DEG));
+}
 
 export function createCreatorStage(host: StageHost, assets?: StageAssets): CreatorStage {
   const scene = new Scene();
@@ -152,7 +175,7 @@ export function createCreatorStage(host: StageHost, assets?: StageAssets): Creat
   scene.add(rim);
 
   const floorMat = new MeshStandardNodeMaterial({ color: 0x1d2736, roughness: 0.9 });
-  const floor = new Mesh(new CylinderGeometry(0.9, 0.9, 0.04, 40), floorMat);
+  const floor = new Mesh(new CylinderGeometry(FLOOR_RADIUS, FLOOR_RADIUS, 0.04, 40), floorMat);
   floor.position.y = -0.02;
   scene.add(floor);
 
@@ -312,7 +335,7 @@ export function createCreatorStage(host: StageHost, assets?: StageAssets): Creat
       const at = c.getBoundingClientRect();
       free = { x: area.x - at.left, y: area.y - at.top, width: area.width, height: area.height };
     }
-    const f = creatorFrame({ width, height }, free, HALF_WIDTH[state.zoom]);
+    const f = frameOf(preset, { width, height }, free);
     // Both calls update the projection matrix.
     if (f.offset) camera.setViewOffset(f.offset.fullWidth, f.offset.fullHeight, f.offset.x, f.offset.y, f.offset.width, f.offset.height);
     else camera.clearViewOffset();
@@ -347,10 +370,14 @@ export function createCreatorStage(host: StageHost, assets?: StageAssets): Creat
       }
     });
     probe.set(0, 0, 0).project(camera);
+    const centre = { x: ((probe.x + 1) / 2) * width, y: ((1 - probe.y) / 2) * height };
+    // the camera stands on the -z side of the axis, above the floor: the disc's far edge is its highest point in the picture
+    probe.set(0, 0, FLOOR_RADIUS).project(camera);
     return {
       canvas: { width, height },
       figure: box.left <= box.right ? box : null,
-      floor: { x: ((probe.x + 1) / 2) * width, y: ((1 - probe.y) / 2) * height },
+      floor: centre,
+      floorTop: ((1 - probe.y) / 2) * height,
     };
   };
 
