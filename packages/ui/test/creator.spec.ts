@@ -7,7 +7,7 @@ import {
   CATALOG, CREATOR_SLOTS, DEFAULT_AVATAR, cardsOf, checkName, defaultAvatar, mulberry32, normalizeAvatar, pairConsistent, partOf, partsOf,
   pickPart, randomize, realisticDefault, sameAvatar, withPart, type PlayerAvatar,
 } from '../src/creator/catalog.ts';
-import { mannequinParams } from '../src/creator/stage.ts';
+import { freeStageArea, mannequinParams } from '../src/creator/stage.ts';
 import en from '../../../content/ui/i18n/en.json';
 
 const repo = path.resolve(import.meta.dirname, '../../..');
@@ -280,5 +280,33 @@ describe('the Coast set (10-ui-pages.md 2.8 rule 6, DL-OWN-05, DL-737)', () => {
     expect(m.hair).toBe(0x0f0b09);
     // Rows without a colour keep their tint.
     expect(mannequinParams(withPart(defaultAvatar(), 'top', 'top-hoodie')).top).not.toBe(0x141414);
+  });
+});
+
+describe('the free area of the preview (10-ui-pages.md 2.8, BD-FIX-CREATOR-FRAME-01)', () => {
+  const edges = (left: number, top: number, right: number, bottom: number) => ({ left, top, right, bottom });
+
+  it('desktop: the preview section left of the panel, down to the top of the zoom buttons', () => {
+    // 1600 x 900: 16 px page padding, the panel from x = 737, the buttons from y = 796
+    expect(freeStageArea(edges(16, 16, 721, 884), edges(737, 16, 1584, 884), edges(16, 796, 721, 840))).toEqual({ x: 16, y: 16, width: 705, height: 780 });
+  });
+
+  it('phone landscape: the same rule, and without the buttons the whole section', () => {
+    expect(freeStageArea(edges(16, 16, 379, 374), edges(395, 16, 828, 374), edges(16, 286, 379, 330))).toEqual({ x: 16, y: 16, width: 363, height: 270 });
+    expect(freeStageArea(edges(16, 16, 379, 374), edges(395, 16, 828, 374), null)).toEqual({ x: 16, y: 16, width: 363, height: 358 });
+  });
+
+  it('a right-to-left layout: the panel on the left leaves the section on the right', () => {
+    expect(freeStageArea(edges(879, 16, 1584, 884), edges(16, 16, 863, 884), edges(879, 796, 1584, 840))).toEqual({ x: 879, y: 16, width: 705, height: 780 });
+  });
+
+  it('one column (a narrow portrait window): the panel covers the whole width, so there is no free area', () => {
+    expect(freeStageArea(edges(16, 16, 374, 252), edges(16, 268, 374, 1200), edges(16, 164, 374, 208))).toBeNull();
+  });
+
+  it('an empty section has no free area; buttons outside the section do not cut it', () => {
+    expect(freeStageArea(edges(16, 16, 16, 884), edges(32, 16, 1584, 884), null)).toBeNull();
+    expect(freeStageArea(edges(16, 16, 721, 884), edges(737, 16, 1584, 884), edges(16, 16, 721, 60))).toEqual({ x: 16, y: 16, width: 705, height: 868 });
+    expect(freeStageArea(edges(16, 16, 721, 884), edges(737, 16, 1584, 884), edges(16, 900, 721, 944))).toEqual({ x: 16, y: 16, width: 705, height: 868 });
   });
 });
