@@ -26,6 +26,11 @@ export interface GroundOut {
    * (`bumpNormal`); each term fades with the pixel footprint. 0 with `detail` `lite` beyond its one octave.
    */
   height: L;
+  /**
+   * M02h8: the class roughness with the wet gloss of the pavement and no noise term (no macro drift, no puddle fbm): the ground of the `xr`
+   * profile, which builds no noise node.
+   */
+  flatRoughness: L;
 }
 
 /**
@@ -179,5 +184,7 @@ export function groundNodes(look: LookFile, n: LookNodes, id: L, vertexColor: L,
     .add(rock.mul(crackH.add(aggregate)))
     .add(grass.mul(clumpH))
     .add(cover.height);
-  return { color, roughness, metalness: float(0), water, deep, height };
+  const flatWet = clamp(n.sky.uWet.mul(pavement).mul(0.6), 0, 1).mul(clamp(up.mul(4), 0, 1));
+  const flatRoughness = mix(rough, float(0.2), flatWet.mul(n.sky.uWetRough).mul(0.7));
+  return { color, roughness, metalness: float(0), water, deep, height, flatRoughness };
 }

@@ -12,6 +12,12 @@
  * Profiles: `full` (desktop tiers: noise detail, glass that reflects the environment, four waves), `lite` (mobile: lighter noise,
  * a Fresnel glass tint, two waves), `min` (mobile-low: the vertex colour with the class roughness by day and the window grid only as
  * the night emissive mask; no waves). `legacy` is the M02b1/M02b2 material set and is built by chunks/materials.ts.
+ *
+ * M02h8, `xr` (both XR tiers): the `min` building path (glass through `skyReflect`), the ground's vertex colour times the vertex AO (the
+ * `ao` layer, `uAO`) with the flat paint of M02h1 (hard steps, `fwidth` AA), water a flat colour plus the `skyReflect` Fresnel, the `low`
+ * tree pools without the leaf noise, massing without the tone noise; no value noise, no bump and no roughness noise anywhere. With
+ * `hardSwap` (the `xr-quest` tier, whose fade is 0) the L0 materials have no alpha test (no opacity node), which keeps early depth on a
+ * tiled GPU; the coarse levels keep the discard of their cover mask.
  */
 import { DoubleSide, FrontSide, MeshStandardNodeMaterial } from 'three/webgpu';
 import { windowEmissive } from '../sky/night.ts';
@@ -37,7 +43,7 @@ import { withSurfaceTextures } from '../textures/surface-textures.ts';
 import { facadeAtlasAlbedo } from '../chunks/facade.ts'; // art-hook:facade (M10d2; M02h7's albedo seam)
 import { wallTexturesAlbedo } from '../textures/surface-textures.ts'; // M02h7: brick and stucco on the walls through the seam
 
-export type MaterialProfile = 'full' | 'lite' | 'min';
+export type MaterialProfile = 'full' | 'lite' | 'min' | 'xr';
 
 export interface LookMaterialSet {
   l0: Partial<Record<ObjectKind, MeshStandardNodeMaterial>>;
@@ -55,6 +61,8 @@ export interface LookMaterialOptions {
   depth: DepthRules;
   /** M02h4: the wind uniforms; the `full` profile's trees sway with them. */
   wind?: WindNodes;
+  /** M02h8: the tier swaps chunks hard (fade 0, `xr-quest`): the L0 materials draw with alpha test 0 and no opacity node. */
+  hardSwap?: boolean;
 }
 
 const set = <K extends string>(m: MeshStandardNodeMaterial, k: K, v: unknown): void => void ((m as unknown as Record<string, unknown>)[k] = v);
@@ -64,12 +72,22 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
   const a = baseAttributes();
   const shown = fadeShown(n, a.aBirth);
   const covered = coverMask(a.aCover, a.aCell);
-  const shade = a.aAO.mul(0.3).add(0.7);
+  // M02h8: the `xr` profile's vertex AO is a layer (`ao`, `uAO`); every other profile has it always on
+  const shade = profile === 'xr' ? mix(float(1), a.aAO.mul(0.3).add(0.7), n.uAO) : a.aAO.mul(0.3).add(0.7);
   const detail = profile === 'full' ? 'full' : 'lite';
+  /** `min` and `xr`: the vertex colour, the flat paint and the `min` building path. */
+  const flat = profile === 'min' || profile === 'xr';
+  const xr = profile === 'xr';
   const all: MeshStandardNodeMaterial[] = [];
 
   const make = (side: typeof FrontSide | typeof DoubleSide, coarse: boolean): MeshStandardNodeMaterial => {
     const m = new MeshStandardNodeMaterial({ roughness: 0.9, metalness: 0, side });
+    if (o.hardSwap === true && !coarse) {
+      // M02h8: no fade on this tier, so no discard: the L0 surfaces keep early depth (the coarse levels keep the cover mask's)
+      m.alphaTest = 0;
+      all.push(m);
+      return m;
+    }
     m.alphaTest = 0.5;
     m.opacityNode = asNode(coarse ? select(covered.greaterThan(0.5), float(0), shown) : shown) as never;
     all.push(m);
@@ -85,11 +103,12 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     const vc = vertexColor(0);
     const g = groundNodes(look, n, s.id, vc, normalWorld.y, detail);
     // art-hook:textures begin (M10d0): the bound PBR sets over the procedural ground (L0 only; the coarse levels keep the look as it is)
-    const plain = { color: profile === 'min' ? vc : g.color, roughness: g.roughness, normal: profile === 'min' ? null : normalView };
-    const tx = coarse ? plain : withSurfaceTextures({ id: s.id, normal: normalWorld }, plain);
+    const plain = { color: flat ? vc : g.color, roughness: xr ? g.flatRoughness : g.roughness, normal: flat ? null : normalView };
+    // M02h8: the `xr` profile binds no surface texture (its mode is `off`; not even the seam is built)
+    const tx = coarse || xr ? plain : withSurfaceTextures({ id: s.id, normal: normalWorld }, plain);
     // art-hook:textures end
     // M02h1: the street paint over the L0 roads' asphalt (the `markings` layer); the coarse levels have no `road` attribute
-    const paint = roads && !coarse ? paintNodes({ look: look.markings, nodes: n, mode: profile === 'min' ? 'flat' : 'worn', id: s.id, color: tx.color, roughness: tx.roughness }) : null;
+    const paint = roads && !coarse ? paintNodes({ look: look.markings, nodes: n, mode: flat ? 'flat' : 'worn', id: s.id, color: tx.color, roughness: tx.roughness }) : null;
     const baseColor = paint ? paint.color : tx.color;
     const baseRough = paint ? paint.roughness : tx.roughness;
     // M02h2: the `curbs` layer off puts the sidewalk ribbons back on the road plane: each vertex's raise over the road (centimetres in the
@@ -102,6 +121,13 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
       // Vertex colour with the class roughness; the sea a flat colour.
       m.colorNode = asNode(baseColor.mul(shade));
       m.roughnessNode = asNode(baseRough) as never;
+      return m;
+    }
+    if (xr) {
+      // M02h8: water is the flat colour of `min` plus the `skyReflect` Fresnel (`waterNodes('min')`); no normal node, no wave
+      const w = waterNodes('min', look, n, g.deep, vc);
+      m.colorNode = asNode(mix(baseColor, w.color, g.water).mul(shade));
+      m.roughnessNode = asNode(mix(baseRough, w.roughness, g.water)) as never;
       return m;
     }
     const w = waterNodes(profile, look, n, g.deep, vc);
@@ -125,17 +151,18 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     // M02h7: the awning cloth of the facade kit
     const isAwning = step(s.id.sub(Surf.Awning).abs(), 0.5);
     // art-hook:facade begin (M10d2): the KTX2 facade atlas over the wall albedo, through M02h7's `albedo` seam on `full` and `lite`
-    const atlas = profile === 'min' ? null : facadeAtlasAlbedo(profile, { kind: s.kind, seed: fac.seed, u: fac.u, v: fac.v });
+    const atlas = flat ? null : facadeAtlasAlbedo(profile as 'full' | 'lite', { kind: s.kind, seed: fac.seed, u: fac.u, v: fac.v });
     // art-hook:facade end
     // M02h7: brick and stucco (M10d0's sets, `surface-textures.json` wall bindings) through the same seam, before the atlas detail
-    const bricks = profile === 'min' ? null : wallTexturesAlbedo({ id: s.id, u: fac.u, v: fac.v });
+    const bricks = flat ? null : wallTexturesAlbedo({ id: s.id, u: fac.u, v: fac.v });
     const albedo = atlas || bricks ? (base: L): L => (atlas ? atlas(bricks ? bricks(base) : base) : (bricks as (b: L) => L)(base)) : undefined;
-    const wall = wallNodes({ profile, look, n, kind: s.kind, pal: s.pal, flags: s.flags, fac, foundationM: o.foundationM, parapetM: o.parapetM, albedo });
+    // M02h8: `xr` takes the `min` wall (vertex colour, the window grid as the night mask, the glass through `skyReflect`)
+    const wall = wallNodes({ profile: flat ? 'min' : profile, look, n, kind: s.kind, pal: s.pal, flags: s.flags, fac, foundationM: o.foundationM, parapetM: o.parapetM, albedo });
     let col: L;
     let rough: L;
     let metal: L = float(0);
     let emis: L;
-    if (profile === 'min') {
+    if (flat) {
       const classRough = pickFloat(s.kind, FACADE_KEYS.map((k) => look.facade[k].wallRoughness));
       col = vc.mul(shade);
       // M02h7: the flat shopfront, awning-stripe and sign bands of `min`
@@ -175,7 +202,8 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     const windows = select(fract(positionWorld.y.mul(0.28)).greaterThan(0.45), float(1), float(0)).mul(
       select(fract(positionWorld.x.add(positionWorld.z).mul(0.3)).greaterThan(0.4), float(1), float(0)),
     );
-    const tone = around1(vnoise(vec2(positionWorld.x, positionWorld.z).mul(0.08)), 0.08);
+    // M02h8: no tone noise on `xr`
+    const tone = xr ? float(1) : around1(vnoise(vec2(positionWorld.x, positionWorld.z).mul(0.08)), 0.08);
     m.colorNode = asNode(vc.mul(tone).mul(shade));
     m.roughnessNode = asNode(float(0.85)) as never;
     m.emissiveNode = asNode(windowEmissive(n.sky, loose(wallMask), loose(windows)));
@@ -191,7 +219,8 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     const leaf = attribute('aLeaf', 'float');
     const tint = attribute('aTint', 'vec4').xyz;
     const wp = vec2(positionWorld.x, positionWorld.z);
-    const leafVar = mix(float(1), around1(vnoise(wp.mul(1.7).add(positionWorld.y.mul(0.6))), 0.16), leaf);
+    // M02h8: `xr` crowns have no leaf noise (opaque `low` pools, the vertex colour and the tint)
+    const leafVar = xr ? float(1) : mix(float(1), around1(vnoise(wp.mul(1.7).add(positionWorld.y.mul(0.6))), 0.16), leaf);
     const crown = mix(vec3(1, 1, 1), tint, leaf);
     // rain darkens the crowns a little, as it does the other surfaces
     const wet = float(1).sub(n.sky.uWet.mul(0.12));

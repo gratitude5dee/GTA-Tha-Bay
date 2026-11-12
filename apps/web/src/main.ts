@@ -5,7 +5,7 @@ import { earlySimWorker, type EarlySimWorker } from '@dv/engine/client/boot/spaw
 import type { WorkerPort } from '@dv/engine/assets/client';
 import type { WorkerLike } from '@dv/engine/sim';
 import { bootChoice } from '@dv/world/sim/boot';
-import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/client';
+import { hasWorldIndex, parseLookParam, prepareWorld, type PreparedWorld } from '@dv/world/client';
 import platformFlags from '../../../config/platform-flags.json';
 import lookConfig from '../../../config/world/look.json';
 import { createVoicePreview, creatorVoiceRef, CREATOR_VOICES, loadPrefs, memoryPrefs, defaultPrefs, mountShell, registerTexts, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps, type VoicePreview } from '@dv/ui';
@@ -283,6 +283,8 @@ async function bootPlatformAndEngine(simWorker: EarlySimWorker): Promise<void> {
   // error page, with a retry, when the player starts a mode, instead of an empty world. Only the default boot rule asks (no ?world=).
   let worldFailure = flags.world === null ? catalogFailureCode(catalog) : null;
   let prepared: PreparedWorld | null = null;
+  // M02h8: the QA `?look=` value, parsed beside `?look=0` (absent from a production build: `QA` is a build-time constant)
+  const qaLook = QA ? parseLookParam(new URLSearchParams(location.search).get('look'), platform.quality.tier.id) : { enabled: true, override: null };
   if (choice === 'baked' && assets) {
     try {
       prepared = await prepareWorld({
@@ -298,8 +300,11 @@ async function bootPlatformAndEngine(simWorker: EarlySimWorker): Promise<void> {
         },
         // The look pass (M02e): `world.look` (default true) is the full rollback switch; WebKit never bakes the sky environment.
         look: {
-          // `?look=0` (QA builds) boots with the look off, the cost and request comparison of the e2e and the device checklists.
-          enabled: platformFlags['world.look'] !== false && !(QA && new URLSearchParams(location.search).get('look') === '0'),
+          // `?look=0` (QA builds) boots with the look off, the cost and request comparison of the e2e and the device checklists; on an XR
+          // tier (M02h8) it boots the `legacy` profile, which keeps M02h1's flat paint. `?look=legacy|xr` (QA builds, XR tiers only)
+          // overrides the profile look.json gives the tier; neither is a C13 QaFlags field.
+          enabled: platformFlags['world.look'] !== false && qaLook.enabled,
+          profile: qaLook.override,
           browser: platform.profile.browser,
           backend: platform.backend,
           postLevel: platform.quality.dynamic.postLevel,

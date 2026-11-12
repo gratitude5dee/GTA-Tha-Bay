@@ -14,7 +14,7 @@ import { uniform as uniformNode } from 'three/tsl';
 import type { WorldFrame } from '@dv/engine/client/boot/world-layer';
 import type { ArtLoader, ArtProfile } from '@dv/engine/client/vehicle/art';
 import { ARCHETYPES, PALETTE } from '../../sim/traffic/components.ts';
-import type { LookProfile } from '../look/config.ts';
+import type { ArtLookProfile } from './archetype-mesh.ts';
 import type { SkyNodes } from '../sky/nodes.ts';
 import type { U } from '../sky/tsl.ts';
 import { familiesOf, familyOf, mergeModel, placeholderGeometry, TRAFFIC_ART, type FamilyGeometry, type TrafficArtFile } from './archetype-mesh.ts';
@@ -59,7 +59,7 @@ export interface TrafficRendererOptions {
   /** C13 `CrowdLimits.maxTrafficInstances` of the tier. */
   cap: number;
   /** The look profile (default `legacy`: one family). */
-  profile?: LookProfile;
+  profile?: ArtLookProfile;
   /** Loads the model of an asset ref at a variant; without it every family keeps its gray-box car. */
   load?: ArtLoader;
   /** The families config (default `config/world/traffic-art.json`). */
@@ -112,7 +112,7 @@ interface SlotInfo {
 
 export class TrafficRenderer {
   readonly group = new Group();
-  readonly profile: LookProfile;
+  readonly profile: ArtLookProfile;
   private readonly cap: number;
   private readonly cfg: TrafficArtFile;
   private readonly families: Family[] = [];

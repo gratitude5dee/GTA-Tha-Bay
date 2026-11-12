@@ -35,7 +35,7 @@ import treeFormsJson from '../../../../../config/world/tree-forms.json';
 import furnitureJson from '../../../../../config/world/furniture.json';
 import densityJson from '../../../../../config/world/density.json';
 import { pointAlong, polylineLength } from '../../sim/graph/geometry.ts';
-import { LOOK, LOOK_FLAG, facadeClassOf, lookProfileFor } from '../look/config.ts';
+import { LOOK, LOOK_FLAG, facadeClassOf, layersOf, lookProfileFor, type LookProfile } from '../look/config.ts';
 import { packRoad, roadFields, roadVertex, wrapAlong, type RoadFields } from '../look/road-layout.ts';
 import { COVER_SURFACE_NAMES, FLAG_BAY, FLAG_CORNICE, FLAG_PARAPET, FLAG_SHOP, Surf, coverSurf, facadeDm, facadeSignedDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
 import {
@@ -1193,7 +1193,7 @@ export interface MeshChunkOptions {
    * M02h6: the furniture records' look profile (the pools that draw them); defaults to the tier's profile under the `world.look` flag. `legacy`
    * meshes none.
    */
-  furnitureProfile?: 'full' | 'lite' | 'min' | 'legacy' | undefined;
+  furnitureProfile?: LookProfile | undefined;
   /**
    * M02h7: the facade kit (awnings, bays, cornices, shop-wall flags) on the profiles that have a kit allowance and a facade record; default on.
    * False is the `facade` layer off (`setLookLayer('facade', false)`): the buildings mesh as before M02h7.
@@ -1266,8 +1266,9 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
 
   // M02e: the facade record rides on the building vertices unless the tier's look is `legacy`.
   const withFacade = lookProfileFor(o.tier) !== 'legacy';
-  // M02h7: the facade kit, where the profile has an allowance and the buildings a facade record
-  const kitAllowance = withFacade && o.facadeKit !== false ? KIT.trisPerBuilding[profileId] : 0;
+  // M02h7: the facade kit, where the profile has an allowance and the buildings a facade record. M02h8: and where the look profile has the
+  // `facade` layer (the `xr` look has none: its walls keep M02b1's boxes, as the `legacy` XR tiers drew them)
+  const kitAllowance = withFacade && o.facadeKit !== false && layersOf(lookProfileFor(o.tier)).includes('facade') ? KIT.trisPerBuilding[profileId] : 0;
   const kitSegs = kitAllowance > 0 ? localSegments(sim.segments, ox, oz) : [];
   const kitRings = kitAllowance > 0 ? candidates.map((c) => c.ring) : [];
   let kitStats: KitStats | null = null;
@@ -1491,9 +1492,10 @@ function lampRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: 
 /** The pool that draws each `FurnitureKind` (`furniture/pools.ts`). */
 export const POOL_OF_KIND: readonly string[] = ['post', 'post', 'post', 'shelter', 'shelter', 'pole', 'post', 'signal', 'wire'];
 /** The kinds a look profile keeps: those whose pool it has; `min` leaves out the meters (02-world.md 5.4, M02h6 table). */
-export function furnitureKindsOf(profile: 'full' | 'lite' | 'min' | 'legacy', cfg: FurnitureFile = FURNITURE): Set<number> {
+export function furnitureKindsOf(profile: LookProfile, cfg: FurnitureFile = FURNITURE): Set<number> {
   const out = new Set<number>();
-  if (profile === 'legacy') return out;
+  // M02h8: no street furniture on `xr` (M11b1's scope)
+  if (profile === 'legacy' || profile === 'xr') return out;
   const pools = cfg.pools[profile];
   POOL_OF_KIND.forEach((pool, kind) => {
     if (pools[pool] === undefined) return;
@@ -1605,8 +1607,9 @@ export function dressingPose(c: SimChunk, p: ParkedSlot, out: Float64Array): boo
  * seeded draw of the slot's own plan stream. None on the `legacy` look. The archetype and the colour are the sim's draws, made by the
  * renderer (`traffic/parked-dressing.ts`) from the slot and the profile.
  */
-export function parkedDressingRecords(sim: SimChunk, tier: QualityTierId, profile: 'full' | 'lite' | 'min' | 'legacy'): Float32Array {
-  if (profile === 'legacy') return new Float32Array(0);
+export function parkedDressingRecords(sim: SimChunk, tier: QualityTierId, profile: LookProfile): Float32Array {
+  // M02h8: no parked dressing on `xr` (M11b1's scope)
+  if (profile === 'legacy' || profile === 'xr') return new Float32Array(0);
   const list = sim.spawn.parked;
   const first = densityCap(list.length, PARKED_FACTOR[tier] ?? 1);
   const share = FURNITURE.parked.dressShare[profile];

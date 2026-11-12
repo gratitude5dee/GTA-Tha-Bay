@@ -8,8 +8,19 @@ import flagsJson from '../../../../../config/platform-flags.json';
 import type { LayoutConfig } from './road-layout.ts';
 import type { VegetationLook } from './wind.ts';
 
-/** `legacy` is the M02b1/M02b2 material set, unchanged. */
-export type LookProfile = 'full' | 'lite' | 'min' | 'legacy';
+/**
+ * `legacy` is the M02b1/M02b2 material set, unchanged. `xr` (M02h8) is the look of the two XR tiers: the `min` building path, the flat
+ * paint, the analytic sky reflection, the fog-node grade and haze, blob shadows, opaque crowns and the vertex AO; no noise, bump, alpha
+ * test or post stack. `legacy` stays valid on every tier (the fallback, data).
+ */
+export type LookProfile = 'full' | 'lite' | 'min' | 'xr' | 'legacy';
+
+/** M02h8: the QA override of an XR tier's profile (`?look=legacy|xr`, `?look=0` gives `legacy`); not a C13 `QaFlags` field. */
+export type LookOverride = 'legacy' | 'xr';
+
+/** The two XR tiers (C13). */
+export const XR_TIER_IDS: readonly QualityTierId[] = ['xr-quest', 'xr-visionpro'];
+export const isXrTierId = (tier: QualityTierId): boolean => XR_TIER_IDS.includes(tier);
 
 export const FACADE_KEYS = ['ResLow', 'ResMid', 'Commercial', 'Tower', 'Industrial', 'Civic'] as const;
 export type FacadeKey = (typeof FACADE_KEYS)[number];
@@ -112,22 +123,22 @@ export interface MarkingsFile extends LayoutConfig {
 }
 
 /**
- * The layers of the M02g1 look-tune (and `markings`, M02h1; `curbs`, `bump`, `macro` and `lots`, M02h2); each is gated per look profile by
- * `LookFile.layers`.
+ * The layers of the M02g1 look-tune (and `markings`, M02h1; `curbs`, `bump`, `macro` and `lots`, M02h2; `facade`, M02h7; `ao`, M02h8: the
+ * vertex AO of the `xr` materials, the only profile that lists it, always on elsewhere); each is gated per look profile by `LookFile.layers`.
  */
-export const LOOK_LAYERS = ['grade', 'haze', 'blob', 'casters', 'skyReflect', 'windows', 'markings', 'curbs', 'bump', 'macro', 'lots', 'facade'] as const;
+export const LOOK_LAYERS = ['grade', 'haze', 'blob', 'casters', 'skyReflect', 'windows', 'markings', 'curbs', 'bump', 'macro', 'lots', 'facade', 'ao'] as const;
 export type LookLayer = (typeof LOOK_LAYERS)[number];
 
 export interface LookFile {
   schema: 'world-look/1';
   tierProfile: Record<QualityTierId, LookProfile>;
-  /** 2 until the M11a1 governor raises it (DL-704). */
+  /** 3 since M02h8 (TRAA on `desktop`, DL-740): the governor's `postLevel` can lower it, never raise it past this. */
   postLevelCap: 0 | 1 | 2 | 3;
   /** Multiplies `SkyUniforms.uExposure`. */
   exposureBias: Record<QualityTierId, number>;
   /** At most `TierFeatures.shadows.distanceM`; the casters are the L0 `buildings` objects only. */
   casterRadiusM: Partial<Record<QualityTierId, number>>;
-  /** Fallback switch, empty by default. */
+  /** Fallback switch: tiers whose shadow map is off (blob shadows stay). M02h8: `xr-visionpro`, whose `csm1` map would draw twice (two view passes). */
   shadowsOff: readonly QualityTierId[];
   facade: Record<FacadeKey, FacadeClass>;
   roof: Record<'flat' | 'gable' | 'hip', RoofClass>;
@@ -148,7 +159,7 @@ export interface LookFile {
   windows: { litFrac: readonly (readonly [hour: number, min: number, max: number])[]; shop: readonly (readonly [hour: number, level: number])[] };
   /** M02h7: the shading values of the facade kit (`look/facade.ts`). */
   facadeKit: FacadeKitLook;
-  /** The layer ids each look profile enables; `legacy` only `markings` (the XR tiers draw the flat paint, M02h1) and nothing else (M02g1). */
+  /** The layer ids each look profile enables; `legacy` only `markings` (the XR tiers draw the flat paint, M02h1) and nothing else (M02g1); `xr` (M02h8) six. */
   layers: Record<LookProfile, readonly LookLayer[]>;
   /** M02h2: the strength of the ground bump (`groundNodes().height` through `look-materials.ts`) per look profile; 0 on `min` and `legacy`. */
   bump: Record<LookProfile, number>;
@@ -180,9 +191,24 @@ export const SCATTER_FLAG: boolean = (flagsJson as Record<string, unknown>)['wor
 
 export const TIER_IDS: readonly QualityTierId[] = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low', 'xr-quest', 'xr-visionpro'];
 
-/** The look profile of a tier; every tier is `legacy` when the `world.look` flag is off. */
-export function lookProfileFor(tier: QualityTierId, enabled: boolean = LOOK_FLAG, look: LookFile = LOOK): LookProfile {
-  return enabled ? look.tierProfile[tier] : 'legacy';
+/**
+ * The look profile of a tier; every tier is `legacy` when the `world.look` flag is off. M02h8: `override` (QA `?look=legacy|xr`) replaces the
+ * configured profile of an XR tier, and is ignored on a flat tier.
+ */
+export function lookProfileFor(tier: QualityTierId, enabled: boolean = LOOK_FLAG, look: LookFile = LOOK, override?: LookOverride | null): LookProfile {
+  if (!enabled) return 'legacy';
+  if (override && isXrTierId(tier)) return override;
+  return look.tierProfile[tier];
+}
+
+/**
+ * M02h8: the QA `?look=` value of a boot (null in a production build or without the flag): `0` is the look off on a flat tier and the
+ * `legacy` profile on an XR tier (which keeps the flat paint of M02h1); `legacy` and `xr` are profile overrides of an XR tier only.
+ */
+export function parseLookParam(raw: string | null, tier: QualityTierId): { enabled: boolean; override: LookOverride | null } {
+  if (raw === '0') return isXrTierId(tier) ? { enabled: true, override: 'legacy' } : { enabled: false, override: null };
+  if ((raw === 'legacy' || raw === 'xr') && isXrTierId(tier)) return { enabled: true, override: raw };
+  return { enabled: true, override: null };
 }
 
 /** The layers a profile enables (empty for `legacy`). */
@@ -225,8 +251,9 @@ export function markingsErrors(m: MarkingsFile): string[] {
 }
 
 /**
- * The structural rules the schema cannot say: every `casterRadiusM` within the tier's shadow distance, the XR tiers `legacy`,
- * `webgl2Unsupported` never holds `tonemap` or an AA node, and the AA substitutions only go to a node that exists.
+ * The structural rules the schema cannot say: every `casterRadiusM` within the tier's shadow distance, `xr` only on the two XR tiers
+ * (`legacy` valid on every tier, M02h8), `webgl2Unsupported` never holds `tonemap` or an AA node, and the AA substitutions only go to a node
+ * that exists.
  */
 export function lookErrors(look: LookFile, shadowDistanceM: Partial<Record<QualityTierId, number>>): string[] {
   const errors: string[] = [];
@@ -241,6 +268,11 @@ export function lookErrors(look: LookFile, shadowDistanceM: Partial<Record<Quali
     if (!POST_NODES.includes(n)) errors.push(`webgl2Unsupported names unknown node ${String(n)}`);
   }
   if (look.webgl2AaFallback.smaa !== undefined && look.webgl2AaFallback.smaa !== 'fxaa') errors.push('webgl2AaFallback.smaa can only be fxaa');
+  // M02h8: `xr` is the look of the XR tiers only (no post stack, the direct pipeline); `legacy` is valid everywhere
+  for (const [tier, profile] of Object.entries(look.tierProfile) as [QualityTierId, LookProfile][]) {
+    if (profile === 'xr' && !isXrTierId(tier)) errors.push(`tierProfile.${tier}: the xr profile is for the XR tiers only`);
+  }
+  if (look.layers.xr.includes('casters')) errors.push('the casters layer is desktop only (profile full)');
   if (look.layers.legacy.some((id) => id !== 'markings')) errors.push('layers.legacy may hold only markings: the legacy look adds nothing else');
   errors.push(...markingsErrors(look.markings));
   for (const [profile, ids] of Object.entries(look.layers) as [LookProfile, readonly string[]][]) {

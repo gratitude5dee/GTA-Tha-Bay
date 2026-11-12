@@ -8,6 +8,8 @@
  * a pixel the world pass did not draw keeps an AO of 1. A node list that is only `tonemap` draws straight to the canvas through the
  * host's direct path (tone mapping in the renderer, no intermediate target): the cheapest form, for `mobile-low`.
  *
+ * M02h8: `traa` keeps a history between frames; a camera cut or a teleport (`isCut`) and a look shot (`resetHistory`) start it again.
+ *
  * `shadowPasses` is the number of shadow passes the active shadow object reports (M02e `look/shadows.ts` sets it); both
  * `RenderBudgetMeter.measure` callers read it so shadow work is inside the counted budget.
  */
@@ -33,6 +35,53 @@ export interface PostContext {
 export interface PostPipeline {
   render(): void;
   dispose(): void;
+  /** M02h8: drops the temporal history (TRAA) so the next frame starts from the current picture; absent where nothing is temporal. */
+  resetHistory?(): void;
+}
+
+/**
+ * M02h8: a camera move between two frames that is a cut, not motion: farther than `CUT_MOVE_M` metres or turned by more than `CUT_TURN_DEG`
+ * degrees. Driving at 60 m/s and 20 fps moves 3 m a frame; a mouse turn at 20 fps stays under 45 degrees a frame.
+ */
+export const CUT_MOVE_M = 20;
+export const CUT_TURN_DEG = 45;
+
+/** The pose `isCut` compares: position and the unit quaternion of the camera. */
+export interface CameraPose {
+  x: number;
+  y: number;
+  z: number;
+  q: readonly [number, number, number, number];
+}
+
+/** M02h8: whether the camera jumped between `a` and `b` (a cut or a teleport) rather than moved. */
+export function isCut(a: CameraPose, b: CameraPose, moveM = CUT_MOVE_M, turnDeg = CUT_TURN_DEG): boolean {
+  const d = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+  if (d > moveM) return true;
+  const dot = Math.abs(a.q[0] * b.q[0] + a.q[1] * b.q[1] + a.q[2] * b.q[2] + a.q[3] * b.q[3]);
+  const angle = (2 * Math.acos(Math.min(1, dot)) * 180) / Math.PI;
+  return angle > turnDeg;
+}
+
+/**
+ * M02h8: resets a three r186 `TRAANode` (`examples/jsm/tsl/display/TRAANode.js`): r186 has no public reset, so this uses what its
+ * `updateBefore` does on a resize (spec/03 section 7 row): a history target of another size makes the next frame copy the current beauty into
+ * the history (no ghost of the old pose), the Halton jitter starts again at index 0 (a still converges to the same picture every time), and
+ * the previous camera matrices take the current ones (no reprojection from the old pose).
+ */
+export function resetTraaNode(node: unknown, camera: { matrixWorld: unknown; projectionMatrixInverse: unknown } | null): void {
+  const n = node as {
+    _historyRenderTarget?: { setSize(w: number, h: number): void };
+    _jitterIndex?: number;
+    _cameraWorldMatrix?: { value: { copy(m: unknown): unknown } };
+    _cameraProjectionMatrixInverse?: { value: { copy(m: unknown): unknown } };
+  };
+  n._historyRenderTarget?.setSize(1, 1);
+  if (typeof n._jitterIndex === 'number') n._jitterIndex = 0;
+  if (camera) {
+    n._cameraWorldMatrix?.value.copy(camera.matrixWorld);
+    n._cameraProjectionMatrixInverse?.value.copy(camera.projectionMatrixInverse);
+  }
 }
 
 /** Builds the pipeline of a node list; the default builds the real three graph, tests pass a fake. */
@@ -97,6 +146,7 @@ export const threePipeline: PipelineFactory = (ctx, nodes, opts) => {
   if (sky) sceneBg.backgroundNode = v4(sky.rgb, 1);
   let color: PNode = world;
   const disposables: { dispose(): void }[] = [];
+  let traaNode: PNode | null = null;
 
   const dbgOnly = (globalThis as { __dvPostOnly?: string }).__dvPostOnly?.split(',');
   for (const n of dbgOnly ? nodes.filter((x) => dbgOnly.includes(x)) : nodes) {
@@ -122,6 +172,7 @@ export const threePipeline: PipelineFactory = (ctx, nodes, opts) => {
       }
       case 'traa':
         color = createTraa(color, worldPass.getTextureNode('depth'), worldPass.getTextureNode('velocity'), camera);
+        traaNode = color;
         break;
       case 'tonemap':
         color = createTonemap(color, opts.grade ?? null);
@@ -154,6 +205,7 @@ export const threePipeline: PipelineFactory = (ctx, nodes, opts) => {
       }
       pipeline.render();
     },
+    ...(traaNode ? { resetHistory: () => resetTraaNode(traaNode, camera as never) } : {}),
     dispose: () => {
       for (const d of disposables) d.dispose();
       if (sky) sceneBg.backgroundNode = null;
@@ -184,6 +236,9 @@ export class PostStack implements GpuResourceOwner {
   private pipeline: PostPipeline | null = null;
   private currentMode: StackMode = 'direct';
   private disposed = false;
+  /** M02h8: history resets of the temporal AA (a cut, a teleport or a shot), and the camera pose of the last rendered frame. */
+  historyResets = 0;
+  private lastPose: CameraPose | null = null;
 
   constructor(o: PostStackOptions) {
     this.o = o;
@@ -249,6 +304,7 @@ export class PostStack implements GpuResourceOwner {
   rebuild(): void {
     this.pipeline?.dispose();
     this.pipeline = null;
+    this.lastPose = null;
     this.list = this.listFor(this.features, this.level);
     const onlyTonemap = this.list.length === 0 || (this.list.length === 1 && this.list[0] === 'tonemap');
     this.currentMode = onlyTonemap ? 'direct' : 'pipeline';
@@ -266,11 +322,39 @@ export class PostStack implements GpuResourceOwner {
     this.o.onBuild?.(this.list, this.currentMode);
   }
 
-  /** One frame: through the pipeline, or the host's direct path. */
+  /** Whether a node of the list keeps a history between frames (`traa`). */
+  get temporal(): boolean {
+    return this.list.includes('traa');
+  }
+
+  /**
+   * M02h8: drops the temporal history now (a camera cut, a teleport, a look shot): the next frame starts from its own picture. False when the
+   * list has no temporal node.
+   */
+  resetHistory(): boolean {
+    if (!this.pipeline?.resetHistory) return false;
+    this.pipeline.resetHistory();
+    this.historyResets++;
+    return true;
+  }
+
+  /** One frame: through the pipeline, or the host's direct path. A camera cut since the last frame resets the TRAA history first (M02h8). */
   render(): void {
     if (this.disposed) return;
-    if (this.pipeline) this.pipeline.render();
-    else this.o.direct();
+    if (this.pipeline) {
+      if (this.pipeline.resetHistory) this.watchCut();
+      this.pipeline.render();
+    } else this.o.direct();
+  }
+
+  private watchCut(): void {
+    const cam = this.o.context().camera;
+    cam.updateMatrixWorld();
+    const e = cam.matrixWorld.elements;
+    const q = cam.quaternion;
+    const pose: CameraPose = { x: e[12] ?? 0, y: e[13] ?? 0, z: e[14] ?? 0, q: [q.x, q.y, q.z, q.w] };
+    if (this.lastPose && isCut(this.lastPose, pose)) this.resetHistory();
+    this.lastPose = pose;
   }
 
   /** Device loss or an XR swap: the pipeline holds render targets of the old device, so it is built again on the new renderer. */

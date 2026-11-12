@@ -32,7 +32,7 @@ import { MESHER, profileOf, wantNearStride } from './chunks/mesher.ts';
 import { KIT } from './chunks/facade-kit.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
-import { COVER_FLAG, LOOK, LOOK_LAYERS, SCATTER_FLAG, TREE_FORMS_FLAG, lookProfileFor, type LookLayer } from './look/config.ts';
+import { COVER_FLAG, LOOK, LOOK_LAYERS, SCATTER_FLAG, TREE_FORMS_FLAG, isXrTierId, layersOf, lookProfileFor, type LookLayer, type LookOverride } from './look/config.ts';
 import { windAmplitude } from './look/wind.ts';
 import type { TreeSet } from './chunks/tree-forms.ts';
 import { LookView, markingsReportOf, type LookReport, type ShotCamera } from './look/look-view.ts';
@@ -120,8 +120,11 @@ export interface WorldViewOptions {
   sky?: { rain: boolean; atmosphere: boolean; enabled: boolean };
   /** The governor's `atmosphereLevel` at boot (the tier's ceiling when absent). */
   atmosphereLevel?: number;
-  /** M02e: the look pass. Absent: the legacy materials only (the M02b1/M02b2 look). `enabled` is the `world.look` flag. */
-  look?: { enabled: boolean; browser: string; backend: RenderBackend; postLevel: number };
+  /**
+   * M02e: the look pass. Absent: the legacy materials only (the M02b1/M02b2 look). `enabled` is the `world.look` flag. M02h8: `profile` is
+   * the QA override of an XR tier's profile (`?look=legacy|xr`; `?look=0` gives `legacy` there), ignored on a flat tier.
+   */
+  look?: { enabled: boolean; browser: string; backend: RenderBackend; postLevel: number; profile?: LookOverride | null };
   spawn: { x: number; z: number };
   /** The landmarks that have a model in the catalog (M02d1): the `LandmarkLayer` swaps their baked proxies for the glTF within the tier's swap distance. */
   landmarks?: readonly LandmarkSpot[];
@@ -177,6 +180,8 @@ export interface ShotRig {
   refreshEnvironment(): boolean;
   envBakes(): number;
   held(): boolean;
+  /** M02h8: drops the TRAA history (false when the post stack has no temporal node). */
+  resetTemporal(): boolean;
 }
 
 export interface BootReport {
@@ -336,6 +341,11 @@ export class WorldView implements WorldLayer {
     return (this.o.now ?? (() => performance.now()))();
   }
 
+  /** The look profile of this view: the tier's, `legacy` without a look or with the flag off, an XR tier's QA override (M02h8). */
+  private lookProfile(): ReturnType<typeof lookProfileFor> {
+    return this.o.look ? lookProfileFor(this.o.tier, this.o.look.enabled, LOOK, this.o.look.profile ?? null) : 'legacy';
+  }
+
   // ---- WorldLayer --------------------------------------------------------------------------------------------------------
 
   attach(host: RendererHost): void {
@@ -345,7 +355,7 @@ export class WorldView implements WorldLayer {
     else void this.o.assets.stats().then((s) => void (this.bytesAtStart = s.bytes)).catch(() => undefined);
 
     const fade = STREAMING_FADE_SECONDS[this.o.tier];
-    const profile = this.o.look ? lookProfileFor(this.o.tier, this.o.look.enabled) : 'legacy';
+    const profile = this.lookProfile();
     // art-hook:textures begin (M10d0): built before the materials, which read it; the files load after the reveal (`startTextures`)
     if (this.o.look) {
       const qaTextures = this.o.qa === true ? new URLSearchParams(globalThis.location?.search ?? '').get('textures') : null;
@@ -380,8 +390,9 @@ export class WorldView implements WorldLayer {
       installFacadeAtlas(this.facadeAtlas);
     }
     // art-hook:facade end
-    // M02h1: an XR tier (the look profile `legacy` in look.json) keeps the legacy materials and draws the flat street paint on its roads
-    const xrMarkings = this.o.look?.enabled === true && lookProfileFor(this.o.tier, true) === 'legacy';
+    // M02h1: an XR tier on the `legacy` look (since M02h8 its fallback: `?look=0`, `?look=legacy` or the data) keeps the legacy materials
+    // and draws the flat street paint on its roads
+    const xrMarkings = this.o.look?.enabled === true && isXrTierId(this.o.tier) && profile === 'legacy';
     this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK }, depthPolicy: host.depthPolicy, xrMarkings });
     // The world pass draws over the backdrop pass: no scene background of its own.
     host.scene.background = null;
@@ -394,14 +405,17 @@ export class WorldView implements WorldLayer {
     const tierBudget = host.tier?.budget.world;
     // M02h4: the trees' geometry set follows the look profile; `world.treeForms: false` (or QA `?treeForms=0`) draws M02b1's cone, one pool
     const qaCone = this.o.qa === true && new URLSearchParams(globalThis.location?.search ?? '').get('treeForms') === '0';
+    // (M02h8: `xr` draws the `low` pools)
     this.treeSet = !TREE_FORMS_FLAG || qaCone ? 'cone' : profile === 'full' ? 'full' : profile === 'lite' ? 'lite' : 'low';
     // M02h5: the scatter (`world.scatter`, QA `?scatter=0`): thinned per look profile; impostors on every look profile but `legacy`
     const qaNoScatter = this.o.qa === true && new URLSearchParams(globalThis.location?.search ?? '').get('scatter') === '0';
     const sc = LOOK.vegetation.scatter;
     const mp = profileOf(this.o.tier).id;
+    // M02h8: the `xr` look adds no scatter of its own (scope of M11b1): the thinning and the lack of impostors of `legacy`
+    const vegProfile = profile === 'xr' ? 'legacy' : profile;
     const scatter = {
-      enabled: SCATTER_FLAG && !qaNoScatter, impostors: profile !== 'legacy' && this.treeSet !== 'cone',
-      keepTree: sc.scatterKeep[profile], keepShrub: sc.shrubKeep[profile], impostorM: sc.impostorM[mp], shrubDrawM: sc.shrubDrawM[mp],
+      enabled: SCATTER_FLAG && !qaNoScatter, impostors: vegProfile !== 'legacy' && this.treeSet !== 'cone',
+      keepTree: sc.scatterKeep[vegProfile], keepShrub: sc.shrubKeep[vegProfile], impostorM: sc.impostorM[mp], shrubDrawM: sc.shrubDrawM[mp],
       hysteresis: sc.hysteresis, rebandM: sc.rebandM, writeCap: sc.writeCap,
     };
     this.renderer = new ChunkRenderer({
@@ -413,8 +427,8 @@ export class WorldView implements WorldLayer {
       treeHysteresis: MESHER.tree.drawHysteresis,
       treeSet: this.treeSet,
       scatter,
-      // M02h6: the street furniture pools of the look profile (none on `legacy`)
-      furniture: profile === 'legacy' ? null : { profile, sky: this.skyNodes },
+      // M02h6: the street furniture pools of the look profile (none on `legacy`; none on `xr`, M02h8: XR furniture is M11b1's)
+      furniture: profile === 'legacy' || profile === 'xr' ? null : { profile, sky: this.skyNodes },
     });
     host.register(this.renderer);
     // A renderer replaced after a device loss may have the other depth buffer: the polygon offsets follow it (M02g2).
@@ -547,7 +561,9 @@ export class WorldView implements WorldLayer {
     // art-hook:vehicles begin (M10d1): the vehicle and prop models load through asset.worker; the traffic and the object pool draw them.
     // The QA switch `?art=0` keeps the gray-box stand-ins (one legacy family, no model requests): the baseline of the M10d1 ledger.
     const artOff = this.o.qa === true && new URLSearchParams(globalThis.location?.search ?? '').get('art') === '0';
-    const artProfile = this.o.look && !artOff ? lookProfileFor(this.o.tier, this.o.look.enabled) : 'legacy';
+    // M02h8: the `xr` look draws the gray-box stand-ins of `legacy` (licensed art on XR is a later row)
+    const lp = this.lookProfile();
+    const artProfile = this.o.look && !artOff && lp !== 'xr' ? lp : 'legacy';
     const artLoader: ArtLoader | undefined = artOff
       ? undefined
       : async (ref, variant) => {
@@ -565,7 +581,7 @@ export class WorldView implements WorldLayer {
       ...(artLoader ? { art: pedKitAssets(this.o.assets, artVariantOf(this.o.tier)), artWaits: !this.artAfterReveal, worldLoad: () => ({ held: host.worldHeld, unsettled: unsettledUnits(this.store.units.values()), requests: this.store.stats.requests, meshing: this.inflight, landmarksIdle: this.landmarks?.idle ?? true, artLoading: this.textures?.active === true && !this.textures.report().settled }) } : {}), // art-hook:peds (M10d4): the kit's gate reads what the world is doing once a frame (BD-REPAIR-M10d4-03); `?art=0` keeps the mannequin
     });
     // M02h6: the parked dressing on the M10d1 families (their models through the same loader), fed with the L0 units' parked slots
-    if (profile !== 'legacy') {
+    if (profile !== 'legacy' && profile !== 'xr') {
       this.parked = new ParkedDressing({ parent: host.scene, sky: this.skyNodes, profile, bakeId: this.o.index.bakeId, ...(artLoader ? { load: artLoader } : {}) });
       const parked = this.parked;
       this.renderer.onL0 = (id, mesh) => (mesh ? parked.addUnit(id, mesh) : parked.removeUnit(id));
@@ -1230,6 +1246,7 @@ export class WorldView implements WorldLayer {
         refreshEnvironment: () => lv.refreshEnvironment(),
         envBakes: () => lv.report().envBakes,
         held: () => lv.shotCamera !== null,
+        resetTemporal: () => lv.stack?.resetHistory() ?? false,
       };
     }
     if (!this.o.look || !this.host) return null;
@@ -1254,6 +1271,7 @@ export class WorldView implements WorldLayer {
       refreshEnvironment: () => false,
       envBakes: () => 0,
       held: () => this.legacyHeld !== null,
+      resetTemporal: () => false,
     };
   }
 
@@ -1407,7 +1425,7 @@ export class WorldView implements WorldLayer {
    */
   private remeshFacade(): void {
     if (!this.facadeSwitched || this.disposed) return;
-    if (KIT.trisPerBuilding[profileOf(this.o.tier).id] === 0 || lookProfileFor(this.o.tier) === 'legacy') return;
+    if (KIT.trisPerBuilding[profileOf(this.o.tier).id] === 0 || !layersOf(this.lookProfile()).includes('facade')) return;
     const due: { key: ChunkKey; masked: number[]; d: number }[] = [];
     for (const u of this.renderer.units.values()) {
       // a newer mesh of the unit waits at the gate: it is checked once it is drawn

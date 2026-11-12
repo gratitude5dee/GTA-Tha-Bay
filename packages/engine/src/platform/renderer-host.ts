@@ -63,6 +63,15 @@ export interface RendererFactoryOptions {
 }
 export type CreateRenderer = (o: RendererFactoryOptions) => WebGPURenderer;
 
+/**
+ * M02h8: the view passes a frame's counts imply: draw calls over render objects, about 1 on a multiview target (or flat), about 2 when
+ * each eye draws every object. Rounded to the nearer of 1 and 2 (the headsets have two views); 1 with no objects.
+ */
+export function inferViewPasses(drawCalls: number, objects: number): number {
+  if (objects <= 0 || drawCalls <= 0) return 1;
+  return drawCalls / objects >= 1.5 ? 2 : 1;
+}
+
 /** Default factory: the real `WebGPURenderer` (11-platform.md section 5.1 step 4). */
 export const createWebGpuRenderer: CreateRenderer = (o) => {
   // `compileAsync` yields after every render object; without `scheduler.yield` (Safari) three waits a display frame there instead
@@ -183,6 +192,36 @@ export class RendererHost {
   heldFrames = 0;
   /** Frames rendered while an XR session was presenting. */
   xrFrames = 0;
+  /** M02h8: draw calls of the last rendered frame (`renderer.info.render.drawCalls`; the host resets the counts once a frame). */
+  lastDrawCalls = 0;
+
+  /**
+   * M02h8: whether the XR session renders to a multiview target: three r186's `XRManager.useMultiview()` (true only on the WebGL2 backend
+   * with `OVR_multiview2`; r186 turns it off on WebGPU XR), read while presenting. Null when no session presents, or when the XR manager
+   * does not expose the method (then `inferViewPasses` reads it from the counts).
+   */
+  get xrMultiview(): boolean | null {
+    const r = this._renderer;
+    if (!r || !r.xr.isPresenting) return null;
+    const xr = r.xr as unknown as { useMultiview?: () => boolean };
+    return typeof xr.useMultiview === 'function' ? xr.useMultiview() === true : null;
+  }
+
+  /**
+   * M02h8: how many view passes a render object takes now: 1 flat or on a multiview target, else one per view of the XR camera (an
+   * `ArrayCamera`, two on a headset). `objects` (the meter's count of the world pass) lets the draw calls decide when the XR manager does
+   * not say (`inferViewPasses`).
+   */
+  viewPasses(objects?: number): number {
+    const r = this._renderer;
+    if (!r || !r.xr.isPresenting) return 1;
+    const mv = this.xrMultiview;
+    if (mv === true) return 1;
+    const cam = (r.xr as unknown as { getCamera?: () => { cameras?: unknown[] } }).getCamera?.();
+    const views = Math.max(1, cam?.cameras?.length ?? 2);
+    if (mv === false) return views;
+    return objects !== undefined ? inferViewPasses(this.lastDrawCalls, objects) : views;
+  }
   /** Flat frames held back by the GPU pacer (QA builds on WebGL2; 0 otherwise). */
   get pacedFrames(): number {
     return this.pacer?.held ?? 0;
@@ -562,6 +601,7 @@ export class RendererHost {
       return;
     } else if (this.postStack && !r.xr.isPresenting) this.postStack.render();
     else this.renderDirect();
+    this.lastDrawCalls = r.info.render.drawCalls;
     if (paced) this.pacer?.submitted();
     for (const l of this.listeners) l.after?.(time);
   };

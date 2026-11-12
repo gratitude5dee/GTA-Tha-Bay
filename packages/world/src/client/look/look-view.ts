@@ -1,8 +1,8 @@
 /**
  * LookView (M02e, DL-704): the page half of the look pass. It owns the post stack, the shadow rig, the physical sky and the light
  * rig of the look, and switches them with the materials as one: `setOn(false)` is the full rollback to the M02b1/M02b2 look (legacy
- * materials, no post stack, no shadow map, M01c tone mapping and exposure only), which is also what the XR tiers and the `world.look`
- * flag give. The sky's per-frame `after` hook lets it override the sun, the ambient light and the exposure that the sky wrote.
+ * materials, no post stack, no shadow map, M01c tone mapping and exposure only), which is also what the `world.look` flag gives. M02h8:
+ * the XR tiers have the `xr` profile (no stack on the `direct` pipeline; the fog nodes carry the grade and the haze). The sky's per-frame `after` hook lets it override the sun, the ambient light and the exposure that the sky wrote.
  */
 import type { RendererHost } from '@dv/engine/platform/renderer-host';
 import { setReflectHook } from '@dv/engine/client/vehicle/vehicle-view';
@@ -346,7 +346,20 @@ export class LookView {
       this.blobs.setEnabled(this.layerSet.has('blob'));
     }
     if (this.o.fog && this.allowed.includes('skyReflect')) setReflectHook(vehicleReflectHook(this.o.materials.lookNodes.sky));
+    // M02h8: a shader layer the profile does not list draws as off (the `xr` look has no facade bands); `ao` follows its layer
+    const ln = this.o.materials.lookNodes;
+    ln.uFacade.value = this.layerSet.has('facade') ? 1 : 0;
+    ln.uAO.value = this.allowed.includes('ao') ? (this.layerSet.has('ao') ? 1 : 0) : 1;
     this.applyDynamicCasters(true);
+  }
+
+  /**
+   * M02g1, M02h8: where the colour grade runs: the `tonemap` node of a stack that owns it, else the fog nodes. The `direct` pipeline (the
+   * XR tiers) has no stack and no `tonemap` node, so its fog nodes own the grade and it applies once.
+   */
+  private get gradeOwner(): 'tonemap' | 'fog' | null {
+    if (this.stack) return this.stack.gradeOwner;
+    return this.o.host.tier?.features.pipeline === 'direct' ? 'fog' : null;
   }
 
   private teardown(): void {
@@ -443,7 +456,7 @@ export class LookView {
     this.o.materials.lookNodes.uShopGlow.value = this.lastShop;
     const blend01 = Math.max(0, Math.min(1, input.blend / 65535));
     const grade = gradeFor(input.weather, input.next, blend01, look);
-    const owner = this.stack?.gradeOwner ?? null;
+    const owner = this.gradeOwner;
     const gradeOn = this.layerSet.has('grade') ? 1 : 0;
     this.stack?.setGrade(grade, owner === 'tonemap' ? gradeOn : 0);
     this.lastReflect = this.layerSet.has('skyReflect') && !this.sky?.envMapInUse;
@@ -526,6 +539,8 @@ export class LookView {
     if (id === 'lots') ln.uLots.value = on ? 1 : 0;
     // M02h7: the shading half of the facade kit (the world view re-meshes the geometry half)
     if (id === 'facade') ln.uFacade.value = on ? 1 : 0;
+    // M02h8: the vertex AO of the `xr` materials
+    if (id === 'ao') ln.uAO.value = on ? 1 : 0;
     if (id === 'casters') {
       this.applyDynamicCasters(true);
       this.o.chunks.refreshTreeCasters();
@@ -636,7 +651,7 @@ export class LookView {
       blobs: on ? this.blobs?.info().count ?? 0 : 0,
       dynamicCasters: on ? this.casterNames() : [],
       skyReflect: on && this.lastReflect,
-      gradeOn: on && this.layerSet.has('grade') ? this.stack?.gradeOwner ?? null : null,
+      gradeOn: on && this.layerSet.has('grade') ? this.gradeOwner : null,
       windowLit: [this.lastLitRange[0], this.lastLitRange[1]],
       shopGlow: on ? this.lastShop : 0,
       vegetation: this.o.chunks.vegetationReport(),

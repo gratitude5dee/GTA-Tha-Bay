@@ -27,7 +27,7 @@ import { MESHER } from './mesher.ts';
 import type { ObjectKind } from './mesh-types.ts';
 
 export interface WorldMaterials {
-  /** The M02b1/M02b2 materials (the `legacy` look profile, and the XR tiers). */
+  /** The M02b1/M02b2 materials (the `legacy` look profile; the XR tiers' fallback since M02h8 gave them the `xr` look). */
   chunk: MeshStandardNodeMaterial;
   coarse: MeshStandardNodeMaterial;
   /** M02e: the look materials of the tier's profile, null on a `legacy` tier. */
@@ -87,7 +87,7 @@ export function createWorldMaterials(o: {
   look?: { profile: MaterialProfile | 'legacy'; config?: LookFile };
   /** The renderer's depth buffer (M02g2); `reversed` (the one the host asks for) when absent. */
   depthPolicy?: DepthPolicy;
-  /** M02h1: a `legacy` tier that still draws the flat street paint on its plain roads material (the XR tiers, with the look flag on). */
+  /** M02h1: a `legacy` tier that still draws the flat street paint on its plain roads material (an XR tier on its `legacy` fallback, M02h8). */
   xrMarkings?: boolean;
 }): WorldMaterials {
   const depth = new DepthRules(o.depthPolicy ?? 'reversed');
@@ -175,9 +175,13 @@ export function createWorldMaterials(o: {
   const look: LookMaterialSet | null =
     profile === 'legacy'
       ? null
-      : createLookMaterials({ profile, look: o.look?.config ?? LOOK, nodes: lookNodes, foundationM: MESHER.foundationM, parapetM: MESHER.parapetM, depth, wind });
+      : createLookMaterials({
+          profile, look: o.look?.config ?? LOOK, nodes: lookNodes, foundationM: MESHER.foundationM, parapetM: MESHER.parapetM, depth, wind,
+          // M02h8: the `xr` look on a tier that swaps chunks hard (`xr-quest`, fade 0) draws its L0 surfaces without an alpha test
+          ...(profile === 'xr' && o.fadeSeconds === 0 ? { hardSwap: true } : {}),
+        });
   let lookOn = look !== null;
-  const markingsBase: 'worn' | 'flat' | null = look !== null ? (profile === 'min' ? 'flat' : 'worn') : chunkRoadsPaint !== null ? 'flat' : null;
+  const markingsBase: 'worn' | 'flat' | null = look !== null ? (profile === 'min' || profile === 'xr' ? 'flat' : 'worn') : chunkRoadsPaint !== null ? 'flat' : null;
   let markingsLayer = true;
   const markings: MarkingsControl = {
     base: markingsBase,

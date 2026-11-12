@@ -14,7 +14,7 @@ import { createSkyNodes } from '../src/client/sky/nodes.ts';
 import { TrafficRenderer } from '../src/client/traffic/instances.ts';
 import { TRAFFIC_ART, familiesOf, familyOf, mergeModel, placeholderGeometry } from '../src/client/traffic/archetype-mesh.ts';
 import { LIVERY_BIT, materialKindOf } from '../src/client/traffic/materials.ts';
-import type { LookProfile } from '../src/client/look/config.ts';
+import type { ArtLookProfile as LookProfile } from '../src/client/traffic/archetype-mesh.ts';
 import tierBudgets from '../../../config/tier-budgets.json';
 
 type Frame = Parameters<TrafficRenderer['update']>[0];

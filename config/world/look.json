@@ -1,15 +1,15 @@
 {
-  "$comment": "M02e look pass (DL-704): the procedural look of the streamed city as data. Design values tuned in the M02e session (a config edit, not code, changes them). Colours are sRGB hex strings; the materials convert them to linear. The profile per tier: full on the desktop tiers, lite on mobile, min on mobile-low, legacy (the M02b1/M02b2 materials) on both XR tiers. M02g1 adds: bloom; grade (display-referred lift/gamma/gain, saturation and a warm-sun/cool-shade split, per weather preset, blended with the weather blend); haze (sun in-scatter, Rayleigh tint and extinction per kilometre, per preset); windows.litFrac (rows of [hour, min, max], cyclic and smooth: the share of a lit building's windows that are lit); layers (the layer ids each profile enables, legacy none); dynamicCasterRadiusM.",
+  "$comment": "M02e look pass (DL-704): the procedural look of the streamed city as data. Design values tuned in the M02e session (a config edit, not code, changes them). Colours are sRGB hex strings; the materials convert them to linear. The profile per tier: full on the desktop tiers, lite on mobile, min on mobile-low, legacy (the M02b1/M02b2 materials) on both XR tiers. M02g1 adds: bloom; grade (display-referred lift/gamma/gain, saturation and a warm-sun/cool-shade split, per weather preset, blended with the weather blend); haze (sun in-scatter, Rayleigh tint and extinction per kilometre, per preset); windows.litFrac (rows of [hour, min, max], cyclic and smooth: the share of a lit building's windows that are lit); layers (the layer ids each profile enables, legacy none); dynamicCasterRadiusM. M02h8 (DL-740): both XR tiers map to the xr profile (the min building path, flat paint, skyReflect, fog-node grade and haze, blobs, opaque crowns, vertex AO; no noise, bump, alpha test or post), legacy stays valid on every tier as the fallback; xr-visionpro has its shadow map off (shadowsOff: its csm1 map would draw twice, one per view pass) until M11b1's device run; postLevelCap 3 lets the governor put TRAA on desktop (level 3: gtao-half, bloom, traa, tonemap).",
   "schema": "world-look/1",
   "tierProfile": {
     "desktop-ultra": "full",
     "desktop": "full",
     "mobile": "lite",
     "mobile-low": "min",
-    "xr-quest": "legacy",
-    "xr-visionpro": "legacy"
+    "xr-quest": "xr",
+    "xr-visionpro": "xr"
   },
-  "postLevelCap": 2,
+  "postLevelCap": 3,
   "exposureBias": {
     "desktop-ultra": 1.0,
     "desktop": 1.0,
@@ -23,7 +23,7 @@
     "desktop": 500,
     "mobile": 120
   },
-  "shadowsOff": [],
+  "shadowsOff": ["xr-visionpro"],
   "facade": {
     "ResLow": {
       "floorM": 3.0, "groundFloorM": 3.2, "bayM": 3.2, "winW": 1.1, "winH": 1.6, "sillM": 0.9, "glassRatio": 0.3, "wallRoughness": 0.86,
@@ -137,9 +137,10 @@
     "full": ["grade", "haze", "blob", "casters", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots", "facade"],
     "lite": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots", "facade"],
     "min": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs", "facade"],
+    "xr": ["grade", "haze", "markings", "skyReflect", "blob", "ao"],
     "legacy": ["markings"]
   },
-  "bump": { "full": 2, "lite": 1.5, "min": 0, "legacy": 0 },
+  "bump": { "full": 2, "lite": 1.5, "min": 0, "xr": 0, "legacy": 0 },
   "markings": {
     "classes": ["none", "freeway", "arterial", "collector", "local"],
     "byClass": { "freeway": "freeway", "ramp": "freeway", "arterial": "arterial", "collector": "collector", "local": "local", "service": "none" },

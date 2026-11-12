@@ -9,6 +9,9 @@ import { PART } from '@dv/shared';
 import artJson from '../../../../../config/world/traffic-art.json';
 import type { LookProfile } from '../look/config.ts';
 
+/** The look profiles that have vehicle art (M02h8: the `xr` look draws the `legacy` stand-ins; `world-view.ts` maps it). */
+export type ArtLookProfile = Exclude<LookProfile, 'xr'>;
+
 export interface TrafficArtMember {
   base: string;
   /** Overall [width, height, length], metres. */
@@ -30,13 +33,13 @@ export interface TrafficArtFile {
   schema: 'traffic-art/1';
   bases: Readonly<Record<string, string>>;
   members: Readonly<Record<string, TrafficArtMember>>;
-  profiles: Readonly<Record<LookProfile, TrafficArtProfile>>;
+  profiles: Readonly<Record<ArtLookProfile, TrafficArtProfile>>;
 }
 
 export const TRAFFIC_ART: TrafficArtFile = artJson as unknown as TrafficArtFile;
 
 /** The family (its base name) that draws a member under a profile, or undefined when the profile hosts none for it. */
-export function familyOf(cfg: TrafficArtFile, profile: LookProfile, assetRef: string): string | undefined {
+export function familyOf(cfg: TrafficArtFile, profile: ArtLookProfile, assetRef: string): string | undefined {
   const m = cfg.members[assetRef];
   if (!m) return undefined;
   const p = cfg.profiles[profile];
@@ -45,7 +48,7 @@ export function familyOf(cfg: TrafficArtFile, profile: LookProfile, assetRef: st
 }
 
 /** Family names of a profile, in config order. */
-export const familiesOf = (cfg: TrafficArtFile, profile: LookProfile): string[] => Object.keys(cfg.profiles[profile].families);
+export const familiesOf = (cfg: TrafficArtFile, profile: ArtLookProfile): string[] => Object.keys(cfg.profiles[profile].families);
 
 export interface FamilyGeometry {
   opaque: BufferGeometry;

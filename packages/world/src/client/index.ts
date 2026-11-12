@@ -9,3 +9,4 @@ export * from './chunks/lod-mesher.ts';
 export * from './chunks/mesh-types.ts';
 export * from './backdrop/backdrop-layer.ts';
 export * from './backdrop/far-mesh.ts';
+export { parseLookParam, type LookOverride } from './look/config.ts';

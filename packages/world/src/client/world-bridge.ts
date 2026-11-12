@@ -207,6 +207,9 @@ function spotArg(p: RoutePlace): Record<string, unknown> {
 type EngineAct = { engine?: { act(cmd: unknown): boolean; qa?: Record<string, unknown> } };
 const act = (cmd: unknown): boolean => ((window as unknown as { __dvBridge?: EngineAct }).__dvBridge?.engine?.act(cmd) ?? false);
 
+/** M02h8: frames a look shot presents after a TRAA history reset before it resolves. */
+export const SHOT_TEMPORAL_FRAMES = 16;
+
 const nextFrames = (n: number): Promise<void> =>
   new Promise((resolve) => {
     let left = n;
@@ -304,6 +307,9 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetc
         await until(() => lv.envBakes() > bakes, 120_000, 'the environment bake');
         await nextFrames(2);
       }
+      // M02h8: with TRAA the picture converges over frames: the history starts again from this pose and SHOT_TEMPORAL_FRAMES frames are
+      // presented, so every capture of the shot is the same picture whatever ran before it
+      if (lv.resetTemporal()) await nextFrames(SHOT_TEMPORAL_FRAMES);
       return { id: s.id, hour: s.hour, weather: s.weather };
     },
     shotMove: async (id, opts) => {
