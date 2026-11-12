@@ -9,7 +9,8 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 import type { QualityTierId } from '@dv/shared';
 import { TIERS } from '@dv/engine/platform/tier-config';
-import { FACADE_KEYS, LOOK, TIER_IDS, XR_TIER_IDS, facadeClassOf, facadeKeyOf, lookErrors, lookProfileFor, parseLookParam, srgbHexToLinear, type LookFile } from '../src/client/look/config.ts';
+import { FACADE_KEYS, LOOK, QA_POST_KEY, TIER_IDS, XR_TIER_IDS, facadeClassOf, facadeKeyOf, lookErrors, lookProfileFor, parseLookParam, parsePostParam, postLevelCapFor, srgbHexToLinear, type LookFile } from '../src/client/look/config.ts';
+import { QA_POST_LEVEL, QA_STORAGE_KEYS } from '../../../tests/support/qa-storage.ts';
 import { GROUND_NAMES, KIND_NAMES, ROAD_NAMES, SURFACE_COUNT, SURFACE_NAMES, Surf, groundSurf, isSurfaceId, roadSurf, roofSurf, wallSurf } from '../src/client/look/surfaces.ts';
 
 const read = (p: string): unknown => JSON.parse(readFileSync(new URL(`../../../${p}`, import.meta.url), 'utf8'));
@@ -99,6 +100,25 @@ describe('config/world/look.json (AC-2)', () => {
     // an override never reaches a flat tier
     expect(lookProfileFor('desktop', true, LOOK, 'xr')).toBe('full');
     expect(lookProfileFor('mobile-low', true, LOOK, 'legacy')).toBe('min');
+  });
+
+  it('the QA post cap: ?post= wins over the stored key, either only lowers look.json\'s cap, and the e2e fixture stores 2 under the same key (M02h8)', () => {
+    expect(QA_POST_KEY).toBe(QA_STORAGE_KEYS.post);
+    expect(QA_POST_KEY.startsWith('dv-')).toBe(true);
+    expect(parsePostParam(null, null)).toBeNull();
+    expect(parsePostParam(null, QA_POST_LEVEL)).toBe(2);
+    expect(parsePostParam('3', QA_POST_LEVEL)).toBe(3);
+    expect(parsePostParam('0', null)).toBe(0);
+    expect(parsePostParam('4', '9')).toBeNull();
+    expect(parsePostParam('high', '1')).toBe(1);
+    // no QA value (a production build): look.json's cap, 3
+    expect(postLevelCapFor(null)).toBe(3);
+    expect(postLevelCapFor(2)).toBe(2);
+    expect(postLevelCapFor(3)).toBe(3);
+    expect(postLevelCapFor(0)).toBe(0);
+    // never above the data: with the fallback cap of 2 in look.json, `?post=3` stays 2
+    expect(postLevelCapFor(3, { postLevelCap: 2 })).toBe(2);
+    expect(postLevelCapFor(1, { postLevelCap: 2 })).toBe(1);
   });
 
   it('names the problems of a broken file', () => {

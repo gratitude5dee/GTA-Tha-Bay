@@ -5,7 +5,7 @@ import { earlySimWorker, type EarlySimWorker } from '@dv/engine/client/boot/spaw
 import type { WorkerPort } from '@dv/engine/assets/client';
 import type { WorkerLike } from '@dv/engine/sim';
 import { bootChoice } from '@dv/world/sim/boot';
-import { hasWorldIndex, parseLookParam, prepareWorld, type PreparedWorld } from '@dv/world/client';
+import { hasWorldIndex, parseLookParam, parsePostParam, postLevelCapFor, prepareWorld, QA_POST_KEY, type PreparedWorld } from '@dv/world/client';
 import platformFlags from '../../../config/platform-flags.json';
 import lookConfig from '../../../config/world/look.json';
 import { createVoicePreview, creatorVoiceRef, CREATOR_VOICES, loadPrefs, memoryPrefs, defaultPrefs, mountShell, registerTexts, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps, type VoicePreview } from '@dv/ui';
@@ -27,6 +27,14 @@ import grayboxP0Url from '../../../tests/fixtures/world/civic-graybox/p0-64-64.p
 const QA = import.meta.env.VITE_DV_QA === '1';
 // Tier decisions are re-run when the build changes (11-platform.md section 5.3); vite.config.ts sets VITE_DV_BUILD.
 const BUILD = import.meta.env.VITE_DV_BUILD ?? (QA ? 'qa' : 'prod');
+/** M02h8: the QA-only `dv-qa-post` value (the post-level cap the e2e page fixture stores); unavailable storage reads as unset. */
+function storedQaPost(): string | null {
+  try {
+    return localStorage.getItem(QA_POST_KEY);
+  } catch {
+    return null;
+  }
+}
 const flags = parseQaFlags(location.search);
 
 const root = document.getElementById('app');
@@ -254,7 +262,10 @@ async function bootPlatformAndEngine(simWorker: EarlySimWorker): Promise<void> {
   });
   // The governor never touches a knob that nothing in the page reads (BD-M11a1-03). The world adds its knobs once it exists.
   platform.governor.setLiveKnobs(['renderScale', 'targetFps']);
-  platform.governor.setPostLevelCap(lookConfig.postLevelCap);
+  // M02h8: the post-level cap is look.json's (3: TRAA on `desktop`). QA builds only: `?post=<0..3>`, or the QA-only key `dv-qa-post` the
+  // e2e page fixture stores, lowers it (never raises it), so a capture runs the tier's `post` list; absent from a production build.
+  const postLevelCap = postLevelCapFor(QA ? parsePostParam(new URLSearchParams(location.search).get('post'), storedQaPost()) : null, lookConfig as { postLevelCap: 0 | 1 | 2 | 3 });
+  platform.governor.setPostLevelCap(postLevelCap);
   // A tier change (the governor's demotion, the memory budget's, a Settings override) lands only at a safe point: the title, a menu, the
   // pause menu or a loading screen, never in the middle of play (11-platform.md section 5.3).
   const syncSafePoint = (): void => platform.quality.setSafePoint(shell.core.state !== 'InMode' && shell.core.state !== 'Recovering');
@@ -308,6 +319,7 @@ async function bootPlatformAndEngine(simWorker: EarlySimWorker): Promise<void> {
           browser: platform.profile.browser,
           backend: platform.backend,
           postLevel: platform.quality.dynamic.postLevel,
+          postLevelCap,
         },
         labels: { redownload: t('world.redownload'), offline: t('world.offline') },
         // The rest of the boot set downloads at idle priority behind the menu once the world is revealed (M02f2); `?prefetch=0` (QA builds)

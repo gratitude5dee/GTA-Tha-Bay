@@ -211,6 +211,25 @@ export function parseLookParam(raw: string | null, tier: QualityTierId): { enabl
   return { enabled: true, override: null };
 }
 
+/** M02h8: the QA-only `localStorage` key that supplies `?post=` when the URL has none (the e2e page fixture stores `2`, BD-M02h8-02). */
+export const QA_POST_KEY = 'dv-qa-post';
+
+/**
+ * M02h8: the QA post-level cap of a boot, from `?post=<0..3>` or else the stored `dv-qa-post` value; null without either (and always in a
+ * production build, where the caller never asks). It can only lower `look.json` `postLevelCap` (`postLevelCapFor`): the e2e page fixture
+ * holds every page at level 2, so the look goldens, the flicker pairs and the ledgers are the pictures and frames of the tier's `post`
+ * list, and `?post=3` is the build's own cap (TRAA on `desktop`). Not a C13 `QaFlags` field.
+ */
+export function parsePostParam(raw: string | null, stored: string | null = null): 0 | 1 | 2 | 3 | null {
+  const pick = (v: string | null): 0 | 1 | 2 | 3 | null => (v === '0' || v === '1' || v === '2' || v === '3' ? (Number(v) as 0 | 1 | 2 | 3) : null);
+  return pick(raw) ?? pick(stored);
+}
+
+/** The post-level cap in force: `look.json`'s, lowered by the QA cap when there is one (never raised). */
+export function postLevelCapFor(qaCap: 0 | 1 | 2 | 3 | null, look: Pick<LookFile, 'postLevelCap'> = LOOK): 0 | 1 | 2 | 3 {
+  return qaCap === null ? look.postLevelCap : (Math.min(look.postLevelCap, qaCap) as 0 | 1 | 2 | 3);
+}
+
 /** The layers a profile enables (empty for `legacy`). */
 export function layersOf(profile: LookProfile, look: LookFile = LOOK): readonly LookLayer[] {
   return look.layers[profile] ?? [];

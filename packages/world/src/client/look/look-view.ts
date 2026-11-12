@@ -198,6 +198,8 @@ export interface LookViewOptions {
   browser: string;
   backend: RenderBackend;
   postLevel: PostLevel;
+  /** M02h8: the post-level cap in force when it is not `look.postLevelCap` (the QA `?post=` cap, which only lowers it). */
+  postLevelCap?: PostLevel;
   /** The stream focus. */
   focus: () => { x: number; z: number };
   /** Holds or releases the sky's own clock (the painted clouds and the rain), for stills. */
@@ -332,7 +334,7 @@ export class LookView {
         features,
         backend,
         subs: { webgl2Unsupported: look.webgl2Unsupported, webgl2AaFallback: look.webgl2AaFallback },
-        cap: look.postLevelCap,
+        cap: this.o.postLevelCap ?? look.postLevelCap,
         bloom: look.bloom,
         level: this.lastLevel,
         direct: host.renderDirect,

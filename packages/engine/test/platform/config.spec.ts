@@ -105,9 +105,12 @@ describe('QaFlags', () => {
     expect(NO_QA_FLAGS.governor).toBeNull();
   });
 
-  it('the e2e page fixture stores play=sandbox and governor=off for the dev server port (tests/support/qa-storage.ts)', () => {
+  it('the e2e page fixture stores play=sandbox, governor=off and the post level 2 for the dev server port (tests/support/qa-storage.ts)', () => {
     const state = qaStorageState(9601);
-    expect(state.origins).toEqual([{ origin: 'http://localhost:9601', localStorage: [{ name: QA_PLAY_KEY, value: 'sandbox' }, { name: QA_GOVERNOR_KEY, value: 'off' }] }]);
+    // M02h8: `dv-qa-post` holds every fixture page at the tier's `post` list (BD-M02h8-02); the key is `QA_POST_KEY` of the world's look config
+    expect(state.origins).toEqual([
+      { origin: 'http://localhost:9601', localStorage: [{ name: QA_PLAY_KEY, value: 'sandbox' }, { name: QA_GOVERNOR_KEY, value: 'off' }, { name: 'dv-qa-post', value: '2' }] },
+    ]);
   });
 
   it('?net= (M02f1, C13 1.2) is accepted only for a profile id and only in a QA build', () => {

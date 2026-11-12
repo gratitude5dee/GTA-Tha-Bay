@@ -122,9 +122,10 @@ export interface WorldViewOptions {
   atmosphereLevel?: number;
   /**
    * M02e: the look pass. Absent: the legacy materials only (the M02b1/M02b2 look). `enabled` is the `world.look` flag. M02h8: `profile` is
-   * the QA override of an XR tier's profile (`?look=legacy|xr`; `?look=0` gives `legacy` there), ignored on a flat tier.
+   * the QA override of an XR tier's profile (`?look=legacy|xr`; `?look=0` gives `legacy` there), ignored on a flat tier; `postLevelCap` is
+   * the cap in force (`look.json`'s, or lower under the QA `?post=` cap), `look.json`'s when absent.
    */
-  look?: { enabled: boolean; browser: string; backend: RenderBackend; postLevel: number; profile?: LookOverride | null };
+  look?: { enabled: boolean; browser: string; backend: RenderBackend; postLevel: number; profile?: LookOverride | null; postLevelCap?: 0 | 1 | 2 | 3 };
   spawn: { x: number; z: number };
   /** The landmarks that have a model in the catalog (M02d1): the `LandmarkLayer` swaps their baked proxies for the glTF within the tier's swap distance. */
   landmarks?: readonly LandmarkSpot[];
@@ -505,6 +506,7 @@ export class WorldView implements WorldLayer {
         browser: this.o.look.browser,
         backend: this.o.look.backend,
         postLevel: this.o.look.postLevel as PostLevel,
+        ...(this.o.look.postLevelCap !== undefined ? { postLevelCap: this.o.look.postLevelCap } : {}),
         focus: () => ({ x: this.lastFocus.x, z: this.lastFocus.z }),
         freezeSkyTime: (on) => this.sky?.freezeTime(on),
         fog: this.skyNodes.look,
