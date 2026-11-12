@@ -1,7 +1,10 @@
 /**
  * M02h7 AC-2 (the kit geometry in the mesher): hand-built fixtures (walls facing a segment at 10 m, at 20 m and at 45 degrees, a 3 m wall, two
  * touching row houses) meshed through `addBuilding` with a kit, and the `synth` and `civic-excerpt` bakes meshed twice per profile:
- *  - buffers are byte-identical run to run, and the `mobile-low` (`low`) and legacy (XR) bytes equal the parent commit's (committed hashes);
+ *  - buffers are byte-identical run to run, and the `mobile-low` (`low`) and XR bytes equal the parent commit's (committed hashes); since
+ *    M02h8 the XR tiers' buildings carry the `facade` record their `xr` look reads, so on those tiers the hash covers every array but that
+ *    record (the geometry, the colours, the AO, `surf` and `road` are the parent commit's), and the record itself is checked not to move
+ *    with the kit;
  *  - awnings only on street-passing `FLAG_SHOP` walls, bays only on ResLow/ResMid street walls at or above the ground floor, cornices only on
  *    `desktop` flat-roof ResMid/Commercial/Civic buildings;
  *  - no building exceeds `trisPerBuilding + kit.trisPerBuilding`, and every surface id is in the table.
@@ -163,16 +166,18 @@ describe('kit fixtures (AC-2)', () => {
 // ---- the bakes ----------------------------------------------------------------------------------------------------------
 
 const TIERS: QualityTierId[] = ['desktop', 'mobile', 'mobile-low', 'xr-quest', 'xr-visionpro'];
-/** The tiers whose bytes must not move (`low` and the legacy look of the XR tiers). */
+/** The tiers whose bytes must not move (`low` and the XR tiers, which have no kit). */
 const FROZEN: QualityTierId[] = ['mobile-low', 'xr-quest', 'xr-visionpro'];
+/** M02h8: the XR tiers mesh a `facade` record (the `xr` look reads it); the committed hashes are of the arrays the parent commit had. */
+const FACADE_ADDED: ReadonlySet<QualityTierId> = new Set<QualityTierId>(['xr-quest', 'xr-visionpro']);
 
 const mesh = (t: Tile, sim: SimChunk, tier: QualityTierId): UnitMesh =>
   meshChunk(sim, t.renders.find((r) => r.key === sim.key) ?? null, { tier, distM: 0, tile: t.sims });
 
-function hashOf(objects: readonly MeshBuffers[], h = createHash('sha256')): ReturnType<typeof createHash> {
+function hashOf(objects: readonly MeshBuffers[], h = createHash('sha256'), withFacade = true): ReturnType<typeof createHash> {
   for (const o of objects) {
     h.update(o.kind);
-    for (const a of [o.positions, o.normals, o.colors, o.ao, o.indices, o.surf, o.facade, o.road]) if (a) h.update(Buffer.from(a.buffer, a.byteOffset, a.byteLength));
+    for (const a of [o.positions, o.normals, o.colors, o.ao, o.indices, o.surf, withFacade ? o.facade : undefined, o.road]) if (a) h.update(Buffer.from(a.buffer, a.byteOffset, a.byteLength));
   }
   return h;
 }
@@ -241,7 +246,21 @@ describe.each(AREAS)('the kit on the %s bake (AC-2)', (area) => {
     const tiers: Record<string, string> = {};
     for (const tier of FROZEN) {
       const h = createHash('sha256');
-      for (const t of tiles) for (const sim of t.sims) hashOf(mesh(t, sim, tier).objects, h);
+      for (const t of tiles) {
+        for (const sim of t.sims) {
+          const m = mesh(t, sim, tier);
+          hashOf(m.objects, h, !FACADE_ADDED.has(tier));
+          if (!FACADE_ADDED.has(tier)) continue;
+          // M02h8: the record is on every building object and is the same with the kit switched off (the XR tiers mesh no kit)
+          const plain = meshChunk(sim, t.renders.find((r) => r.key === sim.key) ?? null, { tier, distM: 0, tile: t.sims, facadeKit: false });
+          m.objects.forEach((o, i) => {
+            if (o.kind !== 'buildings') return;
+            expect(o.facade?.length, `${sim.key} on ${tier}: one facade record per vertex`).toBe((o.positions.length / 3) * 4);
+            const p = plain.objects[i]?.facade as Int16Array;
+            expect(Buffer.compare(Buffer.from((o.facade as Int16Array).buffer, (o.facade as Int16Array).byteOffset, (o.facade as Int16Array).byteLength), Buffer.from(p.buffer, p.byteOffset, p.byteLength)), `${sim.key} on ${tier}: the facade record without the kit`).toBe(0);
+          });
+        }
+      }
       tiers[tier] = h.digest('hex');
     }
     const file: HashFile = existsSync(HASHES)
