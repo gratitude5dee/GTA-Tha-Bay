@@ -5,6 +5,7 @@ import {
   isSerialSource,
   listLine,
   LOAD_ONLY,
+  mergeTimings,
   pack,
   readTimings,
   shardBound,
@@ -136,6 +137,101 @@ describe('e2e-plan (BD-FIX-CI-DURSHARD-01)', () => {
       'chromium-webgl2': { 'a.spec.ts › group @a › desktop: one': 2, 'b.spec.ts › serial @b › first': 0.75 },
       'webkit-webgl2': { 'a.spec.ts › group @a › desktop: one': 0.02 },
     });
+  });
+
+  // BD-FIX-CI-PLAN-02: a test that skips itself on a project is planned at 0 minutes, under three guards.
+  const ok = (n: number, project: string, rest: string): string => `2026-11-12T11:32:00.0Z   ✓  ${n} [${project}] › tests/e2e/${rest}`;
+  const skip = (n: number, project: string, rest: string): string => `2026-11-12T11:32:00.0Z   -  ${n} [${project}] › tests/e2e/${rest}`;
+  const fail = (n: number, project: string, rest: string): string => `2026-11-12T11:32:00.0Z   ✘  ${n} [${project}] › tests/e2e/${rest}`;
+
+  it('records 0 for a test that only skips, and only from a log with no failed test line (BD-FIX-CI-PLAN-02)', () => {
+    const clean = [
+      ok(1, 'chromium-webgpu', 'a.spec.ts:10:3 › group @a › mobile: runs (30.0s)'),
+      skip(2, 'chromium-webgpu', 'a.spec.ts:20:3 › goldens @g › desktop golden is within the tolerance @g'),
+      skip(3, 'chromium-webgpu', 'a-helpers.ts:55:5 › goldens @g › mobile-low golden'),
+      // a line of the web server that carries the failure mark is not a failed test line
+      '2026-11-12T12:10:26.1Z [WebServer] ✘ [ERROR] kj::getCaughtExceptionAsKj() = disconnected: write(): Broken pipe (os error 32)',
+      '2026-11-12T11:52:11.7Z   2 skipped',
+    ].join('\n');
+    // a serial group skips its remaining tests after a failure: that says nothing about what they cost
+    const red = [
+      fail(1, 'chromium-webgpu', 'b.spec.ts:5:3 › serial @b › first (30.0s)'),
+      skip(2, 'chromium-webgpu', 'b.spec.ts:9:3 › serial @b › second'),
+      skip(3, 'chromium-webgpu', 'b.spec.ts:13:3 › serial @b › third'),
+    ].join('\n');
+    expect(timingsFromLogs([clean, red])).toEqual({
+      'chromium-webgpu': {
+        'a.spec.ts › group @a › mobile: runs': 0.5,
+        'a.spec.ts › goldens @g › desktop golden is within the tolerance @g': 0,
+        'a-helpers.ts › goldens @g › mobile-low golden': 0,
+        'b.spec.ts › serial @b › first': 0.5,
+      },
+    });
+  });
+
+  it('a log that ran a test wins over a log that skipped it: a 0 never lowers measured minutes (BD-FIX-CI-PLAN-02)', () => {
+    const ran = ok(1, 'webkit-webgl2', 'a.spec.ts:10:3 › group @a › desktop: one (3.0m)');
+    const ranAgain = ok(1, 'webkit-webgl2', 'a.spec.ts:10:3 › group @a › desktop: one (2.0m)');
+    const skipped = [skip(1, 'webkit-webgl2', 'a.spec.ts:10:3 › group @a › desktop: one'), skip(2, 'webkit-webgl2', 'a.spec.ts:20:3 › group @a › desktop: two')].join('\n');
+    // the mean runs over the logs that ran it (2.5), not over the three logs (1.67)
+    expect(timingsFromLogs([skipped, ran, ranAgain, skipped])).toEqual({
+      'webkit-webgl2': { 'a.spec.ts › group @a › desktop: one': 2.5, 'a.spec.ts › group @a › desktop: two': 0 },
+    });
+    // a passed and a skipped line of the same test in one log (a retry): the run counts
+    expect(timingsFromLogs([[skip(1, 'webkit-webgl2', 'a.spec.ts:10:3 › g › t'), ok(2, 'webkit-webgl2', 'a.spec.ts:10:3 › g › t (6.0s)')].join('\n')])).toEqual({
+      'webkit-webgl2': { 'a.spec.ts › g › t': 0.1 },
+    });
+  });
+
+  it('timings --write never replaces a stored value above 0 by 0; other entries are replaced, added or kept (BD-FIX-CI-PLAN-02)', () => {
+    const stored = { 'a › ran before, skipped now': 4.2, 'a › measured again': 1, 'a › was 0': 0, 'z › not in the logs': 7 };
+    const parsed = { 'a › ran before, skipped now': 0, 'a › measured again': 2, 'a › was 0': 0, 'a › new skip': 0, 'a › new run': 0.3 };
+    const merged = mergeTimings(stored, parsed);
+    expect(merged).toEqual({
+      'a › ran before, skipped now': 4.2,
+      'a › measured again': 2,
+      'a › was 0': 0,
+      'a › new skip': 0,
+      'a › new run': 0.3,
+      'z › not in the logs': 7,
+    });
+    expect(Object.keys(merged)).toEqual([...Object.keys(merged)].sort());
+    // a stored 0 gives way to a measured value
+    expect(mergeTimings({ k: 0 }, { k: 1.5 })).toEqual({ k: 1.5 });
+  });
+
+  it('the medians of the estimator leave the zeros out; a test measured at 0 is still planned at 0 (BD-FIX-CI-PLAN-02)', () => {
+    const t = (specFile: string, title: string): ListedTest => ({ spec: specFile, file: specFile, titles: [title] });
+    const tests = [
+      t('a.spec.ts', 'desktop: runs'), t('a.spec.ts', 'desktop: skips one'), t('a.spec.ts', 'desktop: skips two'), t('a.spec.ts', 'desktop: skips three'),
+      t('a.spec.ts', 'desktop: new'), t('a.spec.ts', 'mobile: skips'), t('a.spec.ts', 'mobile: new'), t('b.spec.ts', 'mobile: runs'),
+    ];
+    const measured = {
+      'a.spec.ts › desktop: runs': 3.3,
+      'a.spec.ts › desktop: skips one': 0,
+      'a.spec.ts › desktop: skips two': 0,
+      'a.spec.ts › desktop: skips three': 0,
+      'a.spec.ts › mobile: skips': 0,
+      'b.spec.ts › mobile: runs': 0.4,
+    };
+    // with the zeros in, the file's desktop median would be 0 (3 of 4) and the new desktop case would be planned at nothing
+    expect(tests.map(estimator(tests, measured))).toEqual([3.3, 0, 0, 0, 3.3, 0, 0.4, 0.4]);
+  });
+
+  it('a file whose desktop tests all skip leaves the desktop median of the project unchanged (BD-FIX-CI-PLAN-02)', () => {
+    const t = (specFile: string, title: string): ListedTest => ({ spec: specFile, file: specFile, titles: [title] });
+    const ran = [t('a.spec.ts', 'desktop: one'), t('b.spec.ts', 'desktop: two'), t('c.spec.ts', 'desktop: three')];
+    const golden = [t('g.spec.ts', 'desktop golden one'), t('g.spec.ts', 'desktop golden two')];
+    const fresh = [t('g.spec.ts', 'desktop golden new'), t('n.spec.ts', 'desktop: brand new')];
+    const before = { 'a.spec.ts › desktop: one': 2, 'b.spec.ts › desktop: two': 4, 'c.spec.ts › desktop: three': 9 };
+    const after = { ...before, 'g.spec.ts › desktop golden one': 0, 'g.spec.ts › desktop golden two': 0 };
+    const unmeasured = t('n.spec.ts', 'desktop: brand new');
+    expect(estimator([...ran, ...golden, ...fresh], before)(unmeasured)).toBe(4);
+    const est = estimator([...ran, ...golden, ...fresh], after);
+    expect(est(unmeasured)).toBe(4);
+    // the skipped goldens plan at 0; a new case of their file has no measured sibling above 0 and takes the project's median
+    expect(golden.map(est)).toEqual([0, 0]);
+    expect(est(t('g.spec.ts', 'desktop golden new'))).toBe(4);
   });
 
   it('the committed table holds minutes for the four projects', () => {

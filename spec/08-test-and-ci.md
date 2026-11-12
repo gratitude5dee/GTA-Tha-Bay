@@ -134,6 +134,8 @@ Dist-dependent unit suites (M01d `apps/web/test/precache.test.ts`) follow the sa
 
 Required for merge: `static`, `unit`, `content`, `build`, `ip`, `e2e` legs per §3.1, `db` when it runs, `device-runs` when it runs. `perf` is informational on PRs.
 
+The `e2e` legs run as `e2e-shard` jobs with a shard count per project (chromium-webgl2 14, chromium-webgpu 5, webkit-webgl2 4, xr-quest3 1; each shard's tests packed by measured minutes with `tools/ci/e2e-plan.ts`), and the four checks named `e2e (<project>)` are green only when every shard of their project passed (BD-FIX-CI-PLAN-02).
+
 ### 5.2 `preview.yml` — on `pull_request` [opened, synchronize, reopened, closed]; same-repo PRs only
 1. `preview` (`permissions: contents: read, pull-requests: write, deployments: write`; environment `preview`): `VITE_DV_QA=1 pnpm build` → `pnpm deploy:preview` (Workers Preview `pr-<N>` of `tha-bay-web-staging`, M00) → `pnpm check:headers -- --from test-results/preview-url.txt` → `pnpm check:coi -- --from test-results/preview-url.txt` → PR comment with the URL (M00). `check:smoke` runs inside `deploy:prod` (M00a), not on Previews. From M12b1 the rooms Worker gets its own Preview when `services/rooms/**` or `packages/net/**` changed.
 2. `cleanup` on `closed`: `pnpm exec wrangler preview delete --env staging --name pr-<N> --skip-confirmation`.

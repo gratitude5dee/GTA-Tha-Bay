@@ -27,6 +27,35 @@ function jobsOf(text: string): Record<string, string> {
   return Object.fromEntries(Object.entries(jobs).map(([k, v]) => [k, v.join('\n')]));
 }
 
+/** The four e2e projects (playwright.config.ts), as the `e2e` job's matrix lists them. */
+const E2E_PROJECTS = ['chromium-webgpu', 'chromium-webgl2', 'webkit-webgl2', 'xr-quest3'] as const;
+/** BD-FIX-CI-PLAN-02: the shard count of each project (24 e2e-shard jobs). A change here is a change of the matrix, the plan and the aggregate. */
+const E2E_SHARD_COUNTS: Record<(typeof E2E_PROJECTS)[number], number> = { 'chromium-webgl2': 14, 'webkit-webgl2': 4, 'chromium-webgpu': 5, 'xr-quest3': 1 };
+
+/** The rows of the e2e-shard matrix (its `include:` list), in file order. */
+function shardRows(job: string): { project: string; shard: number; shards: number }[] {
+  return [...job.matchAll(/^ {10}- \{ project: ([a-z0-9-]+), shard: (\d+), shards: (\d+) \}$/gm)].map((m) => ({ project: m[1] as string, shard: Number(m[2]), shards: Number(m[3]) }));
+}
+
+/** The `e2e` job's E2E_SHARDS for one project: the expression of the step's env, evaluated as GitHub would for that matrix leg. */
+function aggregateShards(agg: string, project: string): number {
+  const expr = /^ {10}E2E_SHARDS: (\$\{\{ .* \}\})$/m.exec(agg)?.[1] ?? '';
+  expect(expr, 'E2E_SHARDS is an expression on matrix.project').toContain('matrix.project');
+  return Number(evalSet(expr, { project }));
+}
+
+/** Evaluates a workflow expression for one matrix leg (the expressions hold only ==, &&, || and literals). */
+function evalSet(expr: string, leg: { project: string; shard?: number }): string {
+  const m = /^\$\{\{ (.*) \}\}$/.exec(expr);
+  if (!m) return expr.replace(/^'(.*)'$/, '$1');
+  const js = (m[1] as string)
+    .replace(/matrix\.project/g, JSON.stringify(leg.project))
+    .replace(/matrix\.shard/g, String(leg.shard ?? 0))
+    .replace(/==/g, '===');
+  expect(js, 'only literals and operators remain').toMatch(/^[\s'"a-z0-9=&|-]+$/);
+  return String(new Function(`return (${js});`)());
+}
+
 describe('ci.yml (AC-8)', () => {
   const jobs = jobsOf(wf('ci.yml'));
 
@@ -92,17 +121,33 @@ describe('ci.yml (AC-8)', () => {
   // BD-FIX-CI-03: the DV_WORLD=synth step alone outlasted 30 min on chromium-webgl2 (run 39517892975). BD-FIX-CI2-04: one job then
   // took 1.1 h of its 75 minutes (e72e1fc), so the tests run as Playwright shards in e2e-shard; the job `e2e` keeps the names of the
   // required checks (`e2e (<project>)`, the same four-project matrix) and is green only when every shard of its project passed.
-  it('e2e-shard splits each project into shards; e2e keeps its name and matrix and reports all shards of its project; nightly e2e-full at least 90', () => {
+  // BD-FIX-CI-PLAN-02: each project has its own shard count. The matrix is a list of rows { project, shard, shards }; for every project
+  // the rows are shards 1..n with `shards` n in each, the plan step packs with that `shards`, and the aggregate waits for the same n.
+  it('e2e-shard splits each project into its own count of shards; e2e keeps its name and matrix and reports all shards of its project; nightly e2e-full at least 90', () => {
     const minutes = (block: string | undefined): number => Number(/timeout-minutes: (\d+)/.exec(block ?? '')?.[1] ?? 0);
     const shard = jobs['e2e-shard'] ?? '';
     const agg = jobs['e2e'] ?? '';
-    const shards = /^ {8}shard: \[([\d, ]+)\]$/m.exec(shard)?.[1]?.split(',').map((s) => Number(s.trim())) ?? [];
-    const n = shards.length;
-    expect(n).toBeGreaterThanOrEqual(2);
-    expect(shards).toEqual(Array.from({ length: n }, (_, i) => i + 1));
-    expect(shard).toContain('project: [chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3]');
+    const rows = shardRows(shard);
+    // The matrix is the include list alone (no project x shard product beside it), and every line under `include:` is a row read here.
+    expect(shard).toMatch(/^ {6}matrix:\n(?: {8}#.*\n)* {8}include:\n/m);
+    expect(shard).not.toMatch(/^ {8}(?:project|shard|shards|exclude): /m);
+    const listed = (/^ {8}include:\n((?: {10}.*\n)+)/m.exec(shard)?.[1] ?? '').trimEnd().split('\n');
+    expect(listed).toHaveLength(rows.length);
+    expect([...new Set(rows.map((r) => r.project))].sort()).toEqual([...E2E_PROJECTS].sort());
+    for (const project of E2E_PROJECTS) {
+      const n = E2E_SHARD_COUNTS[project];
+      const mine = rows.filter((r) => r.project === project);
+      expect(mine.map((r) => r.shard), `${project}: shards 1..${n}, each once`).toEqual(Array.from({ length: n }, (_, i) => i + 1));
+      for (const r of mine) expect(r.shards, `${project} shard ${r.shard}: its plan is cut into ${n}`).toBe(n);
+      // the aggregate waits for exactly the shards the matrix runs
+      expect(aggregateShards(agg, project), `${project}: E2E_SHARDS of the e2e job`).toBe(n);
+    }
+    expect(rows).toHaveLength(24);
+    expect(E2E_SHARD_COUNTS['chromium-webgl2']).toBeGreaterThanOrEqual(2);
+    // chromium-webgl2, the longest legs, is listed first
+    expect(rows.slice(0, E2E_SHARD_COUNTS['chromium-webgl2']).every((r) => r.project === 'chromium-webgl2')).toBe(true);
     expect(shard).toContain('needs: build');
-    expect(minutes(shard)).toBeGreaterThanOrEqual(45);
+    expect(minutes(shard)).toBe(60);
     // Both halves run the shard's share; each shard writes its outcome even after a failure and uploads it under its own name.
     const runs = stepsOf(shard).filter((s) => s.includes('pnpm check:e2e'));
     expect(runs).toHaveLength(2);
@@ -110,7 +155,7 @@ describe('ci.yml (AC-8)', () => {
     const steps = stepsOf(shard);
     const plan = steps.findIndex((s) => s.includes('tools/ci/e2e-plan.ts plan'));
     expect(plan).toBeGreaterThanOrEqual(0);
-    expect(steps[plan]).toContain(`--project \${{ matrix.project }} --shards ${n} --shard \${{ matrix.shard }} --out "$RUNNER_TEMP/e2e-tests.txt"`);
+    expect(steps[plan]).toContain('--project ${{ matrix.project }} --shards ${{ matrix.shards }} --shard ${{ matrix.shard }} --out "$RUNNER_TEMP/e2e-tests.txt"');
     for (const s of runs) {
       expect(s).toContain('--test-list "$RUNNER_TEMP/e2e-tests.txt"');
       expect(s).not.toContain('--shard=');
@@ -126,7 +171,7 @@ describe('ci.yml (AC-8)', () => {
     expect(agg).toContain('if: ${{ !cancelled() }}');
     expect(agg).toContain('project: [chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3]');
     expect(agg).toContain('pattern: e2e-result-${{ matrix.project }}-*');
-    expect(agg).toContain(`E2E_SHARDS: '${n}'`);
+    expect(agg).toContain('echo "e2e ${PROJECT} shard ${n}/${E2E_SHARDS}: ${r}"');
     expect(agg).toContain('[ "$r" = "success" ] || status=1');
     expect(agg).not.toContain('pnpm check:e2e');
     // Advisory projects stay advisory in both jobs.
@@ -140,6 +185,7 @@ describe('ci.yml (AC-8)', () => {
   // and the four aggregates printed "shard n/3: missing" with no cause (run 39862711522). The step script itself is run here under
   // `bash -e` (the runner's default shell) for each case: green only when every shard wrote `success`; a failed, skipped or missing
   // shard is red, and a missing result after a failed build names the build job.
+  // BD-FIX-CI-PLAN-02: run for each project with its own shard count (one shard for xr-quest3).
   it('e2e aggregate step: green exactly when every shard of the project wrote success; names a failed build', () => {
     const agg = jobs['e2e'] ?? '';
     const step = stepsOf(agg).find((s) => s.includes('name: Every shard of the project passed')) ?? '';
@@ -151,42 +197,50 @@ describe('ci.yml (AC-8)', () => {
     expect(script).not.toContain('${{');
     expect(step).toContain('BUILD_RESULT: ${{ needs.build.result }}');
     expect(step).toContain('SHARDS_RESULT: ${{ needs.e2e-shard.result }}');
-    const shards = Number(/E2E_SHARDS: '(\d+)'/.exec(step)?.[1] ?? 0);
-    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four, BD-INTEG-M02g1-01 to six, BD-FIX-CI-SHARD8-01 to eight, BD-REPAIR-M02g2-03 to nine, BD-FIX-CI-SHARD12-01 to twelve, BD-FIX-CI-SHARD14-01 to fourteen).
-    const matrix = /^ {8}shard: \[([\d, ]+)\]$/m.exec(jobs['e2e-shard'] ?? '')?.[1]?.split(',').length ?? 0;
-    expect(shards).toBe(14);
-    expect(shards).toBe(matrix);
-    const all = (r: string | null): (string | null)[] => Array.from({ length: shards }, () => r);
-    const withAt = (i: number, r: string | null): (string | null)[] => all('success').map((v, j) => (j === i ? r : v));
-    const run = (results: (string | null)[], build = 'success'): { code: number; out: string } => {
-      const dir = tempDir('dv-e2e-agg-');
-      try {
-        mkdirSync(path.join(dir, 'e2e-result'));
-        results.forEach((r, i) => {
-          if (r !== null) writeFileSync(path.join(dir, 'e2e-result', `chromium-webgl2-${i + 1}.txt`), `${r}\n`);
-        });
-        // Another project's results in the same folder never count.
-        writeFileSync(path.join(dir, 'e2e-result', 'webkit-webgl2-1.txt'), 'failure\n');
-        const res = spawnSync('bash', ['-e', '-c', script], {
-          cwd: dir,
-          encoding: 'utf8',
-          env: { PATH: process.env['PATH'] ?? '', PROJECT: 'chromium-webgl2', E2E_SHARDS: String(shards), BUILD_RESULT: build, SHARDS_RESULT: 'success' },
-        });
-        return { code: res.status ?? -1, out: `${res.stdout}${res.stderr}` };
-      } finally {
-        rmSync(dir, { recursive: true, force: true });
+    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four, BD-INTEG-M02g1-01 to six, BD-FIX-CI-SHARD8-01 to eight, BD-REPAIR-M02g2-03 to nine,
+    // BD-FIX-CI-SHARD12-01 to twelve, BD-FIX-CI-SHARD14-01 to fourteen; BD-FIX-CI-PLAN-02 gave each project its own count: 14, 5, 4 and 1).
+    expect(aggregateShards(agg, 'chromium-webgl2')).toBe(14);
+    const matrix = shardRows(jobs['e2e-shard'] ?? '');
+    for (const project of E2E_PROJECTS) {
+      const shards = aggregateShards(agg, project);
+      expect(shards, project).toBe(matrix.filter((r) => r.project === project).length);
+      expect(shards, project).toBe(E2E_SHARD_COUNTS[project]);
+      const other = project === 'webkit-webgl2' ? 'chromium-webgl2' : 'webkit-webgl2';
+      const all = (r: string | null): (string | null)[] => Array.from({ length: shards }, () => r);
+      const withAt = (i: number, r: string | null): (string | null)[] => all('success').map((v, j) => (j === i ? r : v));
+      const run = (results: (string | null)[], build = 'success'): { code: number; out: string } => {
+        const dir = tempDir('dv-e2e-agg-');
+        try {
+          mkdirSync(path.join(dir, 'e2e-result'));
+          results.forEach((r, i) => {
+            if (r !== null) writeFileSync(path.join(dir, 'e2e-result', `${project}-${i + 1}.txt`), `${r}\n`);
+          });
+          // Another project's results in the same folder never count.
+          writeFileSync(path.join(dir, 'e2e-result', `${other}-1.txt`), 'failure\n');
+          const res = spawnSync('bash', ['-e', '-c', script], {
+            cwd: dir,
+            encoding: 'utf8',
+            env: { PATH: process.env['PATH'] ?? '', PROJECT: project, E2E_SHARDS: String(shards), BUILD_RESULT: build, SHARDS_RESULT: 'success' },
+          });
+          return { code: res.status ?? -1, out: `${res.stdout}${res.stderr}` };
+        } finally {
+          rmSync(dir, { recursive: true, force: true });
+        }
+      };
+      const green = run(all('success'));
+      expect(green.code, project).toBe(0);
+      expect(green.out, project).toContain(`e2e ${project} shard ${shards}/${shards}: success`);
+      // a failed first shard, a cancelled last one, a missing last one, no result at all
+      for (const bad of [withAt(0, 'failure'), withAt(shards - 1, 'cancelled'), withAt(shards - 1, null), all(null)]) {
+        const r = run(bad);
+        expect(r.code, `${project} ${JSON.stringify(bad)}`).toBe(1);
+        expect(r.out).not.toContain('::error::');
       }
-    };
-    expect(run(all('success')).code).toBe(0);
-    for (const bad of [withAt(1, 'failure'), withAt(shards - 1, 'cancelled'), withAt(1, null), all(null)]) {
-      const r = run(bad);
-      expect(r.code, JSON.stringify(bad)).toBe(1);
-      expect(r.out).not.toContain('::error::');
+      const skipped = run(all(null), 'failure');
+      expect(skipped.code).toBe(1);
+      expect(skipped.out).toContain(`e2e ${project} shard ${shards}/${shards}: missing`);
+      expect(skipped.out).toContain(`::error::e2e ${project}: no shard result because the build job ended 'failure'`);
     }
-    const skipped = run(all(null), 'failure');
-    expect(skipped.code).toBe(1);
-    expect(skipped.out).toContain(`e2e chromium-webgl2 shard ${shards}/${shards}: missing`);
-    expect(skipped.out).toContain("::error::e2e chromium-webgl2: no shard result because the build job ended 'failure'");
   });
 });
 
@@ -287,17 +341,6 @@ describe('Playwright system packages: mirror-resilient install, one apt cache pe
     /- name: Save the downloads of a failed or cancelled install\n\s+if: always\(\) && \(steps\.pw-install\.outcome == 'failure' \|\| steps\.pw-install\.outcome == 'cancelled'\) && fromJSON\(steps\.pw-apt-new\.outputs\.new \|\| '0'\) > 0\n\s+continue-on-error: true\n\s+uses: actions\/cache\/save@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: \$\{\{ steps\.pw-apt\.outputs\.cache-primary-key \}\}-partial-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}-\$\{\{ github\.job \}\}-\$\{\{ strategy\.job-index \}\}\n/;
   /** The job-level DV_PW_BROWSERS value (an expression or a quoted literal). */
   const browsersOf = (job: string): string | undefined => /^ {4}env:\n(?: {6}.*\n)*? {6}DV_PW_BROWSERS: (.*)$/m.exec(job)?.[1];
-  /** Evaluates a DV_PW_BROWSERS value for one matrix leg (the expressions hold only ==, &&, || and literals). */
-  const evalSet = (expr: string, leg: { project: string; shard?: number }): string => {
-    const m = /^\$\{\{ (.*) \}\}$/.exec(expr);
-    if (!m) return expr.replace(/^'(.*)'$/, '$1');
-    const js = (m[1] as string)
-      .replace(/matrix\.project/g, JSON.stringify(leg.project))
-      .replace(/matrix\.shard/g, String(leg.shard ?? 0))
-      .replace(/==/g, '===');
-    expect(js, 'only literals and operators remain').toMatch(/^[\s'"a-z0-9=&|-]+$/);
-    return String(new Function(`return (${js});`)());
-  };
   /** playwright.config.ts: webkit-webgl2 runs on WebKit, every other project on Chromium. */
   const engine = (project: string): string => (project === 'webkit-webgl2' ? 'webkit' : 'chromium');
 
