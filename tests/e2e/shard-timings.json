@@ -279,7 +279,17 @@
       "facade-ledger.spec.ts › facade ledger @facade-ledger › mobile-low: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 0.05,
       "facade-ledger.spec.ts › facade ledger @facade-ledger › legacy: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 0.05,
       "facade-ledger.spec.ts › facade ledger @facade-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @facade-ledger": 0.05,
-      "art.spec.ts › art mobile surfaces @art-skyline › mobile (M02h7): the walls sample the facade atlas's mobile variant through the albedo seam, and only that variant is requested @art-skyline": 2
+      "art.spec.ts › art mobile surfaces @art-skyline › mobile (M02h7): the walls sample the facade atlas's mobile variant through the albedo seam, and only that variant is requested @art-skyline": 2,
+      "look-traa.spec.ts › TRAA on desktop @look-traa › desktop at level 3 runs traa; a cut resets its history and settles in 16 frames; a slow slide flickers no more than at level 2 @look-traa": 0.05,
+      "world-xr-look.spec.ts › xr look, flat @world-xr-look › xr-visionpro forced flat: the xr profile, its layers and switches; look=0 and look=legacy are the legacy look; no request of its own @world-xr-look": 0.05,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › desktop: no more render objects than the latest merged ledger; the xr look and TRAA add none here @look-xr-ledger": 0.05,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › mobile-low: no more render objects than the latest merged ledger; the xr look and TRAA add none here @look-xr-ledger": 0.05,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › legacy: no more render objects than the latest merged ledger; the xr look and TRAA add none here @look-xr-ledger": 0.05,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › xr-visionpro forced flat: at most one render object over its layers-off frame and at most 200 per view pass @look-xr-ledger": 0.05,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @look-xr-ledger": 0.05,
+      "city-look-golden.spec.ts › look goldens @look-golden › xr-quest noon-street is within the tolerance of its golden and a second capture is byte-identical @look-golden": 0.05,
+      "city-look-golden.spec.ts › look goldens @look-golden › xr-quest night-street is within the tolerance of its golden and a second capture is byte-identical @look-golden": 0.05,
+      "city-look-golden.spec.ts › look goldens @look-golden › xr-quest fog-west is within the tolerance of its golden and a second capture is byte-identical @look-golden": 0.05
     },
     "chromium-webgl2": {
       "account-password.spec.ts › account island @account › an adult creates an account after reading the terms; no token is stored in the browser @account": 0.02,
@@ -676,7 +686,17 @@
       "facade-ledger.spec.ts › facade ledger @facade-ledger › mobile-low: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 1.5,
       "facade-ledger.spec.ts › facade ledger @facade-ledger › legacy: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 1.5,
       "facade-ledger.spec.ts › facade ledger @facade-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @facade-ledger": 0.05,
-      "art.spec.ts › art mobile surfaces @art-skyline › mobile (M02h7): the walls sample the facade atlas's mobile variant through the albedo seam, and only that variant is requested @art-skyline": 3
+      "art.spec.ts › art mobile surfaces @art-skyline › mobile (M02h7): the walls sample the facade atlas's mobile variant through the albedo seam, and only that variant is requested @art-skyline": 3,
+      "look-traa.spec.ts › TRAA on desktop @look-traa › desktop at level 3 runs traa; a cut resets its history and settles in 16 frames; a slow slide flickers no more than at level 2 @look-traa": 14,
+      "world-xr-look.spec.ts › xr look, flat @world-xr-look › xr-visionpro forced flat: the xr profile, its layers and switches; look=0 and look=legacy are the legacy look; no request of its own @world-xr-look": 8,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › desktop: no more render objects than the latest merged ledger; the xr look and TRAA add none here @look-xr-ledger": 9,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › mobile-low: no more render objects than the latest merged ledger; the xr look and TRAA add none here @look-xr-ledger": 1.5,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › legacy: no more render objects than the latest merged ledger; the xr look and TRAA add none here @look-xr-ledger": 1.5,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › xr-visionpro forced flat: at most one render object over its layers-off frame and at most 200 per view pass @look-xr-ledger": 3,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @look-xr-ledger": 0.05,
+      "city-look-golden.spec.ts › look goldens @look-golden › xr-quest noon-street is within the tolerance of its golden and a second capture is byte-identical @look-golden": 1.2,
+      "city-look-golden.spec.ts › look goldens @look-golden › xr-quest night-street is within the tolerance of its golden and a second capture is byte-identical @look-golden": 1.2,
+      "city-look-golden.spec.ts › look goldens @look-golden › xr-quest fog-west is within the tolerance of its golden and a second capture is byte-identical @look-golden": 1.2
     },
     "webkit-webgl2": {
       "account-password.spec.ts › account island @account › an adult creates an account after reading the terms; no token is stored in the browser @account": 0.04,
@@ -961,7 +981,17 @@
       "facade-ledger.spec.ts › facade ledger @facade-ledger › mobile-low: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 0.05,
       "facade-ledger.spec.ts › facade ledger @facade-ledger › legacy: the facade kit adds no render object and stays within its building-triangle growth @facade-ledger": 0.05,
       "facade-ledger.spec.ts › facade ledger @facade-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @facade-ledger": 0.05,
-      "art.spec.ts › art mobile surfaces @art-skyline › mobile (M02h7): the walls sample the facade atlas's mobile variant through the albedo seam, and only that variant is requested @art-skyline": 2
+      "art.spec.ts › art mobile surfaces @art-skyline › mobile (M02h7): the walls sample the facade atlas's mobile variant through the albedo seam, and only that variant is requested @art-skyline": 2,
+      "look-traa.spec.ts › TRAA on desktop @look-traa › desktop at level 3 runs traa; a cut resets its history and settles in 16 frames; a slow slide flickers no more than at level 2 @look-traa": 4,
+      "world-xr-look.spec.ts › xr look, flat @world-xr-look › xr-visionpro forced flat: the xr profile, its layers and switches; look=0 and look=legacy are the legacy look; no request of its own @world-xr-look": 0.05,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › desktop: no more render objects than the latest merged ledger; the xr look and TRAA add none here @look-xr-ledger": 0.05,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › mobile-low: no more render objects than the latest merged ledger; the xr look and TRAA add none here @look-xr-ledger": 0.05,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › legacy: no more render objects than the latest merged ledger; the xr look and TRAA add none here @look-xr-ledger": 0.05,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › xr-visionpro forced flat: at most one render object over its layers-off frame and at most 200 per view pass @look-xr-ledger": 0.05,
+      "world-xr-look.spec.ts › xr look ledger @look-xr-ledger › writes (DV_LOOK_WRITE=1) or checks the committed ledger @look-xr-ledger": 0.05,
+      "city-look-golden.spec.ts › look goldens @look-golden › xr-quest noon-street is within the tolerance of its golden and a second capture is byte-identical @look-golden": 0.05,
+      "city-look-golden.spec.ts › look goldens @look-golden › xr-quest night-street is within the tolerance of its golden and a second capture is byte-identical @look-golden": 0.05,
+      "city-look-golden.spec.ts › look goldens @look-golden › xr-quest fog-west is within the tolerance of its golden and a second capture is byte-identical @look-golden": 0.05
     },
     "xr-quest3": {
       "art-city.spec.ts › xr art @xr @art-city › the Quest tier is legacy with one family and standard paint @xr @art-city": 0.19,
@@ -976,14 +1006,18 @@
       "scatter-ledger.spec.ts › xr scatter ledger @xr @scatter-ledger › the Quest tier: no impostor or understory pool, its render objects equal its baseline @xr @scatter-ledger": 0.11,
       "terrain-cover-ledger.spec.ts › xr cover ledger @xr @cover-ledger › the Quest tier draws its cover and keeps its render objects @xr @cover-ledger": 0.26,
       "trees-ledger.spec.ts › xr trees ledger @xr @trees-ledger › the Quest tier draws the low set, no wind, and its trees add no render object @xr @trees-ledger": 0.18,
-      "world-look.spec.ts › xr look @world-look › the Quest tier keeps the direct pipeline and the legacy look, with no post nodes @xr @world-look": 0.29,
-      "world-markings.spec.ts › xr markings @xr @world-markings › the Quest tier draws the flat paint on its legacy roads, and the layer switches it @xr @world-markings": 0.2,
       "world-sky-look-fixes.spec.ts › xr fixes ledger @fixes-ledger › the Quest tier holds its render objects on a held frame, against M10d0 @xr @fixes-ledger": 0.37,
       "xr-smoke.spec.ts › XR smoke @xr @xr-smoke › Enter VR (smoke) presents, renders XR frames, runs the sim, and exiting returns to the flat page @xr @xr-smoke": 0.69,
       "xr/xr-panel.spec.ts › XR UI panel skeleton @xr @xr-panel › a ScreenDef panel opens 1.2 m away on a world anchor, a ray press works, text is 1.5 degrees, it redraws only after a view-model change @xr @xr-panel": 0.55,
       "world-furniture.spec.ts › xr furniture @world-furniture › the Quest tier has no furniture pool, no parked dressing and no layer to switch @xr @world-furniture": 0.3,
       "furniture-ledger.spec.ts › xr furniture ledger @xr @furniture-ledger › the Quest tier: no furniture pool and no parked dressing, its render objects at or under its baseline @xr @furniture-ledger": 0.4,
-      "facade-ledger.spec.ts › xr facade ledger @xr @facade-ledger › the Quest tier: no facade kit (the legacy look has no facade record), its render objects equal to its baseline @xr @facade-ledger": 3
+      "world-look.spec.ts › xr look @world-look › the Quest tier keeps the direct pipeline with no post nodes and draws the profile look.json gives it @xr @world-look": 0.29,
+      "world-look.spec.ts › xr look @world-look › the Quest tier on the legacy look keeps the direct pipeline, and its absent layers cost no render object @xr @world-look": 0.29,
+      "world-markings.spec.ts › xr markings @xr @world-markings › the Quest tier draws the flat paint on the xr look, and the layer switches it @xr @world-markings": 0.45,
+      "world-markings.spec.ts › xr markings @xr @world-markings › the Quest tier draws the flat paint on the legacy look, and the layer switches it @xr @world-markings": 0.35,
+      "facade-ledger.spec.ts › xr facade ledger @xr @facade-ledger › the Quest tier: no facade kit (its look has no facade layer), its render objects equal to its baseline @xr @facade-ledger": 3,
+      "world-xr-look.spec.ts › xr look on the Quest tier @xr @world-xr-look › the Quest tier draws the xr look; an immersive session reports multiview; look=0 and look=legacy are the legacy look; no request of its own @xr @world-xr-look": 6,
+      "world-xr-look.spec.ts › xr look ledger on the Quest tier @xr @look-xr-ledger › the Quest tier: at most one render object over the latest merged ledger, within 150 per view pass and 750,000 triangles @xr @look-xr-ledger": 1
     }
   }
 }
