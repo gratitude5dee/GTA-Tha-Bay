@@ -16,13 +16,15 @@ import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, world, type W } fro
  *                   textures (`look().textures.refs`, M10d0)
  *  - @look-golden   AC-6  in `city-look-golden.spec.ts` (BD-FIX-CI-WORLDLOOK-01)
  *  - @look-compare  AC-10 the before/after pair of `docs/look` (`chromium-webgl2` only)
- *  - @xr @world-look AC-7 the Quest tier keeps the direct pipeline and the legacy look
+ *  - @xr @world-look AC-7 the Quest tier keeps the direct pipeline and draws the profile `look.json` gives it (`xr` since M02h8); on
+ *                   `?look=legacy` it is the legacy look, whose layers cost nothing (the XR row of M02g1's ledger)
  */
 type FlatTier = 'desktop-ultra' | 'desktop' | 'mobile' | 'mobile-low';
 const FLAT_TIERS: readonly FlatTier[] = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low'];
 
 const LOOK = read<{
   tierProfile: Record<string, string>;
+  layers: Record<string, string[]>;
   postLevelCap: 0 | 1 | 2 | 3;
   shadowsOff: string[];
   webgl2Unsupported: string[];
@@ -50,7 +52,10 @@ async function setSky(page: Page, hour: number, weather: string): Promise<void> 
   );
 }
 
-/** The nodes `AC-5` expects: the tier list at the effective level, for the backend the page reports. */
+/**
+ * The nodes `AC-5` expects: the tier list at the effective level, for the backend the page reports. The level is 2: the e2e page fixture
+ * holds every page there (`dv-qa-post`, M02h8 BD-M02h8-02), whatever `look.json` `postLevelCap` is; the level-3 list is `@look-traa`'s.
+ */
 function expectedNodes(tier: FlatTier, backend: string): string[] {
   const features = (BUDGETS.tiers[tier] as { features: Parameters<typeof postNodes>[0] }).features;
   const list = postNodes(features, 2, LOOK.postLevelCap);
@@ -144,11 +149,28 @@ test.describe('world look @world-look', () => {
 });
 
 test.describe('xr look @world-look', () => {
-  test('the Quest tier keeps the direct pipeline and the legacy look, with no post nodes @xr @world-look', async ({ page }) => {
+  test('the Quest tier keeps the direct pipeline with no post nodes and draws the profile look.json gives it @xr @world-look', async ({ page }) => {
     test.setTimeout(240_000);
     await page.setViewportSize(GOLDEN_VIEWPORT);
-    // `&textures=0&art=0` (DL-758): the XR row of M02g1's ledger is M02g1's own scene, so the later rows' layers stay out of the frame
-    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1&textures=0&art=0');
+    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1');
+    await waitForEngine(page);
+    await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
+    const look = await world(page, (w) => w.look());
+    // M02h8: the configured profile (`xr`; `legacy` if the data falls back), still with no post stack and no shadow pass
+    const profile = LOOK.tierProfile['xr-quest'] as string;
+    expect(['xr', 'legacy']).toContain(profile);
+    expect(look).toMatchObject({ profile, on: profile !== 'legacy', postNodes: [], postMode: 'none', shadowPasses: 0, pipeline: 'direct' });
+    expect(look?.layers).toEqual(profile === 'legacy' ? [] : LOOK.layers[profile]);
+    expect(look?.shadowMode).toBe(profile === 'legacy' ? 'none' : BUDGETS.tiers['xr-quest']?.features.shadows.mode);
+    expect(look?.markings.mode).toBe('flat');
+  });
+
+  test('the Quest tier on the legacy look keeps the direct pipeline, and its absent layers cost no render object @xr @world-look', async ({ page }) => {
+    test.setTimeout(240_000);
+    await page.setViewportSize(GOLDEN_VIEWPORT);
+    // `&look=legacy` (M02h8): the XR row of M02g1's ledger is the legacy look, the Quest tier's fallback since the xr profile.
+    // `&textures=0&art=0` (DL-758): it is M02g1's own scene, so the later rows' layers stay out of the frame
+    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1&look=legacy&textures=0&art=0');
     await waitForEngine(page);
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
     const look = await world(page, (w) => w.look());

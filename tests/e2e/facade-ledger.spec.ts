@@ -154,9 +154,11 @@ test.describe('xr facade ledger @xr @facade-ledger', () => {
     test.setTimeout(900_000);
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    // the protocol of the XR rows of the earlier ledgers: 256 x 144, traffic resident, the frame of the plan (DL-758)
+    // the protocol of the XR rows of the earlier ledgers: 256 x 144, traffic resident, the frame of the plan (DL-758).
+    // `&look=legacy` (M02h8): this row is the legacy look's frame, as M02h7 measured it; the `xr` look's own object (the blob mesh) is
+    // the `@look-xr-ledger` row of `world-xr-look.spec.ts`
     await page.setViewportSize({ width: 256, height: 144 });
-    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1');
+    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1&look=legacy');
     await waitForEngine(page);
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
     await expect

@@ -263,8 +263,10 @@ describe('PostStack: the TRAA history (M02h8 AC-2)', () => {
     // the reset ran with two frames drawn: before the third
     expect(f.resets).toEqual([2]);
     expect(s.historyResets).toBe(1);
+    expect(s.framesSinceReset).toBe(1);
     s.render();
     expect(f.resets).toEqual([2]);
+    expect([s.frames, s.framesSinceReset]).toEqual([4, 2]);
   });
 
   it('resets the history on a cut (a 90 degree turn in one frame)', () => {

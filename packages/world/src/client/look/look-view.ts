@@ -143,6 +143,11 @@ export interface LookReport {
   /** M02h6: the street furniture pools, the parked dressing and the signal heads (`WorldView.furnitureReport`). */
   furniture?: FurnitureLookReport;
   /**
+   * M02h8: the temporal AA of the post stack (`traa` in `postNodes`): history resets so far (a camera cut, a teleport, a look shot) and the
+   * frames drawn since the last one; null where the list has no temporal node.
+   */
+  traa?: { resets: number; framesSinceReset: number } | null;
+  /**
    * M02h8: whether the presenting XR session renders to a multiview target (`RendererHost.xrMultiview`): a boolean while a session
    * presents, null on a flat page. Filled by the world view.
    */
@@ -666,6 +671,7 @@ export class LookView {
       gradeOn: on && this.layerSet.has('grade') ? this.gradeOwner : null,
       windowLit: [this.lastLitRange[0], this.lastLitRange[1]],
       shopGlow: on ? this.lastShop : 0,
+      traa: on && this.stack?.temporal ? { resets: this.stack.historyResets, framesSinceReset: this.stack.framesSinceReset } : null,
       vegetation: this.o.chunks.vegetationReport(),
       markings: markingsReportOf(this.o.materials, this.o.chunks),
       curbs: this.o.chunks.curbsCounts(),

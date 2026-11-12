@@ -7,7 +7,9 @@ import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, read, type Json, type W }
 import { MARKINGS_GOLDEN_SHOTS, PAINT_TIERS } from './markings-helpers.ts';
 
 /**
- * M02e AC-6 (@look-golden, `chromium-webgl2` only): ten 256 x 144 captures (fourteen since M02h2's `curb-corner` and `lot-plaza`) against the committed goldens, each repeated byte-identical.
+ * M02e AC-6 (@look-golden, `chromium-webgl2` only): ten 256 x 144 captures (fourteen since M02h2's `curb-corner` and `lot-plaza`, sixteen since M02h6's `junction-noon`, nineteen since
+ * M02h8's three `xr-quest` shots) against the committed goldens, each repeated byte-identical. The `desktop` shots are the tier's `post`
+ * list (level 2, `smaa`): the e2e page fixture holds every page there, because a TRAA picture never stands still (M02h8, BD-M02h8-02).
  * Split out of `world-look.spec.ts` (BD-FIX-CI-WORLDLOOK-01): Playwright shards by file and by test count over the sorted file names, so
  * the goldens and the other look cases (one desktop boot each, seconds per frame on software GL) shared chromium-webgl2 shard 8, 53 to
  * 56 of its 60 minutes; the `city-` name sorts this file into a light slice.
@@ -23,6 +25,9 @@ const GOLDEN_SHOTS: { tier: string; shot: string }[] = [
   ...(['desktop', 'mobile-low'] as const).flatMap((tier) => ['curb-corner', 'lot-plaza'].map((shot) => ({ tier, shot }))),
   // M02h6: the signalised junction at 13:00 with its masts, heads, signs, hydrants and meters (the parked dressing is hidden with the traffic)
   ...(['desktop', 'mobile-low'] as const).map((tier) => ({ tier, shot: 'junction-noon' })),
+  // M02h8: the `xr` look of the Quest tier forced on the flat canvas (no immersive session): the flat paint and the graded haze at noon,
+  // the window mask at night, the Karl fog through the fog-node grade
+  ...['noon-street', 'night-street', 'fog-west'].map((shot) => ({ tier: 'xr-quest', shot })),
 ];
 /**
  * `<tier>.<shot>` of the goldens whose held capture differed from the unheld one beyond the golden tolerance: they keep the plain `shot(id)`.

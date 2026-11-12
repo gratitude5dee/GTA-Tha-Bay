@@ -238,6 +238,9 @@ export class PostStack implements GpuResourceOwner {
   private disposed = false;
   /** M02h8: history resets of the temporal AA (a cut, a teleport or a shot), and the camera pose of the last rendered frame. */
   historyResets = 0;
+  /** M02h8: frames this stack has drawn (through the pipeline or the direct path), and the count at the last history reset. */
+  frames = 0;
+  private resetFrame = 0;
   private lastPose: CameraPose | null = null;
 
   constructor(o: PostStackOptions) {
@@ -305,6 +308,8 @@ export class PostStack implements GpuResourceOwner {
     this.pipeline?.dispose();
     this.pipeline = null;
     this.lastPose = null;
+    // a new pipeline has a new history: it counts from here
+    this.resetFrame = this.frames;
     this.list = this.listFor(this.features, this.level);
     const onlyTonemap = this.list.length === 0 || (this.list.length === 1 && this.list[0] === 'tonemap');
     this.currentMode = onlyTonemap ? 'direct' : 'pipeline';
@@ -335,7 +340,13 @@ export class PostStack implements GpuResourceOwner {
     if (!this.pipeline?.resetHistory) return false;
     this.pipeline.resetHistory();
     this.historyResets++;
+    this.resetFrame = this.frames;
     return true;
+  }
+
+  /** M02h8: frames drawn since the temporal history last started again (since the stack was made, when it never did). */
+  get framesSinceReset(): number {
+    return this.frames - this.resetFrame;
   }
 
   /** One frame: through the pipeline, or the host's direct path. A camera cut since the last frame resets the TRAA history first (M02h8). */
@@ -345,6 +356,7 @@ export class PostStack implements GpuResourceOwner {
       if (this.pipeline.resetHistory) this.watchCut();
       this.pipeline.render();
     } else this.o.direct();
+    this.frames++;
   }
 
   private watchCut(): void {

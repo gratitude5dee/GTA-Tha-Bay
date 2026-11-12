@@ -8,7 +8,8 @@ import { FLAT_TIERS, bootWorld, frames, read, setSky, world, type W } from './ma
  *  - @world-markings  AC-4  per flat tier (desktop, mobile, mobile-low; both browsers): `look().markings.mode` is `worn`, `worn`, `flat`; the counts
  *                     (road vertices, patches, crosswalks, stop bars) are above 0 at `markings-near`; the layer switch and `setLook(false)`
  *                     report `off`, the second with `layers: []`; no page error (a shader that does not compile shows as one)
- *  - @xr @world-markings  AC-8  the Quest tier on `xr-quest3` reports `flat`, and the layer switch works without a look view
+ *  - @xr @world-markings  AC-8  the Quest tier on `xr-quest3` reports `flat` (through the `xr` look since M02h8), and the layer switch
+ *                           works; on `?look=legacy` it is the flat paint on the legacy roads material, without a look view
  *
  * The goldens, the shot pair and the ledger are `markings-golden.spec.ts` with `markings-shots-desktop.spec.ts`, `*markings-flicker-*.spec.ts`
  * and `markings-ledger.spec.ts`.
@@ -86,17 +87,20 @@ test.describe('world markings @world-markings', () => {
 });
 
 test.describe('xr markings @xr @world-markings', () => {
-  test('the Quest tier draws the flat paint on its legacy roads, and the layer switches it @xr @world-markings', async ({ page }) => {
+  for (const mode of ['xr', 'legacy'] as const) {
+    test(`the Quest tier draws the flat paint on the ${mode} look, and the layer switches it @xr @world-markings`, async ({ page }) => {
     test.setTimeout(480_000);
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.setViewportSize(SMALL_VIEWPORT);
-    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1');
+    // M02h8: the Quest tier has the `xr` look (the paint is in its roads material); `?look=legacy` is its fallback, M02h1's flat paint on
+    // the legacy roads material with no look pass running
+    await page.goto(`/?tier=xr-quest&xr-emulate=quest3&debug=1&look=${mode}`);
     await waitForEngine(page);
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
     const look = await world(page, (w) => w.look());
-    // the look pass is not running (profile legacy), the flat paint is
-    expect(look).toMatchObject({ profile: 'legacy', on: false, layers: [] });
+    if (mode === 'legacy') expect(look).toMatchObject({ profile: 'legacy', on: false, layers: [] });
+    else expect(look).toMatchObject({ profile: 'xr', on: true });
     expect(look?.markings.mode).toBe('flat');
     await frames(page, 4);
     const m = (await world(page, (w) => w.look()))?.markings;
@@ -106,5 +110,6 @@ test.describe('xr markings @xr @world-markings', () => {
     expect(await page.evaluate(() => (window as unknown as W).__dvBridge.world.setLookLayer('markings', true))).toBe(true);
     expect((await world(page, (w) => w.look()))?.markings.mode).toBe('flat');
     expect(errors).toEqual([]);
-  });
+    });
+  }
 });
