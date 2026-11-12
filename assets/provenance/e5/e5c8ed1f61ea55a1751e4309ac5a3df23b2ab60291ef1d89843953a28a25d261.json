@@ -1,8 +1,9 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "693081bea20e1202a85093459238c2b8e4bf8636110a2382f8bd5aeafb95bd70",
+  "sha256": "e5c8ed1f61ea55a1751e4309ac5a3df23b2ab60291ef1d89843953a28a25d261",
   "paths": [
-    "content/races/sf.downhill.twin-peaks-mission/corridor.bin"
+    "content/races/sf.circuit.embarcadero-vanness/corridor.bin",
+    "assets/corridor-D_3Ld6e4.bin"
   ],
   "kind": "world_pack",
   "origin": "authored",
@@ -19,5 +20,5 @@
   },
   "ai_generated": false,
   "status": "active",
-  "created_at": "2026-10-25T00:00:00Z"
+  "created_at": "2026-11-12T00:00:00Z"
 }

@@ -1,8 +1,8 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "506d0fc06c45a29107318fb66f56d7dcd1a5ce41f16a8ddc25b1dcf7a17d623f",
+  "sha256": "b02d5259c6883042f8bd7f78a54bf696c66e99bf6caac17588140b2d710ba957",
   "paths": [
-    "content/races/sf.pursuit.bayview-escape/corridor.bin"
+    "content/races/sf.downhill.twin-peaks-mission/corridor.bin"
   ],
   "kind": "world_pack",
   "origin": "authored",
@@ -19,5 +19,5 @@
   },
   "ai_generated": false,
   "status": "active",
-  "created_at": "2026-10-25T00:00:00Z"
+  "created_at": "2026-11-12T00:00:00Z"
 }

@@ -14,7 +14,7 @@
     "pnpm": "12.14.0",
     "rclone": "v1.75.2",
     "osmium": "1.16.0",
-    "mapTool": "0.5.0"
+    "mapTool": "0.6.0"
   },
   "rawSnapshot": {
     "lock": "content/world/raw.lock.sf.json",
@@ -92,6 +92,10 @@
     {
       "cmd": "pnpm check:assets -- --release-strict",
       "result": "ok (release-strict: every world pointer that release.json names matches the current locks)"
+    },
+    {
+      "cmd": "VITE_DV_QA=1 pnpm build, then the ip job's commands (pnpm provenance:check -- --emit-credits, ip:signatures, ip:extensions, ip:strings, license:scan, names:lint, likeness:gate, check:assets, missions:build -- --check, check:c2pa)",
+      "result": "all exit 0 on the fresh QA dist: provenance:check ok (1200 files checked), after the four corridor records were added (see fixes)"
     }
   ],
   "stageMs": {
@@ -161,12 +165,16 @@
   },
   "checks": {
     "pnpm check:unit -- racing, shared racing, race.validate, attribution, fetch.only-osm, uploader-rclone, verifiers-lock, golden-guard": "Test Files 21 passed; Tests 175 passed | 2 skipped",
-    "pnpm provenance:check": "see the PR's CI ip job",
+    "pnpm provenance:check": "ok (1200 files checked) on a fresh QA dist with the four new corridor records; the first check of this run ran before map:races compile and on an older dist, so it could not see the new corridor bytes (found by the independent review, not by the run)",
     "pnpm check:missions (sf bake present)": "m.a1.01, m.a1.05, m.a1.07, m.a1.08, m.a1.10, m.dev.sample and m.dev.talk pass on 3 seeds x 2 runs with equal end hashes; m.a1.04 passes seeds 1 (832 s) and 2 (437 s) and times out on seed 3: the test bot paces at the first waypoint of the service stealth path until tick 99,231 (25,381 on seed 2) and stands still in the last stage; the static world there is unchanged by this bake (the world seed, the first four bytes of the bake id, changed). Open item, not fixed in this release."
   },
   "pending": [
     "merge PR #15; deploy.yml deploys staging from main",
     "pnpm check:smoke -- https://tha-bay-web-staging.gratitude-8f4.workers.dev",
     "browser frames of M02h3 AC-12 (docs/look/M02h3-sf/) and M02h5 AC-11 (sf-ggp-woods, sf-presidio-woods; docs/look/M02h5-sf/) from the PR preview or staging after the merge"
+  ],
+  "fixes": [
+    "tools/assets/src/uploader-rclone.ts (BD-FIX-ODBL-02): a key with no object reads as absent, so the offer of a new bake can be created",
+    "assets/provenance: map:races compile writes new corridor.bin bytes (the bake id is inside the file) and no record; the four records of the previous bytes are replaced by records of the new ones, and the two that the QA dist bundles (sprint, circuit; apps/web/src/qa/determinism.ts) name their new dist files assets/corridor-BTCisknM.bin and assets/corridor-D_3Ld6e4.bin"
   ]
 }
