@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { Group, Mesh, MeshBasicMaterial, BoxGeometry, PerspectiveCamera, Scene } from 'three/webgpu';
+import { Group, Matrix4, Mesh, MeshBasicMaterial, BoxGeometry, PerspectiveCamera, Scene } from 'three/webgpu';
 import type { PostNode, QualityTierId } from '@dv/shared';
-import { PostStack, type PipelineFactory, type PostContext } from '../../src/platform/post/stack.ts';
-import { RendererHost } from '../../src/platform/renderer-host.ts';
+import { CUT_MOVE_M, CUT_TURN_DEG, PostStack, isCut, resetTraaNode, type CameraPose, type PipelineFactory, type PostContext } from '../../src/platform/post/stack.ts';
+import { RendererHost, inferViewPasses } from '../../src/platform/renderer-host.ts';
 import { PerfScenarioRunner, type ScenarioRunnerDeps } from '../../src/platform/perf/scenario-runner.ts';
 import { TIERS } from '../../src/platform/tier-config.ts';
 import { type FakeRenderer, fakeFactory } from './fakes.ts';
@@ -213,5 +213,193 @@ describe('the scenario runner counts shadow work (R-ENG-02)', () => {
     // Ten casters and no other renderable: 10 + 10 x 3 shadow passes.
     expect(runner.info()?.meterRenderObjectsMax).toBe(10 + 10 * 3);
     h.dispose();
+  });
+});
+
+/**
+ * M02h8 AC-2: `PostStack` resets the TRAA history on a camera cut or a teleport and on request (a look shot); `resetTraaNode` does to a
+ * three r186 `TRAANode` what its own resize does; the host's XR view passes (multiview) are read from the XR manager, or from the draw
+ * calls where it does not say.
+ */
+function traaFakes() {
+  const resets: number[] = [];
+  let frames = 0;
+  const camera = new PerspectiveCamera();
+  const ctx: PostContext = { renderer: {} as never, scene: new Scene(), camera, backdrop: null };
+  const factory: PipelineFactory = (_ctx, nodes) => ({
+    render: () => void frames++,
+    dispose: () => {},
+    // as `threePipeline`: only a list with `traa` has a history to reset
+    ...(nodes.includes('traa') ? { resetHistory: () => void resets.push(frames) } : {}),
+  });
+  const make = (tier: QualityTierId, level: 0 | 1 | 2 | 3, cap: 0 | 1 | 2 | 3 = 3): PostStack =>
+    new PostStack({ context: () => ctx, tier, features: TIERS[tier].features, backend: 'webgl2', subs: { webgl2Unsupported: [], webgl2AaFallback: {} }, cap, level, direct: () => {}, factory });
+  return { resets, camera, make, frames: () => frames };
+}
+
+describe('PostStack: the TRAA history (M02h8 AC-2)', () => {
+  it('a camera that moves like a camera keeps its history', () => {
+    const f = traaFakes();
+    const s = f.make('desktop', 3);
+    expect(s.temporal).toBe(true);
+    // 60 m/s at 20 frames a second is 3 m a frame; a fast mouse turn is a few degrees a frame
+    for (let i = 0; i < 12; i++) {
+      f.camera.position.set(i * 3, 2, 0);
+      f.camera.rotation.set(0, (i * 8 * Math.PI) / 180, 0);
+      s.render();
+    }
+    expect(f.frames()).toBe(12);
+    expect(f.resets).toEqual([]);
+    expect(s.historyResets).toBe(0);
+  });
+
+  it('resets the history on a teleport (a jump in position) before the frame that shows the new place', () => {
+    const f = traaFakes();
+    const s = f.make('desktop', 3);
+    s.render();
+    s.render();
+    f.camera.position.set(900, 40, -1200);
+    s.render();
+    // the reset ran with two frames drawn: before the third
+    expect(f.resets).toEqual([2]);
+    expect(s.historyResets).toBe(1);
+    s.render();
+    expect(f.resets).toEqual([2]);
+  });
+
+  it('resets the history on a cut (a 90 degree turn in one frame)', () => {
+    const f = traaFakes();
+    const s = f.make('desktop', 3);
+    s.render();
+    f.camera.rotation.set(0, Math.PI / 2, 0);
+    s.render();
+    expect(f.resets).toEqual([1]);
+  });
+
+  it('resetHistory() is the shot reset: true and counted with traa, false where the list has no temporal node', () => {
+    const f = traaFakes();
+    const traa = f.make('desktop', 3);
+    expect(traa.resetHistory()).toBe(true);
+    expect(traa.historyResets).toBe(1);
+    const smaa = f.make('desktop', 2);
+    expect([...smaa.nodes]).toEqual(['gtao-half', 'bloom', 'smaa', 'tonemap']);
+    expect(smaa.temporal).toBe(false);
+    expect(smaa.resetHistory()).toBe(false);
+    smaa.render();
+    f.camera.position.set(5000, 0, 0);
+    smaa.render();
+    expect(smaa.historyResets).toBe(0);
+    const direct = f.make('mobile-low', 3);
+    expect(direct.resetHistory()).toBe(false);
+  });
+
+  it('a rebuild (a level change) starts without a pose: the first frame of the new pipeline is no cut', () => {
+    const f = traaFakes();
+    const s = f.make('desktop', 2);
+    s.render();
+    f.camera.position.set(700, 0, 0);
+    s.setLevel(3);
+    s.render();
+    expect(f.resets).toEqual([]);
+  });
+
+  it('isCut: farther than CUT_MOVE_M or turned by more than CUT_TURN_DEG', () => {
+    const q0: CameraPose['q'] = [0, 0, 0, 1];
+    const at = (x: number, yawDeg = 0): CameraPose => ({ x, y: 0, z: 0, q: yawDeg === 0 ? q0 : [0, Math.sin((yawDeg * Math.PI) / 360), 0, Math.cos((yawDeg * Math.PI) / 360)] });
+    expect(isCut(at(0), at(CUT_MOVE_M - 0.1))).toBe(false);
+    expect(isCut(at(0), at(CUT_MOVE_M + 0.1))).toBe(true);
+    expect(isCut(at(0), at(0, CUT_TURN_DEG - 1))).toBe(false);
+    expect(isCut(at(0), at(0, CUT_TURN_DEG + 1))).toBe(true);
+    expect(isCut(at(0), at(0, 90))).toBe(true);
+    // q and -q are the same rotation
+    expect(isCut({ x: 0, y: 0, z: 0, q: [0, 0, 0, 1] }, { x: 0, y: 0, z: 0, q: [0, 0, 0, -1] })).toBe(false);
+  });
+});
+
+describe('resetTraaNode (three r186 TRAANode)', () => {
+  it('shrinks the history target (the next frame copies the beauty into it), restarts the jitter and takes the current camera matrices', () => {
+    const sized: [number, number][] = [];
+    const world = new Matrix4().makeTranslation(3, 4, 5);
+    const projInv = new Matrix4().makeScale(2, 2, 2);
+    const node = {
+      _historyRenderTarget: { setSize: (w: number, h: number) => void sized.push([w, h]) },
+      _jitterIndex: 17,
+      _cameraWorldMatrix: { value: new Matrix4() },
+      _cameraProjectionMatrixInverse: { value: new Matrix4() },
+    };
+    resetTraaNode(node, { matrixWorld: world, projectionMatrixInverse: projInv });
+    expect(sized).toEqual([[1, 1]]);
+    expect(node._jitterIndex).toBe(0);
+    expect(node._cameraWorldMatrix.value.elements).toEqual(world.elements);
+    expect(node._cameraProjectionMatrixInverse.value.elements).toEqual(projInv.elements);
+  });
+
+  it('tolerates a node without those fields (another three version): nothing throws', () => {
+    expect(() => resetTraaNode({}, null)).not.toThrow();
+    expect(() => resetTraaNode(null, null)).not.toThrow();
+  });
+
+  it('the installed TRAANode still has the fields the reset writes', async () => {
+    const { default: TRAANode } = (await import('three/addons/tsl/display/TRAANode.js')) as unknown as { default: new (...a: unknown[]) => Record<string, unknown> };
+    const src = TRAANode.toString();
+    for (const field of ['_historyRenderTarget', '_jitterIndex', '_cameraWorldMatrix', '_cameraProjectionMatrixInverse']) expect(src, field).toContain(field);
+    // the resize path the reset relies on: a history target of another size is filled from the beauty target
+    expect(src).toMatch(/needsRestart/);
+  });
+});
+
+describe('XR view passes (M02h8)', () => {
+  const canvas = (): HTMLCanvasElement => ({ clientWidth: 800, clientHeight: 450, width: 800, height: 450 }) as unknown as HTMLCanvasElement;
+
+  it('inferViewPasses: draw calls over render objects, about 1 with multiview and about 2 without', () => {
+    expect(inferViewPasses(78, 78)).toBe(1);
+    expect(inferViewPasses(90, 78)).toBe(1);
+    expect(inferViewPasses(156, 78)).toBe(2);
+    expect(inferViewPasses(150, 78)).toBe(2);
+    expect(inferViewPasses(0, 78)).toBe(1);
+    expect(inferViewPasses(10, 0)).toBe(1);
+  });
+
+  it('a flat page has no multiview state and one view pass', async () => {
+    const h = new RendererHost({ canvas: canvas(), createRenderer: fakeFactory().create, cloneCanvas: (c) => c });
+    await h.init(TIERS['xr-quest']);
+    expect(h.xrMultiview).toBeNull();
+    expect(h.viewPasses()).toBe(1);
+    expect(h.viewPasses(78)).toBe(1);
+    h.dispose();
+  });
+
+  it('a presenting session reports the XR manager\'s multiview state, and two passes without it', async () => {
+    const factory = fakeFactory();
+    const h = new RendererHost({ canvas: canvas(), createRenderer: factory.create, cloneCanvas: (c) => c });
+    await h.init(TIERS['xr-quest']);
+    const xr = factory.state.renderers[0]?.xr as unknown as { isPresenting: boolean; useMultiview?: () => boolean; getCamera?: () => { cameras: unknown[] } };
+    xr.isPresenting = true;
+    xr.getCamera = () => ({ cameras: [{}, {}] });
+    xr.useMultiview = () => true;
+    expect(h.xrMultiview).toBe(true);
+    expect(h.viewPasses()).toBe(1);
+    xr.useMultiview = () => false;
+    expect(h.xrMultiview).toBe(false);
+    expect(h.viewPasses()).toBe(2);
+    // an XR manager that does not say: the camera's views, or the draw calls when the meter's object count is given
+    delete xr.useMultiview;
+    expect(h.xrMultiview).toBeNull();
+    expect(h.viewPasses()).toBe(2);
+    h.lastDrawCalls = 80;
+    expect(h.viewPasses(78)).toBe(1);
+    h.lastDrawCalls = 160;
+    expect(h.viewPasses(78)).toBe(2);
+    h.dispose();
+  });
+
+  it('the Quest tier asks the renderer for multiview and Vision Pro does not (C13 tier data)', async () => {
+    for (const [tier, want] of [['xr-quest', true], ['xr-visionpro', false]] as const) {
+      const factory = fakeFactory();
+      const h = new RendererHost({ canvas: canvas(), createRenderer: factory.create, cloneCanvas: (c) => c });
+      await h.init(TIERS[tier]);
+      expect(factory.state.created[0]?.multiview, tier).toBe(want);
+      h.dispose();
+    }
   });
 });

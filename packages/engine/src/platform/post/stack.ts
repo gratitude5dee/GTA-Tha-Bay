@@ -70,7 +70,7 @@ export function isCut(a: CameraPose, b: CameraPose, moveM = CUT_MOVE_M, turnDeg 
  * the previous camera matrices take the current ones (no reprojection from the old pose).
  */
 export function resetTraaNode(node: unknown, camera: { matrixWorld: unknown; projectionMatrixInverse: unknown } | null): void {
-  const n = node as {
+  const n = (node ?? {}) as {
     _historyRenderTarget?: { setSize(w: number, h: number): void };
     _jitterIndex?: number;
     _cameraWorldMatrix?: { value: { copy(m: unknown): unknown } };

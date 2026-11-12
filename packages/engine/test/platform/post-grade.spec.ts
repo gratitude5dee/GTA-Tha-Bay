@@ -111,11 +111,14 @@ describe('where the grade runs (once per path)', () => {
     expect(owner('desktop-ultra')).toBe('tonemap');
   });
 
-  it('the XR tiers have no stack, so no path: the legacy look adds only the flat paint (M02h1)', () => {
+  it('the XR tiers have no stack and no tonemap node: their xr look grades in the fog nodes (M02h8); the legacy fallback adds only the flat paint (M02h1)', () => {
     for (const tier of ['xr-quest', 'xr-visionpro'] as const) {
-      expect(postNodes(TIERS[tier].features, 2, 2)).toEqual([]);
-      expect(look.tierProfile[tier]).toBe('legacy');
+      expect(postNodes(TIERS[tier].features, 3, look.postLevelCap as 3)).toEqual([]);
+      expect(TIERS[tier].features.pipeline).toBe('direct');
+      expect(look.tierProfile[tier]).toBe('xr');
     }
+    // M02h8: the xr profile has the grade and the haze as layers (the fog nodes run them once: `LookView.gradeOwner` is `fog` on `direct`)
+    expect(look.layers.xr).toEqual(expect.arrayContaining(['grade', 'haze']));
     // M02h1: `markings` is the one layer of the legacy profile; it adds no post node.
     expect(look.layers.legacy).toEqual(['markings']);
   });

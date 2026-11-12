@@ -30,7 +30,7 @@ import type { ObjectKind } from '../chunks/mesh-types.ts';
 import { baseAttributes, coverMask, facadeNodes, fadeShown, surfNodes, type LookNodes } from './common.ts';
 import { FACADE_KEYS, type LookFile } from './config.ts';
 import { awningNodes, wallNodes } from './facade.ts';
-import { groundNodes } from './ground.ts';
+import { flatGroundNodes, groundNodes } from './ground.ts';
 import { paintNodes } from './markings.ts';
 import { around1, bumpNormal, pickFloat, vnoise } from './noise.ts';
 import { roofNodes } from './roof.ts';
@@ -97,37 +97,40 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
   // ---- ground -------------------------------------------------------------------------------------------------------------
   // The terrain and the roads are the same node graph in two instances: a road ribbon lies 0.12 m over the terrain, which a coarse
   // depth buffer cannot tell apart at a distance, so the roads' instance has its own polygon offset (M02g2).
+  /** M02h2: a road vertex's raise over the road plane, metres (centimetres in the `surf` code byte, chunks/sidewalks.ts). */
+  const curbRaise = (): L => (attribute('surf', 'vec4') as L).z.mul(SURF_SCALE).round().mul(0.01);
   const ground = (coarse: boolean, roads = false): MeshStandardNodeMaterial => {
     const m = make(coarse ? DoubleSide : FrontSide, coarse);
     const s = surfNodes();
     const vc = vertexColor(0);
+    if (xr) {
+      // M02h8: the vertex colour times the vertex AO, the class roughness, the flat paint (hard steps, `fwidth` AA) and water as the flat
+      // colour of `min` plus the `skyReflect` Fresnel (`waterNodes('min')`). No `groundNodes`, no surface texture seam, no normal node, no
+      // wave: nothing here builds a noise or a bump node.
+      const fg = flatGroundNodes(look, n, s.id, normalWorld.y);
+      const paint = roads && !coarse ? paintNodes({ look: look.markings, nodes: n, mode: 'flat', id: s.id, color: vc, roughness: fg.roughness }) : null;
+      if (roads && !coarse) m.positionNode = asNode(positionLocal.sub(vec3(0, curbRaise().mul(float(1).sub(n.uCurbs)), 0)));
+      const w = waterNodes('min', look, n, fg.deep, vc);
+      m.colorNode = asNode(mix(paint ? paint.color : vc, w.color, fg.water).mul(shade));
+      m.roughnessNode = asNode(mix(paint ? paint.roughness : fg.roughness, w.roughness, fg.water)) as never;
+      return m;
+    }
     const g = groundNodes(look, n, s.id, vc, normalWorld.y, detail);
     // art-hook:textures begin (M10d0): the bound PBR sets over the procedural ground (L0 only; the coarse levels keep the look as it is)
-    const plain = { color: flat ? vc : g.color, roughness: xr ? g.flatRoughness : g.roughness, normal: flat ? null : normalView };
-    // M02h8: the `xr` profile binds no surface texture (its mode is `off`; not even the seam is built)
-    const tx = coarse || xr ? plain : withSurfaceTextures({ id: s.id, normal: normalWorld }, plain);
+    const plain = { color: profile === 'min' ? vc : g.color, roughness: g.roughness, normal: profile === 'min' ? null : normalView };
+    const tx = coarse ? plain : withSurfaceTextures({ id: s.id, normal: normalWorld }, plain);
     // art-hook:textures end
     // M02h1: the street paint over the L0 roads' asphalt (the `markings` layer); the coarse levels have no `road` attribute
-    const paint = roads && !coarse ? paintNodes({ look: look.markings, nodes: n, mode: flat ? 'flat' : 'worn', id: s.id, color: tx.color, roughness: tx.roughness }) : null;
+    const paint = roads && !coarse ? paintNodes({ look: look.markings, nodes: n, mode: profile === 'min' ? 'flat' : 'worn', id: s.id, color: tx.color, roughness: tx.roughness }) : null;
     const baseColor = paint ? paint.color : tx.color;
     const baseRough = paint ? paint.roughness : tx.roughness;
     // M02h2: the `curbs` layer off puts the sidewalk ribbons back on the road plane: each vertex's raise over the road (centimetres in the
     // `surf` code byte, chunks/sidewalks.ts) comes off its height (L0 roads only; the gutter turns back into road in groundNodes)
-    if (roads && !coarse) {
-      const raise = (attribute('surf', 'vec4') as L).z.mul(SURF_SCALE).round().mul(0.01);
-      m.positionNode = asNode(positionLocal.sub(vec3(0, raise.mul(float(1).sub(n.uCurbs)), 0)));
-    }
+    if (roads && !coarse) m.positionNode = asNode(positionLocal.sub(vec3(0, curbRaise().mul(float(1).sub(n.uCurbs)), 0)));
     if (profile === 'min') {
       // Vertex colour with the class roughness; the sea a flat colour.
       m.colorNode = asNode(baseColor.mul(shade));
       m.roughnessNode = asNode(baseRough) as never;
-      return m;
-    }
-    if (xr) {
-      // M02h8: water is the flat colour of `min` plus the `skyReflect` Fresnel (`waterNodes('min')`); no normal node, no wave
-      const w = waterNodes('min', look, n, g.deep, vc);
-      m.colorNode = asNode(mix(baseColor, w.color, g.water).mul(shade));
-      m.roughnessNode = asNode(mix(baseRough, w.roughness, g.water)) as never;
       return m;
     }
     const w = waterNodes(profile, look, n, g.deep, vc);

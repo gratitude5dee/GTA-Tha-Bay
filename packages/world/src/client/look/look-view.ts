@@ -142,6 +142,16 @@ export interface LookReport {
   cover?: CoverReport;
   /** M02h6: the street furniture pools, the parked dressing and the signal heads (`WorldView.furnitureReport`). */
   furniture?: FurnitureLookReport;
+  /**
+   * M02h8: whether the presenting XR session renders to a multiview target (`RendererHost.xrMultiview`): a boolean while a session
+   * presents, null on a flat page. Filled by the world view.
+   */
+  xrMultiview?: boolean | null;
+  /**
+   * M02h8: the view passes a render object takes now (`RendererHost.viewPasses`): 1 on a flat page or a multiview target, 2 when each eye
+   * draws every object. The XR ledger multiplies the per-pass count by it. Filled by the world view.
+   */
+  viewPassesObserved?: number;
 }
 
 /** M02h7: `look().facade`. */
@@ -179,7 +189,7 @@ export interface LookViewOptions {
   host: RendererHost;
   tier: QualityTierId;
   look: LookFile;
-  /** The profile the tier is configured for (`legacy` when the `world.look` flag is off or on an XR tier). */
+  /** The profile of the view: the tier's (`look.json`), `legacy` when the `world.look` flag is off, an XR tier's QA override (M02h8). */
   profile: LookProfile;
   materials: WorldMaterials;
   chunks: ChunkRenderer;

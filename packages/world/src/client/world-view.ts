@@ -1277,7 +1277,10 @@ export class WorldView implements WorldLayer {
 
   lookReport(): LookReport | null {
     const r = this.lookReportOf();
-    return r ? { ...r, cover: { enabled: this.coverOn, cells: this.renderer.coverCounts(), ...this.coverPending() }, furniture: this.furnitureReport(), facade: this.facadeReport(r) } : null;
+    if (!r) return null;
+    // M02h8: the XR view passes, from the host (`look().xrMultiview`, `look().viewPassesObserved`)
+    const xr = { xrMultiview: this.host?.xrMultiview ?? null, viewPassesObserved: this.host?.viewPasses() ?? 1 };
+    return { ...r, cover: { enabled: this.coverOn, cells: this.renderer.coverCounts(), ...this.coverPending() }, furniture: this.furnitureReport(), facade: this.facadeReport(r), ...xr };
   }
 
   /** M02h7: `look().facade`: the kit's counts over the resident L0 chunks, the `min` bands, the sign glow and the glass reflection. */
@@ -1328,7 +1331,7 @@ export class WorldView implements WorldLayer {
   private lookReportOf(): LookReport | null {
     if (this.lookView) return this.lookView.report();
     if (!this.o.look || !this.host) return null;
-    // A tier without a look (the XR tiers, or `world.look` off): the legacy materials, the tier's own pipeline, nothing else.
+    // A view without a look (`world.look` off, or an XR tier on its `legacy` fallback): the legacy materials, the tier's own pipeline, nothing else.
     return {
       profile: 'legacy', on: false, postNodes: [], postMode: 'none', postLevel: 0, shadowMode: 'none', shadowPath: 'off', shadowPasses: 0,
       casters: 0, casterKinds: [], exposure: this.host.ready ? this.host.renderer.toneMappingExposure : 1, envMap: false, sky: 'dome',

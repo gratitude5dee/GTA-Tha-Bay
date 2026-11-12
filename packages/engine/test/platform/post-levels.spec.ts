@@ -88,3 +88,28 @@ describe('adaptForBackend (look.json webgl2Unsupported and webgl2AaFallback)', (
     for (const backend of ['webgpu', 'webgl2'] as const) expect(adaptForBackend(desktop, backend, { webgl2Unsupported: [], webgl2AaFallback: {} })).toEqual(desktop);
   });
 });
+
+/** M02h8: `look.json` `postLevelCap` is 3, so the governor's level 3 puts TRAA on `desktop`. */
+describe('the TRAA level of desktop (M02h8 AC-2)', () => {
+  it('postNodes(desktop, 3, 3) is gtao-half, bloom, traa, tonemap; level 2 and below give smaa or fxaa, never traa', () => {
+    const f = TIERS.desktop.features;
+    expect(postNodes(f, 3, 3)).toEqual(['gtao-half', 'bloom', 'traa', 'tonemap']);
+    expect(postNodes(f, 2, 3)).toEqual(['gtao-half', 'bloom', 'smaa', 'tonemap']);
+    expect(postNodes(f, 1, 3)).toEqual(['bloom', 'smaa', 'tonemap']);
+    expect(postNodes(f, 0, 3)).toEqual(['fxaa', 'tonemap']);
+    // a cap of 2 (the fallback of a ghosting TRAA, data) holds the governor's level 3 to smaa
+    expect(postNodes(f, 3, 2)).toEqual(['gtao-half', 'bloom', 'smaa', 'tonemap']);
+  });
+
+  it('the XR tiers give [] at every level under the cap of 3', () => {
+    for (const tier of ['xr-quest', 'xr-visionpro'] as const) for (const level of [0, 1, 2, 3] as const) expect(postNodes(TIERS[tier].features, level, 3)).toEqual([]);
+  });
+
+  it('a traa that fails on WebGL2 goes to webgl2AaFallback, on the WebGL2 backend only', () => {
+    const list = postNodes(TIERS.desktop.features, 3, 3);
+    const subs = { webgl2Unsupported: [] as PostNode[], webgl2AaFallback: { traa: 'smaa' as const } };
+    expect(adaptForBackend(list, 'webgl2', subs)).toEqual(['gtao-half', 'bloom', 'smaa', 'tonemap']);
+    expect(adaptForBackend(list, 'webgpu', subs)).toEqual(['gtao-half', 'bloom', 'traa', 'tonemap']);
+    expect(adaptForBackend(list, 'webgl2', { webgl2Unsupported: [], webgl2AaFallback: {} })).toEqual(list);
+  });
+});

@@ -42,6 +42,16 @@ export interface XrState {
   frames: number;
   sessionMode: string | null;
   error: string | null;
+  /**
+   * M02h8: whether the presenting session renders to a multiview target (three r186 `XRManager.useMultiview()`); null while no session
+   * presents.
+   */
+  multiview: boolean | null;
+  /**
+   * M02h8: view passes per render object now: 1 flat or on a multiview target, else one per eye. Where the XR manager does not say, the
+   * frame's draw calls over the live meter's render objects decide (`inferViewPasses`).
+   */
+  viewPasses: number;
 }
 
 /** `window.__dvBridge.platform.memory`: callable for the counters (M01c), with the budget's QA members (M11a1). */
@@ -455,6 +465,8 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: 
           frames: host.xrFrames,
           sessionMode: xrMode,
           error: xrError,
+          multiview: host.xrMultiview,
+          viewPasses: host.viewPasses(live.renderObjects > 0 ? live.renderObjects : undefined),
         };
       },
     },

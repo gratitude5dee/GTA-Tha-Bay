@@ -26,11 +26,14 @@ export interface GroundOut {
    * (`bumpNormal`); each term fades with the pixel footprint. 0 with `detail` `lite` beyond its one octave.
    */
   height: L;
-  /**
-   * M02h8: the class roughness with the wet gloss of the pavement and no noise term (no macro drift, no puddle fbm): the ground of the `xr`
-   * profile, which builds no noise node.
-   */
-  flatRoughness: L;
+}
+
+/** M02h8: the ground of the `xr` profile (`flatGroundNodes`): the class masks and the class roughness, no colour (the vertex colour draws). */
+export interface FlatGroundOut {
+  /** The class roughness with the wet gloss of the pavement. */
+  roughness: L;
+  water: L;
+  deep: L;
 }
 
 /**
@@ -184,7 +187,26 @@ export function groundNodes(look: LookFile, n: LookNodes, id: L, vertexColor: L,
     .add(rock.mul(crackH.add(aggregate)))
     .add(grass.mul(clumpH))
     .add(cover.height);
-  const flatWet = clamp(n.sky.uWet.mul(pavement).mul(0.6), 0, 1).mul(clamp(up.mul(4), 0, 1));
-  const flatRoughness = mix(rough, float(0.2), flatWet.mul(n.sky.uWetRough).mul(0.7));
-  return { color, roughness, metalness: float(0), water, deep, height, flatRoughness };
+  return { color, roughness, metalness: float(0), water, deep, height };
+}
+
+/**
+ * M02h8: the ground of the `xr` profile. The same surface key as `groundNodes` (so the `lots` and `curbs` switches read alike), the class
+ * roughness with a wet gloss on the pavement, and the water masks; no value noise, no pixel footprint and no height, so the material that
+ * uses it builds no noise or bump node (`look.xr.spec.ts` counts them). The colour is the bake's vertex colour, taken by the caller.
+ */
+export function flatGroundNodes(look: LookFile, n: LookNodes, id: L, up: L): FlatGroundOut {
+  const table = NAMES.map((name) => look.ground[name] ?? look.ground['Paved'] ?? { albedo: '#808080', roughness: 0.9, noise: 0.1 });
+  const keyed = select(id.greaterThan(Surf.StopBar + 0.5), id.sub(Surf.Curb - KEY_CURB), select(id.greaterThan(Surf.Sea + 0.5), float(Surf.RoadBase + 4), id));
+  const lotOff = inRange(keyed, KEY_LOT, KEY_PLAZA).mul(float(1).sub(n.uLots));
+  const gutterOff = inRange(keyed, KEY_GUTTER, KEY_GUTTER).mul(float(1).sub(n.uCurbs));
+  const key = mix(mix(keyed, float(3), lotOff), float(Surf.RoadBase + 4), gutterOff);
+  const rough = pickFloat(key, table.map((g) => g.roughness));
+  const asphalt = inRange(key, 12, 17).max(inRange(id, Surf.GroundBase + 6, Surf.GroundBase + 6));
+  const walk = inRange(key, 3, 3).max(inRange(key, 7, 7)).max(inRange(key, Surf.Sidewalk, Surf.Sidewalk));
+  const pier = inRange(id, 8, 8);
+  const water = inRange(id, 9, 10).max(inRange(id, Surf.Sea, Surf.Sea));
+  const deep = inRange(id, 10, 10).max(inRange(id, Surf.Sea, Surf.Sea));
+  const wet = clamp(n.sky.uWet.mul(asphalt.max(walk).max(pier)).mul(0.6), 0, 1).mul(clamp(up.mul(4), 0, 1));
+  return { roughness: mix(rough, float(0.2), wet.mul(n.sky.uWetRough).mul(0.7)), water, deep };
 }
