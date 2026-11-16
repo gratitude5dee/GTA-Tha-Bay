@@ -3,13 +3,14 @@ import type { Page } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import type { PlatformBridge } from '../../packages/engine/src/platform/probe.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
-import { decodePng, identical, type Rgba } from '../support/image-diff.ts';
+import { identical, type Rgba } from '../support/image-diff.ts';
+import { canvasRgba } from './canvas-capture.ts';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
 
 /**
  * What the M02h1 street-markings specs share: `world-markings.spec.ts` (@world-markings), `markings-golden.spec.ts` and
  * `markings-shots-desktop.spec.ts` (@markings-golden, through `markings-golden-helpers.ts`),
- * `art-markings-flicker-desktop.spec.ts` and `markings-flicker-low.spec.ts` (@markings-golden, the shot pair), `markings-ledger.spec.ts`
+ * `street-markings-flicker-desktop.spec.ts` and `markings-flicker-low.spec.ts` (@markings-golden, the shot pair), `markings-ledger.spec.ts`
  * (@markings-ledger). The files are separate because Playwright cuts a shard out of the sorted list of tests by count and a `desktop` boot
  * is the longest single case of the suite on software GL (BD-REPAIR-M02g2-03, BD-FIX-CI-TEXGOLD-01).
  */
@@ -59,10 +60,10 @@ export async function clearActors(page: Page): Promise<void> {
 /** The canvas once two consecutive presented frames agree. */
 export async function settledCanvas(page: Page): Promise<Rgba> {
   await frames(page, 3);
-  let img = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+  let img = await canvasRgba(page);
   for (let i = 0; i < 5; i++) {
     await frames(page, 2);
-    const next = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+    const next = await canvasRgba(page);
     const same = identical(img, next);
     img = next;
     if (same) break;

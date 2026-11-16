@@ -59,6 +59,68 @@
     "landuse": { "type": "array", "items": { "type": "object", "required": ["cls", "minX", "minZ", "maxX", "maxZ"] } },
     "buildings": { "type": "object" },
     "trees": { "type": "object", "required": ["perChunk"] },
+    "driveways": {
+      "$comment": "M02h3: highway=service + service=driveway centrelines (ENU x, z pairs); S5 leaves them out of the graph, the cover stage draws them",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "pts"],
+        "properties": { "id": { "$ref": "#/$defs/id" }, "pts": { "type": "array", "minItems": 4, "items": { "type": "number" } } }
+      }
+    },
+    "vegetation": {
+      "$comment": "M02h5: one case of every vegetation scatter source (OSM wood, forest and scrub areas, hedges, tree rows, lone OSM trees, OSM duplicates of DataSF trees, skipped DataSF species)",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["areas", "hedges", "treeRows", "osmTrees", "duplicates", "skipRows"],
+      "properties": {
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "tags", "minX", "minZ", "maxX", "maxZ"],
+            "properties": {
+              "id": { "$ref": "#/$defs/id" }, "tags": { "type": "object", "additionalProperties": { "type": "string" } },
+              "minX": { "type": "number" }, "minZ": { "type": "number" }, "maxX": { "type": "number" }, "maxZ": { "type": "number" }
+            }
+          }
+        },
+        "hedges": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["id", "pts"],
+            "properties": { "id": { "$ref": "#/$defs/id" }, "pts": { "type": "array", "minItems": 4, "items": { "type": "number" } } }
+          }
+        },
+        "treeRows": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["id", "pts", "species"],
+            "properties": { "id": { "$ref": "#/$defs/id" }, "pts": { "type": "array", "minItems": 4, "items": { "type": "number" } }, "species": { "type": "string" } }
+          }
+        },
+        "osmTrees": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["id", "x", "z", "species"],
+            "properties": { "id": { "$ref": "#/$defs/id" }, "x": { "type": "number" }, "z": { "type": "number" }, "species": { "type": "string" } }
+          }
+        },
+        "duplicates": {
+          "type": "object", "additionalProperties": false, "required": ["nearX", "nearZ", "count"],
+          "properties": { "nearX": { "type": "number" }, "nearZ": { "type": "number" }, "count": { "type": "integer", "minimum": 0, "maximum": 16 } }
+        },
+        "skipRows": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["x", "z", "species"],
+            "properties": { "x": { "type": "number" }, "z": { "type": "number" }, "species": { "type": "string" } }
+          }
+        }
+      }
+    },
     "neighbourhoods": {
       "type": "object",
       "additionalProperties": false,

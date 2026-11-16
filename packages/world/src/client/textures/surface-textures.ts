@@ -20,7 +20,7 @@ import { luma, pixelFootprint } from '../look/noise.ts';
 import { SURFACE_NAMES } from '../look/surfaces.ts';
 import { tapsOf, tiledSample, type TileSampler } from '../look/tiling.ts';
 import {
-  SURFACE_TEXTURES, TIER_VARIANT, backendUnsupported, boundSets, idsOfSet, mapsOf, refOf, refsFor, textureModeFor,
+  SURFACE_TEXTURES, TIER_VARIANT, backendUnsupported, boundSets, idsOfSet, mapsWithin, refOf, textureModeFor, wallRefsFor, wallSets,
   type MapName, type SurfaceTexturesFile, type TextureMode,
 } from './config.ts';
 import { Ktx2Decoder, dropTopMip, formatName, textureBytes } from './ktx2.ts';
@@ -69,6 +69,13 @@ export interface TexturesReport {
   sets: string[];
   /** The `texture/...` assets the tier asks for (empty when off). */
   refs: string[];
+  /**
+   * The maps of the mode left out because the device binds fewer textures per fragment than the full set needs, sorted
+   * (BD-FIX-WEBGPU-TREES-01); empty when every map fits.
+   */
+  capped: string[];
+  /** Surface textures one fragment may bind on this device (`SurfaceTexturesOptions.textureSlots`), null when not capped. */
+  slots: number | null;
   /** Refs that failed to load or did not fit; their sets stay procedural. */
   failed: string[];
   /** The GPU format the maps were transcoded to (`BC7`, `ASTC4x4`, `ETC2`, `RGBA8`), empty before the first one. */
@@ -88,6 +95,17 @@ export interface SurfaceTexturesOptions {
   profile: LookProfile;
   /** `world.textures` and the QA `?textures=0` switch. */
   enabled: boolean;
+  /**
+   * QA only (`?textures=albedo`, BD-REPAIR-M02h3-02): the albedo maps alone on a tier whose mode reads more (`single`, `stochastic`), so a
+   * `desktop` frame keeps the bound sets within WebGPU's 16 sampled textures per stage. Ignored when the tier's mode is `off`.
+   */
+  albedoOnly?: boolean;
+  /**
+   * The most surface textures one fragment of a look ground material may bind on this device (BD-FIX-WEBGPU-TREES-01): the device's
+   * per-stage limit (`fragmentTextureLimit`) less what the material binds besides the sets (`groundReservedTextures`). Maps that do not
+   * fit are left out by `mapsWithin`; undefined binds every map of the mode.
+   */
+  textureSlots?: number;
   backend: RenderBackend;
   browser: string;
   config?: SurfaceTexturesFile;
@@ -108,6 +126,8 @@ interface Slot {
 interface SetState {
   name: string;
   ids: number[];
+  /** The maps this set reads: the mode's, less any left out for the device's texture limit. */
+  maps: readonly MapName[];
   ready: { value: number };
   slots: Partial<Record<MapName, Slot>>;
   loaded: Set<MapName>;
@@ -117,9 +137,13 @@ export class SurfaceTextures {
   readonly configured: TextureMode;
   readonly unsupported: boolean;
   readonly refs: string[];
+  readonly capped: string[];
+  readonly slots: number | null;
   private readonly cfg: SurfaceTexturesFile;
   private readonly tier: QualityTierId;
   private readonly sets: SetState[] = [];
+  /** M02h7: the wall sets (albedo only, `full` and `lite`), shaded by `wallAlbedo` through the façade's `albedo` seam. */
+  private readonly walls: SetState[] = [];
   private on = true;
   private decoder: Ktx2Decoder | null = null;
   private started = false;
@@ -138,20 +162,35 @@ export class SurfaceTextures {
     this.tier = o.tier;
     const names = o.surfaceNames ?? SURFACE_NAMES;
     this.unsupported = backendUnsupported(o.backend, o.browser, this.cfg);
-    const mode = textureModeFor(o.tier, o.profile, o.enabled, this.cfg);
+    const tierMode = textureModeFor(o.tier, o.profile, o.enabled, this.cfg);
+    const mode: TextureMode = o.albedoOnly === true && tierMode !== 'off' ? 'albedo' : tierMode;
     this.configured = this.unsupported ? 'off' : mode;
-    this.refs = refsFor(this.configured, this.cfg);
+    this.slots = o.textureSlots ?? null;
+    const plan = mapsWithin(this.configured, this.slots ?? Number.POSITIVE_INFINITY, this.cfg);
+    this.refs = [...plan.refs, ...wallRefsFor(this.configured, this.cfg)];
+    this.capped = plan.capped;
     if (this.configured === 'off') return;
+    for (const name of wallRefsFor(this.configured, this.cfg).length > 0 ? wallSets(this.cfg) : []) {
+      const placeholder = new DataTexture(new Uint8Array([128, 128, 128, 255]), 1, 1, RGBAFormat, UnsignedByteType);
+      placeholder.minFilter = LinearFilter;
+      placeholder.magFilter = LinearFilter;
+      placeholder.needsUpdate = true;
+      const slots: Partial<Record<MapName, Slot>> = { albedo: { node: tslTexture(placeholder), tex: null, placeholder } };
+      this.walls.push({ name, ids: idsOfSet(name, this.cfg, names), maps: ['albedo'], ready: uniform(0) as unknown as { value: number }, slots, loaded: new Set() });
+    }
     for (const name of boundSets(this.cfg)) {
+      const maps = plan.maps[name] ?? [];
+      // A set with no map that fits draws the procedural look.
+      if (maps.length === 0) continue;
       const slots: Partial<Record<MapName, Slot>> = {};
-      for (const m of mapsOf(this.configured)) {
+      for (const m of maps) {
         const placeholder = new DataTexture(new Uint8Array([128, 128, 128, 255]), 1, 1, RGBAFormat, UnsignedByteType);
         placeholder.minFilter = LinearFilter;
         placeholder.magFilter = LinearFilter;
         placeholder.needsUpdate = true;
         slots[m] = { node: tslTexture(placeholder), tex: null, placeholder };
       }
-      this.sets.push({ name, ids: idsOfSet(name, this.cfg, names), ready: uniform(0) as unknown as { value: number }, slots, loaded: new Set() });
+      this.sets.push({ name, ids: idsOfSet(name, this.cfg, names), maps, ready: uniform(0) as unknown as { value: number }, slots, loaded: new Set() });
     }
   }
 
@@ -162,19 +201,24 @@ export class SurfaceTextures {
 
   /** True when a surface id has a set and the instance draws one. */
   get active(): boolean {
-    return this.configured !== 'off' && this.sets.length > 0;
+    return this.configured !== 'off' && this.sets.length + this.walls.length > 0;
+  }
+
+  /** M02h7: the wall sets draw on this instance (`full` and `lite` with textures on). */
+  get wallsActive(): boolean {
+    return this.configured !== 'off' && this.walls.length > 0;
   }
 
   /** The QA switch (`setLookLayer('textures', on)`): off reads the procedural look at once, on restores the sets that are ready. False when the tier has no textures. */
   setOn(on: boolean): boolean {
     if (this.configured === 'off') return false;
     this.on = on;
-    for (const s of this.sets) s.ready.value = on && this.isReady(s) ? 1 : 0;
+    for (const s of [...this.sets, ...this.walls]) s.ready.value = on && this.isReady(s) ? 1 : 0;
     return true;
   }
 
   private isReady(s: SetState): boolean {
-    return mapsOf(this.configured).every((m) => s.loaded.has(m));
+    return s.maps.every((m) => s.loaded.has(m));
   }
 
   report(): TexturesReport {
@@ -182,8 +226,10 @@ export class SurfaceTextures {
       mode: this.mode,
       configured: this.configured,
       on: this.on,
-      sets: this.sets.filter((s) => this.isReady(s)).map((s) => s.name),
+      sets: [...this.sets, ...this.walls].filter((s) => this.isReady(s)).map((s) => s.name),
       refs: [...this.refs],
+      capped: [...this.capped],
+      slots: this.slots,
       failed: [...this.failed].sort(),
       format: this.formatSeen,
       gpuBytes: this.gpu,
@@ -217,7 +263,7 @@ export class SurfaceTextures {
   }
 
   private releaseTextures(): void {
-    for (const s of this.sets) {
+    for (const s of [...this.sets, ...this.walls]) {
       s.ready.value = 0;
       s.loaded.clear();
       for (const slot of Object.values(s.slots)) {
@@ -249,8 +295,8 @@ export class SurfaceTextures {
       const decoder = new Ktx2Decoder();
       decoder.bind(r);
       this.decoder = decoder;
-      for (const set of this.sets) {
-        for (const map of mapsOf(this.configured)) {
+      for (const set of [...this.sets, ...this.walls]) {
+        for (const map of set.maps) {
           if (!live()) return;
           const ref = refOf(set.name, map);
           try {
@@ -295,7 +341,40 @@ export class SurfaceTextures {
   dispose(): void {
     this.disposed = true;
     this.releaseTextures();
-    for (const s of this.sets) for (const slot of Object.values(s.slots)) slot?.placeholder.dispose();
+    for (const s of [...this.sets, ...this.walls]) for (const slot of Object.values(s.slots)) slot?.placeholder.dispose();
+  }
+
+  /**
+   * M02h7: the wall albedo with the bound wall set's detail (`base x detail`): the set's albedo, sampled on the wall's own coordinates
+   * (`u` along the wall, `v` up, metres) at an explicit mip level, divided by the set's mean, so the class palette keeps its colour and the
+   * brick or stucco adds its pattern; faded out with distance like the ground sets. `base` itself where no wall set is bound or ready.
+   */
+  wallAlbedo(surface: WallSurfaceInput, base: L): L {
+    const variant = TIER_VARIANT[this.tier];
+    const size = SIZE_OF_VARIANT[variant];
+    const levels = Math.floor(Math.log2(size));
+    const fade = this.cfg.fade;
+    const fn = Fn(() => {
+      const baseColor = vec3(base).toVar();
+      const out = vec3(baseColor).toVar();
+      const near = float(1).sub(smoothstep(fade.startM, fade.endM, positionWorld.sub(cameraPosition).length())).toVar();
+      for (const s of this.walls) {
+        const cfg = this.cfg.sets[s.name] as SurfaceTexturesFile['sets'][string];
+        const lod = log2(pixelFootprint(positionWorld).mul(size / cfg.tileM).max(1)).clamp(0, levels).toVar();
+        const uv = vec2(surface.u, surface.v).div(cfg.tileM).toVar();
+        let m: L = float(0);
+        for (const id of s.ids) m = m.max(step(surface.id.sub(id).abs(), 0.5));
+        const cond = m.greaterThan(0.5).and((s.ready as unknown as L).greaterThan(0.5)).and(near.greaterThan(0.001));
+        If(cond, () => {
+          const node = (s.slots.albedo as Slot).node as unknown as { sample(uv: L): { level(l: L): L } };
+          const tex = (node.sample(uv).level(lod) as L).rgb;
+          const detail = tex.div(vec3(cfg.mean[0], cfg.mean[1], cfg.mean[2]).max(1e-3)).clamp(0.25, 2.5);
+          out.assign(mix(baseColor, baseColor.mul(detail), near));
+        });
+      }
+      return out;
+    });
+    return (fn as unknown as () => L)();
   }
 
   // ---- shading -----------------------------------------------------------------------------------------------------------
@@ -307,7 +386,9 @@ export class SurfaceTextures {
     const size = SIZE_OF_VARIANT[variant];
     const levels = Math.floor(Math.log2(size));
     const fade = this.cfg.fade;
-    const maps = mapsOf(mode);
+    // The sets that read each map (all of them unless the device's texture limit left some maps out).
+    const ormSets = this.sets.filter((s) => s.maps.includes('orm'));
+    const normalSets = this.sets.filter((s) => s.maps.includes('normal'));
     const slopeCos = Math.cos((this.cfg.slopeDeg * Math.PI) / 180);
 
     const nearOf = (): L => float(1).sub(smoothstep(fade.startM, fade.endM, positionWorld.sub(cameraPosition).length()));
@@ -357,13 +438,13 @@ export class SurfaceTextures {
       return out;
     });
 
-    const ormFn = maps.includes('orm')
+    const ormFn = ormSets.length > 0
       ? Fn(() => {
           // x: ambient occlusion, y: roughness.
           const baseRough = base.roughness.toVar();
           const out = vec3(1, baseRough, 0).toVar();
           const near = nearOf().toVar();
-          for (const s of this.sets) {
+          for (const s of ormSets) {
             const cfg = this.cfg.sets[s.name] as SurfaceTexturesFile['sets'][string];
             const lod = lodOf(cfg.tileM);
             const uvWorld = uvOf(cfg.tileM).toVar();
@@ -379,12 +460,12 @@ export class SurfaceTextures {
         })
       : null;
 
-    const normalFn = maps.includes('normal')
+    const normalFn = normalSets.length > 0
       ? Fn(() => {
           // The offset of the surface normal in world space: a planar projection along +y (tangent +x, bitangent -z).
           const out = vec3(0, 0, 0).toVar();
           const near = nearOf().toVar();
-          for (const s of this.sets) {
+          for (const s of normalSets) {
             const cfg = this.cfg.sets[s.name] as SurfaceTexturesFile['sets'][string];
             const lod = lodOf(cfg.tileM);
             const uvWorld = uvOf(cfg.tileM).toVar();
@@ -422,6 +503,13 @@ export interface SurfaceInput {
   normal: L;
 }
 
+/** M02h7: a wall fragment for `wallAlbedo`: its surface id and its façade coordinates in metres. */
+export interface WallSurfaceInput {
+  id: L;
+  u: L;
+  v: L;
+}
+
 export interface ShadeInput {
   color: L;
   roughness: L;
@@ -433,6 +521,27 @@ export interface ShadeOutput {
   color: L;
   roughness: L;
   normal: L | null;
+}
+
+/**
+ * Sampled textures (and samplers) one fragment shader may bind on the renderer's device (BD-FIX-WEBGPU-TREES-01): on WebGPU the device's
+ * `maxSampledTexturesPerShaderStage` and `maxSamplersPerShaderStage` (three binds a sampler per texture; the default and Chrome's are 16,
+ * as is the SwiftShader adapter of CI), on WebGL2 `MAX_TEXTURE_IMAGE_UNITS`; null when the renderer reports neither.
+ */
+export function fragmentTextureLimit(renderer: WebGPURenderer | null): number | null {
+  type Limits = { maxSampledTexturesPerShaderStage?: number; maxSamplersPerShaderStage?: number };
+  type Gl = { MAX_TEXTURE_IMAGE_UNITS: number; getParameter(p: number): unknown };
+  const b = renderer?.backend as unknown as { device?: { limits?: Limits }; gl?: Gl } | undefined;
+  const l = b?.device?.limits;
+  if (l && typeof l.maxSampledTexturesPerShaderStage === 'number') {
+    return Math.min(l.maxSampledTexturesPerShaderStage, typeof l.maxSamplersPerShaderStage === 'number' ? l.maxSamplersPerShaderStage : Number.POSITIVE_INFINITY);
+  }
+  const gl = b?.gl;
+  if (gl && typeof gl.getParameter === 'function') {
+    const n = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+    if (typeof n === 'number' && n > 0) return n;
+  }
+  return null;
 }
 
 let installed: SurfaceTextures | null = null;
@@ -455,3 +564,13 @@ export function withSurfaceTextures(surface: SurfaceInput, nodes: ShadeInput): S
 
 /** Taps per sample of a mode (3, 2, 1, 0): the number of texture reads one map costs in a fragment of a bound surface. */
 export const tapsOfMode = (mode: TextureMode): number => tapsOf(mode);
+
+/**
+ * M02h7: the wall half of the façade's `albedo` seam (look-materials.ts): the bound wall sets (brick, stucco) over the wall albedo on `full`
+ * and `lite`; null when no instance is installed, textures are off or the tier binds no wall set (`min`), which leaves the graph unchanged.
+ */
+export function wallTexturesAlbedo(surface: WallSurfaceInput): ((base: L) => L) | null {
+  const t = installed;
+  if (!t || !t.wallsActive) return null;
+  return (base) => t.wallAlbedo(surface, base);
+}

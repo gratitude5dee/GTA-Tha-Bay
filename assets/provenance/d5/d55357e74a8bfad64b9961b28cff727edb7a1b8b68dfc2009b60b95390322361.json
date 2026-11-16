@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "d55357e74a8bfad64b9961b28cff727edb7a1b8b68dfc2009b60b95390322361",
+  "paths": [
+    "assets/src/character/pc-face-marina/mobile-low.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "aa7a6e37b9b9c099981dd25c8aa6f88219a3c0b2922e8fe499ddbbfa2c130667"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

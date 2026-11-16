@@ -138,6 +138,8 @@ describe('UiPrefs', () => {
     const storage = { getItem: (k: string) => mirror.get(k) ?? null, setItem: (k: string, v: string) => void mirror.set(k, v), removeItem: (k: string) => void mirror.delete(k) };
     const a = await loadPrefs({ idb: null, storage });
     a.set({ age: { attested: null, attestedAt: null, blocked: true } });
+    // written by the set itself, before any page can show the block (BD-FIX-MENU-BOOT-01)
+    expect(mirror.get(BLOCK_MIRROR)).toBe('1');
     await a.flush();
     expect(mirror.get(BLOCK_MIRROR)).toBe('1');
     const b = await loadPrefs({ idb: null, storage });

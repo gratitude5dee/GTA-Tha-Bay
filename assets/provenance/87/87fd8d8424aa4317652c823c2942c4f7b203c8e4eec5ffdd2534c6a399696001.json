@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "87fd8d8424aa4317652c823c2942c4f7b203c8e4eec5ffdd2534c6a399696001",
+  "paths": [
+    "assets/src/portrait/pc-top-denim-jacket/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "2ffeef7064ecf4c22c2555500a7920a09953a1b8a9343f822b50733ce4969e77"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "517db957ce7c3ef36f71c855f7c4d08f6a7c974cfdc3214bf3d8b4d7eabba1fc"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

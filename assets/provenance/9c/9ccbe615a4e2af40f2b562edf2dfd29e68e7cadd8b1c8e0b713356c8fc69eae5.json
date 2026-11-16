@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "9ccbe615a4e2af40f2b562edf2dfd29e68e7cadd8b1c8e0b713356c8fc69eae5",
+  "paths": [
+    "assets/src/character/ped.outfit.02/mobile-low.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "83707ff37a53fd238198bf0a976681d549f675ac12679574b169395a0a81123f"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

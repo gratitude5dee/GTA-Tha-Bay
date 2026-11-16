@@ -236,6 +236,16 @@ export class MannequinAnimator {
     this.mixer.update(mixerDtSec);
   }
 
+  /** M10d5 QA: the clips with weight now (name, effective weight, time); empty only in the bind pose. */
+  activeClips(): { name: string; weight: number; time: number }[] {
+    const out: { name: string; weight: number; time: number }[] = [];
+    for (const a of this.actions.values()) {
+      const w = a.getEffectiveWeight();
+      if (w > 0) out.push({ name: a.getClip().name, weight: w, time: a.time });
+    }
+    return out.sort((x, y) => y.weight - x.weight);
+  }
+
   dispose(): void {
     this.mixer.stopAllAction();
   }

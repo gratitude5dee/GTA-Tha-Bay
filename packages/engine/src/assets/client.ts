@@ -63,6 +63,7 @@ export class AssetClient {
   private storeKindValue: 'opfs' | 'memory-fallback' = 'memory-fallback';
   private disposed = false;
   private bytesSeenValue = 0;
+  private heardValue = 0;
   /** The `err.asset` events received from the worker (at most 50), for the QA bridge and tests. */
   readonly errLog: Array<{ reason: string; kind: string }> = [];
   private readonly port: WorkerPort;
@@ -103,6 +104,13 @@ export class AssetClient {
   get bytesSeen(): number {
     return this.bytesSeenValue;
   }
+  /**
+   * Messages from the worker handled on this thread so far (replies and events). A reader that finds it unchanged between two of its own
+   * frames has heard nothing from the worker in between (BD-FIX-LANDMARK-PREPARE-01).
+   */
+  get heard(): number {
+    return this.heardValue;
+  }
   /** The last known state; `loadCatalog()` loads the catalog and refreshes it. */
   get catalogState(): CatalogStateName {
     return this.catalogStateValue;
@@ -114,6 +122,7 @@ export class AssetClient {
   }
 
   private receive(m: FromWorker): void {
+    this.heardValue++;
     if (m.t === 'res') {
       if (m.bytes !== undefined && m.bytes > this.bytesSeenValue) this.bytesSeenValue = m.bytes;
       const p = this.pending.get(m.id);
@@ -142,9 +151,18 @@ export class AssetClient {
     p: RpcOps[K][0],
     o: { signal?: AbortSignal; progress?: (done: number, total: number) => void; transfer?: Transferable[] } = {},
   ): Promise<RpcOps[K][1]> {
-    if (this.disposed) return Promise.reject(new Error('asset client is disposed'));
+    return this.send(op, p, o).done;
+  }
+
+  /** `call` with the request id the worker knows it by (0 when the client is disposed and nothing was sent). */
+  private send<K extends OpName>(
+    op: K,
+    p: RpcOps[K][0],
+    o: { signal?: AbortSignal; progress?: (done: number, total: number) => void; transfer?: Transferable[] } = {},
+  ): { id: number; done: Promise<RpcOps[K][1]> } {
+    if (this.disposed) return { id: 0, done: Promise.reject(new Error('asset client is disposed')) };
     const id = this.nextId++;
-    return new Promise<RpcOps[K][1]>((resolve, reject) => {
+    const done = new Promise<RpcOps[K][1]>((resolve, reject) => {
       const entry: Pending = { resolve: resolve as (v: unknown) => void, reject, ...(o.progress ? { progress: o.progress } : {}) };
       this.pending.set(id, entry);
       const signal = o.signal;
@@ -155,11 +173,28 @@ export class AssetClient {
       }
       this.port.postMessage({ t: 'req', id, op, p } as ToWorker, o.transfer);
     });
+    return { id, done };
   }
 
   /** A domain job of the composed worker (M02b1: world meshing, the sim pack channel). Results come back transferred. */
   job(name: string, args: unknown, o: { signal?: AbortSignal; transfer?: Transferable[] } = {}): Promise<unknown> {
     return this.call('job', { name, args }, o);
+  }
+
+  /** `job` with its request id, which `held` asks the worker about (the landmark swap's prepares, BD-FIX-LANDMARK-PREPARE-01). */
+  trackedJob(name: string, args: unknown, o: { signal?: AbortSignal; transfer?: Transferable[] } = {}): { id: number; done: Promise<unknown> } {
+    return this.send('job', { name, args }, o);
+  }
+
+  /**
+   * Asks the worker about requests sent before (ids from `trackedJob`): for each, the milliseconds it has held it unanswered on its own
+   * clock since it took it up, or null when it does not hold it. One port carries requests and replies in order, so when this settles
+   * the worker has taken up every request sent before it, and every reply it posted before its answer has been handled here: a request
+   * reported as not held whose result has still not arrived has no reply coming. Rejects when the worker cannot answer: the client is
+   * disposed, or the worker failed (`onerror`, which rejects every request in flight).
+   */
+  held(ids: readonly number[]): Promise<(number | null)[]> {
+    return this.call('held', { ids: [...ids] });
   }
 
   /** Bytes of an `AssetRef` (resolved for the current tier) or of a `PackRef`. */

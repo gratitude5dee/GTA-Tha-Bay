@@ -1,0 +1,11 @@
+{
+  "$comment": "M02h7: flicker share of the facade-graze pair at mobile with the facade layer off (the parent commit's buildings), per project; written by DV_FACADE_BASELINE=1 (tests/support/flicker.ts flickerShare, 640 x 360, 32/255, one-pixel window).",
+  "baselines": {
+    "chromium-webgl2": {
+      "facade-graze": 0.01332
+    },
+    "webkit-webgl2": {
+      "facade-graze": 0.013351
+    }
+  }
+}

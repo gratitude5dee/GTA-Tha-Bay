@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/tree-forms.schema.json",
+  "title": "config/world/tree-forms.json (M02h4): genus to tree form, the unmatched split, the height distribution per form and (M02h5) the understory forms and the DataSF names the bake drops",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "genus", "fallback", "forms"],
+  "$defs": {
+    "form": { "enum": ["plane", "ficus", "conifer", "eucalyptus", "palm"] },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["heightM"],
+      "properties": {
+        "heightM": { "type": "array", "items": { "type": "number", "minimum": 0.3, "maximum": 60 }, "minItems": 3, "maxItems": 3 },
+        "asset": { "type": "string", "pattern": "^[a-z0-9-]+/[a-z0-9._-]+$" }
+      }
+    }
+  },
+  "properties": {
+    "schema": { "const": "world-tree-forms/1" },
+    "note": { "type": "string" },
+    "genus": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]{1,31}$" },
+      "additionalProperties": { "$ref": "#/$defs/form" },
+      "minProperties": 1
+    },
+    "fallback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["planeShare"],
+      "properties": { "planeShare": { "type": "number", "minimum": 0, "maximum": 1 } }
+    },
+    "forms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plane", "ficus", "conifer", "eucalyptus", "palm"],
+      "properties": {
+        "plane": { "$ref": "#/$defs/row" },
+        "ficus": { "$ref": "#/$defs/row" },
+        "conifer": { "$ref": "#/$defs/row" },
+        "eucalyptus": { "$ref": "#/$defs/row" },
+        "palm": { "$ref": "#/$defs/row" },
+        "shrub": { "$ref": "#/$defs/row" },
+        "hedge": { "$ref": "#/$defs/row" }
+      }
+    },
+    "skipSpecies": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9 ()'.:-]{0,63}$" }, "uniqueItems": true }
+  }
+}

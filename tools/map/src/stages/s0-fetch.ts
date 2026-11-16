@@ -7,6 +7,11 @@
  * The `sf` OSM extract is the bbox extract, tag-filtered, plus the objects named in the landmark seeds (`osmium getid`, merged
  * before the export, DL-708).
  *
+ * M02h5: `--only <ids>` fetches only the named sources of the area (the lock keeps every other entry as it was), and
+ * `--no-download` re-runs only the osmium steps of `osm` from the cached extract (`osm-source.osm.pbf`; its `extract.sha256`
+ * stays), so a new `tagFilter` reaches the export without a download. Without the cached extract `--no-download` exits 1 naming
+ * it, with no download call.
+ *
  * `civic-excerpt --fixture` cuts the committed 1 km2 excerpt: DataSF rows and Terrarium tiles from the network, the OSM part
  * from the synth generator restricted to the square (the bake never calls Overpass or Nominatim), stamps marked synthetic.
  */
@@ -24,7 +29,7 @@ import { RAW_LOCK_NAME, rawLockText, readRawLock, sha256File, sha256Text, writeR
 import { loadContentWorld } from '../content.ts';
 import { clipRingToBox } from '../geom/rings.ts';
 import { polygonsOf } from '../sources/geo.ts';
-import { ensureOsmPbf, readOsmServed, type OsmDownloader } from '../sources/osm.ts';
+import { PBF_NAME, ensureOsmPbf, readOsmServed, type OsmDownloader } from '../sources/osm.ts';
 import { generateSynth } from '../sources/synth.ts';
 import { countLines, fetchSocrata, readJsonl, whereLatLng, whereWithinBox, writeJsonl } from '../sources/socrata.ts';
 import { fetchTiles, listTileFiles, tilePath, tilesCovering, unionTiles, type TileId } from '../sources/terrarium.ts';
@@ -46,6 +51,10 @@ export interface FetchOptions {
   osmShell?: ((cmd: string) => number) | undefined;
   /** Stop after this many rows per Socrata source (tests). */
   rowLimit?: number | undefined;
+  /** M02h5 `--only`: fetch only these source ids of the area (the lock keeps the others). */
+  only?: readonly string[] | undefined;
+  /** M02h5 `--no-download`: never download; `osm` re-runs its osmium steps from the cached extract or fails naming it. */
+  noDownload?: boolean | undefined;
 }
 
 /** The street, SFMTA stop and SFMTA pattern sources of the excerpt are synthetic like its OSM part (no network, M02a2). */
@@ -111,9 +120,48 @@ async function fetchSf(o: FetchOptions, cfg: SourcesConfig, rawDir: string, log:
   const entries: RawSourceLock[] = [];
   const skipped: string[] = [];
   mkdirSync(rawDir, { recursive: true });
-  for (const id of def.sources) {
+  const unknown = (o.only ?? []).filter((id) => !def.sources.includes(id));
+  if (unknown.length > 0) {
+    log(`map:fetch: --only names ${unknown.join(', ')}, not a source of sf (${def.sources.join(', ')})`);
+    return 2;
+  }
+  const ids = o.only ? def.sources.filter((id) => o.only?.includes(id)) : def.sources;
+  for (const id of ids) {
     const s = sourceById(cfg, id);
     try {
+      if (o.noDownload && s.kind !== 'osm') {
+        skip(log, id, '--no-download (only the osm source re-derives from a cached file)');
+        continue;
+      }
+      if (o.noDownload) {
+        // M02h5: re-run only the osmium steps from the cached extract; the extract (and its sha256) is untouched
+        const pbf = path.join(rawDir, PBF_NAME);
+        if (!existsSync(pbf)) {
+          log(`map:fetch ${id}: --no-download needs the cached extract ${pbf}; it is missing (run map:fetch without --no-download once)`);
+          return 1;
+        }
+        if (!hasOsmium(o.osmShell)) {
+          log(`map:fetch ${id}: --no-download needs osmium on PATH to re-derive from ${pbf} (install osmium-tool)`);
+          return 1;
+        }
+        const prev = readOsmServed(rawDir);
+        const extractSha = prev?.sha256 ?? (await sha256File(pbf));
+        writeFileSync(path.join(rawDir, 'landmark-ids.txt'), landmarkIdsText(loadContentWorld().landmarks));
+        for (const cmd of [...osmCommands(cfg, rawDir, pbf), ...osmCommands(cfg, rawDir, pbf, true)]) {
+          log(`map:fetch ${id}: ${cmd}`);
+          const status = o.osmShell ? o.osmShell(cmd) : spawnSync(cmd, { shell: true, stdio: 'inherit' }).status;
+          if (status !== 0) throw new Error(`osmium step failed with exit ${status ?? 'null'}: ${cmd}`);
+        }
+        const file = path.join(rawDir, s.file);
+        const before = readRawLock(rawDir)?.sources.find((x) => x.id === id);
+        entries.push({
+          id, url: prev?.url ?? before?.url ?? s.url, retrievedAt: prev?.retrievedAt ?? before?.retrievedAt ?? nowIso(),
+          sha256: await sha256File(file), rows: countLines(file), licence: s.licence,
+          extract: { sha256: extractSha, bytes: prev?.bytes ?? before?.extract?.bytes ?? 0, route: prev?.routeIndex ?? before?.extract?.route ?? 0 },
+        });
+        log(`map:fetch ${id}: re-derived from the cached extract (sha256 ${extractSha}, no download)`);
+        continue;
+      }
       if (s.kind === 'socrata') {
         const file = path.join(rawDir, s.file);
         log(`map:fetch ${id}: ${s.url}${s.select ? ` ($select=${s.select})` : ''}`);

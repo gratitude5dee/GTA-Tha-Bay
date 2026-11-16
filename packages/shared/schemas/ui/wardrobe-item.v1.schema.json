@@ -12,6 +12,7 @@
     "titleKey": { "type": "string", "pattern": "^[a-z][\\w-]*(\\.[\\w-]+)+$" },
     "model": { "type": "string", "pattern": "^[a-z][a-z0-9-]*/[a-z0-9][a-z0-9._-]*$" },
     "portrait": { "type": "string", "pattern": "^[a-z][a-z0-9-]*/[a-z0-9][a-z0-9._-]*$" },
+    "fallbackPart": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{1,62}$", "description": "a Coast row without a model draws this same-slot realistic row, tinted with its own color (M10d4)" },
     "tags": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9:._-]*$" }, "uniqueItems": true },
     "unlock": { "type": "string" },
     "retired": { "type": "boolean" },

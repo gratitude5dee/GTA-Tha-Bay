@@ -2,7 +2,8 @@
  * M02d1: the twelve landmark recipes, their committed files and the build command. AC-2 (byte-identical rebuild), AC-3 (budgets),
  * AC-4 (authored provenance, no image decoder in the recipes).
  */
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { readJson, toolsRoot } from '../../ci/lib/common.ts';
@@ -11,7 +12,7 @@ import { loadContentWorld } from '../src/content.ts';
 import { buildModel, diffPlan, paramFindings, planAsset, type BaseParams } from '../src/landmarks/kit/build.ts';
 import { FIDELITIES, variantOf } from '../src/landmarks/kit/fidelity.ts';
 import { RECIPES } from '../src/landmarks/index.ts';
-import { buildLandmarks, validateLandmarkSeeds } from '../src/verify/landmarks.ts';
+import { AUTHORED_TAG, buildLandmarks, isReplacedLandmark, validateLandmarkSeeds } from '../src/verify/landmarks.ts';
 
 const TWELVE = [
   'lm.city-hall', 'lm.golden-gate-bridge', 'lm.bay-bridge-ybi', 'lm.coit-tower', 'lm.ferry-building', 'lm.pyramid-tower',
@@ -138,5 +139,24 @@ describe('provenance and IP (AC-4)', () => {
       // text, logo or lettering would need a font or a canvas
       expect(/fillText|strokeText|TextGeometry|FontLoader|font/i.test(text.replace(/\/\*[\s\S]*?\*\//g, '')), f).toBe(false);
     }
+  });
+});
+
+describe('the landmark art pass (M10d2)', () => {
+  it('skips and lists a landmark whose asset is a supplied model (tag art:authored); none is supplied today (Q-39)', async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), 'dv-lm-art-'));
+    try {
+      mkdirSync(path.join(root, 'assets/src/building/lm.coit-tower'), { recursive: true });
+      writeFileSync(path.join(root, 'assets/src/building/lm.coit-tower/asset.json'), JSON.stringify({ tags: ['lm-class:hero', AUTHORED_TAG] }));
+      expect(isReplacedLandmark(root, 'lm.coit-tower')).toBe(true);
+      expect(isReplacedLandmark(root, 'lm.city-hall')).toBe(false);
+      const r = await buildLandmarks({ root, slug: 'coit-tower', check: true });
+      expect(r.replaced).toEqual(['lm.coit-tower']);
+      expect(r.plans).toEqual([]);
+      expect(r.findings).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+    for (const def of RECIPES) expect(isReplacedLandmark(toolsRoot, def.id), def.id).toBe(false);
   });
 });

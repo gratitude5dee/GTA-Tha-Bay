@@ -5,7 +5,8 @@
  * far-bay-dem     Terrarium z12 resampled to 256 m posts over `far` (z15 where only the area was fetched; a post with no tile
  *                 reads 0 m and is counted) plus a land mask. Inside the area box the baked terrain and land mask are used.
  * far-bay-massing buildings of 15 m and more as oriented boxes in 1 km cells, plus arterial road lines.
- * far-bay-cards   a PNG atlas of 24 flat silhouette cards (8 clusters x 3 azimuths); the rasterised cards are M10d2's art pass.
+ * far-bay-cards   a 2048 x 1024 KTX2 atlas (Basis ETC1S, sRGB, mips) of 24 silhouette cards (8 clusters x 3 azimuths) drawn by the
+ *                 software rasterizer `far/raster.ts` from the DEM above and seeded massing (M10d2; the PNG placeholder before it).
  *
  * Layout (BD-M02a2-09, a proposal): 64 B header { magic u32 'DVFA', version u8 1, kind u8 (1 dem, 2 massing), u16 0, bakeId[32],
  * then kind fields, zero padded }; dem fields i32 minX, i32 minZ, u16 nx, u16 nz, u16 cellM, then i16[nx * nz] in 0.1 m (z outer)
@@ -13,8 +14,13 @@
  * then per non-empty cell { u16 cx, u16 cz, u16 count, count * { i16 dx, i16 dz (0.1 m from the cell NW corner), u8 w, u8 d
  * (m), u16 hDm, u8 yaw (1/256 turn) } }, then lines { u8 cls, u16 n, n * { i32 x, i32 z } } in 0.1 m from the origin.
  */
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { PNG } from 'pngjs';
-import { Rng, fnv32, type WorldBounds } from '../../../../packages/shared/src/index.ts';
+import type { WorldBounds } from '../../../../packages/shared/src/index.ts';
+import { basisEncoder } from '../../../assets/src/import/texture-set.ts';
+import { toolsRoot } from '../../../ci/lib/common.ts';
+import { demSampler, rasterAtlas, type CardAtlasLayout, type CardCluster, type Rgba } from '../far/raster.ts';
 import { Bytes, hexBytes } from '../pack/encode.ts';
 import type { TerrariumMosaic } from '../sources/terrarium.ts';
 import type { BuildingsProduct } from './s4-buildings.ts';
@@ -42,9 +48,13 @@ export interface FarInputs {
 export interface FarOutput {
   dem: Uint8Array;
   massing: Uint8Array;
-  cards: Uint8Array;
-  report: { demPosts: number; demMissing: number; boxes: number; lines: number; cards: number };
+  /** The card atlas as RGBA; `encodeCards` makes the KTX2 pack of it. */
+  cards: Rgba;
+  report: { demPosts: number; demMissing: number; boxes: number; lines: number; cards: number; cardsFromDem: number };
 }
+
+/** The decoded DEM grid the cards are rasterised from (heights in m, land 0/1). */
+export interface DemGrid { minX: number; minZ: number; nx: number; nz: number; cellM: number; heights: Float32Array; land: Uint8Array }
 
 function header(kind: number, bakeId: string): Bytes {
   const w = new Bytes();
@@ -136,29 +146,66 @@ export function runFar(inp: FarInputs): FarOutput {
   }
   const massing = w.bytes();
 
-  return { dem, massing, cards: cardsAtlas(), report: { demPosts: nx * nz, demMissing, boxes, lines: arterials.length, cards: CARD_COUNT } };
+  const grid: DemGrid = { minX, minZ, nx, nz, cellM: FAR_CELL_M, heights: new Float32Array(nx * nz), land: new Uint8Array(nx * nz) };
+  for (let p = 0; p < nx * nz; p++) {
+    grid.heights[p] = (heights[p] as number) / 10;
+    grid.land[p] = ((mask[p >> 3] as number) >> (p & 7)) & 1;
+  }
+  const cards = cardsRaster(grid);
+  if (cards.cards > CARD_COUNT) throw new Error(`S11: ${cards.cards} cards, at most ${CARD_COUNT}`);
+  return { dem, massing, cards: cards.atlas, report: { demPosts: nx * nz, demMissing, boxes, lines: arterials.length, cards: cards.cards, cardsFromDem: cards.demClusters } };
 }
 
-/** 2048 x 1024 atlas, 8 x 3 cards of 256 x 341 px: flat dark skyline silhouettes on transparent ground (placeholder art). */
-export function cardsAtlas(): Uint8Array {
-  const W = 2048, H = 1024, cw = 256, ch = 341;
-  const img = new PNG({ width: W, height: H });
-  for (let c = 0; c < CARD_COUNT; c++) {
-    const rng = new Rng(fnv32(`far-bay-card:${c}`));
-    const ox = (c % 8) * cw, oy = Math.floor(c / 8) * ch;
-    let x = 0;
-    while (x < cw) {
-      const bw = 14 + (rng.nextU32() % 30);
-      const bh = 40 + (rng.nextU32() % 200);
-      const shade = 40 + (rng.nextU32() % 30);
-      for (let xx = x; xx < Math.min(cw, x + bw); xx++) {
-        for (let yy = ch - bh; yy < ch; yy++) {
-          const i = ((oy + yy) * W + ox + xx) * 4;
-          img.data[i] = shade; img.data[i + 1] = shade + 8; img.data[i + 2] = shade + 22; img.data[i + 3] = 255;
-        }
-      }
-      x += bw;
+// ---- skyline cards (M10d2) -------------------------------------------------------------------------------------------------
+
+/** `config/world/backdrop.json`: the atlas layout and the clusters the cards show. */
+export const BACKDROP_PATH = path.join(toolsRoot, 'config', 'world', 'backdrop.json');
+export function loadBackdrop(): { atlas: CardAtlasLayout; clusters: CardCluster[] } {
+  return JSON.parse(readFileSync(BACKDROP_PATH, 'utf8')) as { atlas: CardAtlasLayout; clusters: CardCluster[] };
+}
+
+/**
+ * Land posts of the DEM higher than `DEM_RELIEF_M` within a cluster's half width of its centre; the rasterizer uses the DEM when there
+ * are at least 4 (a bake whose far terrain is flat or missing there, like `synth`, gets the seeded ridge instead).
+ */
+export const DEM_RELIEF_M = 30;
+export function demLandPosts(g: DemGrid, c: CardCluster): number {
+  let n = 0;
+  const r = c.widthM / 2;
+  for (let j = 0; j < g.nz; j++) {
+    const z = g.minZ + j * g.cellM;
+    if (Math.abs(z - c.enu[1]) > r) continue;
+    for (let i = 0; i < g.nx; i++) {
+      const x = g.minX + i * g.cellM;
+      if (Math.abs(x - c.enu[0]) <= r && g.land[j * g.nx + i] && (g.heights[j * g.nx + i] as number) > DEM_RELIEF_M) n++;
     }
   }
+  return n;
+}
+
+/** The card atlas of a DEM grid: one card per cluster and azimuth, RGBA (bake S11). */
+export function cardsRaster(g: DemGrid): { atlas: Rgba; cards: number; demClusters: number } {
+  const cfg = loadBackdrop();
+  const sampler = demSampler(g);
+  let demClusters = 0;
+  const { atlas, cards } = rasterAtlas(cfg.clusters, cfg.atlas, sampler, (c) => {
+    const land = demLandPosts(g, c) >= 4;
+    if (land) demClusters++;
+    return land;
+  });
+  return { atlas, cards, demClusters };
+}
+
+/** KTX2 of the atlas: Basis ETC1S, sRGB, full mip chain (the M10d0 encoder, BD-M10d0-01). */
+export async function encodeCards(atlas: Rgba): Promise<Uint8Array> {
+  const enc = await basisEncoder();
+  return enc.encode({ width: atlas.width, height: atlas.height, data: atlas.data }, 'albedo');
+}
+
+/** A PNG of the atlas for people and for tests that read pixels (`far-bay-cards.preview.png` beside the packs, never a pack). */
+export function cardsPreviewPng(atlas: Rgba): Uint8Array {
+  const img = new PNG({ width: atlas.width, height: atlas.height });
+  img.data.set(atlas.data);
   return PNG.sync.write(img, { colorType: 6, deflateLevel: 9 });
 }
+

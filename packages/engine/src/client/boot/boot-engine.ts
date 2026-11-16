@@ -15,7 +15,9 @@ import type { DebugCommand } from '../../sim/transport/envelope.ts';
 import type { PlayerSide } from '../../sim/publish.ts';
 import type { PromptSide, VehicleSide } from '../snapshot/reader.ts';
 import { SnapshotView } from '../snapshot/reader.ts';
-import type { ObjectPool } from '../snapshot/object-pool.ts';
+import type { BodyReport, ObjectPool } from '../snapshot/object-pool.ts';
+import type { BodyAssets } from '../avatar/player-body.ts';
+export type { BodyAssets } from '../avatar/player-body.ts';
 import { CameraRigImpl, type CameraLike } from '../camera/rig.ts';
 import { CONTROL_OWNER } from '../../sim/control/states.ts';
 import type { PursuitSide } from '../snapshot/reader.ts';
@@ -104,6 +106,11 @@ export interface BootEngineOptions {
   onToast?: (t: ToastRecord) => void;
   /** Telemetry the sim queued (`mode.enter`, `mode.exit`, `unlock.emit`; M04a2) is handed here with its registry props. */
   onTelemetry?: (name: string, props: Record<string, string | number | boolean>) => void;
+  /**
+   * M10d5: the bytes of the on-foot bodies (the player's creator parts, the mission actors' ped kit). Without it every character keeps
+   * the mannequin (a gray-box scene, a QA `?art=0` boot).
+   */
+  bodies?: BodyAssets;
 }
 
 /** A toast the sim-side UiBridge raised; the shell (M04b1) draws it, the QA panel lists it. */
@@ -176,6 +183,8 @@ export interface EngineObservation {
   look: { yaw: number; pitch: number; playerHeading: number | null };
   /** QA tools (M03a1): the entity inspector and the physics wireframe. */
   tools: { inspector: boolean; inspectorComponents: string[]; physics: boolean; physicsBodies: number; physicsShapes: string[] } | null;
+  /** M10d5: the on-foot bodies the pool draws (the player's and the mission actors'); null without a view. */
+  bodies: BodyReport | null;
 }
 
 export interface EngineHandle {
@@ -347,6 +356,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   let paused = false;
   let playing = opts.play ?? true;
   let frames = 0;
+  /** Page frames whose `host.frame` drained the worker's events (`ask` counts its wait in them too). */
+  let drains = 0;
   let lastNow = -1;
   let disposed = false;
   let pool: ObjectPool | null = null;
@@ -561,14 +572,23 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   };
 
   /** Sends a debug command with a reply and waits for the reply (the same wait the world bridge uses). */
+  // A reply reaches `qaResults` only when a page frame drains the worker's events (`host.frame`), so the wait is counted in drains as
+  // well as in time (BD-REPAIR-M11a1-02): it gives up after `timeoutMs` once ASK_MIN_DRAINS frames have drained since the send, or
+  // after ASK_HARD_CAP times `timeoutMs` whatever the frames did (a hidden page draws none). Before, a software-GL page whose frame took
+  // longer than `timeoutMs` (Chromium at `desktop`, 5 to 11 s a frame) checked the clock before the result and answered null even when
+  // the frame that had just ended had drained the reply, so every call into the sim worker of such a page failed.
+  const ASK_MIN_DRAINS = 3;
+  const ASK_HARD_CAP = 8;
   const ask = async (cmd: DebugCommand, replyName: string, timeoutMs = 8000): Promise<unknown> => {
     if (!host.sendDebug(cmd)) return null;
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
+    const t0 = Date.now();
+    const drains0 = drains;
+    for (;;) {
       if (host.qaResults.has(replyName)) return host.qaResults.get(replyName);
+      const waited = Date.now() - t0;
+      if ((waited >= timeoutMs && drains - drains0 >= ASK_MIN_DRAINS) || waited >= timeoutMs * ASK_HARD_CAP) return null;
       await new Promise<void>((r) => setTimeout(r, 15));
     }
-    return null;
   };
   let askSerial = 0;
 
@@ -620,7 +640,10 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       }
     }
     const sig: FrameSignal = { frame: frames++, nowMs, dtSec, paused, timeScale: 1 };
-    if (!recovering) host.frame(sig);
+    if (!recovering) {
+      host.frame(sig);
+      drains++;
+    }
     const camPos = hostScene?.camera.position ?? null;
     if (!recovering && host.view && view.update(host.view)) {
       pool?.sync(view.poses, view.count, (k) => view.keys.get(k), dtSec, camPos);
@@ -721,6 +744,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         camera: { pos: [cam.position.x, cam.position.y, cam.position.z], dir: [-(e[8] as number), -(e[9] as number), -(e[10] as number)] },
         env: view.env,
         blackout: view.blackout,
+        simTick: view.tick,
         boundaryFog: view.boundaryFog,
         poses: view.poses,
         poseCount: view.count,
@@ -772,6 +796,13 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       hostScene = opts.host;
       rig = new CameraRigImpl({ camera: made.camera as unknown as CameraLike, targetPose, look: () => look });
       applyScale();
+      // M10d5: the player wears the profile's avatar (`sys.avatar`, the creator's default until a save names one); the actors the ped kit
+      if (opts.bodies) {
+        const bodyPool = made.pool;
+        bodyPool.setBodies(opts.bodies, opts.tier ?? opts.flags.tier ?? 'desktop');
+        bodyPool.setAvatar(vm.get('sys.avatar'));
+        cleanups.push(vm.subscribe('sys.avatar', (v) => bodyPool.setAvatar(v)));
+      }
     } else {
       runOnRaf();
     }
@@ -1069,6 +1100,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
               physicsBodies: physicsDraw.count, physicsShapes: physicsDraw.shapesDrawn,
             }
           : null,
+        bodies: pool ? pool.bodyReport() : null,
       };
     },
     act: (cmd) => host.sendDebug(cmd),

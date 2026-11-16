@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "18eb96ec49667f5c97fae46d84d214d8b883cd13cc95031d0ad1805f885aac53",
+  "paths": [
+    "assets/src/portrait/pc-shoes-skate-shoes/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "2ba816e78039c72934d3984c34e0b600023dd74c01f43c49945e721b54f09d0a"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "2ff949becc769ca997de4cab2d2ef22958f77ca3f051fb0272173d0a845d51da"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

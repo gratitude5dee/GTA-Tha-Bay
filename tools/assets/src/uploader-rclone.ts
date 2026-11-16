@@ -74,6 +74,14 @@ export function rcloneEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
 export function createRcloneUploader(opts: { bucket: string; env: NodeJS.ProcessEnv; run: Runner }): RcloneUploader {
   const env = rcloneEnv(opts.env);
   const remote = `r2:${opts.bucket}`;
+  const list = (prefix: string): string[] => {
+    const r = opts.run('rclone', ['lsf', '-R', '--files-only', `${remote}/${prefix}`], env);
+    if (r.status !== 0) {
+      if (r.status === 3 || r.status === 4 || NOT_FOUND.test(r.stderr)) return [];
+      throw new Error(`rclone lsf ${prefix} failed with exit ${r.status}: ${r.stderr.split('\n').slice(-3).join(' ').trim()}`);
+    }
+    return r.stdout.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+  };
   return {
     put(unit) {
       const args = [
@@ -106,20 +114,17 @@ export function createRcloneUploader(opts: { bucket: string; env: NodeJS.Process
         if (r.status === 3 || r.status === 4 || NOT_FOUND.test(r.stderr)) return null;
         throw new Error(`rclone cat ${remoteKey} failed with exit ${r.status}: ${r.stderr.split('\n').slice(-3).join(' ').trim()}`);
       }
+      // BD-FIX-ODBL-02: on a bucket remote a key with no object is an empty "directory", so `rclone cat` exits 0 and prints nothing
+      // (rclone 1.75.2 against R2, measured 2026-11-12). `lsf` of the key lists the object when there is one, so an empty answer
+      // with no listed object is "does not exist"; an object that exists and is empty is still not JSON.
+      if (r.stdout.length === 0 && list(remoteKey).length === 0) return null;
       try {
         return JSON.parse(r.stdout) as unknown;
       } catch {
         throw new Error(`${remoteKey} is not JSON`);
       }
     },
-    list(prefix) {
-      const r = opts.run('rclone', ['lsf', '-R', '--files-only', `${remote}/${prefix}`], env);
-      if (r.status !== 0) {
-        if (r.status === 3 || r.status === 4 || NOT_FOUND.test(r.stderr)) return [];
-        throw new Error(`rclone lsf ${prefix} failed with exit ${r.status}: ${r.stderr.split('\n').slice(-3).join(' ').trim()}`);
-      }
-      return r.stdout.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
-    },
+    list,
     verify(keys) {
       const r = opts.run('rclone', ['lsjson', '-R', '--files-only', '--no-modtime', '--no-mimetype', remote], env);
       if (r.status !== 0) return [`rclone lsjson failed with exit ${r.status}`];

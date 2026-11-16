@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "884014bffdb3bf9f1bfa2c0d7ee336baaf4e95c70ea3e137affa2ca1d5ae181d",
+  "paths": [
+    "assets/src/portrait/pc-hair-bun/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "47af468236ae310c8987b491bc7bb67941ebef1d631855be00d6f583c93eae81"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "6822da688676f04a9484d321a8000d66e935118f066b760437a6670bba9fab4a"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

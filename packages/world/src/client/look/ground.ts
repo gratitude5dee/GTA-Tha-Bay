@@ -11,6 +11,7 @@ import { srgbHexToLinear, type LookFile } from './config.ts';
 import { MACRO } from '../chunks/macro.ts';
 import { around1, bandFade, edgeLineAA, fbm2AA, fbm3AA, hash21, macroNoiseNode, pickColor, pickFloat, pixelFootprint, vnoise, vnoiseAA } from './noise.ts';
 import { GROUND_NAMES, ROAD_NAMES, Surf } from './surfaces.ts';
+import { COVER_KEYS, coverNodes } from './cover.ts';
 
 export interface GroundOut {
   color: L;
@@ -27,8 +28,11 @@ export interface GroundOut {
   height: L;
 }
 
-/** The names that the surface ids 0..18 look up in `look.ground`, then the M02h2 surfaces (ids 38..41 at keys 19..22). */
-const NAMES: readonly string[] = [...GROUND_NAMES, ...ROAD_NAMES, 'Sidewalk', 'Curb', 'Gutter', 'Lot', 'Plaza'];
+/**
+ * The names that the surface ids 0..18 look up in `look.ground`, then the M02h2 surfaces (ids 38..41 at keys 19..22), then the M02h3 ground
+ * cover (ids 42..48 at keys 23..29, `look/cover.ts`).
+ */
+const NAMES: readonly string[] = [...GROUND_NAMES, ...ROAD_NAMES, 'Sidewalk', 'Curb', 'Gutter', 'Lot', 'Plaza', ...COVER_KEYS];
 const KEY_CURB = 19, KEY_GUTTER = 20, KEY_LOT = 21, KEY_PLAZA = 22;
 
 const inRange = (id: L, lo: number, hi: number): L => step(lo - 0.5, id).mul(step(id, hi + 0.5));
@@ -134,15 +138,18 @@ export function groundNodes(look: LookFile, n: LookNodes, id: L, vertexColor: L,
     .add(plazaF.mul(plaza));
   const tinted = mix(base, base.mul(grassTint), grass);
   let color: L = tinted.mul(detailF.max(0.2));
+  // M02h3: the ground cover (keys 23..29) has its own terms (look/cover.ts); every class above gives it 0
+  const cover = coverNodes(look, key, base, p, fp, detail);
+  color = mix(color, cover.color.max(0), cover.mask);
 
   // M02h2: the macro variation (chunks/macro.ts) on asphalt, sidewalk, curb, lot, plaza and grass: albedo and roughness drift over 50 to
   // 200 m. The `min` profile bakes it into the vertex colours instead, so `detail` `lite` and `full` only.
-  const macroOn = asphalt.max(walk).max(curb).max(lot).max(plaza).max(grass).mul(n.uMacro);
+  const macroOn = asphalt.max(walk).max(curb).max(lot).max(plaza).max(grass).max(cover.grassy).max(cover.paved).mul(n.uMacro);
   const macro = macroNoiseNode(p).sub(0.5).mul(2);
   color = color.mul(float(1).add(macro.mul(MACRO.albedo).mul(macroOn)));
 
   // Wet pavement: darker everywhere the tier has wetness, glossy in puddles where it also lowers roughness.
-  const pavement = asphalt.max(walk).max(pier);
+  const pavement = asphalt.max(walk).max(pier).max(cover.paved);
   const puddle = smoothstep(0.52, 0.72, fbm2AA(p.add(vec2(31.7 / 0.05, 17.3 / 0.05)), 0.05, fp));
   const wet = clamp(n.sky.uWet.mul(pavement).mul(float(0.45).add(puddle.mul(0.55))), 0, 1).mul(clamp(up.mul(4), 0, 1));
   color = color.mul(float(1).sub(wet.mul(0.42)));
@@ -170,6 +177,7 @@ export function groundNodes(look: LookFile, n: LookNodes, id: L, vertexColor: L,
     .add(lot.mul(seam.mul(-0.006).add(aggregate).add(crackH).add(wear)))
     .add(plaza.mul(paverJoint.mul(-0.008).add(fine).add(wear.mul(0.5))))
     .add(rock.mul(crackH.add(aggregate)))
-    .add(grass.mul(clumpH));
+    .add(grass.mul(clumpH))
+    .add(cover.height);
   return { color, roughness, metalness: float(0), water, deep, height };
 }

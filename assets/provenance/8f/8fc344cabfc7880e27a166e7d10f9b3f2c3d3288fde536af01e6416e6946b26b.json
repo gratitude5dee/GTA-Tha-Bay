@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "8fc344cabfc7880e27a166e7d10f9b3f2c3d3288fde536af01e6416e6946b26b",
+  "paths": [
+    "assets/src/texture/ped.atlas/mobile-low.png"
+  ],
+  "kind": "texture",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "a030c1288c7ca95c5b7a8bd6bb92817895016417c2b53e97625f1ea6fb62cbb8"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

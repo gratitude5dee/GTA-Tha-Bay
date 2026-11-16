@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "78d2cd2ccfb7eb34184a7fca2369a6aa857c4b09364330d6170e6120019c73b8",
+  "paths": [
+    "assets/src/portrait/pc-hair-fade/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "c801a5079843c26f9582071437b6f90e68912ab0f82a1c033d0df41861fd2925"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "eb4170b10f13b1ff1275284a8e5400d41a592e0491d01d90199ec584704b984f"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

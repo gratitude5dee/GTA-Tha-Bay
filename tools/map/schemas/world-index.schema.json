@@ -16,7 +16,7 @@
   },
   "properties": {
     "schema": { "const": "world-index/1" },
-    "c08": { "const": "1.0.0" },
+    "c08": { "enum": ["1.0.0", "1.1.0"], "$comment": "C08 1.1 (DL-741, M02h3): section 21 cover codes 17..23; a 1.0 index stays valid (its packs carry no cover)" },
     "bakeId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "worldSeed": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
     "areas": {

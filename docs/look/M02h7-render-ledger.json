@@ -1,0 +1,90 @@
+{
+  "commit": "local",
+  "bakeId": "4f9b8ca8f1d43351a4db4c1c6a3fa131916db405a26ff7eec14ed5c4265d1d43",
+  "baselineFrom": "docs/look/M02h6-render-ledger.json",
+  "tiers": {
+    "desktop": {
+      "baseline": 495,
+      "after": 495,
+      "perLayer": {
+        "facade": 0
+      },
+      "buildingTriangles": {
+        "off": 448948,
+        "on": 582556,
+        "growth": 0.2976
+      },
+      "kit": {
+        "shopWalls": 94,
+        "awnings": 94,
+        "bays": 210,
+        "cornices": 6856,
+        "kitTriangles": 133608
+      }
+    },
+    "mobile": {
+      "baseline": 129,
+      "after": 129,
+      "perLayer": {
+        "facade": 0
+      },
+      "buildingTriangles": {
+        "off": 67404,
+        "on": 67872,
+        "growth": 0.0069
+      },
+      "kit": {
+        "shopWalls": 13,
+        "awnings": 13,
+        "bays": 39,
+        "cornices": 0,
+        "kitTriangles": 468
+      }
+    },
+    "mobile-low": {
+      "baseline": 71,
+      "after": 71,
+      "perLayer": {
+        "facade": 0
+      },
+      "buildingTriangles": {
+        "off": 41648,
+        "on": 41648,
+        "growth": 0
+      },
+      "kit": {
+        "shopWalls": 0,
+        "awnings": 0,
+        "bays": 0,
+        "cornices": 0,
+        "kitTriangles": 0
+      }
+    },
+    "legacy": {
+      "baseline": 67,
+      "after": 67,
+      "perLayer": {
+        "facade": 0
+      },
+      "buildingTriangles": {
+        "off": 41648,
+        "on": 41648,
+        "growth": 0
+      },
+      "kit": {
+        "shopWalls": 0,
+        "awnings": 0,
+        "bays": 0,
+        "cornices": 0,
+        "kitTriangles": 0
+      }
+    }
+  },
+  "xr": {
+    "baseline": 77,
+    "after": 77,
+    "perLayer": {
+      "facade": 0
+    }
+  }
+}

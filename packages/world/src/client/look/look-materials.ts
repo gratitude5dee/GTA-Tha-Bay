@@ -4,7 +4,8 @@
  *  - L0 `terrain` and `roads`: the ground material (asphalt, paving, grass and the rest by surface id; water cells swap in the water
  *    nodes);
  *  - L0 `buildings`: walls (façade), roofs and rooftop equipment in one material, branched on the surface id;
- *  - L0 `vegetation`: the shared tree, a little colour variation;
+ *  - L0 `vegetation`: the tree pools (M02h4): opaque, no alpha test and no fade, the vertex colour with the instance's crown tint
+ *    (`aTint`, crown vertices only by `aLeaf`), a little colour variation, and on `full` the wind sway (`look/wind.ts`);
  *  - L1/L2 `terrain`, `roads`: the ground material with the cover mask (and the dithered fade); `massing` keeps M02b1's world-space
  *    night mask (`windowEmissive`) with the new palettes.
  *
@@ -22,16 +23,19 @@ import { MESHER } from '../chunks/mesher.ts';
 import type { ObjectKind } from '../chunks/mesh-types.ts';
 import { baseAttributes, coverMask, facadeNodes, fadeShown, surfNodes, type LookNodes } from './common.ts';
 import { FACADE_KEYS, type LookFile } from './config.ts';
-import { wallNodes } from './facade.ts';
+import { awningNodes, wallNodes } from './facade.ts';
 import { groundNodes } from './ground.ts';
 import { paintNodes } from './markings.ts';
 import { around1, bumpNormal, pickFloat, vnoise } from './noise.ts';
 import { roofNodes } from './roof.ts';
 import { SURF_SCALE, Surf } from './surfaces.ts';
 import { waterNodes } from './water.ts';
+import { windOffset, type WindNodes } from './wind.ts';
 // art-hook:textures begin (M10d0): the one import of the surface textures
 import { withSurfaceTextures } from '../textures/surface-textures.ts';
 // art-hook:textures end
+import { facadeAtlasAlbedo } from '../chunks/facade.ts'; // art-hook:facade (M10d2; M02h7's albedo seam)
+import { wallTexturesAlbedo } from '../textures/surface-textures.ts'; // M02h7: brick and stucco on the walls through the seam
 
 export type MaterialProfile = 'full' | 'lite' | 'min';
 
@@ -49,6 +53,8 @@ export interface LookMaterialOptions {
   parapetM: number;
   /** The polygon offsets (M02g2): the coarse levels sit behind L0, a road ribbon in front of the terrain under it. */
   depth: DepthRules;
+  /** M02h4: the wind uniforms; the `full` profile's trees sway with them. */
+  wind?: WindNodes;
 }
 
 const set = <K extends string>(m: MeshStandardNodeMaterial, k: K, v: unknown): void => void ((m as unknown as Record<string, unknown>)[k] = v);
@@ -116,7 +122,15 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     const fac = facadeNodes();
     const vc = vertexColor(0);
     const isWall = step(Surf.WallBase - 0.5, s.id).mul(step(s.id, Surf.WallBase + 5.5));
-    const wall = wallNodes({ profile, look, n, kind: s.kind, pal: s.pal, flags: s.flags, fac, foundationM: o.foundationM, parapetM: o.parapetM });
+    // M02h7: the awning cloth of the facade kit
+    const isAwning = step(s.id.sub(Surf.Awning).abs(), 0.5);
+    // art-hook:facade begin (M10d2): the KTX2 facade atlas over the wall albedo, through M02h7's `albedo` seam on `full` and `lite`
+    const atlas = profile === 'min' ? null : facadeAtlasAlbedo(profile, { kind: s.kind, seed: fac.seed, u: fac.u, v: fac.v });
+    // art-hook:facade end
+    // M02h7: brick and stucco (M10d0's sets, `surface-textures.json` wall bindings) through the same seam, before the atlas detail
+    const bricks = profile === 'min' ? null : wallTexturesAlbedo({ id: s.id, u: fac.u, v: fac.v });
+    const albedo = atlas || bricks ? (base: L): L => (atlas ? atlas(bricks ? bricks(base) : base) : (bricks as (b: L) => L)(base)) : undefined;
+    const wall = wallNodes({ profile, look, n, kind: s.kind, pal: s.pal, flags: s.flags, fac, foundationM: o.foundationM, parapetM: o.parapetM, albedo });
     let col: L;
     let rough: L;
     let metal: L = float(0);
@@ -124,6 +138,8 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
     if (profile === 'min') {
       const classRough = pickFloat(s.kind, FACADE_KEYS.map((k) => look.facade[k].wallRoughness));
       col = vc.mul(shade);
+      // M02h7: the flat shopfront, awning-stripe and sign bands of `min`
+      if (wall.band) col = mix(col, wall.band.color.mul(shade), wall.band.k.mul(isWall));
       rough = mix(float(0.9), classRough, isWall);
       emis = wall.emissive.mul(isWall);
     } else {
@@ -132,6 +148,13 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
       rough = mix(roof.roughness, wall.roughness, isWall);
       metal = mix(roof.metalness, wall.metalness, isWall);
       emis = wall.emissive.mul(isWall);
+      // M02h7: the awning branch (no metal, no glow)
+      const awn = awningNodes(look, n, vc, fac);
+      col = mix(col, awn.color, isAwning);
+      rough = mix(rough, awn.roughness, isAwning);
+      metal = metal.mul(float(1).sub(isAwning));
+      // M02h7, `full`: the window reveal bump and the wall-top tilt on the walls
+      if (wall.normal) set(m, 'normalNode', normalize(mix(normalView, wall.normal, isWall)));
       // Rain darkens the surfaces; the roofs also gloss over where the tier has the form for it.
       const wetRoof = n.sky.uWet.mul(smoothstep(0.6, 0.9, normalWorld.y));
       col = col.mul(float(1).sub(n.sky.uWet.mul(0.1))).mul(float(1).sub(wetRoof.mul(0.25))).mul(shade);
@@ -160,13 +183,21 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
   };
 
   // ---- vegetation ---------------------------------------------------------------------------------------------------------
+  // M02h4: the pools draw opaque geometry with no fade (a pool spans the city); the crown takes the instance tint, and on `full` the wind
   const trees = (): MeshStandardNodeMaterial => {
-    const m = make(FrontSide, false);
+    const m = new MeshStandardNodeMaterial({ roughness: 0.88, metalness: 0, side: FrontSide });
+    all.push(m);
     const vc = vertexColor(0);
+    const leaf = attribute('aLeaf', 'float');
+    const tint = attribute('aTint', 'vec4').xyz;
     const wp = vec2(positionWorld.x, positionWorld.z);
-    const leafVar = around1(vnoise(wp.mul(1.7).add(positionWorld.y.mul(0.6))), 0.16);
-    m.colorNode = asNode(vc.mul(leafVar).mul(shade));
-    m.roughnessNode = asNode(float(0.88)) as never;
+    const leafVar = mix(float(1), around1(vnoise(wp.mul(1.7).add(positionWorld.y.mul(0.6))), 0.16), leaf);
+    const crown = mix(vec3(1, 1, 1), tint, leaf);
+    // rain darkens the crowns a little, as it does the other surfaces
+    const wet = float(1).sub(n.sky.uWet.mul(0.12));
+    m.colorNode = asNode(vc.mul(crown).mul(leafVar).mul(wet));
+    m.roughnessNode = asNode(mix(float(0.88), float(0.6), n.sky.uWet.mul(leaf).mul(0.5))) as never;
+    if (profile === 'full' && o.wind) m.positionNode = asNode(positionLocal.add(windOffset(o.wind, n.uLook, look.vegetation)));
     return m;
   };
 

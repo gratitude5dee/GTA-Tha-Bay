@@ -1,8 +1,8 @@
-// C16 1.1 — telemetry event contract.
+// C16 1.2 — telemetry event contract (1.1 plus the server-only app.crash).
 // Copied from spec/domains/09-backend-contracts.md section 3 and 09-backend-contracts-1.1.md section 4.
 import type { DeviceClass, QualityTierId } from './platform/c13.ts';
 
-export const C16_VERSION = '1.1.0' as const;
+export const C16_VERSION = '1.2.0' as const;
 
 /** Names clients may send. Anything else is dropped at ingest. */
 export const CLIENT_TELEMETRY_NAMES = [
@@ -28,6 +28,8 @@ export const SERVER_ONLY_TELEMETRY_NAMES = [
   'genai.cost', 'quota.block', 'genjob.state', 'room.tick', 'room.hours', 'budget.level', 'recon.drift',
   'auth.event', 'mod.case',
   'racing.verify_fail',
+  // 1.2: a browser crash report received on route 4 (M11a1, DL-224)
+  'app.crash',
 ] as const;
 
 export type ClientTelemetryName = (typeof CLIENT_TELEMETRY_NAMES)[number];

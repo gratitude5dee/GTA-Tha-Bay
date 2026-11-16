@@ -6,7 +6,7 @@
  * `albedo`, `normal` and `orm`. `bindings` says which surface names (the `SURFACE_NAMES` of look/surfaces.ts) show which set; every other
  * surface name is listed in `procedural[]`, so a surface that a later row adds cannot be left out by accident.
  */
-import type { QualityTierId } from '@dv/shared';
+import type { QualityTierId, ShadowMode } from '@dv/shared';
 import flagsJson from '../../../../../config/platform-flags.json';
 import surfaceTexturesJson from '../../../../../config/world/surface-textures.json';
 import { SURFACE_NAMES } from '../look/surfaces.ts';
@@ -79,10 +79,26 @@ export function mapsOf(mode: TextureMode): readonly MapName[] {
 /** The asset ref of one map of a set. */
 export const refOf = (set: string, map: MapName): string => `texture/pbr.${set}.${map}`;
 
-/** The sets some surface is bound to, in the order of `sets`. */
+/**
+ * M02h7: the wall sets: sets every binding of which names a wall surface (`wall.*`). The walls read only their albedo, through the façade's
+ * `albedo` seam in the building material (`withWallTextures`), never in the ground material, so they take no slot of the ground's plan.
+ */
+export function wallSets(cfg: SurfaceTexturesFile = SURFACE_TEXTURES): string[] {
+  const names = new Map<string, string[]>();
+  for (const [name, set] of Object.entries(cfg.bindings)) names.set(set, [...(names.get(set) ?? []), name]);
+  return Object.keys(cfg.sets).filter((s) => (names.get(s) ?? []).length > 0 && (names.get(s) ?? []).every((n) => n.startsWith('wall.')));
+}
+
+/** The ground sets: those some surface other than a wall is bound to, in the order of `sets` (the wall sets are `wallSets`). */
 export function boundSets(cfg: SurfaceTexturesFile = SURFACE_TEXTURES): string[] {
   const used = new Set(Object.values(cfg.bindings));
-  return Object.keys(cfg.sets).filter((s) => used.has(s));
+  const walls = new Set(wallSets(cfg));
+  return Object.keys(cfg.sets).filter((s) => used.has(s) && !walls.has(s));
+}
+
+/** M02h7: the wall sets' albedo refs a mode requests: on `stochastic` and `single` (the `full` and `lite` looks), none on `albedo` (`min`) or off. */
+export function wallRefsFor(mode: TextureMode, cfg: SurfaceTexturesFile = SURFACE_TEXTURES): string[] {
+  return mode === 'stochastic' || mode === 'single' ? wallSets(cfg).map((s) => refOf(s, 'albedo')) : [];
 }
 
 /** The surface ids bound to `set`. A name that is not a surface name is ignored here (`textureConfigErrors` reports it). */
@@ -100,6 +116,62 @@ export function refsFor(mode: TextureMode, cfg: SurfaceTexturesFile = SURFACE_TE
   const out: string[] = [];
   for (const set of boundSets(cfg)) for (const m of mapsOf(mode)) out.push(refOf(set, m));
   return out;
+}
+
+/** Whether the look's physical sky bakes an environment map: the `full` profile, never on WebKit (bug 303203). Read by look-view.ts. */
+export const bakesEnvMap = (profile: LookProfile, browser: string): boolean => profile === 'full' && browser !== 'safari';
+
+/**
+ * Sampled textures a look ground material binds in one fragment besides the surface sets (three r186; BD-FIX-WEBGPU-TREES-01): the DFG
+ * lookup table of the physical lighting model, the environment map where the physical sky bakes one (`bakesEnvMap`), and one depth
+ * texture per shadow cascade (`csm3` three, `csm1` one, `blob` and no shadows none).
+ */
+export function groundReservedTextures(o: { envMap: boolean; shadows: ShadowMode | 'none' }): number {
+  return 1 + (o.envMap ? 1 : 0) + (o.shadows === 'csm3' ? 3 : o.shadows === 'csm1' ? 1 : 0);
+}
+
+export interface MapPlan {
+  /** The maps each bound set reads, in the order of `MAP_NAMES`; a set with none is left to the procedural look. */
+  maps: Record<string, MapName[]>;
+  /** The refs requested: the kept maps, set by set in the order of `sets` (equal to `refsFor(mode)` when nothing is capped). */
+  refs: string[];
+  /** The refs left out because a fragment cannot bind them all, sorted. */
+  capped: string[];
+}
+
+/**
+ * The maps of `mode` that fit in `slots` sampled textures per fragment (BD-FIX-WEBGPU-TREES-01): every bound set's albedo first, then
+ * the normal maps, then the orm maps, each in the order of `sets`; what does not fit is left out, and its set draws that term of the
+ * procedural look (a set without its albedo draws none of its maps). `slots` at or above the full count keeps every map.
+ */
+export function mapsWithin(mode: TextureMode, slots: number, cfg: SurfaceTexturesFile = SURFACE_TEXTURES): MapPlan {
+  const sets = boundSets(cfg);
+  const wanted = mapsOf(mode);
+  const keep = new Set<string>();
+  let left = Math.max(0, Math.floor(slots));
+  for (const m of MAP_NAMES) {
+    if (!wanted.includes(m)) continue;
+    for (const s of sets) {
+      if (left === 0) break;
+      if (m !== 'albedo' && !keep.has(refOf(s, 'albedo'))) continue;
+      keep.add(refOf(s, m));
+      left--;
+    }
+  }
+  const maps: Record<string, MapName[]> = {};
+  const refs: string[] = [];
+  const capped: string[] = [];
+  for (const s of sets) {
+    maps[s] = [];
+    for (const m of wanted) {
+      const ref = refOf(s, m);
+      if (keep.has(ref)) {
+        (maps[s] as MapName[]).push(m);
+        refs.push(ref);
+      } else capped.push(ref);
+    }
+  }
+  return { maps, refs, capped: capped.sort() };
 }
 
 /** Whether a backend (`webgpu` or `webgl2`) or a `<browser>-<backend>` pair is in `unsupported`. */

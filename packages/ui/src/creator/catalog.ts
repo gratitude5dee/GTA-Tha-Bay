@@ -32,6 +32,8 @@ export interface CreatorPart {
   titleKey: string;
   model?: string;
   portrait?: string;
+  /** A Coast row without a `model` draws this same-slot realistic row (M10d4), tinted with its own `color`. */
+  fallbackPart?: PartId;
   tags: string[];
   unlock?: string;
   retired?: boolean;

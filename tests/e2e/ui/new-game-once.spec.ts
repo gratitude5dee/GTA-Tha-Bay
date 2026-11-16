@@ -4,24 +4,32 @@ import { HOME, hideQaPanels, NO_BYPASS, passGates } from './helpers.ts';
 /**
  * BD-FIX-NEWGAME-01 (@new-game): one press of Continue on New Game reaches the creator, also when it comes right after the main menu
  * appears, while the engine is still starting behind it. The engine attaches to the shell only once the world is prepared (on staging the
- * baked world downloads first; WebKit takes seconds even on the small scene), and here the sim worker's script is also held back for
- * HOLD_MS so the press lands in that window on Chromium too. Before the fix that press made the profile, lost its `select` (no engine to
- * send it to) and showed "Saving is not available" at once; only a second press opened the creator. The page now shows a busy line and
- * goes on by itself once the game is up. With saving forced to memory only, the notice shows and the same press opens the creator.
+ * baked world downloads first; WebKit takes seconds even on the small scene), and here the sim worker's script is also held back until
+ * the press has been made, so the press lands in that window on Chromium too. The worker spawns at page load, before the tier benchmark
+ * (BD-FIX-WEBKIT-ATTACH-01), so a hold of a fixed length from its request no longer outlasted a slow menu. Before the fix that press made
+ * the profile, lost its `select` (no engine to send it to) and showed "Saving is not available" at once; only a second press opened the
+ * creator. The page now shows a busy line and goes on by itself once the game is up. With saving forced to memory only, the notice shows
+ * and the same press opens the creator.
  */
 test.use({ storageState: NO_BYPASS, locale: 'en-US' });
 test.describe.configure({ timeout: 300_000 });
 
-const HOLD_MS = 15_000;
-
 type Bridge = { __dvBridge?: { engine?: { modes: { vm(k: string): unknown } } } };
 
-/** Holds the sim worker's script back, so the engine attaches HOLD_MS later than it would (the window the owner pressed Continue in). */
-async function holdEngine(page: Page): Promise<void> {
+/**
+ * Holds the sim worker's script back until the returned release is called, so the engine cannot attach before then (the window the owner
+ * pressed Continue in), however long the menu takes to come up.
+ */
+async function holdEngine(page: Page): Promise<() => void> {
+  let release: () => void = () => undefined;
+  const released = new Promise<void>((r) => {
+    release = r;
+  });
   await page.route('**/assets/sim.worker-*.js', async (route) => {
-    await new Promise((r) => setTimeout(r, HOLD_MS));
+    await released;
     await route.continue().catch(() => undefined);
   });
+  return release;
 }
 
 /** Every text the save error box showed, even for a moment (a later success would hide it). */
@@ -52,7 +60,7 @@ test.describe('New Game with one press @new-game', () => {
   test('Continue pressed while the engine is still starting reaches the creator, with a busy line meanwhile @new-game', async ({ page }) => {
     await hideQaPanels(page);
     await watchSaveErrors(page);
-    await holdEngine(page);
+    const releaseEngine = await holdEngine(page);
     await page.goto(HOME);
     await passGates(page);
     // The precondition of the bug: the shell has no engine yet, so no open profile (the chip says so).
@@ -64,7 +72,8 @@ test.describe('New Game with one press @new-game', () => {
     await expect(page.getByTestId('new-busy')).toBeVisible();
     await expect(page.getByTestId('new-continue')).toHaveAttribute('aria-busy', 'true');
     expect(await openProfile(page)).toBeNull();
-    // The one press goes on by itself once the engine is up.
+    // The engine starts now, after the press. The one press goes on by itself once the engine is up.
+    releaseEngine();
     await expect(page.getByTestId('creator')).toBeVisible({ timeout: 180_000 });
     expect(await saveErrors(page)).toEqual([]);
     await expect.poll(() => openProfile(page), { timeout: 30_000 }).toMatchObject({ name: 'Coast', hasStory: false });

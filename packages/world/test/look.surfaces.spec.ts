@@ -10,7 +10,7 @@ import { meshLod } from '../src/client/chunks/lod-mesher.ts';
 import { MeshBuilder, meshChunk } from '../src/client/chunks/mesher.ts';
 import { meshBytes, transferListOf, type MeshBuffers, type UnitMesh } from '../src/client/chunks/mesh-types.ts';
 import { lookProfileFor } from '../src/client/look/config.ts';
-import { FACADE_SCALE, SURFACE_COUNT, Surf, isSurfaceId } from '../src/client/look/surfaces.ts';
+import { FACADE_SCALE, FLAG_BAY, FLAG_CORNICE, FLAG_PARAPET, FLAG_SHOP, SURFACE_COUNT, SURFACE_NAMES, Surf, isSurfaceId } from '../src/client/look/surfaces.ts';
 import { requireBake } from '../../../tests/support/require-bake.ts';
 
 const TIERS: QualityTierId[] = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low', 'xr-quest', 'xr-visionpro'];
@@ -81,7 +81,11 @@ describe('surf and facade arrays on the synth bake (AC-3)', () => {
               expect(u).toBeGreaterThanOrEqual(0);
               if (id >= Surf.WallBase && id < Surf.WallBase + 6) {
                 expect(v).toBeGreaterThanOrEqual(0);
-                expect(v).toBeLessThanOrEqual(wallH);
+                // M02h7: a bay cap or the cornice ring (kit parts, FLAG_BAY or FLAG_CORNICE) carries a `v` above the wall top, which the
+                // window grid draws plain; every other wall vertex stays within its wall
+                const kitPart = ((o.surf[i * 4 + 3] as number) & (FLAG_BAY | FLAG_CORNICE)) !== 0;
+                if (!kitPart) expect(v).toBeLessThanOrEqual(wallH);
+                else expect(v).toBeLessThanOrEqual(wallH + 40);
               }
               expect(wallH).toBeLessThanOrEqual(FACADE_SCALE);
             }
@@ -147,5 +151,16 @@ describe('MeshBuilder surface state', () => {
     expect(Array.from(o.surf)).toEqual([Surf.WallBase + 2, 7, 18, 1, Surf.RoofFlat, 7, 18, 0, Surf.RoofFlat, 7, 18, 0]);
     expect(Array.from(o.facade as Int16Array)).toEqual([10, 20, 30, 40, 0, 0, 0, 0, 0, 0, 0, 0]);
     expect(SURFACE_COUNT).toBeGreaterThan(Surf.Sea);
+  });
+});
+
+describe('the facade kit ids and flags (M02h7)', () => {
+  it('appends Awning as the last surface id and keeps the wall flags in distinct bits of surf.w', () => {
+    expect(SURFACE_NAMES[Surf.Awning]).toBe('awning');
+    expect(Surf.Awning + 1).toBe(SURFACE_COUNT);
+    expect(isSurfaceId(Surf.Awning)).toBe(true);
+    const bits = [FLAG_PARAPET, FLAG_SHOP, FLAG_BAY, FLAG_CORNICE];
+    expect(bits).toEqual([1, 2, 4, 8]);
+    expect(bits.reduce((a, b) => a | b, 0)).toBeLessThan(256);
   });
 });

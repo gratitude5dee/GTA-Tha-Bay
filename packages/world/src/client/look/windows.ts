@@ -47,3 +47,32 @@ export function windowLitFraction(hour: number, look: LookFile = LOOK): number {
 
 /** The old fixed range, used where the layer is off (the `legacy` profile and a switched-off `windows` layer). */
 export const LIT_RANGE_FIXED: Readonly<LitRange> = Object.freeze({ min: 0.55, max: 0.85 });
+
+/**
+ * M02h7: the night glow of shop signs and shop glass at a game hour (0..24, wrapped), 0..1: `look.json` `windows.shop` is a cyclic table of
+ * `[hour, level]` rows blended with a smoothstep like `litFrac`. 0 through the day (no sign glows at 13:00), lit through the evening.
+ */
+export function shopGlow(hour: number, look: LookFile = LOOK): number {
+  const rows = look.windows.shop;
+  const first = rows[0];
+  const last = rows[rows.length - 1];
+  if (!first || !last) return 0;
+  const h = ((hour % 24) + 24) % 24;
+  let a = last;
+  let b = first;
+  let span = first[0] + 24 - last[0];
+  let into = h >= last[0] ? h - last[0] : h + 24 - last[0];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const n = rows[i + 1];
+    if (r && n && h >= r[0] && h < n[0]) {
+      a = r;
+      b = n;
+      span = n[0] - r[0];
+      into = h - r[0];
+      break;
+    }
+  }
+  const t = span > 0 ? smooth(Math.max(0, Math.min(1, into / span))) : 0;
+  return a[1] + (b[1] - a[1]) * t;
+}

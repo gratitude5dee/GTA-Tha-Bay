@@ -152,9 +152,9 @@ describe('ci.yml (AC-8)', () => {
     expect(step).toContain('BUILD_RESULT: ${{ needs.build.result }}');
     expect(step).toContain('SHARDS_RESULT: ${{ needs.e2e-shard.result }}');
     const shards = Number(/E2E_SHARDS: '(\d+)'/.exec(step)?.[1] ?? 0);
-    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four, BD-INTEG-M02g1-01 to six, BD-FIX-CI-SHARD8-01 to eight, BD-REPAIR-M02g2-03 to nine, BD-FIX-CI-SHARD12-01 to twelve).
+    // Equal to the e2e-shard matrix (BD-FIX-CI8-S01 went from three shards to four, BD-INTEG-M02g1-01 to six, BD-FIX-CI-SHARD8-01 to eight, BD-REPAIR-M02g2-03 to nine, BD-FIX-CI-SHARD12-01 to twelve, BD-FIX-CI-SHARD14-01 to fourteen).
     const matrix = /^ {8}shard: \[([\d, ]+)\]$/m.exec(jobs['e2e-shard'] ?? '')?.[1]?.split(',').length ?? 0;
-    expect(shards).toBe(12);
+    expect(shards).toBe(14);
     expect(shards).toBe(matrix);
     const all = (r: string | null): (string | null)[] => Array.from({ length: shards }, () => r);
     const withAt = (i: number, r: string | null): (string | null)[] => all('success').map((v, j) => (j === i ? r : v));
@@ -239,6 +239,25 @@ describe('nightly.yml (AC-8)', () => {
     expect(jobs['e2e-full']).toContain('chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3');
     expect(jobs['perf']).toContain('pnpm check:perf -- --fail');
     expect(jobs['sweep-previews']).toContain('pnpm deploy:preview -- --sweep-closed');
+  });
+
+  it('the check:perf -- --fail step and its job have no continue-on-error, and the PR perf job still only warns (M11a1 AC-8)', () => {
+    const perf = jobs['perf'] ?? '';
+    const code = (t: string): string => t.split('\n').filter((l) => !l.trim().startsWith('#')).join('\n');
+    // (the apt-cache save steps of the job carry their own continue-on-error; the job and the perf step must not)
+    expect(code(perf)).not.toMatch(/^ {4}continue-on-error:/m);
+    const step = stepsOf(perf).find((s) => s.includes('pnpm check:perf -- --fail')) ?? '';
+    // a racing leg runs about 25 minutes of tests (BD-M11a1-17)
+    expect(Number(/timeout-minutes: (\d+)/.exec(perf)?.[1] ?? 0)).toBeGreaterThanOrEqual(45);
+    expect(step).toContain('--scenario "$PERF_SCENARIO_SET"');
+    expect(step).not.toContain('continue-on-error');
+    // BD-FIX-CI-PERFSPLIT-01: the PR side runs the scenarios in `perf-group` legs; `perf` only reports their verdict.
+    const prPerf = jobsOf(wf('ci.yml'))['perf-group'] ?? '';
+    const prStep = stepsOf(prPerf).find((s) => s.includes('pnpm check:perf')) ?? '';
+    expect(prStep).not.toContain('--fail');
+    expect(prStep).toContain('run: pnpm check:perf -- --scenario "$PERF_SCENARIO_SET"\n');
+    expect(code(prPerf)).not.toContain('--fail');
+    expect(code(prPerf)).not.toMatch(/^ {4}continue-on-error:/m);
   });
 
   it('has the informational macos-probe job on macos-15 with continue-on-error', () => {

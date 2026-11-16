@@ -35,10 +35,14 @@ export interface LookNodes {
   uBump: U<number>;
   uMacro: U<number>;
   uLots: U<number>;
+  /** M02h7: the `facade` layer on (1) or off (0): storefronts, sign panels, the window reveal bump, the wall-top tilt and the `min` bands. */
+  uFacade: U<number>;
+  /** M02h7: the night glow of shop signs and shop glass this frame, 0..1 (`look/windows.ts` `shopGlow` by the hour). */
+  uShopGlow: U<number>;
 }
 
 export function createLookNodes(sky: SkyNodes, fadeSeconds: number): LookNodes {
-  return { sky, uTime: uniform(0), uFade: uniform(fadeSeconds), uLook: uniform(0), uWindowGlow: uniform(0), uEnv: uniform(1), uLitMin: uniform(0.55), uLitMax: uniform(0.85), uMarkings: uniform(1), uMarkAA: uniform(1), uCurbs: uniform(1), uBump: uniform(1), uMacro: uniform(1), uLots: uniform(1) };
+  return { sky, uTime: uniform(0), uFade: uniform(fadeSeconds), uLook: uniform(0), uWindowGlow: uniform(0), uEnv: uniform(1), uLitMin: uniform(0.55), uLitMax: uniform(0.85), uMarkings: uniform(1), uMarkAA: uniform(1), uCurbs: uniform(1), uBump: uniform(1), uMacro: uniform(1), uLots: uniform(1), uFacade: uniform(1), uShopGlow: uniform(0) };
 }
 
 /** The `surf` attribute decoded: surface id (flat across a triangle), palette index, kind/roof code, flags. */

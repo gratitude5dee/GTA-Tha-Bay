@@ -1,0 +1,41 @@
+{
+  "schema": "art-vetting-record/1",
+  "milestone": "M10d4",
+  "date": "2026-10-30",
+  "reviewer": "m10d4-builder",
+  "checklist": "docs/legal/art-vetting-checklist.md",
+  "summary": "The pedestrian and creator kit is authored by code recipes (tools/assets/src/recipes/{people,head,wear}.ts, parameters in content/art/people.json). No third-party file was imported, so no intake record and no licensed provenance record exist for it; every provenance record is origin authored (LicenseRef-DeeVerse-Owned) or derived from an authored file (the portraits).",
+  "baseComparison": {
+    "candidates": [
+      {
+        "id": "quaternius-universal-base-characters",
+        "pack": "quaternius",
+        "licence": "CC0-1.0 (docs/legal/licenses/quaternius.md, sha256 ca74ca84495f...)",
+        "decision": "not imported",
+        "reasons": [
+          "The Standard download is an itch.io checkout flow (a form with a price field), not a file the build container can fetch by a pinned URL; scraping it would not give a hash-pinned source.",
+          "The pack lists Teen proportions beside Superhero and Regular; each file would need the adult check of tools/assets/src/import/character.ts, and the bases read stylized (the art-source study)."
+        ],
+        "path": "inspectBase, snapRestPose and incomingBases in tools/assets/src/import/character.ts are ready: a base dropped into content-incoming/quaternius/ is inspected (22 bones, rest pose within 1 cm of BONE_REST, at most 4 influences, adult stature and head) before any use, and needs an intake record and a vetting review like any licensed file."
+      },
+      {
+        "id": "makehuman",
+        "pack": null,
+        "decision": "not used",
+        "reasons": ["MakeHuman is AGPL code; its use needs an Architect ADR at session start, which this session did not have (milestone Scope in)."]
+      },
+      { "id": "mixamo", "pack": null, "decision": "rejected", "reasons": ["Raw character files may not be distributed (the web build serves raw GLBs); the milestone rejects it."] }
+    ]
+  },
+  "person": {
+    "likenessTier": "original",
+    "rules": {
+      "V-PERSON": "pass: no scan, no photo and no target image was an input; faces are the skull recipe plus 24 sliders and a seeded table, the face presets carry neighbourhood names that name no person",
+      "V-LOGO": "pass: no garment holds text, a logo or a mark; the cloth atlas pages hold weave, twill, rib, rip-stop, pebble and check patterns only",
+      "adult": "pass: every body is 1.55 to 1.95 m and its head is under 1/6.5 of the stature (tools/assets/test/import.character.spec.ts, recipes.people.spec.ts); no child proportion exists in the kit"
+    }
+  },
+  "notDone": [
+    "anim/ped.moves from the Universal Animation Library: the library is an itch.io download too; the placeholder clips of the mannequin rig stay (BD-M10d4-06)."
+  ]
+}

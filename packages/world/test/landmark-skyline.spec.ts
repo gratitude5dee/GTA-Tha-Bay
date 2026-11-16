@@ -139,6 +139,191 @@ describe('the staged swap commit', () => {
   });
 });
 
+/**
+ * BD-FIX-LANDMARK-PREPARE-01: the swap's 8 s count what the worker did with its prepares, on the worker's own account, never how long a
+ * reply waited on a page busy with long frames or a request waited in a busy worker's queue. Every case drives the layer through what
+ * a player would see: the failed list, the phase, what is mounted and what is masked.
+ */
+describe('the staged swap waits on the worker, not on the clock', () => {
+  const phases = (h: Harness): string[][] => h.layer.report().resident.map((e) => [e.id, e.phase]);
+  const masks = (h: Harness): number[] => h.chunks.get('9/0/0' as ChunkKey)?.masked ?? [];
+  /** Lets the gate run the commit and the prepared mesh land, the way the frames after it do. */
+  const commitSwap = async (h: Harness): Promise<void> => {
+    h.runTasks();
+    h.layer.update({ x: 0, z: 0 }, h.clock.ms / 1000);
+    h.commit();
+    await h.step(0, 4);
+  };
+  /** After `retryMs` the load is tried again; the frames run the gate as they go. */
+  const retry = async (h: Harness): Promise<void> => {
+    h.clock.ms += LANDMARKS_RUNTIME.retryMs;
+    for (let i = 0; i < 8; i++) {
+      await h.step(0, 1);
+      h.settle();
+    }
+  };
+
+  it('a prepared mesh the worker posted that waits on a busy page for 30 s of long frames is taken: the swap commits, nothing is reported failed', async () => {
+    const h = harness('mobile', [0], { auto: false, qa: true });
+    // the page is busy with frames of 5 s each: what the worker posts waits on it
+    h.inbox.on = true;
+    await h.step(0, 3);
+    expect(phases(h)).toEqual([['lm.s0', 'preparing']]);
+    for (let i = 0; i < 6; i++) {
+      h.clock.ms += 5000;
+      await h.step(0, 1);
+    }
+    // 30 s after the prepare went out, and the worker answered it at once: nothing is given up
+    expect(h.layer.report().failed).toEqual([]);
+    expect(phases(h)).toEqual([['lm.s0', 'preparing']]);
+    // the page gets to its messages: the prepared mesh first, then the worker's answer about it
+    h.drain();
+    await flush();
+    await h.step(0, 2);
+    expect(h.queued.map((t) => t.id)).toEqual(['full:lm.s0']);
+    await commitSwap(h);
+    const r = h.layer.report();
+    expect(r.failed).toEqual([]);
+    expect(phases(h)).toEqual([['lm.s0', 'shown']]);
+    expect(h.mounted).toEqual(['lm.s0']);
+    // one load and one prepare: nothing was retried
+    expect(h.loads).toEqual(['lm.s0']);
+    expect(h.remeshes.filter((m) => m.staged).length).toBe(1);
+    expect(masks(h)).toEqual([1]);
+    expect(r.frames.holes).toBe(0);
+  });
+
+  it('a prepare a busy worker took up late and is still reading when asked is not lost: the swap waits for it and commits', async () => {
+    const h = harness('mobile', [0], { auto: false, qa: true });
+    // the worker's queue holds earlier work, so the prepare waits there; once taken up, its read of the store is slow
+    h.worker.busy = true;
+    h.hold.on = true;
+    await h.step(0, 3);
+    h.clock.ms += 9000;
+    // past the time: the layer asks the worker, and the question waits in the worker's queue behind the prepare
+    await h.step(0, 2);
+    expect(h.layer.report().failed).toEqual([]);
+    // the worker gets to its queue: it takes the prepare up (the read starts) and then answers that it holds it
+    h.worker.run();
+    await flush();
+    await h.step(0, 2);
+    expect(h.layer.report().failed).toEqual([]);
+    expect(phases(h)).toEqual([['lm.s0', 'preparing']]);
+    // the read takes 5 s of the worker's clock, within the limit
+    h.clock.ms += 5000;
+    await h.step(0, 2);
+    expect(h.layer.report().failed).toEqual([]);
+    h.releasePrepared();
+    await flush();
+    await h.step(0, 2);
+    expect(h.queued.map((t) => t.id)).toEqual(['full:lm.s0']);
+    await commitSwap(h);
+    expect(h.layer.report().failed).toEqual([]);
+    expect(phases(h)).toEqual([['lm.s0', 'shown']]);
+    expect(h.mounted).toEqual(['lm.s0']);
+    expect(h.loads).toEqual(['lm.s0']);
+    expect(h.remeshes.filter((m) => m.staged).length).toBe(1);
+    expect(masks(h)).toEqual([1]);
+  });
+
+  it('a prepared mesh lost on its way is given up once the worker answers that it no longer holds it, even on a busy page, and the load is tried again', async () => {
+    const h = harness('mobile', [0], { auto: false });
+    // the worker answers the prepare, but its reply never reaches the page; and the page is busy
+    h.worker.lose = true;
+    h.inbox.on = true;
+    await h.step(0, 3);
+    for (let i = 0; i < 4; i++) {
+      h.clock.ms += 3000;
+      await h.step(0, 1);
+    }
+    // 12 s on, the worker's answer still waits on the page: nothing is known yet, nothing is given up
+    expect(h.layer.report().failed).toEqual([]);
+    expect(phases(h)).toEqual([['lm.s0', 'preparing']]);
+    h.drain();
+    await flush();
+    await h.step(0, 1);
+    expect(h.layer.report().failed).toEqual([{ id: 'lm.s0', error: 'the chunk meshes did not come back' }]);
+    expect(h.mounted).toEqual([]);
+    expect(masks(h)).toEqual([]);
+    h.worker.lose = false;
+    await retry(h);
+    expect(h.loads).toEqual(['lm.s0', 'lm.s0']);
+    expect(h.mounted).toEqual(['lm.s0']);
+    expect(h.layer.report().failed).toEqual([]);
+    expect(masks(h)).toEqual([1]);
+  });
+
+  it('a prepare the worker holds past the limit on its own clock is given up, its late mesh dropped, and the load tried again', async () => {
+    const h = harness('mobile', [0], { auto: false });
+    // the worker takes the prepare up at once and its read does not end
+    h.hold.on = true;
+    await h.step(0, 3);
+    h.clock.ms += 5000;
+    await h.step(0, 2);
+    expect(h.layer.report().failed).toEqual([]);
+    h.clock.ms += 4000;
+    await h.step(0, 2);
+    expect(h.layer.report().failed).toEqual([{ id: 'lm.s0', error: 'the worker held the chunk meshes too long' }]);
+    expect(h.mounted).toEqual([]);
+    expect(masks(h)).toEqual([]);
+    // the read ends after all: the mesh is dropped, nothing mounts, nothing is masked
+    h.releasePrepared();
+    await flush();
+    await h.step(0, 3);
+    h.settle();
+    expect(h.mounted).toEqual([]);
+    expect(masks(h)).toEqual([]);
+    await retry(h);
+    expect(h.loads).toEqual(['lm.s0', 'lm.s0']);
+    expect(h.mounted).toEqual(['lm.s0']);
+    expect(h.layer.report().failed).toEqual([]);
+    expect(masks(h)).toEqual([1]);
+  });
+
+  it('a worker that answers nothing at all (its loop blocked, or gone) is given up after 8 s of silence counted at most 250 ms a frame, and the load is tried again', async () => {
+    const h = harness('mobile', [0], { auto: false });
+    h.worker.dead = true;
+    await h.step(0, 3);
+    h.clock.ms += 8000;
+    // past the time: the layer asks, and nothing comes back
+    await h.step(0, 1);
+    // frames of 4 s each (software GL on a starved core): 80 s of wall clock, but at most 250 ms of silence per frame, 5 s in all
+    for (let i = 0; i < 20; i++) {
+      h.clock.ms += 4000;
+      await h.step(0, 1);
+    }
+    expect(h.layer.report().failed).toEqual([]);
+    expect(phases(h)).toEqual([['lm.s0', 'preparing']]);
+    // 13 frames more: past 8 s of silence
+    for (let i = 0; i < 13; i++) {
+      h.clock.ms += 4000;
+      await h.step(0, 1);
+    }
+    expect(h.layer.report().failed).toEqual([{ id: 'lm.s0', error: 'the asset worker does not answer' }]);
+    expect(h.mounted).toEqual([]);
+    expect(masks(h)).toEqual([]);
+    // the slot is free and the load is tried again after retryMs; with the worker answering again, the landmark comes up
+    expect(h.layer.report().resident).toEqual([]);
+    h.worker.dead = false;
+    await retry(h);
+    expect(h.loads).toEqual(['lm.s0', 'lm.s0']);
+    expect(h.mounted).toEqual(['lm.s0']);
+    expect(h.layer.report().failed).toEqual([]);
+  });
+
+  it('a worker the client knows has failed (the question is refused) gives the swap up at once', async () => {
+    const h = harness('mobile', [0], { auto: false });
+    h.hold.on = true;
+    await h.step(0, 3);
+    h.worker.gone = true;
+    h.clock.ms += 9000;
+    await h.step(0, 2);
+    expect(h.layer.report().failed).toEqual([{ id: 'lm.s0', error: 'the asset worker is gone' }]);
+    expect(h.mounted).toEqual([]);
+    expect(masks(h)).toEqual([]);
+  });
+});
+
 describe('terrain under a far landmark', () => {
   it('a skyline landmark is placed on the coarse terrain before any L0 chunk is near and moved to the exact height when it arrives', async () => {
     const h = skyHarness('mobile', [1500], { ids: ['lm.sutro-tower'] });

@@ -7,7 +7,7 @@
  *  1. The directory follows the 64 B header (dirOffset = 64). Chunks are ordered by cy, then cx. Each chunk's
  *     section table sits at the chunk offset (12 B entries, ascending section id) and its payloads follow in the
  *     same order. No padding; every offset is absolute; reserved bytes are 0. p0 always carries sections 1-13
- *     (empty ones have count 0); l0 carries 20, 22, 23, 24, 25.
+ *     (empty ones have count 0); l0 carries 20, 22, 23, 24, 25, and 21 LANDUSE when the bake wrote ground cover (M02h3).
  *     Section `count`: records for list sections (PRISM, SLAB, HOOD, SEGMENT, NODE, EDGE, JUNCTION, BUILDING,
  *     TREE, LAMP, FURNITURE, LMREF), n for STRINGS, number of type groups for TAGS, 1 for the single-block
  *     sections (HEIGHT, PED, SPAWN, GROUND).
@@ -72,7 +72,8 @@ export const SEC = {
   GROUND: 12, STRINGS: 13, BUILDING: 20, LANDUSE: 21, TREE: 22, LAMP: 23, FURNITURE: 24, LMREF: 25,
 } as const;
 export const P0_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as const;
-export const L0_SECTIONS = [20, 22, 23, 24, 25] as const;
+/** M02h3 (C08 1.1): 21 LANDUSE carries the ground cover rectangles; a chunk baked without cover has no section 21. */
+export const L0_SECTIONS = [20, 21, 22, 23, 24, 25] as const;
 export const TURNS: readonly Turn[] = ['straight', 'left', 'right', 'uturn'];
 
 export type PackDecodeReason = 'magic' | 'version' | 'family' | 'bounds' | 'section';
@@ -556,6 +557,19 @@ function readTag(r: Reader, type: TagType, str: (i: number) => string, ox: numbe
   // Key order follows the interface: id, x, y, z, fields.
   const { id, x, y, z, ...rest } = rec;
   return { id, x, y, z, ...rest };
+}
+
+/**
+ * M02h3: the raw payload of one section of every chunk of a pack (null where a chunk has none), for decoders that live beside this one
+ * (`cover-codec.ts`). Checks the header and the directory as `decodeL0` does; reads nothing else.
+ */
+export function packSections(buf: Bytes, id: number): { key: ChunkKey; count: number; bytes: Uint8Array | null }[] {
+  const dv = viewOf(buf);
+  const h = readHeader(dv);
+  return readDirectory(dv, h).map((e) => {
+    const s = e.sections.get(id);
+    return { key: e.key, count: s?.count ?? 0, bytes: s ? new Uint8Array(dv.buffer, dv.byteOffset + s.offset, s.bytes) : null };
+  });
 }
 
 /** Decodes a p0 pack to its SimChunks. Pure and synchronous; throws PackDecodeError and never returns a partial result. */

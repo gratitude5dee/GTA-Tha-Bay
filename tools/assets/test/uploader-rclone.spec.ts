@@ -41,6 +41,26 @@ describe('rclone remote files (M05c4)', () => {
     expect(() => uploader(() => ok('not json')).up.readJson('k.json')).toThrow(/is not JSON/);
   });
 
+  it('readJson answers null when cat prints nothing and lsf lists no object (BD-FIX-ODBL-02); an empty object is not JSON', () => {
+    // rclone 1.75.2 against R2: `cat` of a key with no object exits 0 with no output, and `lsf` of that key lists nothing
+    const missing = uploader(() => ok(''));
+    expect(missing.up.readJson('odbl/b/index.json')).toBeNull();
+    expect(missing.calls).toEqual([
+      ['cat', 'r2:tha-bay-private-staging/odbl/b/index.json'],
+      ['lsf', '-R', '--files-only', 'r2:tha-bay-private-staging/odbl/b/index.json'],
+    ]);
+    // an object that exists and is empty: `lsf` of its key lists it
+    const empty = uploader((args) => (args[0] === 'lsf' ? ok('index.json\n') : ok('')));
+    expect(() => empty.up.readJson('odbl/b/index.json')).toThrow(/is not JSON/);
+    // the listing failing for another reason is not "missing"
+    const denied = uploader((args) => (args[0] === 'lsf' ? { status: 1, stdout: '', stderr: 'AccessDenied' } : ok('')));
+    expect(() => denied.up.readJson('odbl/b/index.json')).toThrow(/rclone lsf .* failed with exit 1/);
+    // a real document never asks lsf
+    const doc = uploader(() => ok('{"a":1}'));
+    expect(doc.up.readJson('k.json')).toEqual({ a: 1 });
+    expect(doc.calls).toHaveLength(1);
+  });
+
   it('list is a recursive files-only lsf of the prefix; a missing prefix is empty', () => {
     const a = uploader(() => ok('k/handoff.json\nk/orig.mp4\n\n'));
     expect(a.up.list('cutscenes-orig/')).toEqual(['k/handoff.json', 'k/orig.mp4']);

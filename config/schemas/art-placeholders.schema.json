@@ -30,6 +30,16 @@
             "uniqueItems": true,
             "description": "The AssetRefs that stand in the placeholder's place (a trailing `*` names a family the owner fills in). Required non-empty for rows owned by M10d1."
           },
+          "holds": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["file", "pointer"],
+            "properties": {
+              "file": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._/-]*\\.json$" },
+              "pointer": { "type": "string", "pattern": "^(/[^/]*)*$" }
+            },
+            "description": "A JSON file and pointer that must hold every `replacedBy` ref (`assets:final` rule 3, M10d2)."
+          },
           "repoint": {
             "type": "object",
             "propertyNames": { "pattern": "^[a-z_]+/[a-z0-9][a-z0-9._-]*$" },

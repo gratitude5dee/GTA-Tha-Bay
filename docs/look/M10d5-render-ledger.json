@@ -1,0 +1,58 @@
+{
+  "commit": "5af6d540",
+  "bakeId": "2536435fb1f8e8f1229648294e8450d6518ae98995cb0c6f82e070aec8339f93",
+  "baselineFrom": "docs/look/M02h5-render-ledger.json",
+  "drift": {
+    "reason": "the player stands in the frame: the mannequin of docs/look/M02h5-render-ledger.json drew 17 meshes, each one render object plus one per shadow pass where the look's casters are on (desktop), and the body draws one skinned mesh; this checkout reads the render objects in measured",
+    "measured": {
+      "desktop": 488,
+      "mobile": 123
+    }
+  },
+  "tiers": {
+    "desktop": {
+      "baseline": 552,
+      "after": 488,
+      "perLayer": {
+        "player": 0
+      },
+      "player": {
+        "objects": 1,
+        "triangles": 2768,
+        "variant": "mobile"
+      }
+    },
+    "mobile": {
+      "baseline": 139,
+      "after": 123,
+      "perLayer": {
+        "player": 0
+      },
+      "player": {
+        "objects": 1,
+        "triangles": 2768,
+        "variant": "mobile"
+      }
+    },
+    "mobile-low": {
+      "baseline": 68,
+      "after": 68,
+      "perLayer": {
+        "player": 0
+      },
+      "player": {
+        "objects": 1,
+        "triangles": 1377,
+        "variant": "mobile-low"
+      }
+    }
+  },
+  "xr": {
+    "baseline": 93,
+    "after": 76,
+    "player": {
+      "objects": 1,
+      "triangles": 1377
+    }
+  }
+}

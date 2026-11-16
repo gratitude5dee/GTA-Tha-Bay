@@ -1,0 +1,81 @@
+{
+  "commit": "local",
+  "bakeId": "2536435fb1f8e8f1229648294e8450d6518ae98995cb0c6f82e070aec8339f93",
+  "baselineFrom": "docs/look/M10d4-render-ledger.json",
+  "drift": {
+    "reason": "docs/look/M10d4-render-ledger.json was measured on the parent's synth bake (no scatter records) and scene; the rows in measuredOff are this checkout's render objects, the scatter's own delta is perLayer.scatter",
+    "measuredOff": {
+      "desktop": 552,
+      "mobile": 139,
+      "mobile-low": 68
+    }
+  },
+  "tiers": {
+    "desktop": {
+      "baseline": 551,
+      "after": 552,
+      "perLayer": {
+        "scatter": 4
+      },
+      "scatter": {
+        "pools": 4,
+        "impostors": 741,
+        "shrubs": 262,
+        "hedges": 48,
+        "vegTriangles": 25008,
+        "parkForestTriangles": 190476
+      }
+    },
+    "mobile": {
+      "baseline": 137,
+      "after": 139,
+      "perLayer": {
+        "scatter": 3
+      },
+      "scatter": {
+        "pools": 3,
+        "impostors": 278,
+        "shrubs": 39,
+        "hedges": 14,
+        "vegTriangles": 3932,
+        "parkForestTriangles": 35860
+      }
+    },
+    "mobile-low": {
+      "baseline": 68,
+      "after": 68,
+      "perLayer": {
+        "scatter": 1
+      },
+      "scatter": {
+        "pools": 1,
+        "impostors": 130,
+        "shrubs": 7,
+        "hedges": 0,
+        "vegTriangles": 1436,
+        "parkForestTriangles": 13560
+      }
+    },
+    "legacy": {
+      "baseline": 67,
+      "after": 67,
+      "perLayer": {
+        "scatter": 0
+      },
+      "scatter": {
+        "pools": 0,
+        "impostors": 0,
+        "shrubs": 7,
+        "hedges": 0,
+        "vegTriangles": 6176
+      }
+    }
+  },
+  "xr": {
+    "baseline": 93,
+    "after": 93,
+    "perLayer": {
+      "scatter": 0
+    }
+  }
+}

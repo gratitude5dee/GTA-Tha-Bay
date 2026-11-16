@@ -53,6 +53,10 @@ describe('bootSet', () => {
     expect(low.critical).toContain('texture/far-bay-cards');
     expect(low.p0.length).toBeLessThanOrEqual(desktop.p0.length);
     expect(new Set(desktop.p0).size).toBe(desktop.p0.length);
+    // M10d2: the facade atlas belongs to the desktop tiers' boot art, never to the critical set; mobile-low has none
+    expect(desktop.art).toEqual(['texture/facade-atlas']);
+    expect(desktop.critical).not.toContain('texture/facade-atlas');
+    expect(low.art).toEqual([]);
   });
   it('drops massing when the flag is off and cards when the flag is off', () => {
     expect(bootSet(fakeIndex(), spawn, 'desktop', { massing: false, cards: true }).far).toEqual(['world_pack/far-bay-dem']);

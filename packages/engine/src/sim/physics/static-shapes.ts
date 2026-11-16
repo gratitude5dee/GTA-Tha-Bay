@@ -148,3 +148,97 @@ export function earClip(xs: readonly number[], zs: readonly number[]): [number, 
   if (idx.length === 3) out.push([idx[0] as number, idx[1] as number, idx[2] as number]);
   return out;
 }
+
+/**
+ * The (x, z) shadow of a `StaticShapeSet` (ENU): the rectangle of its heightfield and the footprint of every convex prism piece
+ * (`prismPieces`), so the backend can tell whether a resident static stands in a column from its own statics table, in the same tick the
+ * table changes (BD-FIX-PARKED-FALL-01). Rapier's queries see a collider created since the last step only after the next one.
+ */
+export interface StaticFootprint {
+  /** Bounds of every ring (min x, min z, max x, max z); null when the set has none. */
+  readonly bounds: readonly [number, number, number, number] | null;
+  /** Convex rings one after another: [n, min x, min z, max x, max z, x0, z0, ..., x(n-1), z(n-1)]. */
+  readonly rings: Float64Array;
+}
+
+function pushRing(out: number[], xs: readonly number[], zs: readonly number[]): void {
+  let minX = xs[0] as number;
+  let minZ = zs[0] as number;
+  let maxX = minX;
+  let maxZ = minZ;
+  for (let k = 1; k < xs.length; k++) {
+    const x = xs[k] as number;
+    const z = zs[k] as number;
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (z < minZ) minZ = z;
+    if (z > maxZ) maxZ = z;
+  }
+  out.push(xs.length, minX, minZ, maxX, maxZ);
+  for (let k = 0; k < xs.length; k++) out.push(xs[k] as number, zs[k] as number);
+}
+
+/** The footprint of `set`. Pure; + - x and comparisons only. */
+export function staticFootprint(set: StaticShapeSet): StaticFootprint {
+  const out: number[] = [];
+  const h = set.heightfield;
+  if (h) {
+    // the extent `heightfieldLayout` gives Rapier, from `at` (the minimum x and z corner)
+    const x0 = h.at[0];
+    const z0 = h.at[2];
+    const x1 = x0 + h.cell * (h.nx - 1);
+    const z1 = z0 + h.cell * (h.nz - 1);
+    pushRing(out, [x0, x1, x1, x0], [z0, z0, z1, z1]);
+  }
+  for (const piece of prismPieces(set.prisms)) {
+    // a piece holds each vertex twice, base then top: (x, base, z, x, top, z)
+    const xs: number[] = [];
+    const zs: number[] = [];
+    for (let k = 0; k < piece.length; k += 6) {
+      xs.push(piece[k] as number);
+      zs.push(piece[k + 2] as number);
+    }
+    pushRing(out, xs, zs);
+  }
+  if (out.length === 0) return { bounds: null, rings: new Float64Array(0) };
+  let minX = out[1] as number;
+  let minZ = out[2] as number;
+  let maxX = out[3] as number;
+  let maxZ = out[4] as number;
+  for (let i = 0; i < out.length; i += 5 + 2 * (out[i] as number)) {
+    if ((out[i + 1] as number) < minX) minX = out[i + 1] as number;
+    if ((out[i + 2] as number) < minZ) minZ = out[i + 2] as number;
+    if ((out[i + 3] as number) > maxX) maxX = out[i + 3] as number;
+    if ((out[i + 4] as number) > maxZ) maxZ = out[i + 4] as number;
+  }
+  return { bounds: [minX, minZ, maxX, maxZ], rings: Float64Array.from(out) };
+}
+
+/** The convex ring of `n` vertices at `o` in `r` holds (x, z), its edges included; either winding. */
+function inRing(r: Float64Array, o: number, n: number, x: number, z: number): boolean {
+  let pos = false;
+  let neg = false;
+  for (let k = 0; k < n; k++) {
+    const k1 = k + 1 === n ? 0 : k + 1;
+    const ax = r[o + 2 * k] as number;
+    const az = r[o + 2 * k + 1] as number;
+    const c = cross2((r[o + 2 * k1] as number) - ax, (r[o + 2 * k1 + 1] as number) - az, x - ax, z - az);
+    if (c > 0) pos = true;
+    else if (c < 0) neg = true;
+    if (pos && neg) return false;
+  }
+  return true;
+}
+
+/** Some ring of `f` holds the column at (x, z). */
+export function footprintCovers(f: StaticFootprint, x: number, z: number): boolean {
+  const b = f.bounds;
+  if (b === null || x < b[0] || z < b[1] || x > b[2] || z > b[3]) return false;
+  const r = f.rings;
+  for (let i = 0; i < r.length;) {
+    const n = r[i] as number;
+    if (x >= (r[i + 1] as number) && z >= (r[i + 2] as number) && x <= (r[i + 3] as number) && z <= (r[i + 4] as number) && inRing(r, i + 5, n, x, z)) return true;
+    i += 5 + 2 * n;
+  }
+  return false;
+}

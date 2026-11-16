@@ -5,7 +5,8 @@ import { C13_VERSION, FLAT_LADDER, TIER_IDS, VARIANT_FALLBACK, type QualityTierI
 import { describe, expect, it } from 'vitest';
 import { classifyDevice } from '@dv/shared';
 import { DEFAULT_SETTINGS, createMemoryStore, normalizeSettings } from '../../src/platform/platform-store.ts';
-import { NO_QA_FLAGS, parseLimits, parseQaFlags } from '../../src/platform/qa-flags.ts';
+import { NO_QA_FLAGS, QA_GOVERNOR_KEY, QA_PLAY_KEY, parseLimits, parseQaFlags } from '../../src/platform/qa-flags.ts';
+import { qaStorageState } from '../../../../tests/support/qa-storage.ts';
 import { QualityServiceImpl } from '../../src/platform/quality-service.ts';
 import { PLATFORM_FLAGS, TIERS } from '../../src/platform/tier-config.ts';
 import { uaFixture } from './fakes.ts';
@@ -89,6 +90,24 @@ describe('QaFlags', () => {
     const f = parseQaFlags('?gpu=1&perf=1&governor=off&limits=maxBufferSize:1048576,bad,maxTextureDimension2D:2048&scenario=graybox-walk&tier=mobile-low&gl=1', true);
     expect(f).toMatchObject({ enabled: true, gpu: true, perf: true, governor: 'off', scenario: 'graybox-walk', tier: 'mobile-low', gl: true });
     expect(f.limits).toEqual({ maxBufferSize: 1_048_576, maxTextureDimension2D: 2048 });
+  });
+
+  it('?governor= (M11a1) is off, on or unset; the stored dv-qa-governor supplies it when the URL has none, and the URL wins; production ignores both', () => {
+    const none = (): null => null;
+    const stored = (v: 'off' | 'on' | null) => (): 'off' | 'on' | null => v;
+    expect(parseQaFlags('?governor=off', true).governor).toBe('off');
+    expect(parseQaFlags('?governor=on', true).governor).toBe('on');
+    expect(parseQaFlags('?governor=maybe', true, none, stored(null)).governor).toBeNull();
+    expect(parseQaFlags('?tier=mobile', true, none, stored('off')).governor).toBe('off');
+    expect(parseQaFlags('?governor=on', true, none, stored('off')).governor).toBe('on');
+    expect(parseQaFlags('?governor=off', true, none, stored('on')).governor).toBe('off');
+    expect(parseQaFlags('?governor=on', false, none, stored('off'))).toBe(NO_QA_FLAGS);
+    expect(NO_QA_FLAGS.governor).toBeNull();
+  });
+
+  it('the e2e page fixture stores play=sandbox and governor=off for the dev server port (tests/support/qa-storage.ts)', () => {
+    const state = qaStorageState(9601);
+    expect(state.origins).toEqual([{ origin: 'http://localhost:9601', localStorage: [{ name: QA_PLAY_KEY, value: 'sandbox' }, { name: QA_GOVERNOR_KEY, value: 'off' }] }]);
   });
 
   it('?net= (M02f1, C13 1.2) is accepted only for a profile id and only in a QA build', () => {

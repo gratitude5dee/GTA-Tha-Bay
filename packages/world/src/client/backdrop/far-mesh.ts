@@ -15,12 +15,23 @@ import type { MeshBuffers } from '../chunks/mesh-types.ts';
 
 export interface BackdropCluster { id: string; col: number; enu: [number, number]; widthM: number; heightM: number }
 export interface BackdropConfig {
-  atlas: { cols: number; rows: number; cardPx: [number, number]; sizePx: [number, number]; azimuthsDeg: number[] };
+  atlas: { asset: string; cols: number; rows: number; cardPx: [number, number]; sizePx: [number, number]; azimuthsDeg: number[] };
   clusters: BackdropCluster[];
   ring: { minCardM: number; seaLevelM: number };
   colors: { low: string; high: string; water: string; massing: string; card: string; sky: string };
 }
 export const BACKDROP: BackdropConfig = backdropJson as unknown as BackdropConfig;
+
+/** What the `world.far` job returns for the cards: the atlas file as stored (KTX2 since M10d2, PNG from an older bake). */
+export interface FarCardsResult { bytes: ArrayBuffer }
+
+/** The atlas file's format by its magic bytes. */
+export function cardsFormat(bytes: ArrayBuffer): 'ktx2' | 'png' | 'unknown' {
+  const b = new Uint8Array(bytes, 0, Math.min(12, bytes.byteLength));
+  if (b.length >= 12 && b[0] === 0xab && b[1] === 0x4b && b[2] === 0x54 && b[3] === 0x58 && b[4] === 0x20 && b[5] === 0x32 && b[6] === 0x30) return 'ktx2';
+  if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'png';
+  return 'unknown';
+}
 
 const LOW: Rgb = hexToLinear(BACKDROP.colors.low);
 const HIGH: Rgb = hexToLinear(BACKDROP.colors.high);

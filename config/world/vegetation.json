@@ -1,0 +1,24 @@
+{
+  "schema": "world-vegetation/1",
+  "note": "M02h5 vegetation scatter (tools/map/src/stages/s13-scatter.ts), run in S13 after the M02h3 cover: Poisson trees and understory shrubs over OSM natural=wood and landuse=forest, groves of trees with edge shrubs on the park cells outside the woods (lawns between groves stay open; leisure=pitch and playground excluded), shrubs over natural=scrub, hedge blocks along barrier=hedge and along a share of yard frontages, sparse yard shrubs; plus the street-tree density rules of S3 (OSM trees near a DataSF tree dropped, a tree every treeRowM along natural=tree_row). Every scatter record carries bit 7 of the TREE byte. Distances in metres, shares 0..1, mixes per form (summing to 1). `seed` is the bake seed of every polygon's stream (fnv32(seed|polyId)). Design values; the OSM tag meanings are recorded in spec/03 section 7. `enabled` false bakes no scatter.",
+  "enabled": true,
+  "seed": 20261101,
+  "wood": { "rMin": 6, "mix": { "eucalyptus": 0.45, "conifer": 0.4, "plane": 0.15 }, "understory": { "rMin": 3.5, "share": 0.5 } },
+  "park": {
+    "centreRMin": 45,
+    "groveMin": 3,
+    "groveMax": 9,
+    "groveRadiusM": 14,
+    "treeRMin": 6,
+    "mix": { "conifer": 0.45, "eucalyptus": 0.3, "plane": 0.25 },
+    "edgeShrubShare": 0.3,
+    "edgeShrubM": 3,
+    "shrubRMin": 3.5,
+    "excludeLeisure": ["pitch", "playground"]
+  },
+  "scrub": { "rMin": 3, "share": 0.6 },
+  "hedge": { "blockM": 0.9, "hedgeShare": 0.12, "lotM": 8, "insetM": 0.6 },
+  "yard": { "shrubShare": 0.08, "shrubRMin": 3 },
+  "exclusion": { "footprintM": 1.5, "roadM": 2, "pedM": 1, "landmarkM": 6 },
+  "streetTrees": { "dedupeM": 3, "treeRowM": 8 }
+}

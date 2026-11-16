@@ -1,0 +1,62 @@
+{
+  "kind": "character",
+  "id": "pc-top-hoodie",
+  "variants": {
+    "desktop": "assets/src/character/pc-top-hoodie/desktop.glb",
+    "mobile": "assets/src/character/pc-top-hoodie/mobile.glb",
+    "mobile-low": "assets/src/character/pc-top-hoodie/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1070,
+      "verts": 668,
+      "materials": 1,
+      "primitives": 1,
+      "bones": 22,
+      "texMaxPx": 1024
+    },
+    "mobile": {
+      "tris": 386,
+      "verts": 276,
+      "materials": 1,
+      "primitives": 1,
+      "bones": 22,
+      "texMaxPx": 512
+    },
+    "mobile-low": {
+      "tris": 180,
+      "verts": 149,
+      "materials": 1,
+      "primitives": 1,
+      "bones": 22,
+      "texMaxPx": 256
+    }
+  },
+  "deps": [],
+  "tags": [
+    "class:creator",
+    "art:m10d4"
+  ],
+  "extras": {
+    "t": "character",
+    "npcId": "people-kit",
+    "rigFamily": "bay_rig_v1",
+    "heightM": 1.8,
+    "bones": {
+      "jaw": false,
+      "fingers": false
+    },
+    "animSets": [],
+    "portrait": "portrait/pc-top-hoodie"
+  },
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

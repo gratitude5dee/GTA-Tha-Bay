@@ -5,3 +5,4 @@ export * from './qa-flags.ts';
 export * from './diagnostics.ts';
 export { createPlatform, fetchBootRegion } from './create-platform.ts';
 export type { CreatePlatformOptions, Platform } from './create-platform.ts';
+export { UiHold, UI_HOLD_MS, type UiHoldGate } from './ui-hold.ts';

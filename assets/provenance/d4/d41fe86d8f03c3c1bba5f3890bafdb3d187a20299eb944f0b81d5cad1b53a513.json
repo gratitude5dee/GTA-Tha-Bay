@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "d41fe86d8f03c3c1bba5f3890bafdb3d187a20299eb944f0b81d5cad1b53a513",
+  "paths": [
+    "assets/src/character/pc-hair-shag/desktop.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "1831c03d9b9ec2d77406dd34ea2a0c777114d8faf301edf865e5f042b268e203"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

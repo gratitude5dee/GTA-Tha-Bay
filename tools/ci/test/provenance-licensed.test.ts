@@ -167,12 +167,12 @@ describe('CC-BY attribution and credits', () => {
 });
 
 describe('the repository register', () => {
-  it('lists the four packs plus the CC BY text and every snapshot matches its hash', () => {
+  it('lists the four packs plus the CC BY text and every snapshot matches its hash (Quaternius flips to import in M10d4)', () => {
     const reg = loadPackRegister(toolsRoot);
     expect(reg.findings).toEqual([]);
     expect(reg.packs.map((p) => p.id)).toEqual(['polyhaven', 'ambientcg', 'quaternius', 'kenney', 'cc-by-4.0']);
     expect(checkPackRegister(reg.packs, snapshotHashes(toolsRoot, reg.packs))).toEqual([]);
-    expect(reg.packs.filter((p) => p.use === 'import').map((p) => p.id)).toEqual(['polyhaven', 'ambientcg']);
+    expect(reg.packs.filter((p) => p.use === 'import').map((p) => p.id)).toEqual(['polyhaven', 'ambientcg', 'quaternius']);
   });
 });
 

@@ -30,11 +30,16 @@ interface Cfg {
   unsupported: string[];
 }
 const CFG = read<Cfg>('config/world/surface-textures.json');
-const BOUND = Object.keys(CFG.sets).filter((s) => Object.values(CFG.bindings).includes(s));
+const BOUND_ALL = Object.keys(CFG.sets).filter((s) => Object.values(CFG.bindings).includes(s));
+/** M02h7: the wall sets (bound to `wall.*` surfaces only) read their albedo alone, on `full` and `lite` (`textures/config.ts` `wallSets`). */
+const WALL_SETS = BOUND_ALL.filter((s) => Object.entries(CFG.bindings).every(([name, set]) => set !== s || name.startsWith('wall.')));
+const BOUND = BOUND_ALL.filter((s) => !WALL_SETS.includes(s));
+const setsFor = (mode: string): string[] => (mode === 'albedo' ? BOUND : BOUND_ALL);
 
 const refsFor = (mode: string): string[] => {
   const maps = mode === 'albedo' ? ['albedo'] : ['albedo', 'normal', 'orm'];
-  return BOUND.flatMap((s) => maps.map((m) => `texture/pbr.${s}.${m}`)).sort();
+  const walls = mode === 'albedo' ? [] : WALL_SETS.map((s) => `texture/pbr.${s}.albedo`);
+  return [...BOUND.flatMap((s) => maps.map((m) => `texture/pbr.${s}.${m}`)), ...walls].sort();
 };
 
 async function setSky(page: Page, hour: number, weather: string): Promise<void> {
@@ -88,11 +93,16 @@ test.describe('surface textures @art-textures', () => {
         expect([...requested]).toEqual([]);
         return;
       }
-      const refs = refsFor(MODE_OF[tier]);
+      // BD-FIX-WEBGPU-TREES-01: the maps a fragment cannot bind on this device are left out (`capped`). WebGPU's 16 sampled textures per
+      // stage hold all but the grass-dirt orm map at `desktop` (12 maps beside the DFG table, the environment map and three cascades);
+      // the WebGL2 projects bind them all.
+      const capped = look?.backend === 'webgpu' && tier === 'desktop' ? ['texture/pbr.grass-dirt.orm'] : [];
+      expect(t.capped).toEqual(capped);
+      const refs = refsFor(MODE_OF[tier]).filter((r) => !capped.includes(r));
       expect(t.mode).toBe(MODE_OF[tier]);
       expect([...t.refs].sort()).toEqual(refs);
       expect(t.failed).toEqual([]);
-      expect([...t.sets].sort()).toEqual([...BOUND].sort());
+      expect([...t.sets].sort()).toEqual([...setsFor(MODE_OF[tier])].sort());
       expect(t.format, 'the GPU format the maps were transcoded to').toMatch(/^(BC7|ASTC4x4|ETC2|RGBA8|DXT5|DXT1|ETC1|PVRTC)$/);
       expect(t.gpuBytes).toBeGreaterThan(0);
       expect(t.gpuBytes).toBeLessThanOrEqual(budget.gpuMB * MIB);
@@ -116,7 +126,10 @@ test.describe('surface textures @art-textures', () => {
     await texturesSettled(page);
     const t = (await world(page, (w) => w.look()))?.textures;
     expect(t).toMatchObject({ mode: 'off', refs: [], sets: [], gpuBytes: 0, downloadBytes: 0 });
-    await frames(page, 30);
+    // Thirty frames after the boot, with the stream still uploading at `desktop` (settle(90 s) ends unsettled on software GL): 96 to 141 s
+    // locally, past 180 s on a slow CI runner, where the first try failed at the old bound (runs 41275283470, 41286285044). The count is
+    // unchanged; the bound is the test's to spend (BD-REPAIR-M02h3-03).
+    await frames(page, 30, 480_000);
     expect([...requested]).toEqual([]);
   });
 
@@ -169,7 +182,7 @@ test.describe('textures ledger @textures-ledger', () => {
     test(`${tier}: the textures add no render object @textures-ledger`, async ({ page }) => {
       // The same state as the ledger it measures from (M02g1): 480 x 270, 13:00 clear, traffic resident, `fog-west` at `mobile-low`.
       // `&art=0` (DL-758): this row is M10d0's own scene, so the art of the later M10d1 row stays out of the frame (BD-REPAIR-M10d1-01)
-      await bootWorld(page, tier, '&art=0', SMALL_VIEWPORT);
+      await bootWorld(page, tier, '&art=0&furniture=0', SMALL_VIEWPORT);
       await texturesSettled(page);
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);

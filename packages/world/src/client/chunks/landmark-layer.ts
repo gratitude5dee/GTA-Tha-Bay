@@ -13,8 +13,15 @@
  *    `ChunkUploadGate`: the model joins the scene in the frame the gate releases it (one upload that frame, like any chunk), and the
  *    prepared chunk meshes follow through the same gate, one per frame, right behind it. The model always comes first, so a proxy
  *    is never removed before the model that replaces it is up; for the few frames of the hand-over both are drawn.
- *  - Beyond `swapM x unloadFactor` the proxies are meshed back first and the model is removed when the last chunk is back (or after
- *    a short timeout): never a hole. A load that fails leaves the proxy meshed and is tried again after `retryMs`.
+ *  - Beyond `swapM x unloadFactor` the proxies are meshed back first and the model is removed when the last chunk is back (or when
+ *    asset.worker has stopped answering, so the chunks cannot come back): never a hole. A load that fails leaves the proxy meshed and
+ *    is tried again after `retryMs`.
+ *  - Waiting on the worker (BD-FIX-LANDMARK-PREPARE-01): the layer gives a wait up only on the worker's own account. Past its time
+ *    it asks the worker (`held`) about the requests it waits on; the answer comes on the same channel as the replies, after every
+ *    reply posted before it, so a request the worker no longer holds whose reply has not arrived is lost, and a request it holds is
+ *    measured on the worker's clock from when it was taken up. A worker that says nothing at all while asked is blocked or gone
+ *    (`WorkerWatch`). Time a reply spends waiting on this thread behind long frames, or a request in a busy worker's queue, never
+ *    counts.
  *
  * The skyline (02-world-bake.md section 7 rule 4; M02d2): a fixed set of far silhouettes (the two bridges, the towers) at the `lo`
  * fidelity. Each is read when within `loadFactor x` the tier's building draw distance (`skylineRangeM`, the streaming r2), put in
@@ -32,6 +39,7 @@ import runtimeJson from '../../../../../config/world/landmarks-runtime.json';
 import type { LandmarkModelData } from './landmark-glb.ts';
 import { chunksHolding, desiredMask, proxyIdOf, staleChunks, type ChunkProxyState } from './proxy-mask.ts';
 import { inSkylineRange, nextSkylineLoad, skylineRings, type SkylineRings, type SkylineRuntime } from './skyline.ts';
+import { WorkerWatch } from './worker-watch.ts';
 
 export type { SkylineRuntime } from './skyline.ts';
 
@@ -75,17 +83,35 @@ export interface PreparedRemesh {
   mask: number[];
 }
 
+/** A staged chunk mesh asked of the worker: the request id that `held` asks about, and the result. */
+export interface PrepareCall {
+  job: number;
+  /** The prepared mesh; null when there is none (the chunk is gone, or the worker failed it). */
+  result: Promise<PreparedRemesh | null>;
+}
+
 export interface LandmarkChunkPort {
   /** The resident L0 chunks that hold at least one proxy, with the proxies their current mesh leaves out. */
   states(): ChunkProxyState[];
-  /** Meshes the chunk again leaving out exactly `mask`, in the worker, and holds the result; null when there is none (the chunk is gone). */
-  prepare(key: ChunkKey, mask: number[]): Promise<PreparedRemesh | null>;
+  /** Meshes the chunk again leaving out exactly `mask`, in the worker, and holds the result. */
+  prepare(key: ChunkKey, mask: number[]): PrepareCall;
   /** Queues a prepared mesh for upload through the gate; it replaces the chunk's mesh. */
   apply(p: PreparedRemesh): void;
   /** Asks for the chunk to be meshed again leaving out exactly these proxies (empty: meshed back) and uploads it when it is ready. */
   remesh(key: ChunkKey, mask: number[]): void;
   /** Re-record requests of the chunk's bundle so far (for the QA report). */
   rerecords(key: ChunkKey): number;
+  /**
+   * Asks the worker, on the channel the prepares use, about requests sent before (`PrepareCall.job`; an empty list only needs an
+   * answer): per request, the milliseconds it has held it unanswered on its own clock since it took it up, or null when it does not
+   * hold it. The worker takes requests up in the order they were sent but finishes them in any order (a job can wait on the store
+   * while later ones run); its replies reach this thread in the order it posted them. So when this settles, a request reported as
+   * not held whose result has not arrived has no reply coming, and one reported as held is still being worked on. Rejects when the
+   * worker cannot be asked (the asset client is disposed, or the worker failed).
+   */
+  held(jobs: readonly number[]): Promise<readonly (number | null)[]>;
+  /** Messages handled from the worker so far: unchanged between two frames, the worker said nothing in between. */
+  heard(): number;
 }
 
 /** A unit of GPU work the `ChunkUploadGate` releases, at most one per frame together with the chunk uploads. */
@@ -140,12 +166,17 @@ export interface LandmarkDeps {
 export type LandmarkPhase = 'idle' | 'loading' | 'ready' | 'preparing' | 'shown' | 'leaving' | 'parked' | 'failed';
 
 interface Prep {
-  at: number;
   /** The chunks asked for a prepared mesh: the reconciliation leaves them alone until the swap has gone up. */
   keys: Set<ChunkKey>;
+  /** Prepares not settled here yet, and the request ids of those, which the layer asks the worker about. */
   pending: number;
+  jobs: Set<number>;
   results: PreparedRemesh[];
   queued: boolean;
+  /** When the layer next asks the worker about the pending prepares (the layer's clock): `PREPARE_TIMEOUT_MS` after they went out, then after each answer. */
+  askAt: number;
+  /** A question about them is out. */
+  asking: boolean;
 }
 
 interface Entry {
@@ -159,7 +190,9 @@ interface Entry {
   handle: LandmarkHandle | null;
   visible: boolean;
   retryAt: number;
+  /** Leaving: since when the layer has waited for the chunks (reset by each answer of the worker), and the question out, if any. */
   leaveAt: number;
+  leaveAsk: object | null;
   error: string | null;
   prep: Prep | null;
   /** Skyline only: inside the mount ring (with hysteresis). */
@@ -237,14 +270,33 @@ export interface LandmarksReport {
   maxResident: number;
   loads: number;
   frame: number;
+  /**
+   * The layer's questions to asset.worker (BD-FIX-LANDMARK-PREPARE-01): how many went out, the longest silence counted while one was
+   * out (frames capped, `WorkerWatch`), and the longest the worker said it had held a pending prepare (ms on its clock).
+   */
+  worker: { asked: number; maxSilentMs: number; maxHeldMs: number };
 }
 
-/** A leaving landmark is removed after this long even when a chunk has not come back. */
+/**
+ * A leaving landmark whose chunks are not all back after this long asks the worker whether it is still answering, and keeps its model
+ * while it is: the chunks come back through `reconcile`, which asks again for any chunk whose mesh is stale, and removing the model
+ * before them would leave the proxy masked with nothing drawn (a hole). The model goes without its chunks only when the worker says
+ * nothing for `WORKER_SILENT_MS`, or cannot be asked: then the chunks cannot come back (BD-FIX-LANDMARK-PREPARE-01).
+ */
 const LEAVE_TIMEOUT_MS = 2500;
 /** A remesh request is asked again after this long without an answer. */
 const REMESH_TIMEOUT_MS = 6000;
-/** A swap whose prepared meshes have not all come back after this long gives up (the load is tried again after `retryMs`). */
+/**
+ * A swap's prepared meshes have this long in the worker (BD-FIX-LANDMARK-PREPARE-01). This long after they were asked for, the layer
+ * asks the worker about those still pending, and the swap gives up (the load is tried again after `retryMs`) when one of them is
+ * - not held by the worker, its reply never arrived: lost;
+ * - held by the worker for more than this long on the worker's own clock, counted from when the worker took it up: stuck;
+ * and when the worker says nothing for `WORKER_SILENT_MS` while asked, or cannot be asked. A reply waiting on this thread behind
+ * long frames, or a request waiting in a busy worker's queue, is none of these: the swap goes on.
+ */
 const PREPARE_TIMEOUT_MS = 8000;
+/** A worker that says nothing at all for this long while the layer asks it (frames counted at most 250 ms each, `WorkerWatch`) is blocked or gone. */
+const WORKER_SILENT_MS = PREPARE_TIMEOUT_MS;
 /** Remesh requests in flight at once. */
 const REMESH_IN_FLIGHT = 4;
 /** Swap events kept for the report. */
@@ -268,13 +320,16 @@ export class LandmarkLayer {
   private maxResident = 0;
   private lastNowSec = 0;
   private disposed = false;
+  private readonly watch: WorkerWatch;
+  private readonly talk = { asked: 0, maxSilentMs: 0, maxHeldMs: 0 };
 
   constructor(o: LandmarkDeps) {
     this.o = o;
+    this.watch = new WorkerWatch(o.chunks);
     this.cfg = o.config ?? LANDMARKS_RUNTIME;
     this.tierRow = this.cfg.tiers[o.tier];
     const entry = (spot: LandmarkSpot, kind: 'full' | 'sky'): Entry => ({
-      kind, spot, phase: 'idle', distM: Infinity, gen: 0, model: null, handle: null, visible: false, retryAt: 0, leaveAt: 0, error: null, prep: null, inRange: false, y: 0, exact: false,
+      kind, spot, phase: 'idle', distM: Infinity, gen: 0, model: null, handle: null, visible: false, retryAt: 0, leaveAt: 0, leaveAsk: null, error: null, prep: null, inRange: false, y: 0, exact: false,
     });
     this.slots = o.spots.map((s) => entry(s, 'full'));
     const rangeOn = (o.skylineRangeM ?? 0) > 0;
@@ -334,6 +389,8 @@ export class LandmarkLayer {
     this.frame++;
     this.lastNowSec = nowSec;
     const now = this.o.now();
+    this.watch.frame(now);
+    this.talk.maxSilentMs = Math.max(this.talk.maxSilentMs, this.watch.silentMs);
     const release = this.swapM * this.cfg.unloadFactor;
     for (const s of this.slots) s.distM = Math.hypot(s.spot.x - focus.x, s.spot.z - focus.z);
     for (const s of this.sky) s.distM = Math.hypot(s.spot.x - focus.x, s.spot.z - focus.z);
@@ -341,8 +398,7 @@ export class LandmarkLayer {
     // Phase moves that depend on distance alone.
     for (const s of this.slots) {
       if (s.phase === 'shown' && s.distM > release) {
-        s.phase = 'leaving';
-        s.leaveAt = now;
+        this.leave(s, now);
       } else if (s.phase === 'leaving' && s.distM <= this.swapM) {
         s.phase = 'shown';
       } else if ((s.phase === 'loading' || s.phase === 'preparing') && s.distM > release) {
@@ -388,8 +444,7 @@ export class LandmarkLayer {
       if (farthest.distM <= next.distM) return;
       if (farthest.phase === 'loading' || farthest.phase === 'preparing') this.cancel(farthest, 'idle');
       else if (farthest.phase === 'shown') {
-        farthest.phase = 'leaving';
-        farthest.leaveAt = now;
+        this.leave(farthest, now);
       }
       // A leaving landmark still counts against the cap until its model is gone; the load starts then.
       if (this.resident().length >= this.cap) return;
@@ -458,16 +513,19 @@ export class LandmarkLayer {
       if (!st.proxies.includes(id) || st.masked.includes(id) || this.remeshing.get(st.key)?.mask.includes(id)) continue;
       todo.push({ key: st.key, mask: desiredMask(st.proxies, want) });
     }
-    const prep: Prep = { at: this.o.now(), keys: new Set(todo.map((t) => t.key)), pending: todo.length, results: [], queued: false };
+    const prep: Prep = { keys: new Set(todo.map((t) => t.key)), pending: todo.length, jobs: new Set(), results: [], queued: false, askAt: this.o.now() + PREPARE_TIMEOUT_MS, asking: false };
     s.prep = prep;
     const gen = s.gen;
     for (const t of todo) {
+      const call = this.o.chunks.prepare(t.key, t.mask);
+      prep.jobs.add(call.job);
       const settle = (p: PreparedRemesh | null): void => {
         if (this.disposed || s.gen !== gen || s.prep !== prep) return;
         if (p) prep.results.push(p);
         prep.pending--;
+        prep.jobs.delete(call.job);
       };
-      this.o.chunks.prepare(t.key, t.mask).then(settle, () => settle(null));
+      call.result.then(settle, () => settle(null));
     }
   }
 
@@ -479,7 +537,9 @@ export class LandmarkLayer {
     }
     if (s.phase !== 'preparing' || !s.prep || s.prep.queued || !s.model) return;
     if (s.prep.pending > 0) {
-      if (now - s.prep.at > PREPARE_TIMEOUT_MS) this.fail(s, new Error('the chunk meshes did not come back'));
+      if (s.prep.asking) {
+        if (this.watch.silentMs > WORKER_SILENT_MS) this.fail(s, new Error('the asset worker does not answer'));
+      } else if (now >= s.prep.askAt) this.ask(s, s.prep);
       return;
     }
     if (this.anchorY(s) === null) return;
@@ -487,6 +547,47 @@ export class LandmarkLayer {
     const gen = s.gen;
     const model = s.model;
     this.o.queue({ id: `${s.kind}:${s.spot.id}`, priority: -2, bytes: bytesOf(model), run: (info) => this.commit(s, gen, info.uploads) });
+  }
+
+  /**
+   * The prepares are past their time: ask the worker about the ones still pending (`PREPARE_TIMEOUT_MS`). Its answer is handled after
+   * every reply it posted before it, so by then a prepare it no longer holds has either settled here or lost its reply; one it holds is
+   * still being worked on, for as long as the worker says, which a reply waiting on this thread never adds to.
+   */
+  private ask(s: Entry, prep: Prep): void {
+    prep.asking = true;
+    const gen = s.gen;
+    const jobs = [...prep.jobs];
+    const current = (): boolean => !this.disposed && s.gen === gen && s.prep === prep;
+    this.talk.asked++;
+    this.watch.ask(jobs).then(
+      (held) => {
+        if (!current()) return;
+        prep.asking = false;
+        let longest = 0;
+        for (const [i, job] of jobs.entries()) {
+          if (!prep.jobs.has(job)) continue; // its reply arrived before the answer
+          const ms = held[i] ?? null;
+          if (ms === null) {
+            this.fail(s, new Error('the chunk meshes did not come back'));
+            return;
+          }
+          longest = Math.max(longest, ms);
+        }
+        this.talk.maxHeldMs = Math.max(this.talk.maxHeldMs, longest);
+        if (longest > PREPARE_TIMEOUT_MS) {
+          this.fail(s, new Error('the worker held the chunk meshes too long'));
+          return;
+        }
+        // ask again when the longest-held one would reach the limit
+        prep.askAt = this.o.now() + PREPARE_TIMEOUT_MS - longest;
+      },
+      () => {
+        if (!current()) return;
+        prep.asking = false;
+        if (prep.pending > 0) this.fail(s, new Error('the asset worker is gone'));
+      },
+    );
   }
 
   private anchorY(s: Entry): number | null {
@@ -580,10 +681,7 @@ export class LandmarkLayer {
       s.inRange = inSkylineRange(s.inRange, s.distM, rings);
       switch (s.phase) {
         case 'shown':
-          if (!s.inRange) {
-            s.phase = 'leaving';
-            s.leaveAt = now;
-          }
+          if (!s.inRange) this.leave(s, now);
           break;
         case 'leaving':
           if (s.inRange) s.phase = 'shown';
@@ -637,11 +735,46 @@ export class LandmarkLayer {
       const id = proxyIdOf(s.spot.index);
       // Back means: no chunk still hides this proxy although nobody asks for it (a skyline model that stays keeps the mask).
       const pending = !owners.has(id) && chunksHolding(states, id).some((k) => (byKey.get(k)?.masked ?? []).includes(id));
-      if (!pending || now - s.leaveAt > LEAVE_TIMEOUT_MS) this.release(s);
+      if (!pending) this.release(s);
+      else if (s.leaveAsk) {
+        // the worker owes an answer and has said nothing for this long: its loop is blocked or it is gone, the chunks cannot come back
+        if (this.watch.silentMs > WORKER_SILENT_MS) this.release(s);
+      } else if (now - s.leaveAt > LEAVE_TIMEOUT_MS) this.askLeaving(s);
     }
   }
 
+  /**
+   * The chunks of a leaving landmark are slow (`LEAVE_TIMEOUT_MS`): ask the worker whether it is still answering. An answer starts the
+   * wait again; the chunks are on their way (in the worker, on this thread behind long frames, or in the upload gate, one per frame)
+   * or asked again by `reconcile`, and the model stays until they are back. No answer at all is decided in `reconcile`; a worker that
+   * cannot be asked will not send them.
+   */
+  private askLeaving(s: Entry): void {
+    const token = {};
+    s.leaveAsk = token;
+    this.talk.asked++;
+    this.watch.ask([]).then(
+      () => {
+        if (s.leaveAsk !== token) return;
+        s.leaveAsk = null;
+        s.leaveAt = this.o.now();
+      },
+      () => {
+        if (s.leaveAsk !== token || this.disposed || s.phase !== 'leaving') return;
+        this.release(s);
+      },
+    );
+  }
+
+  /** The landmark starts to leave: its model stays until the chunks that hide its proxy are meshed back. */
+  private leave(s: Entry, now: number): void {
+    s.phase = 'leaving';
+    s.leaveAt = now;
+    s.leaveAsk = null;
+  }
+
   private release(s: Entry): void {
+    s.leaveAsk = null;
     if (s.kind === 'sky') {
       // Hidden only now, after the proxies are back: parked, ready to show again without a load.
       s.handle?.setVisible?.(false);
@@ -774,6 +907,7 @@ export class LandmarkLayer {
       maxResident: this.maxResident,
       loads: this.loadsStarted,
       frame: this.frame,
+      worker: { ...this.talk },
     };
   }
 

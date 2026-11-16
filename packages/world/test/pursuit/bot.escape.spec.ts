@@ -40,6 +40,15 @@ suite('AC-8: pursuit-escape, the bot escapes', () => {
     expect(r.driven).toBeGreaterThan(500);
   });
 
+  it('never holds a police unit with the vehicles\' ground hold, and still holds the QA parked cars whose chunks unloaded', () => {
+    if (!bake) return;
+    // BD-FIX-PARKED-FALL-01, third round: the director drives its units and removes one over unloaded ground itself (30 ticks); on
+    // 17fca878 units left behind outside the collider ring were held, kinematic at zero speed, from tick 581 on
+    expect(r.heldUnitTicks).toBe(0);
+    // the six `veh:sw.*` cars at the spawn lose their colliders at tick 2865, when the bot is about 300 m away, and wait where they stood
+    expect(r.heldParkedAtEnd).toBe(6);
+  });
+
   it('draws only the pursuit and police streams (besides the clock)', () => {
     if (!bake) return;
     // `pursuit` is drawn for pedestrian report delays only; the line's witness is a robotaxi, so only `police` (the spawn picks) is certain

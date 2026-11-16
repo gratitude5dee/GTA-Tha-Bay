@@ -66,16 +66,21 @@ test.describe('world boot figures @world', () => {
     expect(Object.keys(attr).sort()).toEqual(['bytes', 'inflightPeak', 'requests', 'revealMs', 'tier', 'waves']);
   });
 
-  test('?net=lag delays the world index and the spawn tile by 400 ms each, so a second cold boot reveals later @net-shaper', async ({ browser }, testInfo) => {
+  test('?net=lag delays the world index and the spawn tile by 400 ms each, so a second cold boot reveals later @net-shaper', async ({ playwright, browserName, launchOptions, baseURL, storageState, serviceWorkers }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium-webgl2', 'the shaper test runs on chromium-webgl2');
+    // Each boot runs in a browser of its own (BD-REPAIR-M02h7-03): a fresh context empties the pack store but not the browser process's
+    // compiled-program cache, so a second boot in the same browser skips the shader compiles the first one paid. Once M02h7's `lite`
+    // building material made those compiles longer than the shaper's 800 ms, the lagged second boot revealed before the unshaped first
+    // one (CI run 41928966169: 4814 ms plain, 4714 ms lagged; retry 4836 ms, 3805 ms). Two fresh browsers boot equally cold.
     const run = async (query: string): Promise<number> => {
-      const ctx = await browser.newContext();
+      const own = await playwright[browserName].launch(launchOptions);
       try {
+        const ctx = await own.newContext({ ...(baseURL ? { baseURL } : {}), ...(storageState ? { storageState } : {}), ...(serviceWorkers ? { serviceWorkers } : {}) });
         const page = await ctx.newPage();
         const { boot } = await bootAndRead(page, query);
         return boot.bootRevealMs as number;
       } finally {
-        await ctx.close();
+        await own.close();
       }
     };
     const plain = await run('');

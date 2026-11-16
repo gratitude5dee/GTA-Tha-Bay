@@ -8,3 +8,4 @@ export * from './boundaries.ts';
 export * from './district-grid.ts';
 export * from './map-format.ts';
 export * from './credits.ts';
+export * from './furniture.ts';

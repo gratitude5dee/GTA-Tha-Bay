@@ -32,7 +32,7 @@ function fakes(dir: string): Fakes {
   const fail = new Map<string, 'hash' | 'hash-twice' | 'offline' | 'http'>();
   const bytesOf = (url: string): ArrayBuffer => {
     const name = url.replace(/^asset:/, '');
-    const file = name === 'texture/far-bay-cards' ? 'far-bay-cards.png' : `${name.replace('world_pack/', '')}.pack`;
+    const file = name === 'texture/far-bay-cards' ? 'far-bay-cards.ktx2' : `${name.replace('world_pack/', '')}.pack`;
     const b = readFileSync(`${dir}/packs/${file}`);
     return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer;
   };
@@ -120,9 +120,9 @@ describe('world.far, world.refs', () => {
     expect(ring.buffers.positions.length).toBeGreaterThan(1000);
     const massing = (await far(f.svc, { name: 'massing', tier: 'desktop' }, signal)).result as { count: number };
     expect(massing.count).toBeGreaterThan(100);
-    const cards = (await far(f.svc, { name: 'cards', tier: 'mobile' }, signal)).result as { png: ArrayBuffer };
-    // A PNG signature.
-    expect(Array.from(new Uint8Array(cards.png).slice(0, 4))).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    const cards = (await far(f.svc, { name: 'cards', tier: 'mobile' }, signal)).result as { bytes: ArrayBuffer };
+    // The KTX 2.0 identifier.
+    expect(Array.from(new Uint8Array(cards.bytes).slice(0, 4))).toEqual([0xab, 0x4b, 0x54, 0x58]); // KTX2 since M10d2
     const refs = (await (worldJobs['world.refs'] as NonNullable<(typeof worldJobs)[string]>)(f.svc, { prefix: 'world_pack/p0-', tier: 'desktop' }, signal)).result as Record<string, unknown>;
     expect(Object.keys(refs)).toEqual(['world_pack/p0-64-64']);
   });

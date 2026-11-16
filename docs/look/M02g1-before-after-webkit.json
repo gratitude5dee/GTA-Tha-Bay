@@ -1,6 +1,6 @@
 {
   "commit": "local",
-  "bakeId": "3537499f7cc5c17703cea67785128b51f3262dc2d693a344409c031cb9f33136",
+  "bakeId": "6e5d9a7fc0c8faa0ae8124ba55e8d6eb6438ca9b98c695d0c163c6828dc0af59",
   "tier": "desktop",
   "browser": "webkit-webgl2",
   "backend": "webgl2",
@@ -14,8 +14,8 @@
   ],
   "layout": "rows: a1-truck (06:30 Karl fog), a1-burnoff (07:00 clear); columns: before M02g1, after",
   "meanAbsDifference": {
-    "a1-truck": 0.11188448115871863,
-    "a1-burnoff": 0.12945052650689906
+    "a1-truck": 0.11461545832324699,
+    "a1-burnoff": 0.14594422254498507
   },
-  "sha256": "f1dbff6caf1dc6f9c31efcbe36cdbae8035f04572bffe9cf3bd83687385dcf0a"
+  "sha256": "e7fd5878ab11c4ced3f4ee0fb940a07263a09ef7e7befeb564af50ee14f50f9a"
 }

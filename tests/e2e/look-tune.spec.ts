@@ -6,6 +6,7 @@ import type { MissionBridge } from '../../packages/modes/story/src/debug/bridge.
 import type { PlatformBridge } from '../../packages/engine/src/platform/probe.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
 import { composeGrid, decodePng, diffImages, encodePng, goldenFailures, identical, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
+import { canvasRgba } from './canvas-capture.ts';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
 import { crowdMax, streamAtPlan } from './ledger-helpers.ts';
 
@@ -106,18 +107,11 @@ test.describe('look tune @look-tune', () => {
           .poll(async () => (await world(page, (w) => w.look()))?.dynamicCasters ?? [], { timeout: 120_000, intervals: [250] })
           .toEqual(expect.arrayContaining(['player', 'traffic']));
         // trees: stand the stream on a resident tree and the trees within the radius cast
+        // M02h4: the trees are in the global vegetation pools; an instance matrix holds the tree's world position
         const tree = await page.evaluate(() => {
-          type U = { level: string; group: { position: { x: number; z: number }; children: { userData: Record<string, unknown>; count?: number; instanceMatrix?: { array: Float32Array } }[] } };
-          const units = (window as unknown as { __dvBridge: { world: { internals(): { view: { renderer: { units: Map<string, U> } } } } } }).__dvBridge.world.internals().view.renderer.units;
-          for (const u of units.values()) {
-            if (u.level !== 'l0') continue;
-            for (const c of u.group.children) {
-              if (c.userData['kind'] === 'vegetation' && (c.count ?? 0) > 0 && c.instanceMatrix) {
-                const m = c.instanceMatrix.array;
-                return { x: u.group.position.x + (m[12] as number), z: u.group.position.z + (m[14] as number) };
-              }
-            }
-          }
+          type P = { mesh: { count: number }; matrices: Float32Array };
+          const pools = (window as unknown as { __dvBridge: { world: { internals(): { view: { renderer: { vegetation: { pools: P[] } } } } } } }).__dvBridge.world.internals().view.renderer.vegetation.pools;
+          for (const p of pools) if (p.mesh.count > 0) return { x: p.matrices[12] as number, z: p.matrices[14] as number };
           return null;
         });
         expect(tree, 'a resident L0 unit with trees').not.toBeNull();
@@ -199,7 +193,7 @@ test.describe('look ledger @look-ledger', () => {
       // no `perf=1`: with it `live()` returns the last frame the loop measured, and a held frame would never change
       // `&textures=0&art=0` (DL-758): this row is M02g1's own scene, so the layers of the later rows (M10d0's surface textures, M10d1's art)
       // stay out of the frame, as M02g2's row keeps the art out (BD-REPAIR-M10d1-01)
-      await bootWorld(page, tier, '&textures=0&art=0');
+      await bootWorld(page, tier, '&textures=0&art=0&furniture=0');
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);
       // `mobile-low`: the `fog-west` shot looks down a street of the synth world with 87 render objects (the spawn's street has 116 with
@@ -338,10 +332,10 @@ async function captureOwnerShot(page: Page, shot: string, resume = true): Promis
   });
   await frames(page, 3);
   // the sky's blend and the exposure settle over a few presented frames: the picture counts once two consecutive frames agree
-  let img = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+  let img = await canvasRgba(page);
   for (let i = 0; i < 8; i++) {
     await frames(page, 2);
-    const next = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+    const next = await canvasRgba(page);
     const same = identical(img, next);
     img = next;
     if (same) break;

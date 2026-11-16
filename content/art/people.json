@@ -1,0 +1,1481 @@
+{
+ "schema": "art-people/1",
+ "bodies": [
+  {
+   "id": "body-lean",
+   "heightM": 1.8,
+   "shoulder": 0.96,
+   "chest": 0.94,
+   "waist": 0.93,
+   "hips": 0.97,
+   "thigh": 0.95,
+   "arm": 0.93,
+   "neck": 0.94,
+   "depth": 0.95,
+   "belly": 0,
+   "bust": 0
+  },
+  {
+   "id": "body-wiry",
+   "heightM": 1.76,
+   "shoulder": 0.98,
+   "chest": 0.93,
+   "waist": 0.92,
+   "hips": 0.94,
+   "thigh": 0.92,
+   "arm": 0.95,
+   "neck": 0.96,
+   "depth": 0.93,
+   "belly": 0,
+   "bust": 0
+  },
+  {
+   "id": "body-athletic",
+   "heightM": 1.82,
+   "shoulder": 1.06,
+   "chest": 1.06,
+   "waist": 0.96,
+   "hips": 1,
+   "thigh": 1.05,
+   "arm": 1.08,
+   "neck": 1.06,
+   "depth": 1.02,
+   "belly": 0,
+   "bust": 0
+  },
+  {
+   "id": "body-stocky",
+   "heightM": 1.72,
+   "shoulder": 1.04,
+   "chest": 1.06,
+   "waist": 1.08,
+   "hips": 1.06,
+   "thigh": 1.06,
+   "arm": 1.05,
+   "neck": 1.08,
+   "depth": 1.06,
+   "belly": 0.2,
+   "bust": 0
+  },
+  {
+   "id": "body-broad",
+   "heightM": 1.88,
+   "shoulder": 1.08,
+   "chest": 1.08,
+   "waist": 1.04,
+   "hips": 1.02,
+   "thigh": 1.06,
+   "arm": 1.08,
+   "neck": 1.08,
+   "depth": 1.04,
+   "belly": 0,
+   "bust": 0
+  },
+  {
+   "id": "body-sturdy",
+   "heightM": 1.7,
+   "shoulder": 1.02,
+   "chest": 1.04,
+   "waist": 1.04,
+   "hips": 1.08,
+   "thigh": 1.08,
+   "arm": 1,
+   "neck": 1.04,
+   "depth": 1.04,
+   "belly": 0,
+   "bust": 0
+  },
+  {
+   "id": "body-compact",
+   "heightM": 1.62,
+   "shoulder": 0.98,
+   "chest": 0.98,
+   "waist": 0.94,
+   "hips": 1.04,
+   "thigh": 1,
+   "arm": 0.96,
+   "neck": 1,
+   "depth": 1,
+   "belly": 0,
+   "bust": 0.3
+  },
+  {
+   "id": "body-tall",
+   "heightM": 1.93,
+   "shoulder": 1,
+   "chest": 0.98,
+   "waist": 0.94,
+   "hips": 0.98,
+   "thigh": 0.98,
+   "arm": 1,
+   "neck": 1,
+   "depth": 1,
+   "belly": 0,
+   "bust": 0
+  },
+  {
+   "id": "body-long",
+   "heightM": 1.84,
+   "shoulder": 0.94,
+   "chest": 0.94,
+   "waist": 0.92,
+   "hips": 1,
+   "thigh": 0.98,
+   "arm": 0.94,
+   "neck": 1,
+   "depth": 1,
+   "belly": 0,
+   "bust": 0.2
+  },
+  {
+   "id": "body-rounded",
+   "heightM": 1.68,
+   "shoulder": 1,
+   "chest": 1.06,
+   "waist": 1.08,
+   "hips": 1.08,
+   "thigh": 1.08,
+   "arm": 1,
+   "neck": 1,
+   "depth": 1,
+   "belly": 0.45,
+   "bust": 0.2
+  },
+  {
+   "id": "body-solid",
+   "heightM": 1.78,
+   "shoulder": 1.06,
+   "chest": 1.08,
+   "waist": 1.08,
+   "hips": 1.06,
+   "thigh": 1.07,
+   "arm": 1,
+   "neck": 1,
+   "depth": 1,
+   "belly": 0.25,
+   "bust": 0
+  },
+  {
+   "id": "body-slight",
+   "heightM": 1.58,
+   "shoulder": 0.93,
+   "chest": 0.92,
+   "waist": 0.9,
+   "hips": 0.96,
+   "thigh": 0.92,
+   "arm": 0.9,
+   "neck": 0.92,
+   "depth": 0.92,
+   "belly": 0,
+   "bust": 0.15
+  }
+ ],
+ "pedBodies": [
+  {
+   "id": "a",
+   "body": "a",
+   "face": "face-sunset",
+   "hair": "hair-crop",
+   "far": {
+    "w": 1.02,
+    "h": 1
+   }
+  },
+  {
+   "id": "b",
+   "body": "b",
+   "face": "face-marina",
+   "hair": "hair-bob",
+   "far": {
+    "w": 0.94,
+    "h": 0.9333333333333332
+   }
+  },
+  {
+   "id": "c",
+   "body": "c",
+   "face": "face-karl",
+   "hair": "hair-fade",
+   "far": {
+    "w": 1,
+    "h": 1.0444444444444443
+   }
+  },
+  {
+   "id": "d",
+   "body": "d",
+   "face": "face-castro",
+   "hair": "hair-bun",
+   "far": {
+    "w": 0.92,
+    "h": 0.9
+   }
+  },
+  {
+   "id": "e",
+   "body": "e",
+   "face": "face-bayview",
+   "hair": "hair-buzz",
+   "far": {
+    "w": 1.05,
+    "h": 0.9722222222222222
+   }
+  },
+  {
+   "id": "f",
+   "body": "f",
+   "face": "face-haight",
+   "hair": "hair-ponytail",
+   "far": {
+    "w": 0.96,
+    "h": 0.9444444444444444
+   }
+  },
+  {
+   "id": "g",
+   "body": "g",
+   "face": "face-soma",
+   "hair": "hair-waves",
+   "far": {
+    "w": 1.07,
+    "h": 1.0222222222222221
+   }
+  },
+  {
+   "id": "h",
+   "body": "h",
+   "face": "face-mission",
+   "hair": "hair-long",
+   "far": {
+    "w": 0.98,
+    "h": 0.9222222222222222
+   }
+  }
+ ],
+ "pedBodySpecs": [
+  {
+   "id": "a",
+   "heightM": 1.8,
+   "shoulder": 1.02,
+   "chest": 1,
+   "waist": 1,
+   "hips": 1,
+   "thigh": 1,
+   "arm": 1,
+   "neck": 1,
+   "depth": 1,
+   "belly": 0,
+   "bust": 0
+  },
+  {
+   "id": "b",
+   "heightM": 1.68,
+   "shoulder": 0.94,
+   "chest": 0.97,
+   "waist": 0.93,
+   "hips": 1.05,
+   "thigh": 1.02,
+   "arm": 0.92,
+   "neck": 0.92,
+   "depth": 0.96,
+   "belly": 0,
+   "bust": 0.3
+  },
+  {
+   "id": "c",
+   "heightM": 1.88,
+   "shoulder": 1,
+   "chest": 0.95,
+   "waist": 0.94,
+   "hips": 0.96,
+   "thigh": 0.96,
+   "arm": 0.96,
+   "neck": 0.98,
+   "depth": 0.96,
+   "belly": 0,
+   "bust": 0
+  },
+  {
+   "id": "d",
+   "heightM": 1.62,
+   "shoulder": 0.92,
+   "chest": 0.94,
+   "waist": 0.92,
+   "hips": 1.02,
+   "thigh": 0.98,
+   "arm": 0.9,
+   "neck": 0.9,
+   "depth": 0.94,
+   "belly": 0,
+   "bust": 0.2
+  },
+  {
+   "id": "e",
+   "heightM": 1.75,
+   "shoulder": 1.05,
+   "chest": 1.06,
+   "waist": 1.08,
+   "hips": 1.06,
+   "thigh": 1.04,
+   "arm": 1.04,
+   "neck": 1.06,
+   "depth": 1.06,
+   "belly": 0.25,
+   "bust": 0
+  },
+  {
+   "id": "f",
+   "heightM": 1.7,
+   "shoulder": 0.96,
+   "chest": 0.99,
+   "waist": 0.94,
+   "hips": 1.08,
+   "thigh": 1.06,
+   "arm": 0.95,
+   "neck": 0.94,
+   "depth": 0.98,
+   "belly": 0,
+   "bust": 0.35
+  },
+  {
+   "id": "g",
+   "heightM": 1.84,
+   "shoulder": 1.07,
+   "chest": 1.06,
+   "waist": 0.98,
+   "hips": 1,
+   "thigh": 1.04,
+   "arm": 1.07,
+   "neck": 1.05,
+   "depth": 1.02,
+   "belly": 0,
+   "bust": 0
+  },
+  {
+   "id": "h",
+   "heightM": 1.66,
+   "shoulder": 0.98,
+   "chest": 1,
+   "waist": 0.94,
+   "hips": 1.04,
+   "thigh": 1.05,
+   "arm": 1,
+   "neck": 0.95,
+   "depth": 0.97,
+   "belly": 0,
+   "bust": 0.2
+  }
+ ],
+ "faces": [
+  {
+   "id": "face-sunset",
+   "morphs": {
+    "brow-height": -0.11,
+    "nose-width": -0.27,
+    "cheekbone": -0.65,
+    "chin-width": 0.59,
+    "mouth-width": 0.6,
+    "ear-size": -0.17,
+    "forehead-height": 0.44,
+    "neck-width": -0.14,
+    "face-length": -0.36,
+    "smile": 0.13,
+    "age": 0.11
+   }
+  },
+  {
+   "id": "face-karl",
+   "morphs": {
+    "brow-height": 0.46,
+    "brow-depth": 0.38,
+    "eye-size": 0.21,
+    "eye-spacing": -0.29,
+    "nose-width": 0.59,
+    "nose-length": -0.15,
+    "jaw-width": -0.43,
+    "chin-height": 0.22,
+    "lip-fullness": -0.17,
+    "ear-size": 0.37,
+    "forehead-height": -0.05,
+    "neck-width": 0.06,
+    "face-length": 0.5,
+    "smile": 0.59
+   }
+  },
+  {
+   "id": "face-mission",
+   "morphs": {
+    "brow-height": -0.48,
+    "eye-size": -0.12,
+    "eye-spacing": -0.18,
+    "nose-width": 0.5,
+    "nose-length": -0.59,
+    "jaw-width": -0.55,
+    "jaw-length": -0.43,
+    "chin-width": 0.49,
+    "chin-height": 0.64,
+    "ear-size": 0.01,
+    "smile": -0.09,
+    "age": 0.01
+   }
+  },
+  {
+   "id": "face-marina",
+   "morphs": {
+    "brow-height": 0.2,
+    "brow-depth": 0.27,
+    "eye-size": -0.31,
+    "eye-spacing": -0.36,
+    "eye-tilt": -0.35,
+    "nose-width": 0.25,
+    "nose-length": -0.53,
+    "cheek-fullness": -0.32,
+    "jaw-width": -0.35,
+    "jaw-length": 0.61,
+    "chin-width": 0.02,
+    "lip-fullness": 0.17,
+    "ear-size": -0.31,
+    "forehead-height": -0.53,
+    "temple-width": -0.05,
+    "neck-width": -0.43,
+    "face-length": 0.04,
+    "face-width": 0.09
+   }
+  },
+  {
+   "id": "face-haight",
+   "morphs": {
+    "brow-height": -0.46,
+    "brow-depth": 0.17,
+    "eye-size": -0.6,
+    "eye-tilt": 0.37,
+    "nose-width": -0.55,
+    "nose-length": 0.13,
+    "nose-bridge": -0.06,
+    "cheek-fullness": -0.24,
+    "cheekbone": 0.57,
+    "jaw-width": 0.61,
+    "jaw-length": 0.51,
+    "chin-height": 0.56,
+    "lip-fullness": 0.1,
+    "forehead-height": 0.49,
+    "neck-width": 0.59,
+    "smile": 0.24
+   }
+  },
+  {
+   "id": "face-presidio",
+   "morphs": {
+    "brow-depth": -0.47,
+    "nose-width": 0.19,
+    "nose-length": 0.29,
+    "nose-bridge": -0.53,
+    "cheek-fullness": -0.58,
+    "cheekbone": 0.28,
+    "jaw-length": 0.58,
+    "chin-width": 0.47,
+    "chin-height": -0.37,
+    "forehead-height": 0.36,
+    "neck-width": 0.56,
+    "face-length": -0.34,
+    "face-width": 0.04,
+    "smile": 0.13
+   }
+  },
+  {
+   "id": "face-embarcadero",
+   "morphs": {
+    "brow-height": 0.17,
+    "brow-depth": 0.19,
+    "eye-size": -0.12,
+    "eye-spacing": 0.34,
+    "nose-bridge": 0.56,
+    "cheek-fullness": 0.29,
+    "jaw-length": 0.29,
+    "chin-width": -0.52,
+    "chin-height": 0.26,
+    "mouth-width": -0.27,
+    "lip-fullness": 0.19,
+    "ear-size": -0.62,
+    "temple-width": -0.64,
+    "face-length": 0.55,
+    "face-width": -0.45,
+    "smile": -0.62,
+    "age": -0.02
+   }
+  },
+  {
+   "id": "face-tenderloin",
+   "morphs": {
+    "brow-height": -0.4,
+    "eye-size": 0.17,
+    "eye-tilt": -0.36,
+    "nose-width": 0.44,
+    "nose-length": -0.25,
+    "nose-bridge": -0.41,
+    "cheek-fullness": -0.43,
+    "cheekbone": 0.27,
+    "jaw-width": 0.05,
+    "jaw-length": 0.36,
+    "chin-width": 0.56,
+    "chin-height": -0.19,
+    "lip-fullness": 0.41,
+    "ear-size": 0.08,
+    "forehead-height": 0.17,
+    "face-width": 0.08
+   }
+  },
+  {
+   "id": "face-nob",
+   "morphs": {
+    "brow-height": 0.14,
+    "brow-depth": -0.03,
+    "eye-size": -0.49,
+    "eye-spacing": -0.5,
+    "eye-tilt": -0.04,
+    "nose-length": -0.43,
+    "nose-bridge": -0.41,
+    "cheek-fullness": 0.62,
+    "cheekbone": -0.21,
+    "jaw-width": -0.33,
+    "chin-width": -0.56,
+    "mouth-width": 0.58,
+    "lip-fullness": -0.46,
+    "ear-size": -0.49,
+    "forehead-height": 0.5,
+    "temple-width": 0.38,
+    "face-length": 0.27,
+    "age": -0.13
+   }
+  },
+  {
+   "id": "face-castro",
+   "morphs": {
+    "brow-height": -0.35,
+    "brow-depth": 0.26,
+    "eye-spacing": 0.23,
+    "nose-width": -0.24,
+    "nose-length": 0.01,
+    "nose-bridge": -0.59,
+    "jaw-length": 0.12,
+    "mouth-width": 0.33,
+    "ear-size": 0.24,
+    "forehead-height": -0.38,
+    "neck-width": -0.52,
+    "face-length": 0.11,
+    "face-width": -0.47,
+    "smile": 0.35
+   }
+  },
+  {
+   "id": "face-sunset-park",
+   "morphs": {
+    "brow-depth": 0.23,
+    "eye-size": 0.46,
+    "eye-spacing": 0.64,
+    "nose-width": -0.33,
+    "cheek-fullness": 0.38,
+    "jaw-width": 0.47,
+    "jaw-length": -0.6,
+    "mouth-width": -0.31,
+    "ear-size": 0.03,
+    "forehead-height": 0.44,
+    "face-length": -0.48,
+    "smile": 0.63
+   }
+  },
+  {
+   "id": "face-richmond",
+   "morphs": {
+    "eye-size": -0.29,
+    "eye-spacing": -0.18,
+    "nose-width": 0.47,
+    "cheek-fullness": -0.1,
+    "cheekbone": 0.56,
+    "jaw-width": 0.01,
+    "chin-height": 0.11,
+    "temple-width": -0.15,
+    "face-width": -0.58,
+    "smile": -0.18
+   }
+  },
+  {
+   "id": "face-soma",
+   "morphs": {
+    "brow-depth": 0.28,
+    "eye-size": -0.32,
+    "eye-tilt": 0.54,
+    "nose-bridge": -0.39,
+    "cheekbone": 0.05,
+    "jaw-width": -0.52,
+    "jaw-length": -0.64,
+    "chin-height": 0.28,
+    "lip-fullness": 0.35,
+    "ear-size": 0.32,
+    "forehead-height": -0.06,
+    "age": -0.25
+   }
+  },
+  {
+   "id": "face-dogpatch",
+   "morphs": {
+    "brow-depth": 0.42,
+    "eye-spacing": 0.04,
+    "nose-width": 0.31,
+    "nose-bridge": -0.12,
+    "cheek-fullness": -0.07,
+    "jaw-length": -0.28,
+    "chin-width": 0.16,
+    "mouth-width": -0.37,
+    "lip-fullness": 0.33,
+    "forehead-height": 0.45,
+    "neck-width": 0.37,
+    "face-length": 0.54,
+    "face-width": 0.1,
+    "smile": -0.12
+   }
+  },
+  {
+   "id": "face-bayview",
+   "morphs": {
+    "brow-depth": 0.05,
+    "eye-size": 0.13,
+    "eye-tilt": 0.05,
+    "nose-width": 0.47,
+    "nose-length": 0.02,
+    "cheek-fullness": 0.35,
+    "cheekbone": 0.5,
+    "jaw-length": 0.45,
+    "chin-height": 0.32,
+    "mouth-width": 0.41,
+    "forehead-height": -0.14,
+    "temple-width": -0.03,
+    "neck-width": 0.62,
+    "smile": 0.2
+   }
+  },
+  {
+   "id": "face-noe",
+   "morphs": {
+    "brow-height": -0.36,
+    "brow-depth": -0.54,
+    "eye-size": 0.25,
+    "eye-tilt": 0.41,
+    "nose-width": 0.39,
+    "nose-bridge": -0.43,
+    "cheek-fullness": 0.26,
+    "jaw-width": 0.16,
+    "chin-width": 0.62,
+    "chin-height": -0.01,
+    "mouth-width": 0.19,
+    "lip-fullness": -0.45,
+    "neck-width": -0.64,
+    "face-width": -0.1,
+    "smile": 0.44
+   }
+  },
+  {
+   "id": "face-twin-peaks",
+   "morphs": {
+    "eye-size": 0.41,
+    "eye-spacing": 0.06,
+    "nose-length": 0.1,
+    "nose-bridge": -0.05,
+    "jaw-length": 0.19,
+    "mouth-width": 0.5,
+    "lip-fullness": 0.55,
+    "face-length": 0.37
+   }
+  },
+  {
+   "id": "face-fillmore",
+   "morphs": {
+    "brow-depth": -0.23,
+    "eye-size": 0.52,
+    "eye-spacing": -0.58,
+    "eye-tilt": 0.42,
+    "nose-width": -0.21,
+    "cheek-fullness": -0.51,
+    "jaw-length": 0.15,
+    "chin-height": -0.31,
+    "forehead-height": -0.02,
+    "temple-width": -0.5,
+    "neck-width": -0.34,
+    "face-length": -0.15,
+    "face-width": -0.08,
+    "age": 0
+   }
+  },
+  {
+   "id": "face-chinatown",
+   "morphs": {
+    "brow-height": -0.44,
+    "eye-size": -0.53,
+    "eye-tilt": 0.36,
+    "nose-width": 0.06,
+    "nose-length": -0.32,
+    "nose-bridge": 0.63,
+    "cheekbone": -0.23,
+    "jaw-width": -0.16,
+    "jaw-length": -0.27,
+    "chin-width": 0.01,
+    "mouth-width": 0.2,
+    "lip-fullness": 0.37,
+    "ear-size": 0.47,
+    "face-length": -0.36,
+    "face-width": -0.15,
+    "age": 0.09
+   }
+  },
+  {
+   "id": "face-excelsior",
+   "morphs": {
+    "brow-height": -0.22,
+    "eye-size": -0.52,
+    "nose-width": -0.38,
+    "cheekbone": 0.15,
+    "jaw-width": -0.22,
+    "chin-width": 0.43,
+    "mouth-width": 0.4,
+    "lip-fullness": 0.44,
+    "age": 0.08
+   }
+  },
+  {
+   "id": "face-glen-park",
+   "morphs": {
+    "brow-height": 0.49,
+    "eye-tilt": -0.37,
+    "nose-width": -0.02,
+    "nose-length": -0.16,
+    "nose-bridge": 0.3,
+    "jaw-width": 0.52,
+    "jaw-length": 0.31,
+    "lip-fullness": -0.59,
+    "temple-width": -0.4,
+    "neck-width": 0.57,
+    "smile": 0.26
+   }
+  },
+  {
+   "id": "face-portola",
+   "morphs": {
+    "brow-height": -0.01,
+    "eye-size": 0.06,
+    "eye-tilt": -0.11,
+    "nose-bridge": -0.24,
+    "cheek-fullness": 0.17,
+    "cheekbone": -0.57,
+    "jaw-width": -0.61,
+    "jaw-length": -0.15,
+    "chin-width": 0.47,
+    "chin-height": -0.48,
+    "mouth-width": 0.46,
+    "temple-width": 0.26,
+    "face-width": 0.01,
+    "age": -0.18
+   }
+  },
+  {
+   "id": "face-potrero",
+   "morphs": {
+    "brow-height": -0.02,
+    "brow-depth": -0.06,
+    "eye-size": -0.2,
+    "eye-spacing": 0.48,
+    "nose-width": -0.37,
+    "nose-length": -0.61,
+    "nose-bridge": -0.51,
+    "cheekbone": -0.63,
+    "jaw-width": 0.47,
+    "chin-height": 0.62,
+    "lip-fullness": -0.49,
+    "forehead-height": 0.26,
+    "neck-width": 0.33,
+    "smile": 0.47
+   }
+  },
+  {
+   "id": "face-union-square",
+   "morphs": {
+    "brow-height": 0.22,
+    "brow-depth": -0.55,
+    "eye-size": -0.25,
+    "eye-tilt": 0.65,
+    "nose-width": -0.55,
+    "cheek-fullness": 0.51,
+    "cheekbone": -0.33,
+    "jaw-width": -0.51,
+    "jaw-length": 0.18,
+    "chin-width": 0.46,
+    "chin-height": -0.12,
+    "lip-fullness": -0.06,
+    "ear-size": -0.34,
+    "forehead-height": -0.57,
+    "neck-width": 0.52,
+    "smile": -0.6
+   }
+  }
+ ],
+ "hairs": [
+  {
+   "id": "hair-buzz",
+   "kind": "cap",
+   "scale": 1.015,
+   "top": 0,
+   "backY": 1.67,
+   "sideY": 1.7,
+   "frontY": 1.745
+  },
+  {
+   "id": "hair-crop",
+   "kind": "cap",
+   "scale": 1.05,
+   "top": 0.004,
+   "backY": 1.66,
+   "sideY": 1.69,
+   "frontY": 1.74
+  },
+  {
+   "id": "hair-fade",
+   "kind": "cap",
+   "scale": 1.06,
+   "top": 0.01,
+   "backY": 1.69,
+   "sideY": 1.71,
+   "frontY": 1.74
+  },
+  {
+   "id": "hair-waves",
+   "kind": "cap",
+   "scale": 1.08,
+   "top": 0.008,
+   "backY": 1.64,
+   "sideY": 1.67,
+   "frontY": 1.735,
+   "ripple": {
+    "amp": 0.004,
+    "freq": 1.1
+   }
+  },
+  {
+   "id": "hair-curls",
+   "kind": "cap",
+   "scale": 1.13,
+   "top": 0.015,
+   "backY": 1.64,
+   "sideY": 1.67,
+   "frontY": 1.73,
+   "ripple": {
+    "amp": 0.008,
+    "freq": 1.7
+   }
+  },
+  {
+   "id": "hair-coils",
+   "kind": "cap",
+   "scale": 1.12,
+   "top": 0.012,
+   "backY": 1.65,
+   "sideY": 1.68,
+   "frontY": 1.735,
+   "ripple": {
+    "amp": 0.006,
+    "freq": 2.4
+   }
+  },
+  {
+   "id": "hair-locs",
+   "kind": "cap",
+   "scale": 1.07,
+   "top": 0.004,
+   "backY": 1.66,
+   "sideY": 1.69,
+   "frontY": 1.74,
+   "tail": {
+    "kind": "locs",
+    "count": 22,
+    "endY": 1.42,
+    "r": 0.011
+   }
+  },
+  {
+   "id": "hair-braids",
+   "kind": "cap",
+   "scale": 1.05,
+   "top": 0.004,
+   "backY": 1.66,
+   "sideY": 1.69,
+   "frontY": 1.74,
+   "tail": {
+    "kind": "braids",
+    "count": 14,
+    "endY": 1.36,
+    "r": 0.009
+   }
+  },
+  {
+   "id": "hair-bob",
+   "kind": "cap",
+   "scale": 1.09,
+   "top": 0.006,
+   "backY": 1.6,
+   "sideY": 1.62,
+   "frontY": 1.74,
+   "tail": {
+    "kind": "curtain",
+    "count": 1,
+    "endY": 1.585,
+    "r": 0.01
+   }
+  },
+  {
+   "id": "hair-long",
+   "kind": "cap",
+   "scale": 1.08,
+   "top": 0.006,
+   "backY": 1.58,
+   "sideY": 1.6,
+   "frontY": 1.735,
+   "tail": {
+    "kind": "curtain",
+    "count": 1,
+    "endY": 1.38,
+    "r": 0.01
+   }
+  },
+  {
+   "id": "hair-ponytail",
+   "kind": "cap",
+   "scale": 1.06,
+   "top": 0.004,
+   "backY": 1.66,
+   "sideY": 1.69,
+   "frontY": 1.74,
+   "tail": {
+    "kind": "pony",
+    "count": 1,
+    "endY": 1.5,
+    "r": 0.026
+   }
+  },
+  {
+   "id": "hair-bun",
+   "kind": "cap",
+   "scale": 1.05,
+   "top": 0.004,
+   "backY": 1.66,
+   "sideY": 1.69,
+   "frontY": 1.74,
+   "bun": {
+    "r": 0.04,
+    "y": 1.79
+   }
+  },
+  {
+   "id": "hair-afro",
+   "kind": "afro",
+   "scale": 1.5,
+   "top": 0.03,
+   "backY": 1.6,
+   "sideY": 1.62,
+   "frontY": 1.74
+  },
+  {
+   "id": "hair-pomp",
+   "kind": "cap",
+   "scale": 1.06,
+   "top": 0.006,
+   "backY": 1.67,
+   "sideY": 1.7,
+   "frontY": 1.74,
+   "pomp": 0.02
+  },
+  {
+   "id": "hair-shag",
+   "kind": "cap",
+   "scale": 1.13,
+   "top": 0.01,
+   "backY": 1.6,
+   "sideY": 1.63,
+   "frontY": 1.735,
+   "ripple": {
+    "amp": 0.006,
+    "freq": 1.4
+   },
+   "tail": {
+    "kind": "curtain",
+    "count": 1,
+    "endY": 1.55,
+    "r": 0.01
+   }
+  },
+  {
+   "id": "hair-bald",
+   "kind": "bald",
+   "scale": 1.004,
+   "top": 0,
+   "backY": 1.6,
+   "sideY": 1.62,
+   "frontY": 1.74
+  }
+ ],
+ "tops": [
+  {
+   "id": "top-hoodie",
+   "hemY": 0.9,
+   "ease": 0.16,
+   "sleeve": "long",
+   "cuffY": 0.92,
+   "hood": true,
+   "collar": 0,
+   "hemband": true,
+   "flare": 0.03,
+   "cell": 2,
+   "neck": 1
+  },
+  {
+   "id": "top-tee",
+   "hemY": 0.93,
+   "ease": 0.12,
+   "sleeve": "short",
+   "cuffY": 1.24,
+   "hood": false,
+   "collar": 0.3,
+   "hemband": false,
+   "flare": 0,
+   "cell": 0,
+   "neck": 1
+  },
+  {
+   "id": "top-windbreaker",
+   "hemY": 0.9,
+   "ease": 0.16,
+   "sleeve": "long",
+   "cuffY": 0.92,
+   "hood": false,
+   "collar": 1,
+   "hemband": true,
+   "flare": 0.02,
+   "cell": 3,
+   "neck": 1
+  },
+  {
+   "id": "top-flannel",
+   "hemY": 0.88,
+   "ease": 0.13,
+   "sleeve": "long",
+   "cuffY": 0.92,
+   "hood": false,
+   "collar": 0.6,
+   "hemband": false,
+   "flare": 0,
+   "cell": 7,
+   "neck": 1
+  },
+  {
+   "id": "top-tank",
+   "hemY": 0.93,
+   "ease": 0.12,
+   "sleeve": "none",
+   "cuffY": 1.3,
+   "hood": false,
+   "collar": 0,
+   "hemband": false,
+   "flare": 0,
+   "cell": 0,
+   "neck": 0.92
+  },
+  {
+   "id": "top-bomber",
+   "hemY": 0.93,
+   "ease": 0.15,
+   "sleeve": "long",
+   "cuffY": 0.95,
+   "hood": false,
+   "collar": 0.5,
+   "hemband": true,
+   "flare": 0,
+   "cell": 4,
+   "neck": 1
+  },
+  {
+   "id": "top-fleece",
+   "hemY": 0.9,
+   "ease": 0.16,
+   "sleeve": "long",
+   "cuffY": 0.92,
+   "hood": false,
+   "collar": 1,
+   "hemband": false,
+   "flare": 0.02,
+   "cell": 2,
+   "neck": 1
+  },
+  {
+   "id": "top-crewneck",
+   "hemY": 0.92,
+   "ease": 0.13,
+   "sleeve": "long",
+   "cuffY": 0.92,
+   "hood": false,
+   "collar": 0.4,
+   "hemband": true,
+   "flare": 0,
+   "cell": 2,
+   "neck": 1
+  },
+  {
+   "id": "top-jersey",
+   "hemY": 0.87,
+   "ease": 0.13,
+   "sleeve": "none",
+   "cuffY": 1.3,
+   "hood": false,
+   "collar": 0,
+   "hemband": false,
+   "flare": 0.02,
+   "cell": 3,
+   "neck": 0.94
+  },
+  {
+   "id": "top-denim-jacket",
+   "hemY": 0.95,
+   "ease": 0.14,
+   "sleeve": "long",
+   "cuffY": 0.95,
+   "hood": false,
+   "collar": 0.8,
+   "hemband": false,
+   "flare": 0,
+   "cell": 1,
+   "neck": 1
+  },
+  {
+   "id": "top-raincoat",
+   "hemY": 0.62,
+   "ease": 0.16,
+   "sleeve": "long",
+   "cuffY": 0.9,
+   "hood": true,
+   "collar": 1,
+   "hemband": false,
+   "flare": 0.1,
+   "cell": 3,
+   "neck": 1
+  },
+  {
+   "id": "top-button-up",
+   "hemY": 0.88,
+   "ease": 0.12,
+   "sleeve": "long",
+   "cuffY": 0.92,
+   "hood": false,
+   "collar": 0.7,
+   "hemband": false,
+   "flare": 0,
+   "cell": 0,
+   "neck": 1
+  }
+ ],
+ "bottoms": [
+  {
+   "id": "bottom-jeans",
+   "kind": "pants",
+   "hemY": 0.07,
+   "ease": 0.12,
+   "flare": 0,
+   "cell": 1
+  },
+  {
+   "id": "bottom-joggers",
+   "kind": "pants",
+   "hemY": 0.12,
+   "ease": 0.14,
+   "flare": 0,
+   "cell": 2
+  },
+  {
+   "id": "bottom-cargo",
+   "kind": "pants",
+   "hemY": 0.1,
+   "ease": 0.16,
+   "flare": 0.02,
+   "cell": 7
+  },
+  {
+   "id": "bottom-shorts",
+   "kind": "shorts",
+   "hemY": 0.62,
+   "ease": 0.14,
+   "flare": 0,
+   "cell": 0
+  },
+  {
+   "id": "bottom-chinos",
+   "kind": "pants",
+   "hemY": 0.08,
+   "ease": 0.12,
+   "flare": 0,
+   "cell": 0
+  },
+  {
+   "id": "bottom-track-pants",
+   "kind": "pants",
+   "hemY": 0.08,
+   "ease": 0.14,
+   "flare": 0,
+   "cell": 3
+  },
+  {
+   "id": "bottom-skirt",
+   "kind": "skirt",
+   "hemY": 0.64,
+   "ease": 0.12,
+   "flare": 0.35,
+   "cell": 0
+  },
+  {
+   "id": "bottom-overalls",
+   "kind": "overalls",
+   "hemY": 0.08,
+   "ease": 0.15,
+   "flare": 0,
+   "cell": 1
+  }
+ ],
+ "shoes": [
+  {
+   "id": "shoes-sneakers",
+   "shaft": 0,
+   "bulk": 1,
+   "sole": 0.01,
+   "open": false,
+   "cell": 0
+  },
+  {
+   "id": "shoes-boots",
+   "shaft": 0.2,
+   "bulk": 1.2,
+   "sole": 0.014,
+   "open": false,
+   "cell": 4
+  },
+  {
+   "id": "shoes-skate-shoes",
+   "shaft": 0.03,
+   "bulk": 1.4,
+   "sole": 0.012,
+   "open": false,
+   "cell": 7
+  },
+  {
+   "id": "shoes-runners",
+   "shaft": 0,
+   "bulk": 0.8,
+   "sole": 0.014,
+   "open": false,
+   "cell": 3
+  },
+  {
+   "id": "shoes-loafers",
+   "shaft": 0,
+   "bulk": 0.6,
+   "sole": 0.008,
+   "open": false,
+   "cell": 4
+  },
+  {
+   "id": "shoes-sandals",
+   "shaft": 0,
+   "bulk": 0.4,
+   "sole": 0.008,
+   "open": true,
+   "cell": 4
+  }
+ ],
+ "accessories": [
+  {
+   "id": "acc-cap",
+   "kind": "cap",
+   "cell": 7
+  },
+  {
+   "id": "acc-beanie",
+   "kind": "beanie",
+   "cell": 2
+  },
+  {
+   "id": "acc-shades",
+   "kind": "shades",
+   "cell": 5
+  },
+  {
+   "id": "acc-chain",
+   "kind": "chain",
+   "cell": 6
+  },
+  {
+   "id": "acc-watch",
+   "kind": "watch",
+   "cell": 4
+  },
+  {
+   "id": "acc-backpack",
+   "kind": "backpack",
+   "cell": 3
+  },
+  {
+   "id": "acc-scarf",
+   "kind": "scarf",
+   "cell": 2
+  },
+  {
+   "id": "acc-headphones",
+   "kind": "headphones",
+   "cell": 3
+  }
+ ],
+ "outfits": [
+  {
+   "n": 1,
+   "top": "top-tee",
+   "bottom": "bottom-jeans",
+   "shoes": "shoes-sneakers",
+   "accessory": null
+  },
+  {
+   "n": 2,
+   "top": "top-hoodie",
+   "bottom": "bottom-joggers",
+   "shoes": "shoes-runners",
+   "accessory": null
+  },
+  {
+   "n": 3,
+   "top": "top-windbreaker",
+   "bottom": "bottom-chinos",
+   "shoes": "shoes-sneakers",
+   "accessory": "acc-cap"
+  },
+  {
+   "n": 4,
+   "top": "top-flannel",
+   "bottom": "bottom-jeans",
+   "shoes": "shoes-boots",
+   "accessory": null
+  },
+  {
+   "n": 5,
+   "top": "top-tank",
+   "bottom": "bottom-shorts",
+   "shoes": "shoes-sandals",
+   "accessory": "acc-shades"
+  },
+  {
+   "n": 6,
+   "top": "top-bomber",
+   "bottom": "bottom-cargo",
+   "shoes": "shoes-boots",
+   "accessory": "acc-beanie"
+  },
+  {
+   "n": 7,
+   "top": "top-fleece",
+   "bottom": "bottom-track-pants",
+   "shoes": "shoes-runners",
+   "accessory": null
+  },
+  {
+   "n": 8,
+   "top": "top-crewneck",
+   "bottom": "bottom-jeans",
+   "shoes": "shoes-skate-shoes",
+   "accessory": "acc-backpack"
+  },
+  {
+   "n": 9,
+   "top": "top-jersey",
+   "bottom": "bottom-shorts",
+   "shoes": "shoes-sneakers",
+   "accessory": "acc-cap"
+  },
+  {
+   "n": 10,
+   "top": "top-denim-jacket",
+   "bottom": "bottom-chinos",
+   "shoes": "shoes-loafers",
+   "accessory": null
+  },
+  {
+   "n": 11,
+   "top": "top-raincoat",
+   "bottom": "bottom-jeans",
+   "shoes": "shoes-boots",
+   "accessory": null
+  },
+  {
+   "n": 12,
+   "top": "top-button-up",
+   "bottom": "bottom-chinos",
+   "shoes": "shoes-loafers",
+   "accessory": "acc-watch"
+  },
+  {
+   "n": 13,
+   "top": "top-tee",
+   "bottom": "bottom-skirt",
+   "shoes": "shoes-sneakers",
+   "accessory": "acc-backpack"
+  },
+  {
+   "n": 14,
+   "top": "top-hoodie",
+   "bottom": "bottom-jeans",
+   "shoes": "shoes-sneakers",
+   "accessory": "acc-headphones"
+  },
+  {
+   "n": 15,
+   "top": "top-tank",
+   "bottom": "bottom-skirt",
+   "shoes": "shoes-sandals",
+   "accessory": "acc-chain"
+  },
+  {
+   "n": 16,
+   "top": "top-windbreaker",
+   "bottom": "bottom-track-pants",
+   "shoes": "shoes-runners",
+   "accessory": "acc-beanie"
+  },
+  {
+   "n": 17,
+   "top": "top-flannel",
+   "bottom": "bottom-overalls",
+   "shoes": "shoes-boots",
+   "accessory": null
+  },
+  {
+   "n": 18,
+   "top": "top-crewneck",
+   "bottom": "bottom-skirt",
+   "shoes": "shoes-loafers",
+   "accessory": "acc-scarf"
+  },
+  {
+   "n": 19,
+   "top": "top-button-up",
+   "bottom": "bottom-jeans",
+   "shoes": "shoes-sneakers",
+   "accessory": "acc-shades"
+  },
+  {
+   "n": 20,
+   "top": "top-fleece",
+   "bottom": "bottom-cargo",
+   "shoes": "shoes-skate-shoes",
+   "accessory": "acc-cap"
+  }
+ ]
+}

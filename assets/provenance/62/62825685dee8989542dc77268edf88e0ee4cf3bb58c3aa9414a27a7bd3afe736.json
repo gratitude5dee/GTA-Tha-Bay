@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "62825685dee8989542dc77268edf88e0ee4cf3bb58c3aa9414a27a7bd3afe736",
+  "paths": [
+    "assets/src/portrait/pc-acc-watch/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "fdfc77b8ede457c105903be67d1e077ca3f731dc60f46dc1a22a7fb8deb8d8e2"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "f097cea445635327099724ca7f1a74eddcb06bde46295b35228eb480ce85a56f"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

@@ -14,7 +14,7 @@ describe('S13 pack and world index on the civic-excerpt', () => {
     expect(mapSchema('world-index')(index)).toEqual([]);
     for (const k of ['schema', 'c08', 'bakeId', 'worldSeed', 'areas', 'tiles', 'landmarks', 'pois', 'districts', 'portals', 'transit', 'sources']) expect(index).toHaveProperty(k);
     expect(index.schema).toBe('world-index/1');
-    expect(index.c08).toBe('1.0.0');
+    expect(index.c08).toBe('1.1.0');
     expect(index.landmarks.length).toBeGreaterThan(0);
     expect(index.landmarks.length).toBeLessThanOrEqual(37);
     expect(index.tiles.l1.length).toBeGreaterThan(0);

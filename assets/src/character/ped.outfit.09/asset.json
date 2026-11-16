@@ -1,0 +1,61 @@
+{
+  "kind": "character",
+  "id": "ped.outfit.09",
+  "variants": {
+    "desktop": "assets/src/character/ped.outfit.09/desktop.glb",
+    "mobile": "assets/src/character/ped.outfit.09/mobile.glb",
+    "mobile-low": "assets/src/character/ped.outfit.09/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1830,
+      "verts": 1086,
+      "materials": 1,
+      "primitives": 1,
+      "bones": 22,
+      "texMaxPx": 1024
+    },
+    "mobile": {
+      "tris": 915,
+      "verts": 584,
+      "materials": 1,
+      "primitives": 1,
+      "bones": 22,
+      "texMaxPx": 512
+    },
+    "mobile-low": {
+      "tris": 532,
+      "verts": 366,
+      "materials": 1,
+      "primitives": 1,
+      "bones": 22,
+      "texMaxPx": 256
+    }
+  },
+  "deps": [],
+  "tags": [
+    "class:ped",
+    "art:m10d4"
+  ],
+  "extras": {
+    "t": "character",
+    "npcId": "people-kit",
+    "rigFamily": "bay_rig_v1",
+    "heightM": 1.8,
+    "bones": {
+      "jaw": false,
+      "fingers": false
+    },
+    "animSets": []
+  },
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

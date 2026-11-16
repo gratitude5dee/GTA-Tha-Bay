@@ -29,9 +29,14 @@ export const world = <T>(page: Page, fn: (w: WorldBridge) => T | Promise<T>): Pr
 export const texturesSettled = (page: Page): Promise<unknown> =>
   page.waitForFunction(() => (window as unknown as W).__dvBridge.world.look()?.textures?.settled === true, undefined, { timeout: 300_000, polling: 500 });
 
-export const frames = async (page: Page, n: number): Promise<void> => {
+/**
+ * Resolves once `n` more world frames have been drawn. `timeoutMs` bounds the wait only (a liveness bound, not a frame-rate bar): a `desktop`
+ * frame on software GL while the stream is still uploading takes seconds, so a long count at `desktop` passes a longer bound
+ * (BD-REPAIR-M02h3-03).
+ */
+export const frames = async (page: Page, n: number, timeoutMs = 180_000): Promise<void> => {
   const f0 = await world(page, (w) => w.chunks().frame);
-  await page.waitForFunction((t) => (window as unknown as W).__dvBridge.world.chunks().frame >= t, f0 + n, { timeout: 180_000, polling: 250 });
+  await page.waitForFunction((t) => (window as unknown as W).__dvBridge.world.chunks().frame >= t, f0 + n, { timeout: timeoutMs, polling: 250 });
 };
 
 export const HIDE = '.dv-hud, .dv-sim-panel, .dv-sky-controls, .dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg, .dv-npcagency, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }';

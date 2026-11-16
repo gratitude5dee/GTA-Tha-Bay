@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "a5dacd3b64464bd6fc5ff3d0088868001b5ad8d2b911158f33e52268fad3e3e9",
+  "paths": [
+    "assets/src/character/pc-shoes-runners/mobile-low.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "39eac99dc46863de979ff22ce0351cafd386d17d27e85ad548f202cbbfcdd318"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

@@ -15,26 +15,31 @@ import { Banners } from './banners.tsx';
 import { AttributionSplash } from './attribution-splash.tsx';
 import type { ShellCore } from './core.ts';
 import { ShellProvider } from './context.tsx';
+import { loadedPage, loadPage, loadPagesAhead } from './page-cache.ts';
 import { pageDef } from './registry.ts';
-import type { PageComponent, PageDef, PageId } from './types.ts';
+import type { PageComponent, PageDef } from './types.ts';
 
-const loaded = new Map<PageId, PageComponent>();
-
-/** Loads a page chunk once; renders nothing while the chunk loads (the first paint of a page needs only the shell, the kit and its chunk). */
+/**
+ * The page component for `def`: at once when its chunk has loaded (`page-cache.ts`; the gates and the main menu load ahead), otherwise
+ * null while an effect loads it (the first paint of a page needs only the shell, the kit and its chunk).
+ */
 function usePage(def: PageDef | undefined): PageComponent | null {
   const [, force] = useState(0);
+  const page = def ? (loadedPage(def.id) ?? null) : null;
+  // Decided on what this render drew, not on the cache when the effect runs: a chunk loaded ahead between the render and the effect
+  // still needs the redraw that shows it.
+  const drawn = page !== null;
   useEffect(() => {
-    if (!def || loaded.has(def.id)) return undefined;
+    if (!def || drawn) return undefined;
     let live = true;
-    def.load().then((m) => {
-      loaded.set(def.id, m.default as PageComponent);
-      if (live) force((n) => n + 1);
-    }, (e: unknown) => console.error('page chunk failed', def.id, e));
+    void loadPage(def).then((loaded) => {
+      if (loaded && live) force((n) => n + 1);
+    });
     return () => {
       live = false;
     };
-  }, [def?.id]);
-  return def ? (loaded.get(def.id) ?? null) : null;
+  }, [def?.id, drawn]);
+  return page;
 }
 
 function UpdateToastView(props: { visible: boolean; onApply(): void; onLater(): void }) {
@@ -151,6 +156,10 @@ export function ShellApp(props: { core: ShellCore }) {
   const pageId = core.currentPage();
   const def = pageDef(pageId === 'unsupported' ? 'boot' : pageId);
   const Page = usePage(core.state === 'InMode' && !core.frame ? undefined : def);
+  // The pages the player can reach next load while this one is up, so they show in the task that opens them (BD-FIX-MENU-BOOT-01).
+  useEffect(() => {
+    loadPagesAhead(pageId, pageDef);
+  }, [pageId]);
   useEffect(() => {
     document.title = core.frame?.id === 'credits' ? `${t('credits.title')} - ${BRAND.displayName}` : BRAND.displayName;
   }, [core.frame?.id]);

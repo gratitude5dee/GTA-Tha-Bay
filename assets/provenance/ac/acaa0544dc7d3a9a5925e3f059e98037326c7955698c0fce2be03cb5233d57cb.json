@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "acaa0544dc7d3a9a5925e3f059e98037326c7955698c0fce2be03cb5233d57cb",
+  "paths": [
+    "assets/src/portrait/pc-acc-scarf/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "169a0df67dd75ed7be68d77b0884a2b01fd4373dcc928669376ee52153e11c48"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "853bbcc74422b8e8751652c7f821f39c4b654302293c0db8192101f86a1c751c"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

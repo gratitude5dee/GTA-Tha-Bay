@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "ca1afa2cc86b71df50cc39b4f44650deafbf5469dd895f10b3f5d29f63abc4b5",
+  "paths": [
+    "assets/src/character/ped.body.b/desktop.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "4dec0a5ec659b152d25e91a505c1aef3317995787b023bda13a70658c6f4b88d"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

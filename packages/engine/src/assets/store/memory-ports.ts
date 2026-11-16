@@ -57,12 +57,19 @@ export class MemoryIndexStore implements IndexStore {
     const r = this.rows.get(hash);
     return Promise.resolve(r ? { ...r, tags: [...r.tags] } : null);
   }
+  getMany(hashes: readonly string[]): Promise<Array<PackRow | null>> {
+    return Promise.all(hashes.map((h) => this.get(h)));
+  }
   put(row: PackRow): Promise<void> {
+    return this.putMany([row]);
+  }
+  /** One transaction: a crash (`crashNextPut`) writes none of the rows. */
+  putMany(rows: readonly PackRow[]): Promise<void> {
     if (this.crashNextPut) {
       this.crashNextPut = false;
       return Promise.reject(new Error('crash before the row write'));
     }
-    this.rows.set(row.sha256, { ...row, tags: [...row.tags] });
+    for (const row of rows) this.rows.set(row.sha256, { ...row, tags: [...row.tags] });
     return Promise.resolve();
   }
   delete(hash: string): Promise<void> {

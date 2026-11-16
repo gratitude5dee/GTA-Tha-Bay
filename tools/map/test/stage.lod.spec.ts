@@ -85,7 +85,10 @@ describe('S11 far-bay packs on the civic-excerpt', () => {
       expect(Buffer.from(buf.subarray(8, 40)).toString('hex')).toBe(b.result.bakeId);
       expect(buf.byteLength).toBeLessThan(4 * 1024 * 1024);
     }
-    const png = readFileSync(path.join(b.outDir, 'packs', 'far-bay-cards.png'));
+    // M10d2: the card atlas is a KTX2 (the 12-byte KTX 2.0 identifier) drawn by the rasterizer, with a PNG preview beside the packs
+    const ktx = readFileSync(path.join(b.outDir, 'packs', 'far-bay-cards.ktx2'));
+    expect([...ktx.subarray(0, 12)]).toEqual([0xab, 0x4b, 0x54, 0x58, 0x20, 0x32, 0x30, 0xbb, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const png = readFileSync(path.join(b.outDir, 'far-bay-cards.preview.png'));
     expect([...png.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     const far = b.report['far'] as unknown as { cards: number; boxes: number; demPosts: number };
     expect(far.cards).toBe(CARD_COUNT);

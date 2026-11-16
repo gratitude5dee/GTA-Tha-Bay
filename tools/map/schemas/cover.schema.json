@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/cover.schema.json",
+  "title": "config/world/cover.json (M02h3): the ground cover rules of S13",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "enabled", "blockMaxM2", "residentialLanduseShare", "residentialBuildingShare", "mixed", "scrub", "vacantLanduse", "dirtLanduse", "dirtSurface", "driveway"],
+  "$defs": {
+    "share": { "type": "number", "minimum": 0, "maximum": 1 },
+    "slope": { "type": "number", "minimum": 0, "maximum": 4 },
+    "tags": { "type": "array", "items": { "type": "string", "pattern": "^[a-z_]{2,32}$" }, "uniqueItems": true }
+  },
+  "properties": {
+    "schema": { "const": "world-cover/1" },
+    "note": { "type": "string" },
+    "enabled": { "type": "boolean" },
+    "blockMaxM2": { "type": "number", "minimum": 16, "maximum": 10000000 },
+    "residentialLanduseShare": { "$ref": "#/$defs/share" },
+    "residentialBuildingShare": { "$ref": "#/$defs/share" },
+    "mixed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slope", "share", "cellM", "seed"],
+      "properties": {
+        "slope": { "$ref": "#/$defs/slope" },
+        "share": { "$ref": "#/$defs/share" },
+        "cellM": { "type": "integer", "minimum": 4, "maximum": 256 },
+        "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295 }
+      }
+    },
+    "scrub": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slope", "parkSlope"],
+      "properties": { "slope": { "$ref": "#/$defs/slope" }, "parkSlope": { "$ref": "#/$defs/slope" } }
+    },
+    "vacantLanduse": { "$ref": "#/$defs/tags" },
+    "dirtLanduse": { "$ref": "#/$defs/tags" },
+    "dirtSurface": { "$ref": "#/$defs/tags" },
+    "driveway": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["highway", "service"],
+      "properties": { "highway": { "type": "string" }, "service": { "type": "string" } }
+    }
+  }
+}

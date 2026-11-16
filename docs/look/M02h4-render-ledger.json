@@ -1,0 +1,84 @@
+{
+  "commit": "local",
+  "bakeId": "f73a47b756ac5cb1358c40859d017811b1f556e5c28742df09da09107821ebe9",
+  "baselineFrom": "docs/look/M02h3-render-ledger.json",
+  "tiers": {
+    "desktop-ultra": {
+      "baseline": 722,
+      "after": 719,
+      "perLayer": {
+        "trees": -3
+      },
+      "trees": {
+        "pools": 10,
+        "casting": 5,
+        "perUnit": 25,
+        "drawn": 722,
+        "maxTrisPerTree": 204
+      }
+    },
+    "desktop": {
+      "baseline": 554,
+      "after": 551,
+      "perLayer": {
+        "trees": -3
+      },
+      "trees": {
+        "pools": 10,
+        "casting": 5,
+        "perUnit": 25,
+        "drawn": 722,
+        "maxTrisPerTree": 204
+      }
+    },
+    "mobile": {
+      "baseline": 146,
+      "after": 137,
+      "perLayer": {
+        "trees": -9
+      },
+      "trees": {
+        "pools": 5,
+        "casting": 0,
+        "perUnit": 14,
+        "drawn": 284,
+        "maxTrisPerTree": 92
+      }
+    },
+    "mobile-low": {
+      "baseline": 74,
+      "after": 68,
+      "perLayer": {
+        "trees": -6
+      },
+      "trees": {
+        "pools": 2,
+        "casting": 0,
+        "perUnit": 8,
+        "drawn": 132,
+        "maxTrisPerTree": 48
+      }
+    },
+    "legacy": {
+      "baseline": 73,
+      "after": 67,
+      "perLayer": {
+        "trees": -6
+      },
+      "trees": {
+        "pools": 2,
+        "casting": 0,
+        "perUnit": 8,
+        "drawn": 132,
+        "maxTrisPerTree": 48
+      }
+    }
+  },
+  "xr": {
+    "baseline": 100,
+    "after": 93,
+    "perLayer": {
+      "trees": -7
+    }
+  }
+}

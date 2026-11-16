@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import type { QualityTierId } from '@dv/shared';
 import { SKY_TIERS, skyConfigFor } from '../src/client/sky/tiers.ts';
+import { Scene } from 'three/webgpu';
 import { createAtmosphereAdapter } from '../src/client/sky/atmosphere.ts';
 import { headlightsOn } from '../src/client/sky/night.ts';
 
@@ -50,10 +51,12 @@ describe('the sky feature matrix (AC-5)', () => {
     }
   });
 
-  it('desktop-ultra uses the desktop sky until an adapter lands: the slot is an interface only', () => {
+  it('desktop-ultra has the adapter slot; the takram adapter (M10d2) is built only there, with the flag on at level 2', () => {
     expect(skyConfigFor('desktop-ultra').adapter).toBe(true);
-    expect(createAtmosphereAdapter({ enabled: true, level: 2 })).toBeNull();
-    expect(createAtmosphereAdapter({ enabled: false, level: 2 })).toBeNull();
+    const o = { scene: new Scene(), backend: () => null };
+    expect(createAtmosphereAdapter({ ...o, enabled: true, level: 2, tier: 'desktop-ultra' })).not.toBeNull();
+    expect(createAtmosphereAdapter({ ...o, enabled: false, level: 2, tier: 'desktop-ultra' })).toBeNull();
+    expect(createAtmosphereAdapter({ ...o, enabled: true, level: 1, tier: 'desktop-ultra' })).toBeNull();
     expect(skyConfigFor('desktop').adapter).toBe(false);
   });
 

@@ -1,0 +1,55 @@
+{
+  "commit": "local",
+  "bakeId": "6e5d9a7fc0c8faa0ae8124ba55e8d6eb6438ca9b98c695d0c163c6828dc0af59",
+  "baselineFrom": "docs/look/M02h2-render-ledger.json",
+  "tiers": {
+    "desktop-ultra": {
+      "baseline": 722,
+      "after": 722,
+      "perLayer": {
+        "cover": 0
+      },
+      "triangles": {
+        "off": 2437385,
+        "on": 2437385
+      }
+    },
+    "desktop": {
+      "baseline": 554,
+      "after": 554,
+      "perLayer": {
+        "cover": 0
+      },
+      "triangles": {
+        "off": 1744947,
+        "on": 1744947
+      }
+    },
+    "mobile": {
+      "baseline": 146,
+      "after": 146,
+      "perLayer": {
+        "cover": 0
+      },
+      "triangles": {
+        "off": 378601,
+        "on": 378601
+      }
+    },
+    "mobile-low": {
+      "baseline": 74,
+      "after": 74,
+      "perLayer": {
+        "cover": 0
+      },
+      "triangles": {
+        "off": 133782,
+        "on": 133782
+      }
+    }
+  },
+  "xr": {
+    "baseline": 100,
+    "after": 100
+  }
+}

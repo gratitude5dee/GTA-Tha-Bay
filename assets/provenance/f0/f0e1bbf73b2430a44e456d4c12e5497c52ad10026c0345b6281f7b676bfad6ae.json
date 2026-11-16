@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "f0e1bbf73b2430a44e456d4c12e5497c52ad10026c0345b6281f7b676bfad6ae",
+  "paths": [
+    "assets/src/prop/ped.far.g/desktop.glb"
+  ],
+  "kind": "prop",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "1867df41b758e066cf624e273c6554cfb133f2c41018769253a98e7082841a45"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

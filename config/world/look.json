@@ -50,6 +50,22 @@
       "palette": ["#d9d2c2", "#cfc7b6", "#e2dccf", "#bfb8a8"]
     }
   },
+  "facadeKit": {
+    "$comment": "M02h7: the shading of the facade kit (look/facade.ts). Original colours only: awning cloth pairs (stripes by seed) and plain sign panels, no text, glyph or logo. Heights in metres below the ground-floor line; the recess is the analytic reveal depth of the window bump. Design values, tuned here.",
+    "awningPalette": ["#7a2e2a", "#1f4e5a", "#2f5a34", "#8a6a2a", "#3a3a48", "#6b3d5c"],
+    "awningStripe": "#e8e1d0",
+    "awningRoughness": 0.8,
+    "signPalette": ["#1e2a3a", "#5a1e22", "#20402c", "#2b2b2b", "#e2d6b8", "#3a2a1e"],
+    "signTopBelowGfM": 0.25,
+    "signBottomBelowGfM": 0.9,
+    "transomBelowGfM": 1.35,
+    "kickM": 0.45,
+    "pilasterM": 0.28,
+    "recessM": 0.12,
+    "corniceTilt": 0.45,
+    "signGlow": [1.0, 0.86, 0.62],
+    "shopGlow": [1.0, 0.82, 0.55]
+  },
   "roof": {
     "flat": { "albedo": "#8a8680", "roughness": 0.9, "pattern": "membrane" },
     "gable": { "albedo": "#7a5a4c", "roughness": 0.82, "pattern": "shingle" },
@@ -77,7 +93,14 @@
     "Curb": { "albedo": "#b4b3ab", "roughness": 0.88, "noise": 0.08 },
     "Gutter": { "albedo": "#74767a", "roughness": 0.8, "noise": 0.12 },
     "Lot": { "albedo": "#8e9093", "roughness": 0.9, "noise": 0.12 },
-    "Plaza": { "albedo": "#b8ab9b", "roughness": 0.86, "noise": 0.1 }
+    "Plaza": { "albedo": "#b8ab9b", "roughness": 0.86, "noise": 0.1 },
+    "cover.yard": { "albedo": "#7d9c55", "roughness": 0.95, "noise": 0.06 },
+    "cover.dirt": { "albedo": "#8a7353", "roughness": 0.96, "noise": 0.2 },
+    "cover.mixed": { "albedo": "#86905a", "roughness": 0.95, "noise": 0.45 },
+    "cover.driveway": { "albedo": "#a6a49d", "roughness": 0.88, "noise": 0.1 },
+    "cover.vacant": { "albedo": "#9d8d6b", "roughness": 0.97, "noise": 0.2 },
+    "cover.scrub": { "albedo": "#9f9b5f", "roughness": 0.96, "noise": 0.3 },
+    "cover.park": { "albedo": "#62a04e", "roughness": 0.95, "noise": 0.22 }
   },
   "water": {
     "deep": "#12456d",
@@ -107,12 +130,13 @@
     "golden": { "sun": 0.7, "blue": 0.3, "ext": 0.05 }
   },
   "windows": {
-    "litFrac": [[0, 0.3, 0.6], [3, 0.12, 0.3], [5.5, 0.08, 0.22], [6.5, 0.05, 0.16], [8, 0.02, 0.07], [12, 0.0, 0.04], [16, 0.04, 0.12], [18, 0.3, 0.55], [20, 0.5, 0.8], [22, 0.55, 0.85]]
+    "litFrac": [[0, 0.3, 0.6], [3, 0.12, 0.3], [5.5, 0.08, 0.22], [6.5, 0.05, 0.16], [8, 0.02, 0.07], [12, 0.0, 0.04], [16, 0.04, 0.12], [18, 0.3, 0.55], [20, 0.5, 0.8], [22, 0.55, 0.85]],
+    "shop": [[0, 0.35], [2, 0.15], [6, 0.0], [17, 0.0], [18.5, 0.7], [20, 1.0], [23, 0.8]]
   },
   "layers": {
-    "full": ["grade", "haze", "blob", "casters", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots"],
-    "lite": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots"],
-    "min": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs"],
+    "full": ["grade", "haze", "blob", "casters", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots", "facade"],
+    "lite": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs", "bump", "macro", "lots", "facade"],
+    "min": ["grade", "haze", "blob", "skyReflect", "windows", "markings", "curbs", "facade"],
     "legacy": ["markings"]
   },
   "bump": { "full": 2, "lite": 1.5, "min": 0, "legacy": 0 },
@@ -146,6 +170,21 @@
     "junctionExtraM": 1.0,
     "stopBar": { "depthM": 0.4, "behindCrosswalkM": 1.2 },
     "crosswalk": { "barM": 0.3, "rungM": 0.5, "rungPeriodM": 1.2 }
+  },
+  "vegetation": {
+    "$comment": "M02h4: the wind sway of the street trees on the `full` profile (look/wind.ts): the amplitude per weather preset is the sway of the crown top as a share of the tree height; freq is radians per second of the look clock, waveK radians per metre, dirDeg the bearing from east toward south. Design values.",
+    "wind": { "clear": 0.04, "karl-fog": 0.03, "overcast": 0.05, "rain": 0.12, "smoke": 0.03, "golden": 0.04 },
+    "freq": 1.4, "waveK": 0.12, "dirDeg": 60,
+    "scatter": {
+      "$comment": "M02h5: the vegetation scatter on the client (chunks/vegetation-pool.ts). Within tree.drawM every tree draws once: as a mesh inside impostorM (per mesher profile, 10 % hysteresis), else as an opaque camera-facing impostor card (chunks/impostors.ts); shrubs and hedges within shrubDrawM. Instances are re-banded after rebandM of camera travel or when a unit lands, crossing units only, at most writeCap instance writes per frame (counted against the tier's upload cap). Thinning keeps a scatter record (bit 7 of the TREE byte) when its positional hash is below scatterKeep (trees) or shrubKeep (shrubs and hedges) of the look profile; street trees are never thinned. Design values.",
+      "impostorM": { "desktop": 150, "visionpro": 150, "mobile": 80, "low": 50 },
+      "shrubDrawM": { "desktop": 250, "visionpro": 250, "mobile": 120, "low": 80 },
+      "hysteresis": 0.1,
+      "rebandM": 16,
+      "writeCap": 4096,
+      "scatterKeep": { "full": 1, "lite": 0.7, "min": 0.5, "legacy": 0.35 },
+      "shrubKeep": { "full": 1, "lite": 0.6, "min": 0.3, "legacy": 0.25 }
+    }
   },
   "dynamicCasterRadiusM": 70,
   "webgl2Unsupported": [],

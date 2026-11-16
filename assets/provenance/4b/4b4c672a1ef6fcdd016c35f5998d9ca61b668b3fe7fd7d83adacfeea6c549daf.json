@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "4b4c672a1ef6fcdd016c35f5998d9ca61b668b3fe7fd7d83adacfeea6c549daf",
+  "paths": [
+    "assets/src/portrait/pc-hair-long/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "1a9b47ea24af7c387a172daa14bb063160dc30cacce05a113762a9c73cecb251"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "d3d50cba3292c80e153460bc4b4d802c52e66edc493fb5d4f9e905242a73b215"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

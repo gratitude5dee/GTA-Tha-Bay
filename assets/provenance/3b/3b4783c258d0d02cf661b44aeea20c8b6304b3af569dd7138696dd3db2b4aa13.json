@@ -1,0 +1,35 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "3b4783c258d0d02cf661b44aeea20c8b6304b3af569dd7138696dd3db2b4aa13",
+  "paths": [
+    "assets/src/character/pc-acc-scarf/mobile-low.glb"
+  ],
+  "kind": "character",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "5d27a4bcb5d25c33bb1e9c4be7cebcb773bac98b0c14f37fd29241d03988dc5c"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

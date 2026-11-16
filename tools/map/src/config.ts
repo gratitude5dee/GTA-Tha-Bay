@@ -5,7 +5,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
-import { CHUNK_EDGE_M, GRID_MIN_M, TERRAIN_POSTS, sha256Hex, canonicalize, type ChunkKey, type WorldBounds } from '../../../packages/shared/src/index.ts';
+import { CHUNK_EDGE_M, GRID_MIN_M, TERRAIN_POSTS, sha256Hex, canonicalize, type ChunkKey, type FurnitureFile, type TreeFormTable, type WorldBounds } from '../../../packages/shared/src/index.ts';
 import { toolsRoot } from '../../ci/lib/common.ts';
 import { contentWorldSha } from './content.ts';
 import type { BridgesConfig } from './stages/s7-grading.ts';
@@ -13,7 +13,7 @@ import type { RoadClassConfig } from './stages/s5-roads.ts';
 
 export const TOOL_NAME = 'tools/map';
 /** Bumped by hand when a change alters baked bytes; part of the bakeId (C08 rule 16). */
-export const TOOL_VERSION = '0.3.1';
+export const TOOL_VERSION = '0.6.0';
 export const TOOL_ID = `${TOOL_NAME}@${TOOL_VERSION}`;
 
 export type AreaId = 'sf' | 'civic-excerpt' | 'synth';
@@ -66,7 +66,12 @@ export const BOUNDS_PATH = path.join(toolsRoot, 'config', 'world.bounds.json');
 export const ROADCLASS_PATH = path.join(toolsRoot, 'config', 'world', 'roadclass.json');
 export const BRIDGES_PATH = path.join(toolsRoot, 'config', 'world', 'bridges.json');
 export const DENSITY_PATH = path.join(toolsRoot, 'config', 'world', 'density.json');
-export const SCHEMAS_DIR = path.join(toolsRoot, 'tools', 'map', 'schemas');
+export const COVER_PATH = path.join(toolsRoot, 'config', 'world', 'cover.json');
+export const TREE_FORMS_PATH = path.join(toolsRoot, 'config', 'world', 'tree-forms.json');
+export const VEGETATION_PATH = path.join(toolsRoot, 'config', 'world', 'vegetation.json');
+/** M02h6: the street furniture rules (`config/world/furniture.json`, `config/schemas/world-furniture.schema.json`). */
+export const FURNITURE_PATH = path.join(toolsRoot, 'config', 'world', 'furniture.json');
+export const SCHEMAS_DIR =path.join(toolsRoot, 'tools', 'map', 'schemas');
 
 const readJson = <T>(file: string): T => JSON.parse(readFileSync(file, 'utf8')) as T;
 
@@ -137,6 +142,53 @@ export const loadRoadClass = (file = ROADCLASS_PATH): RoadClassConfig => loadChe
 export const loadBridges = (file = BRIDGES_PATH): BridgesConfig => loadChecked<BridgesConfig>(file, 'bridges');
 export const loadDensity = (file = DENSITY_PATH): DensityConfig => loadChecked<DensityConfig>(file, 'density');
 
+/** M02h3: the ground cover rules of S13 (`config/world/cover.json`, `tools/map/schemas/cover.schema.json`). */
+export interface CoverConfig {
+  schema: 'world-cover/1';
+  enabled: boolean;
+  /** A block larger than this (m2) is never residential. */
+  blockMaxM2: number;
+  /** A block is residential when `residential` landuse covers this share of its cells ... */
+  residentialLanduseShare: number;
+  /** ... or ResLow plus ResMid footprints make this share of its building area. */
+  residentialBuildingShare: number;
+  mixed: { slope: number; share: number; cellM: number; seed: number };
+  scrub: { slope: number; parkSlope: number };
+  vacantLanduse: string[];
+  dirtLanduse: string[];
+  dirtSurface: string[];
+  driveway: { highway: string; service: string };
+}
+export const loadCover = (file = COVER_PATH): CoverConfig => loadChecked<CoverConfig>(file, 'cover');
+/** M02h4: genus to tree form (`config/world/tree-forms.json`, `tools/map/schemas/tree-forms.schema.json`). */
+export const loadTreeForms = (file = TREE_FORMS_PATH): TreeFormTable => loadChecked<TreeFormTable>(file, 'tree-forms');
+
+/** A share per tree form name (sums to 1): the form mix of a wood or a grove. */
+export type FormMix = Partial<Record<'plane' | 'ficus' | 'conifer' | 'eucalyptus' | 'palm', number>>;
+/** M02h5: the vegetation scatter of S13 and the street-tree density rules of S3 (`config/world/vegetation.json`, `vegetation.schema.json`). */
+export interface VegetationConfig {
+  schema: 'world-vegetation/1';
+  enabled: boolean;
+  /** The bake seed of the scatter streams: polygon `p` draws from `xoshiro128**` seeded `fnv32(seed|p)`. */
+  seed: number;
+  wood: { rMin: number; mix: FormMix; understory: { rMin: number; share: number } };
+  park: {
+    centreRMin: number; groveMin: number; groveMax: number; groveRadiusM: number; treeRMin: number; mix: FormMix;
+    edgeShrubShare: number; edgeShrubM: number; shrubRMin: number; excludeLeisure: string[];
+  };
+  scrub: { rMin: number; share: number };
+  hedge: { blockM: number; hedgeShare: number; lotM: number; insetM: number };
+  yard: { shrubShare: number; shrubRMin: number };
+  exclusion: { footprintM: number; roadM: number; pedM: number; landmarkM: number };
+  streetTrees: { dedupeM: number; treeRowM: number };
+}
+export const loadVegetation = (file = VEGETATION_PATH): VegetationConfig => loadChecked<VegetationConfig>(file, 'vegetation');
+/**
+ * M02h6: the street furniture rules. The S13 fill reads them only with `bakeFill` on (DL-740 keeps it off in v1); the schema check is the unit
+ * test `packages/shared/test/world-furniture.spec.ts`.
+ */
+export const loadFurniture = (file = FURNITURE_PATH): FurnitureFile => JSON.parse(readFileSync(file, 'utf8')) as FurnitureFile;
+
 export function loadBounds(): WorldBounds {
   return readJson<WorldBounds>(BOUNDS_PATH);
 }
@@ -202,6 +254,21 @@ export interface SynthConfig {
     palette: number;
   };
   trees: { perChunk: number };
+  /** M02h3: driveway centrelines, emitted as `highway=service` + `service=driveway` ways. */
+  driveways?: { id: string; pts: number[] }[];
+  /**
+   * M02h5: one case of every scatter source: OSM areas (`natural=wood`, `landuse=forest`, `natural=scrub`) as boxes with their tags,
+   * `barrier=hedge` and `natural=tree_row` lines, lone OSM trees, `duplicates` OSM trees 1.5 m off the first DataSF trees of the shot's
+   * chunk (the S3 deduplication drops them), and DataSF rows whose species `skipSpecies` drops.
+   */
+  vegetation?: {
+    areas: ({ id: string; tags: Record<string, string> } & EnuBox)[];
+    hedges: { id: string; pts: number[] }[];
+    treeRows: { id: string; pts: number[]; species: string }[];
+    osmTrees: { id: string; x: number; z: number; species: string }[];
+    duplicates: { nearX: number; nearZ: number; count: number };
+    skipRows: { x: number; z: number; species: string }[];
+  };
   neighbourhoods: { cols: number; rows: number; names: string[] };
   roads: SynthRoadsConfig;
 }
@@ -243,6 +310,11 @@ export function configHashesOf(cfg: SourcesConfig, area: AreaId): Record<string,
     roadclass: sha256Hex(canonicalize(loadRoadClass())),
     bridges: sha256Hex(canonicalize(loadBridges())),
     density: sha256Hex(canonicalize(loadDensity())),
+    cover: sha256Hex(canonicalize(loadCover())),
+    treeForms: sha256Hex(canonicalize(loadTreeForms())),
+    vegetation: sha256Hex(canonicalize(loadVegetation())),
+    // M02h6: the furniture rules change the bake only when its fill is on (DL-740: off in v1, so the bake id stays the same)
+    ...(loadFurniture().bakeFill ? { furniture: sha256Hex(canonicalize(loadFurniture())) } : {}),
     contentWorld: contentWorldSha(),
     sourcesDatabase: sha256Hex(canonicalize(cfg.database)),
   };

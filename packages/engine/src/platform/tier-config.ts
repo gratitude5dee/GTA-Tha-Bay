@@ -18,6 +18,12 @@ export interface PlatformFlags {
   readonly 'world.massing': boolean;
   /** M02e (DL-704): the look pass (TSL materials, post stack, shadows). Default true; false is the full rollback to the M02b1/M02b2 look. */
   readonly 'world.look': boolean;
+  /** M02h3: the ground cover (yards, lots, scrub, driveways from the bake's section 21). Default true; false meshes the GROUND classes alone. */
+  readonly 'world.cover': boolean;
+  /** M02h4: the five street-tree forms in the vegetation pools. Default true; false draws M02b1's cone as one pool. */
+  readonly 'world.treeForms': boolean;
+  /** M02h5: the vegetation scatter (woods, groves, shrubs, hedges: bit 7 of the TREE byte) and the far-tree impostors. Default true; false draws neither. */
+  readonly 'world.scatter': boolean;
 }
 
 export const PLATFORM_FLAGS: PlatformFlags = {
@@ -25,6 +31,9 @@ export const PLATFORM_FLAGS: PlatformFlags = {
   'world.cards': (flagsJson as Record<string, unknown>)['world.cards'] !== false,
   'world.massing': (flagsJson as Record<string, unknown>)['world.massing'] !== false,
   'world.look': (flagsJson as Record<string, unknown>)['world.look'] !== false,
+  'world.cover': (flagsJson as Record<string, unknown>)['world.cover'] !== false,
+  'world.treeForms': (flagsJson as Record<string, unknown>)['world.treeForms'] !== false,
+  'world.scatter': (flagsJson as Record<string, unknown>)['world.scatter'] !== false,
 };
 
 const problems = validateTierConfig(budgetsJson);

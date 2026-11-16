@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dee-verse.invalid/schemas/ped-art-1.json",
+  "title": "config/world/ped-art.json (M10d4)",
+  "type": "object",
+  "required": ["schema", "bodies", "outfits", "atlas", "clips", "skinTones", "limits"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "ped-art/1" },
+    "note": { "type": "string" },
+    "bodies": {
+      "type": "object",
+      "minProperties": 8,
+      "maxProperties": 8,
+      "propertyNames": { "pattern": "^character/ped\\.ambient\\.[a-h]$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["body", "far", "hair"],
+        "additionalProperties": false,
+        "properties": {
+          "body": { "type": "string", "pattern": "^character/ped\\.body\\.[a-h]$" },
+          "far": { "type": "string", "pattern": "^prop/ped\\.far\\.[a-h]$" },
+          "hair": { "type": "string", "pattern": "^#[0-9a-f]{6}$" }
+        }
+      }
+    },
+    "outfits": { "type": "array", "minItems": 20, "maxItems": 20, "items": { "type": "string", "pattern": "^character/ped\\.outfit\\.[0-9]{2}$" } },
+    "atlas": { "const": "texture/ped.atlas" },
+    "clips": { "const": "anim/ped.moves" },
+    "skinTones": { "type": "array", "minItems": 8, "maxItems": 8, "items": { "type": "string", "pattern": "^#[0-9a-f]{6}$" } },
+    "limits": {
+      "type": "object",
+      "required": ["textureMegabytes", "farMeshes"],
+      "additionalProperties": false,
+      "properties": {
+        "textureMegabytes": {
+          "type": "object",
+          "required": ["full", "lite", "min", "legacy"],
+          "additionalProperties": false,
+          "properties": { "full": { "type": "number" }, "lite": { "type": "number" }, "min": { "type": "number" }, "legacy": { "type": "number" } }
+        },
+        "farMeshes": { "const": 8 }
+      }
+    }
+  }
+}

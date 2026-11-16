@@ -1,0 +1,163 @@
+{
+  "commit": "local",
+  "bakeId": "2536435fb1f8e8f1229648294e8450d6518ae98995cb0c6f82e070aec8339f93",
+  "baselineFrom": "docs/look/M10d5-render-ledger.json",
+  "tiers": {
+    "desktop": {
+      "baseline": 488,
+      "after": 495,
+      "perLayer": {
+        "furniture": 4,
+        "parked": 3
+      },
+      "shots": {
+        "noon-street": {
+          "off": 494,
+          "on": 501,
+          "furniture": 4,
+          "parked": 3
+        },
+        "junction-noon": {
+          "off": 546,
+          "on": 553,
+          "furniture": 4,
+          "parked": 3
+        }
+      },
+      "furniture": {
+        "pools": {
+          "signal": {
+            "instances": 256,
+            "cap": 256
+          },
+          "post": {
+            "instances": 2048,
+            "cap": 2048
+          },
+          "shelter": {
+            "instances": 17,
+            "cap": 128
+          },
+          "pole": {
+            "instances": 512,
+            "cap": 512
+          },
+          "wire": {
+            "instances": 0,
+            "cap": 2048
+          }
+        },
+        "parked": 128,
+        "heads": 256
+      }
+    },
+    "mobile": {
+      "baseline": 123,
+      "after": 129,
+      "perLayer": {
+        "furniture": 3,
+        "parked": 3
+      },
+      "shots": {
+        "noon-street": {
+          "off": 202,
+          "on": 208,
+          "furniture": 3,
+          "parked": 3
+        },
+        "junction-noon": {
+          "off": 203,
+          "on": 209,
+          "furniture": 3,
+          "parked": 3
+        }
+      },
+      "furniture": {
+        "pools": {
+          "signal": {
+            "instances": 44,
+            "cap": 192
+          },
+          "post": {
+            "instances": 1024,
+            "cap": 1024
+          },
+          "shelter": {
+            "instances": 17,
+            "cap": 64
+          }
+        },
+        "parked": 96,
+        "heads": 44
+      }
+    },
+    "mobile-low": {
+      "baseline": 68,
+      "after": 71,
+      "perLayer": {
+        "furniture": 2,
+        "parked": 1
+      },
+      "shots": {
+        "noon-street": {
+          "off": 152,
+          "on": 155,
+          "furniture": 2,
+          "parked": 1
+        },
+        "junction-noon": {
+          "off": 149,
+          "on": 152,
+          "furniture": 2,
+          "parked": 1
+        }
+      },
+      "furniture": {
+        "pools": {
+          "signal": {
+            "instances": 29,
+            "cap": 128
+          },
+          "post": {
+            "instances": 288,
+            "cap": 512
+          }
+        },
+        "parked": 48,
+        "heads": 29
+      }
+    },
+    "legacy": {
+      "baseline": 67,
+      "after": 67,
+      "perLayer": {
+        "furniture": 0,
+        "parked": 0
+      },
+      "shots": {},
+      "furniture": {
+        "pools": {
+          "signal": {
+            "instances": 29,
+            "cap": 128
+          },
+          "post": {
+            "instances": 288,
+            "cap": 512
+          }
+        },
+        "parked": 48,
+        "heads": 29
+      }
+    }
+  },
+  "xr": {
+    "baseline": 76,
+    "after": 77,
+    "perLayer": {
+      "furniture": 0,
+      "parked": 0
+    },
+    "drift": "77 on this tree with no furniture node in the scene; M10d5's own @xr @art-player frame reads the same 77 here against its recorded 76"
+  }
+}

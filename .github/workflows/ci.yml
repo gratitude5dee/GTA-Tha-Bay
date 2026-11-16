@@ -306,7 +306,10 @@ jobs:
         # world-look and the tail of world-landmarks (about 100 worker-minutes on two workers) in one shard. BD-FIX-CI-SHARD12-01: twelve,
         # because the look rows (M10d1, M02h1, M02h2) each add desktop cases that cost minutes on software GL: chromium-webgl2 shards 1 and 4
         # ran 49 of 60 minutes on claude/build (run 41249627115) and shard 1 was cancelled at 60 on a slower runner (run 41294114576).
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        # BD-FIX-CI-SHARD14-01: fourteen, because M02h5 to M02h7 and M10d2, M10d4, M10d5 took the chromium-webgl2 leg to 875 measured
+        # test-minutes: with twelve shards run 43201940205 had four shards at 46 to 54 minutes, and shard 5 was cancelled at 60 on the
+        # slower runners of run 43214604796 with every finished test passing.
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     env:
       # BD-FIX-CI10-P01: the browser engines this leg launches (playwright.config.ts: webkit-webgl2 on WebKit, the other projects on
       # Chromium); chromium-webgl2 shard 1 also runs check:coi, which launches both.
@@ -386,7 +389,7 @@ jobs:
       # shards at 60 minutes while others took 36. Both invocations below run the same list; a test without timings takes the median of
       # its file (desktop titles apart) and lands in one shard like every other.
       - name: This shard's tests (packed by measured minutes)
-        run: pnpm exec tsx tools/ci/e2e-plan.ts plan --project ${{ matrix.project }} --shards 12 --shard ${{ matrix.shard }} --out "$RUNNER_TEMP/e2e-tests.txt"
+        run: pnpm exec tsx tools/ci/e2e-plan.ts plan --project ${{ matrix.project }} --shards 14 --shard ${{ matrix.shard }} --out "$RUNNER_TEMP/e2e-tests.txt"
       # Two invocations (M02b1, DL-546): the gray-box tags on the build job's artifact (no world), then everything else on a fresh
       # DV_WORLD=synth build. DV_SKIP_BUILD belongs to the first step only: a job-level value would serve the world-less artifact twice.
       - name: e2e, gray-box tags (build without a world)
@@ -457,7 +460,7 @@ jobs:
       - name: Every shard of the project passed
         env:
           PROJECT: ${{ matrix.project }}
-          E2E_SHARDS: '12'
+          E2E_SHARDS: '14'
           BUILD_RESULT: ${{ needs.build.result }}
           SHARDS_RESULT: ${{ needs.e2e-shard.result }}
         run: |
@@ -489,6 +492,7 @@ jobs:
         # BD-FIX-CI-PERFSPLIT-01: five groups of the registered scenarios (config/perf/scenarios.json), cut by the measured time of
         # each scenario on both engines in run 41021126822 (one job took 88 of 90 min): story-chase 18.5 min, npc-mission-crowd 19.0
         # with fight-stage 1.5, downtown-rush 14.7, walk-civic-center 11.6 with route-ferry-ocean-beach 10.3, boot-cityhall 11.5.
+        # M11a1 (BD-M11a1-17): the two racing scenarios, about 25 minutes each, run as a group of their own each.
         # tools/ci/test/workflows.test.ts keeps the groups equal in ci.yml and nightly.yml and covering every registered id once.
         scenarios:
           - story-chase
@@ -496,6 +500,8 @@ jobs:
           - downtown-rush
           - walk-civic-center,route-ferry-ocean-beach
           - boot-cityhall
+          - race-sprint
+          - race-pursuit-heat4
     env:
       # BD-FIX-CI10-P01: this job launches both engines.
       DV_PW_BROWSERS: 'chromium webkit'

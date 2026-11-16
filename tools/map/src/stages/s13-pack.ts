@@ -1,14 +1,19 @@
 /**
  * S13 pack writer and world index. `p0` (sim: HEIGHT, PRISM, SLAB, HOOD, SEGMENT, NODE, EDGE, JUNCTION, PED, TAGS, SPAWN,
- * GROUND) and `l0` (render: BUILDING with landmark proxies, TREE, LAMP, LMREF; FURNITURE stays empty until its milestone)
+ * GROUND) and `l0` (render: BUILDING with landmark proxies, TREE, LAMP, LMREF; FURNITURE, M02h6: `placeFurniture` per chunk when the
+ * furniture rules' `bakeFill` is on, else empty and placed at mesh time, DL-740)
  * DVWP v1 packs per z=7 tile that holds at least one baked chunk, the S11 `l1`/`l2`/`far-bay-*` packs passed in, the
  * `map_data/sf-graph.v1` topology and `data/world-index`. The codec is M01f's; this stage only fills C08 structures.
  *
  * Landuse classes land in the p0 GROUND grid (Grass, Park, Sand, Paved, Rock, Pier, shallow and deep Water; Asphalt and
- * Sidewalk where the road graph runs). The M01f l0 layout has no LANDUSE section, so none is written (BD note).
+ * Sidewalk where the road graph runs). M02h3: with `cover` the S13 cover stage (`s13-cover.ts`) sorts the land cells into cover
+ * classes first, rewrites GROUND on base-`Paved` cells, and l0 carries section 21 LANDUSE with the cover rectangles (C08 1.1).
+ * M02h5: with `scatter` the vegetation scatter (`s13-scatter.ts`) runs after the cover; its records (bit 7 of the TREE byte) join the
+ * street trees in the l0 TREE section.
  */
 import {
-  C08_VERSION, GroundClass, TERRAIN_POSTS, chunkBounds, chunkKeyAt, parseChunkKey, encodeGraph,
+  placeFurniture, worldSeedOf, type FurnitureFile,
+  C08_VERSION, GroundClass, TERRAIN_POSTS, chunkBounds, chunkKeyAt, encodeCoverRects, parseChunkKey, encodeGraph,
   type BuildingRecord, type ChunkKey, type ChunkTags, type Junction, type PedEdge, type PedNode, type Portal, type RenderChunk, type RoadEdge,
   type RoadNode, type RoadSegment, type SimChunk, type SourceStamp, type SpawnTable, type WorldIndex,
 } from '../../../../packages/shared/src/index.ts';
@@ -17,6 +22,10 @@ import { encodeL0, encodeP0 } from '../pack/encode.ts';
 import type { Raster } from '../geom/raster.ts';
 import { cmp } from '../util.ts';
 import type { BuildingsProduct } from './s4-buildings.ts';
+import { applyCoverToGround, runCover, type CoverReport } from './s13-cover.ts';
+import type { CoverConfig, VegetationConfig } from '../config.ts';
+import { pedSegments, runScatter, type ScatterReport } from './s13-scatter.ts';
+import type { OsmFeature } from '../sources/geo.ts';
 import { bufferLine, cellRaster, type LanduseClass, type WaterProduct } from './s3-water.ts';
 import { heightGridOf, type TerrainProduct } from './s2-terrain.ts';
 import type { NodeB, SegB } from './s5-roads.ts';
@@ -58,6 +67,11 @@ export interface PackOutput {
   index: WorldIndex;
   sims: Map<ChunkKey, SimChunk>;
   renders: Map<ChunkKey, RenderChunk>;
+  /** M02h3: the cover per chunk (absent without cover) and the stage report with the l0 bytes section 21 added. */
+  covers?: Map<ChunkKey, Uint8Array>;
+  cover?: CoverReport & { groundChanged: number; sectionBytes: number; sectionRecords: number };
+  /** M02h5: the scatter's report (absent without scatter). */
+  scatter?: ScatterReport;
 }
 
 export interface PackInputs {
@@ -84,6 +98,12 @@ export interface PackInputs {
   lod: readonly LodFile[];
   /** Extra files named under packs/ (far-bay-*). */
   far: readonly { name: string; bytes: Uint8Array }[];
+  /** M02h3: the ground cover rules and the OSM features they read; absent or `enabled: false` bakes no cover. */
+  cover?: { cfg: CoverConfig; osm: readonly OsmFeature[] } | null | undefined;
+  /** M02h5: the vegetation scatter's rules; absent or `enabled: false` bakes no scatter. */
+  scatter?: { cfg: VegetationConfig } | null | undefined;
+  /** M02h6: the street furniture rules; absent or `bakeFill: false` leaves FURNITURE empty (the mesher places the records, DL-740). */
+  furniture?: { cfg: FurnitureFile } | null | undefined;
 }
 
 const q1 = (v: number): number => Math.round(v * 10) / 10;
@@ -98,24 +118,68 @@ export function graphBytes(bakeId: string, nodes: readonly NodeB[], edges: reado
   });
 }
 
+/**
+ * M02h6: `RenderChunk.furniture` of every chunk from `placeFurniture` (the chunk's tile, its lamps and trees to keep clear of). Exported for
+ * the AC-2 test, which meshes a filled chunk against an empty one.
+ */
+export function fillFurniture(cfg: FurnitureFile, bakeId: string, tiles: ReadonlyMap<string, readonly ChunkKey[]>, sims: ReadonlyMap<ChunkKey, SimChunk>, renders: Map<ChunkKey, RenderChunk>): void {
+  for (const members of tiles.values()) {
+    const tile = members.map((k) => sims.get(k)).filter((s): s is SimChunk => s !== undefined);
+    for (const key of members) {
+      const sim = sims.get(key);
+      const r = renders.get(key);
+      if (!sim || !r) continue;
+      const avoid: number[] = [];
+      for (let i = 0; i + 2 < r.lamps.length; i += 3) avoid.push(r.lamps[i] as number, r.lamps[i + 1] as number);
+      for (let i = 0; i + 3 < r.trees.length; i += 4) avoid.push(r.trees[i] as number, r.trees[i + 1] as number);
+      renders.set(key, { ...r, furniture: placeFurniture(sim, { rules: cfg.place, worldSeed: worldSeedOf(bakeId), tile, avoid }) });
+    }
+  }
+}
+
 export function buildPacks(inp: PackInputs): PackOutput {
   const { bakeId, grid, water, terrain, buildings } = inp;
   const ground = groundRaster(grid, water, inp.segs);
+  // M02h3: the cover, from the base ground, then GROUND under it
+  let cover: ReturnType<typeof runCover> | null = null;
+  let groundChanged = 0;
+  if (inp.cover && inp.cover.cfg.enabled) {
+    const footprints: { prism: readonly number[]; kind: number }[] = [];
+    for (const list of buildings.byChunk.values()) for (const bd of list) footprints.push({ prism: bd.prism, kind: bd.kind });
+    cover = runCover({ grid, ground, landuse: water.landuse, footprints, grids: terrain.grids, osm: inp.cover.osm, cfg: inp.cover.cfg });
+    groundChanged = applyCoverToGround(ground, cover.cover);
+  }
+  const covers = cover ? new Map<ChunkKey, Uint8Array>() : null;
   const keys = [...terrain.grids.keys()].sort((a, b) => {
     const pa = parseChunkKey(a)!, pb = parseChunkKey(b)!;
     return pa.y - pb.y || pa.x - pb.x;
   });
   const keySet = new Set(keys);
 
-  // trees by chunk, only on land and off the asphalt
+  // M02h5: the scatter, over the ground and the cover just written
+  let scatter: ReturnType<typeof runScatter> | null = null;
+  if (inp.scatter && inp.scatter.cfg.enabled) {
+    const footprints: { prism: readonly number[]; proxy: boolean }[] = [];
+    for (const list of buildings.byChunk.values()) for (const bd of list) footprints.push({ prism: bd.prism, proxy: inp.places.proxies.has(bd.sid) });
+    scatter = runScatter({
+      grid, cfg: inp.scatter.cfg, ground, cover: cover ? cover.cover : null,
+      polys: water.vegetationPolys ?? [], hedges: water.hedgeLines ?? [], excluded: water.excludedPolys ?? [],
+      footprints, roads: inp.segs.filter((s) => !s.tunnel).map((s) => ({ pts: s.pts, widthM: s.widthM })), peds: pedSegments(inp.ped.chunks.values()),
+      chunkExists: (k) => keySet.has(k),
+    });
+  }
+
+  // trees by chunk, only on land and off the asphalt: the street trees, then the scatter (M02h5)
   const treesBy = new Map<ChunkKey, number[]>();
-  for (let i = 0; i + 3 < water.trees.length; i += 4) {
-    const x = q1(water.trees[i] as number), z = q1(water.trees[i + 1] as number);
-    const g = ground.at(x, z, GroundClass.Water);
-    if (g === GroundClass.Water || g === GroundClass.WaterShallow || g === GroundClass.Pier || g === GroundClass.Asphalt) continue;
-    const key = chunkKeyAt(9, x, z);
-    if (!terrain.grids.has(key)) continue;
-    (treesBy.get(key) ?? treesBy.set(key, []).get(key)!).push(x, z, water.trees[i + 2] as number, water.trees[i + 3] as number);
+  for (const list of scatter ? [water.trees, scatter.records] : [water.trees]) {
+    for (let i = 0; i + 3 < list.length; i += 4) {
+      const x = q1(list[i] as number), z = q1(list[i + 1] as number);
+      const g = ground.at(x, z, GroundClass.Water);
+      if (g === GroundClass.Water || g === GroundClass.WaterShallow || g === GroundClass.Pier || g === GroundClass.Asphalt) continue;
+      const key = chunkKeyAt(9, x, z);
+      if (!terrain.grids.has(key)) continue;
+      (treesBy.get(key) ?? treesBy.set(key, []).get(key)!).push(x, z, list[i + 2] as number, list[i + 3] as number);
+    }
   }
 
   // road data by owning chunk
@@ -169,6 +233,11 @@ export function buildPacks(inp: PackInputs): PackOutput {
         g[j * 64 + i] = c;
       }
     }
+    if (cover && covers) {
+      const cv = new Uint8Array(64 * 64);
+      for (let j = 0; j < 64; j++) for (let i = 0; i < 64; i++) cv[j * 64 + i] = cover.cover.at(b.minX + i * 4 + 2, b.minZ + j * 4 + 2, 0);
+      covers.set(key, cv);
+    }
     const list = buildings.byChunk.get(key) ?? [];
     const prisms: number[] = [];
     const recs: BuildingRecord[] = [];
@@ -202,6 +271,8 @@ export function buildPacks(inp: PackInputs): PackOutput {
     const t = `${Math.floor(p.x / 4)}-${Math.floor(p.y / 4)}`;
     (tiles.get(t) ?? tiles.set(t, []).get(t)!).push(key);
   }
+  // M02h6: the bake fill of the furniture records, over each chunk's z7 tile as the mesh job decodes it (the same records the mesher places)
+  if (inp.furniture && inp.furniture.cfg.bakeFill) fillFurniture(inp.furniture.cfg, bakeId, tiles, sims, renders);
   const tileIds = [...tiles.keys()].sort((a, b) => {
     const [ax, ay] = a.split('-').map(Number) as [number, number];
     const [bx, by] = b.split('-').map(Number) as [number, number];
@@ -213,7 +284,7 @@ export function buildPacks(inp: PackInputs): PackOutput {
     const members = tiles.get(t)!;
     const header = { tileX: tx, tileY: ty, hostZ: 7, bakeId };
     files.push({ name: `p0-${t}.pack`, family: 'p0', x: tx, y: ty, chunks: members.length, bytes: encodeP0(members.map((k) => sims.get(k)!), header) });
-    files.push({ name: `l0-${t}.pack`, family: 'l0', x: tx, y: ty, chunks: members.length, bytes: encodeL0(members.map((k) => renders.get(k)!), header) });
+    files.push({ name: `l0-${t}.pack`, family: 'l0', x: tx, y: ty, chunks: members.length, bytes: encodeL0(members.map((k) => renders.get(k)!), header, covers ?? undefined) });
   }
   for (const f of inp.lod) files.push({ name: f.name, family: f.family, x: f.x, y: f.y, chunks: f.units, bytes: f.bytes });
   for (const f of inp.far) files.push({ name: f.name, family: 'far', x: 0, y: 0, chunks: 1, bytes: f.bytes });
@@ -241,5 +312,13 @@ export function buildPacks(inp: PackInputs): PackOutput {
     transit: inp.places.transit,
     sources: [...inp.stamps].sort((a, b) => cmp(a.id, b.id)),
   };
-  return { files, index, sims, renders };
+  const scatterReport = scatter ? { scatter: scatter.report } : {};
+  if (!cover || !covers) return { files, index, sims, renders, ...scatterReport };
+  let sectionBytes = 0, sectionRecords = 0;
+  for (const cv of covers.values()) {
+    const s = encodeCoverRects(cv);
+    sectionBytes += s.data.length + 12;
+    sectionRecords += s.count;
+  }
+  return { files, index, sims, renders, covers, cover: { ...cover.report, groundChanged, sectionBytes, sectionRecords }, ...scatterReport };
 }

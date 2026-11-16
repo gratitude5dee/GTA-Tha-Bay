@@ -27,10 +27,52 @@
       "required": ["chunks", "tiles", "packs", "buildings", "trees"],
       "properties": {
         "chunks": { "type": "integer", "minimum": 0 }, "tiles": { "type": "integer", "minimum": 0 }, "packs": { "type": "integer", "minimum": 0 },
-        "buildings": { "type": "integer", "minimum": 0 }, "trees": { "type": "integer", "minimum": 0 }
+        "buildings": { "type": "integer", "minimum": 0 }, "trees": { "type": "integer", "minimum": 0 }, "scatter": { "type": "integer", "minimum": 0 }
       }
     },
     "terrain": { "type": "object" },
+    "scatter": {
+      "type": "object",
+      "$comment": "M02h5: the vegetation scatter per kind (m2 and counts) and per form (config/world/vegetation.json)",
+      "required": ["wood", "scrub", "park", "hedge", "yard", "forms", "records"],
+      "properties": {
+        "wood": { "type": "object", "required": ["polys", "m2", "trees", "shrubs"] },
+        "records": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "streetTrees": {
+      "type": "object",
+      "$comment": "M02h5: street trees (no scatter bit) per km of S8 sidewalk, over the area and per neighbourhood, and the kept and dropped rows per source",
+      "required": ["trees", "sidewalkKm", "perKm", "hoods", "sources"],
+      "properties": {
+        "hoods": {
+          "type": "array",
+          "items": { "type": "object", "required": ["name", "trees", "sidewalkKm", "perKm"] }
+        }
+      }
+    },
+    "cover": { "type": "object", "$comment": "M02h3: cells per cover class, blocks per rule, driveways, section 21 bytes" },
+    "treeForms": {
+      "type": "object",
+      "$comment": "M02h4: trees per form (config/world/tree-forms.json)",
+      "additionalProperties": false,
+      "required": ["plane", "ficus", "conifer", "eucalyptus", "palm"],
+      "properties": {
+        "plane": { "type": "integer", "minimum": 0 }, "ficus": { "type": "integer", "minimum": 0 }, "conifer": { "type": "integer", "minimum": 0 },
+        "eucalyptus": { "type": "integer", "minimum": 0 }, "palm": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "treeUnmatched": {
+      "type": "array",
+      "$comment": "M02h4: the most frequent tree names no table row matched (at most 20), most first",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "count"],
+        "properties": { "name": { "type": "string" }, "count": { "type": "integer", "minimum": 1 } }
+      }
+    },
     "water": { "type": "object" },
     "roads": { "type": "object" },
     "junctions": { "type": "object" },

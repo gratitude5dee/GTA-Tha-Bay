@@ -185,7 +185,7 @@ describe('the far massing and the skyline cards', () => {
   it('the placeholder atlas is solid at the bottom of each cell and clear at the top, which the corrected UVs put at the bottom and top of the card', () => {
     const bake = requireBake('synth', 'look.floating atlas');
     if (!bake) return;
-    const png = decodePng(new Uint8Array(readFileSync(`${bake.dir}/packs/far-bay-cards.png`)));
+    const png = decodePng(new Uint8Array(readFileSync(`${bake.dir}/far-bay-cards.preview.png`)));
     const a = BACKDROP.atlas;
     expect(png.width).toBe(a.sizePx[0]);
     expect(png.height).toBe(a.sizePx[1]);

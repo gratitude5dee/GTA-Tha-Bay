@@ -51,9 +51,23 @@ export class IdbIndexStore implements IndexStore {
     return row ?? null;
   }
 
+  async getMany(hashes: readonly string[]): Promise<Array<PackRow | null>> {
+    if (hashes.length === 0) return [];
+    const { os } = this.store('readonly');
+    const rows = await Promise.all(hashes.map((h) => wrap(os.get(h)) as Promise<PackRow | undefined>));
+    return rows.map((r) => r ?? null);
+  }
+
   async put(row: PackRow): Promise<void> {
     const { tx, os } = this.store('readwrite');
     os.put(row);
+    await done(tx);
+  }
+
+  async putMany(rows: readonly PackRow[]): Promise<void> {
+    if (rows.length === 0) return;
+    const { tx, os } = this.store('readwrite');
+    for (const r of rows) os.put(r);
     await done(tx);
   }
 

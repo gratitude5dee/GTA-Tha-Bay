@@ -24,7 +24,7 @@ describe('bake.repro: the civic-excerpt bakes byte-identically', () => {
     expect(Object.keys(r.first.hashes)).toContain('world-index.json');
     expect(Object.keys(r.first.hashes)).toContain('district-grid.v1.pack');
     expect(Object.keys(r.first.hashes).filter((k) => /^packs\/(p0|l0)-.*\.pack$/.test(k))).toHaveLength(8);
-    expect(Object.keys(r.first.hashes)).toEqual(expect.arrayContaining(['packs/sf-graph.v1.pack', 'transit-routes.json', 'packs/far-bay-dem.pack', 'packs/far-bay-massing.pack', 'packs/far-bay-cards.png']));
+    expect(Object.keys(r.first.hashes)).toEqual(expect.arrayContaining(['packs/sf-graph.v1.pack', 'transit-routes.json', 'packs/far-bay-dem.pack', 'packs/far-bay-massing.pack', 'packs/far-bay-cards.ktx2']));
     expect(Object.keys(r.first.hashes)).not.toContain('bake-times.json');
     expect(r.first.gates.filter((g) => g.level === 'fail')).toEqual([]);
   }, 60_000);

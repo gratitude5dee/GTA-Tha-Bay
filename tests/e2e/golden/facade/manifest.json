@@ -1,0 +1,26 @@
+{
+  "$comment": "M02h7 facade goldens: written by DV_UPDATE_GOLDEN=1 pnpm check:e2e -- --project=chromium-webgl2 --grep @facade-golden (outside CI, under the golden-update label). 256 x 144 captures of the canvas on chromium-webgl2 at the facade shots of config/world/look-shots.json, held, without the actors.",
+  "schema": "look-golden/1",
+  "bakeId": "4f9b8ca8f1d43351a4db4c1c6a3fa131916db405a26ff7eec14ed5c4265d1d43",
+  "source": "synth",
+  "viewport": {
+    "width": 256,
+    "height": 144
+  },
+  "tolerance": {
+    "channel": 6,
+    "minFraction": 0.99,
+    "meanAbs": 2
+  },
+  "shots": [
+    "desktop.facade-shopfront.png",
+    "desktop.facade-bays.png",
+    "desktop.facade-night.png",
+    "mobile.facade-shopfront.png",
+    "mobile.facade-bays.png",
+    "mobile.facade-night.png",
+    "mobile-low.facade-shopfront.png",
+    "mobile-low.facade-bays.png",
+    "mobile-low.facade-night.png"
+  ]
+}

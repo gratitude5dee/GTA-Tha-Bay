@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
-  NodeControl, YAW_UNIT, decodeL0, decodeP0, readHeader, toStaticShapeSet, chunkBounds,
+  NodeControl, YAW_UNIT, decodeCover, decodeL0, decodeP0, readHeader, toStaticShapeSet, chunkBounds,
   type SimChunk,
 } from '../../../packages/shared/src/index.ts';
 import type { StaticShapeSet } from '../../../packages/engine/src/sim/physics/backend.ts';
@@ -132,5 +132,32 @@ describe('encoder rejects what it cannot represent', () => {
     expect(() => encodeP0([{ ...base, bakeId: 'f'.repeat(64) }], header)).toThrow(RangeError);
     const bad = { ...base, tags: { ...base.tags, hidingSpots: [{ id: 'x', x: b.minX, y: 0, z: b.minZ, radiusM: 1, kind: 'moat' as 'alley' }] } };
     expect(() => encodeP0([bad], header)).toThrow(RangeError);
+  });
+});
+
+describe('M02h3: section 21 LANDUSE (ground cover, C08 1.1)', () => {
+  const l0 = decodeL0(l0Bytes, p0);
+  const header = headerOf(l0Bytes);
+  const coverOf = (seed: number): Uint8Array => {
+    const c = new Uint8Array(4096);
+    for (let k = 0; k < 4096; k++) c[k] = ((k >> 6) * 7 + (k & 63) * 3 + seed) % 11 < 8 ? (((k >> 9) + seed) % 8) : 0;
+    return c;
+  };
+
+  it('writes section 21 between BUILDING and TREE when the bake has cover, and the cover decodes back exactly', () => {
+    const covers = new Map(l0.map((c, i) => [c.key, coverOf(i)] as const));
+    const bytes = encodeL0(l0, header, covers);
+    const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const table = dv.getUint32(64 + 4, true);
+    expect(dv.getUint16(64 + 2, true)).toBe(6);
+    expect([0, 1, 2, 3, 4, 5].map((s) => bytes[table + s * 12])).toEqual([20, 21, 22, 23, 24, 25]);
+    for (const c of l0) expect(Buffer.from(decodeCover(bytes, c.key)).equals(Buffer.from(covers.get(c.key)!))).toBe(true);
+    expect(decodeL0(bytes, p0)).toEqual(l0);
+  });
+
+  it('a pack without cover keeps the M01f bytes and decodes to all None', () => {
+    const plain = encodeL0(l0, header);
+    expect(Buffer.from(plain).equals(Buffer.from(l0Bytes))).toBe(true);
+    for (const c of l0) expect(decodeCover(plain, c.key).every((v) => v === 0)).toBe(true);
   });
 });

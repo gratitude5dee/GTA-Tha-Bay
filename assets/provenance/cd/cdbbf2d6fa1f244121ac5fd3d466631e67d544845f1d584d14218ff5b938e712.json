@@ -1,0 +1,37 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "cdbbf2d6fa1f244121ac5fd3d466631e67d544845f1d584d14218ff5b938e712",
+  "paths": [
+    "assets/src/portrait/pc-top-tank/default.png"
+  ],
+  "kind": "portrait",
+  "origin": "derived",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [
+    "fa98b4a459139c4cc9f4aee2a9ef30433d0e7578201df0e1d9e53a1616ee48e6"
+  ],
+  "tool": {
+    "name": "tools/assets people",
+    "version": "1.0.0",
+    "args_sha256": "272a197be0607900b26f6a2c5cabbb156ec29271e099eea69b81197db54b699b"
+  },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-30T00:00:00Z"
+}

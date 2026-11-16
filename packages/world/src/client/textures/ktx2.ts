@@ -154,3 +154,18 @@ export class Ktx2Decoder {
     this.loader = null;
   }
 }
+
+/**
+ * One file through a decoder of its own, disposed after it (M10d2: the skyline card atlas loads once at boot, so it keeps no workers).
+ * Rejects when no renderer is ready.
+ */
+export async function decodeKtx2Once(renderer: WebGPURenderer | null, bytes: ArrayBuffer): Promise<Texture> {
+  if (!renderer) throw new Ktx2Error('no renderer to transcode for');
+  const d = new Ktx2Decoder();
+  d.bind(renderer);
+  try {
+    return await d.decode(bytes);
+  } finally {
+    d.dispose();
+  }
+}

@@ -6,14 +6,14 @@ import { boot, SKYLINE, shown, teleport, world } from './world-landmarks-helpers
  * the longest of the landmark cases on software GL (about 22, 14 and 9 minutes on CI after M10d1's art), and a shard is cut out of the
  * sorted file names by test count, so they sit in a file of their own whose name sorts into a lighter shard (BD-FIX-CI-SHARD8-02). The
  * titles and tags are those of `world-landmarks.spec.ts`, so `--grep @world-landmarks` selects all of them as before. The twelve
- * landmarks at desktop, the longest of them, is in `marquee-landmarks-desktop.spec.ts`, whose name sorts into another shard
+ * landmarks at desktop, the longest of them, is in `world-landmarks-desktop.spec.ts`, whose name sorts into another shard
  * (BD-FIX-CI-SHARD6-01: this file shared shard 6 with the 37-minute desktop junction flicker pair).
  */
 
 test.describe('landmarks @world', () => {
   test.describe.configure({ timeout: 1_800_000 });
 
-  // the twelve at desktop is in marquee-landmarks-desktop.spec.ts (BD-FIX-CI-SHARD6-01)
+  // the twelve at desktop is in world-landmarks-desktop.spec.ts (BD-FIX-CI-SHARD6-01, renamed by BD-REPAIR-M02h3-03)
   test('the skyline is up in the default scene at desktop: all seven far silhouettes are drawn as lo models, outside the cap @m02d2 @world-landmarks', async ({ page }) => {
     const errors = await boot(page, 'desktop');
     await expect

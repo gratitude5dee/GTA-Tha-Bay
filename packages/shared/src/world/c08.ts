@@ -1,10 +1,11 @@
-// packages/shared/src/world/c08.ts — C08 v1.0.0 (S02). Types, constants and pure functions only (C02 lint applies).
+// packages/shared/src/world/c08.ts — C08 v1.1.0 (S02). Types, constants and pure functions only (C02 lint applies).
 // Builder edits (M01f, see spec/11 Builder decisions): `2 ** (p.z - z)` is `1 << (p.z - z)` in ancestorKey (C02 bans `**`;
 // same value for 0-6); import paths carry the `.ts` extension. No shape change.
 import type { AssetRef } from '../assets/c07.ts';
 import type { QualityTierId } from '../platform/c13.ts';
 
-export const C08_VERSION = '1.0.0' as const;
+/** C08 1.1 (DL-741): written by M02h3 (section 21 cover codes 17..23); the tree-form meaning of record 22 follows in M02h4/M02h5. */
+export const C08_VERSION = '1.1.0' as const;
 
 // ---- 1. Frame and grid ------------------------------------------------------------------
 export const ORIGIN = { lat: 37.7793, lng: -122.4193 } as const;     // SF City Hall = ENU (0,0,0)

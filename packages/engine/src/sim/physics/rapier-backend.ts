@@ -10,7 +10,7 @@ import {
 import { PHYSICS_CONFIG, type PhysicsConfig } from './config.ts';
 import { GROUP_BIT, GROUPS, interactionGroups } from './groups.ts';
 import { loadRapierBuild, type RapierModule } from './load-build.ts';
-import { heightfieldLayout, prismPieces } from './static-shapes.ts';
+import { footprintCovers, heightfieldLayout, prismPieces, staticFootprint, type StaticFootprint } from './static-shapes.ts';
 
 export interface RetryEnv {
   /** Retries after the first attempt. The spec says three, so four attempts in all. */
@@ -43,6 +43,8 @@ interface BodyEntry {
 interface StaticEntry {
   set: StaticShapeSet;
   colliders: number[];
+  /** The set's (x, z) footprint for `staticColumn` (ENU, so a rebase keeps it; rebuilt from `set` on a restore). */
+  foot: StaticFootprint;
 }
 
 const SNAPSHOT_MAGIC = 0x31505644; // 'DVP1'
@@ -222,7 +224,18 @@ export class RapierBackend implements VehiclePhysics {
 
   addChunkStatics(chunkKey: string, shapes: StaticShapeSet): void {
     if (this.statics.has(chunkKey)) this.removeChunkStatics(chunkKey);
-    this.statics.set(chunkKey, { set: shapes, colliders: this.buildStatics(shapes) });
+    this.statics.set(chunkKey, { set: shapes, colliders: this.buildStatics(shapes), foot: staticFootprint(shapes) });
+  }
+
+  /**
+   * True when a resident chunk's static colliders stand in the column at (x, z) (ENU), at any height: the footprint of its heightfield
+   * or of one of its prism pieces holds the point (BD-FIX-PARKED-FALL-01). Read from this backend's statics table, not from Rapier's
+   * queries, which see a collider created since the last step only after the next one: right after a chunk's colliders are rebuilt in
+   * place (`removeChunkStatics` then `addChunkStatics`, a portal refresh) or after a `rebase`, a ray finds nothing where this is true.
+   */
+  staticColumn(x: number, z: number): boolean {
+    for (const e of this.statics.values()) if (footprintCovers(e.foot, x, z)) return true;
+    return false;
   }
 
   removeChunkStatics(chunkKey: string): void {
@@ -615,7 +628,8 @@ export class RapierBackend implements VehiclePhysics {
       for (let i = 0; i < prisms.length; i++) prisms[i] = r.f32();
       const colliders: number[] = [];
       for (let m = r.u32(); m > 0; m--) colliders.push(r.f64());
-      this.statics.set(key, { set: heightfield ? { heightfield, prisms } : { prisms }, colliders });
+      const set: StaticShapeSet = heightfield ? { heightfield, prisms } : { prisms };
+      this.statics.set(key, { set, colliders, foot: staticFootprint(set) });
     }
     const len = r.u32();
     const rapierBytes = r.bytes(len);

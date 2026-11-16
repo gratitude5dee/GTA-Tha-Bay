@@ -3,6 +3,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import { decodePng, diffImages, encodePng, goldenFailures, identical, meanAbsDifference, type Rgba } from '../support/image-diff.ts';
 import { bakeIdOf, bootWorld, frames, GOLDEN_VIEWPORT, HIDE, read, texturesSettled, type W } from './art-textures-helpers.ts';
+import { canvasRgba } from './canvas-capture.ts';
 
 /**
  * M10d0 AC-7 (@textures-golden, `chromium-webgl2`): the shots of `config/world/surface-textures.json` against the committed goldens,
@@ -36,14 +37,14 @@ async function capture(page: Page, tier: string, shot: string): Promise<Rgba> {
   });
   await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id, { held: true }), shot);
   await frames(page, 2);
-  return decodePng(await page.locator('#dv-engine-canvas').screenshot());
+  return canvasRgba(page);
 }
 
 /** The canvas of the shot already held, with the surface textures switched (`setLookLayer('textures', on)`: off is the procedural look at once). */
 async function recapture(page: Page, on: boolean): Promise<Rgba> {
   expect(await page.evaluate((o) => (window as unknown as W).__dvBridge.world.setLookLayer('textures', o), on)).toBe(true);
   await frames(page, 3);
-  return decodePng(await page.locator('#dv-engine-canvas').screenshot());
+  return canvasRgba(page);
 }
 
 test.describe('textures goldens @textures-golden', () => {
@@ -66,7 +67,7 @@ test.describe('textures goldens @textures-golden', () => {
         const first = await capture(page, tier, shot);
         expect(first).toMatchObject({ width: GOLDEN_VIEWPORT.width, height: GOLDEN_VIEWPORT.height });
         await frames(page, 2);
-        const second = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+        const second = await canvasRgba(page);
         expect(identical(first, second), 'two consecutive captures differ').toBe(true);
         if (update) {
           mkdirSync(GOLDEN_DIR, { recursive: true });

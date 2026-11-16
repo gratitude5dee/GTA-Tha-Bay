@@ -1,0 +1,34 @@
+{
+  "id": "M02h6-iphone15",
+  "milestone": "M02h6",
+  "device": "iPhone 15, iOS 26.x (or the newest release), Home Screen app; floor device (Q-10): tier mobile-low at 30 fps; operator Preview built with the synth world (QA build)",
+  "urlTemplate": "https://<preview>/?perf=1&tier=mobile-low&scenario=downtown-rush&debug=1",
+  "steps": [
+    {
+      "id": "1-build",
+      "instruction": "Build one Preview with the synth world and QA flags (Preview builds carry no world on their own, DL-653): pnpm map:build -- --area synth && DV_WORLD=synth VITE_DV_QA=1 pnpm build && pnpm deploy:preview. Write the Preview URL into notes.json as previewUrl."
+    },
+    {
+      "id": "2-install",
+      "instruction": "In Safari open the Preview URL, then Share > Add to Home Screen, and launch the app from the Home Screen icon (not from Safari). Open <preview>/?perf=1&tier=mobile-low&scenario=downtown-rush&debug=1. The HUD must show 'mobile-low  webgl2'. In the browser console of a connected Mac (Safari Web Inspector on the phone) __dvBridge.world.look().furniture must read profile 'min' with the pools signal and post and parked.families ['car']."
+    },
+    {
+      "id": "3-run-layers-on",
+      "instruction": "Look along a street from where the player stands: signal masts with lit heads at the signalised junctions, stop signs, hydrants and posts on the sidewalks, and parked cars along the curbs from about 25 m away (none closer, no car appearing next to the player). Let downtown-rush run to its end with the furniture and parked layers on (the default). Tap Export and save perf.json and notes.json to docs/device-runs/M02h6/iphone15/.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "mobile-low" },
+        { "metric": "backend", "op": "==", "value": "webgl2" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "4-layers-delta",
+      "instruction": "Reload the same URL with &furniture=0 (both layers off from the start; look().furniture.objects must read 0) and run downtown-rush once more. Write both median frame times and their delta (on minus off, ms) and the render objects of __dvBridge.platform.perf.live() with the layers on and off into notes.json as furnitureDelta: { offMedianMs, onMedianMs, deltaMs, objectsOn, objectsOff }. If the on median is over the 30 fps budget (33.3 ms), say so; the fallback is to drop the post pool, then the parked dressing, through the layers, never a raised budget."
+    },
+    {
+      "id": "5-verify",
+      "instruction": "Run pnpm perf:verify -- docs/device-runs/M02h6/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M02h6-iphone15.json: the median and p95 frame times, the frames over 50 ms and the render and triangle counts must pass at mobile-low with the furniture and the parked dressing on."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}
