@@ -348,6 +348,16 @@ test.describe('pause and phone on the synth world @ui-pause', () => {
   });
 });
 
+/** What the page saw of one toast (the boundary-toast case below records it in the page). */
+interface ToastSeen {
+  /** It had a box and was not hidden at some moment (what `toBeVisible` asks). */
+  visible: boolean;
+  text: string;
+  regionText: string;
+  /** The most elements with the toast's id at any one time. */
+  max: number;
+}
+
 const camYawFor = (dx: number, dz: number): number => {
   let yaw = Math.atan2(-dx, -dz);
   if (yaw < 0) yaw += 2 * Math.PI;
@@ -380,16 +390,41 @@ test.describe('boundary toast @ui-boundary-toast', () => {
       }
     }
     expect(placed).toBe(true);
+    // BD-FIX-TOAST-RACE-01: a sim toast lives 5 s (`SIM_TOAST_TTL_MS`, expired on a 500 ms timer). Reading it in four Playwright round
+    // trips raced that lifetime: in CI run 43230527183 (chromium-webgl2 shard 3, the other worker in a world-booting test) the toast was
+    // seen with its text and had expired before its count was read, on both attempts. So the page records what the toast region shows,
+    // from before the walk, and the assertions read the record: they hold for the toast's whole life, not for one late sample.
+    await page.evaluate(() => {
+      const rec: ToastSeen = { visible: false, text: '', regionText: '', max: 0 };
+      (window as unknown as { __dvToastSeen: ToastSeen }).__dvToastSeen = rec;
+      const read = (): void => {
+        const els = document.querySelectorAll<HTMLElement>('[data-toast-id="world.boundary.countyLine"]');
+        const el = els[0];
+        if (!el) return;
+        rec.max = Math.max(rec.max, els.length);
+        const box = el.getBoundingClientRect();
+        if (box.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== 'hidden') rec.visible = true;
+        const text = el.textContent ?? '';
+        if (text !== '') rec.text = text;
+        const region = el.closest<HTMLElement>('[data-testid="toasts"]')?.textContent ?? '';
+        if (region !== '') rec.regionText = region;
+      };
+      // the observer sees the toast the moment it is added; the timer follows it while it stands (an enter transition, a second copy)
+      new MutationObserver(read).observe(document.body, { childList: true, subtree: true, characterData: true });
+      setInterval(read, 100);
+      read();
+    });
     expect(await act(page, { t: 'debug.bot', script: [{ from: 0, to: 45 * 60, moveY: -127, camYaw: camYawFor(fwd[0], fwd[1]) }] })).toBe(true);
-    const toast = page.locator('[data-toast-id="world.boundary.countyLine"]');
-    await expect(toast).toBeVisible({ timeout: 150_000 });
-    await expect(toast).toContainText('Leaving SF — coming soon');
-    await expect(page.getByTestId('toasts')).toContainText('Leaving SF');
-    await expect(toast).toHaveCount(1);
+    await page.waitForFunction(() => (window as unknown as { __dvToastSeen: ToastSeen }).__dvToastSeen.visible, undefined, { timeout: 150_000 });
     // Still pressing against the barrier: the approach fired one event and the sim raised one toast.
     await page.waitForTimeout(3000);
     expect(await page.evaluate(() => (window as unknown as WorldW).__dvBridge.world.boundaryEvents())).toBe(1);
     const raised = await page.evaluate(() => (window as unknown as { __dvBridge: { engine: { modes: { toasts(): { id: string }[] } } } }).__dvBridge.engine.modes.toasts().filter((x) => x.id === 'world.boundary.countyLine').length);
     expect(raised).toBe(1);
+    // What the page showed, over the toast's life so far (3 s and more): the en.json text, inside the toast region, never two at once.
+    const shown = await page.evaluate(() => (window as unknown as { __dvToastSeen: ToastSeen }).__dvToastSeen);
+    expect(shown.text).toContain('Leaving SF — coming soon');
+    expect(shown.regionText).toContain('Leaving SF');
+    expect(shown.max).toBe(1);
   });
 });
