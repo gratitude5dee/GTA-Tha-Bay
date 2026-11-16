@@ -1,16 +1,16 @@
 {
   "schema": "world-pointer-meta/1",
-  "assetsLockSha256": "e15a81addd3ed2653eda4ab661e197fda3c86256e75f295f567f88786c8f0453",
-  "worldLockSha256": "4e823e06cf7f2d2d16ff92cf22d6f67d89f129830f9bbda7e5b783c20c86e03a",
-  "worldIndexSha256": "a72b1a26f0245b8f700eb7eec1c3c8c0487cfcb9fe6f6a5ab70189c3b2f76c62",
+  "assetsLockSha256": "ae527de2874e8d284c2737e115b3bb7865265fb5a295cc64ae69f84984b942b8",
+  "worldLockSha256": "df3d6a5670bff924e54141628e4564a61ef57b64ac3261f2b5dd6f9d7dd36ddf",
+  "worldIndexSha256": "193f4ee4169cdd99b4211cb8d8aa6870ac98bfac0737b3b9f75772ee6dbf18d1",
   "odblOffer": {
-    "bakeId": "bf9c29c4ba5369f9de50aef5b9c1845dad637837443e9c640775f794e0d1a9ae",
-    "url": "https://tha-bay-web-staging.gratitude-8f4.workers.dev/media/odbl/bf9c29c4ba5369f9de50aef5b9c1845dad637837443e9c640775f794e0d1a9ae/index.json",
-    "index": "odbl/bf9c29c4ba5369f9de50aef5b9c1845dad637837443e9c640775f794e0d1a9ae/index.json",
+    "bakeId": "4ff51c268cde85151641bc620616d5a9b97ef1c80f32c7281251478afef554b9",
+    "url": "https://tha-bay-web-staging.gratitude-8f4.workers.dev/media/odbl/4ff51c268cde85151641bc620616d5a9b97ef1c80f32c7281251478afef554b9/index.json",
+    "index": "odbl/4ff51c268cde85151641bc620616d5a9b97ef1c80f32c7281251478afef554b9/index.json",
     "tarball": {
-      "key": "odbl/bf9c29c4ba5369f9de50aef5b9c1845dad637837443e9c640775f794e0d1a9ae/bake-scripts.tar.gz",
-      "bytes": 357723,
-      "sha256": "0f8d1d545ba1ffa10b7c278eedb9ed4fbc9ad1b9be9a8989fe945b2bc83ce64d"
+      "key": "odbl/4ff51c268cde85151641bc620616d5a9b97ef1c80f32c7281251478afef554b9/bake-scripts.tar.gz",
+      "bytes": 418169,
+      "sha256": "d09cc168b60fd353673dc878fe15919c4dd2546f51a69f63b8c68dd3953d2573"
     }
   }
 }
