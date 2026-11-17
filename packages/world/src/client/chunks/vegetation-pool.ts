@@ -31,7 +31,9 @@
  * with zero scale (trunk and crown: no bare trunk, and on `full` no shadow either, since the `near` pools cast from the same instance
  * matrices). The hidden set is per unit instance and applied at write time from the unit's source (`writeRange`), so a re-banding, a
  * `tree.drawM` crossing, a capacity doubling, a move between `near` and `far` or `setLook` keeps a hidden tree hidden; a unit that lands
- * while a decision is in force is judged by the same lenses. Shrubs, hedges and impostor cards are never chosen.
+ * while a decision is in force is judged by the same lenses. Shrubs and hedges are never chosen, nor is a tree further than `impostorM`
+ * (with its hysteresis) from every lens of the decision, where it is a card; inside that distance a tree is judged whatever band it
+ * holds on that frame (`lensHiddenOf`).
  */
 import { BufferAttribute, BufferGeometry, type Group, InstancedBufferAttribute, InstancedMesh, type Material, Sphere, Vector3 } from 'three/webgpu';
 import { TreeForm, isUnderstoryForm, treeFormOfByte } from '@dv/shared';
@@ -1129,10 +1131,10 @@ export class VegetationPools {
 
   /**
    * The instances of a unit the decision in force hides: the trees drawn as meshes whose crown breaks the rule for any lens of the
-   * decision. Never a shrub or a hedge, and never an impostor card: a tree is a mesh for a lens when it stands within `impostorM`
-   * (with its hysteresis) of where that lens stands. The band the instance holds now is not asked: a cut can move the camera further
-   * than `impostorM`, and the bands follow it only after the decision (the re-banding, capped per frame), so the tree beside the new
-   * lens may still be a card on the frame of the cut.
+   * decision. Never a shrub or a hedge, and never a tree further than `impostorM` (with its hysteresis) from where every lens stands:
+   * that far it is a card. The band the instance holds now is not asked: a cut can move the camera further than `impostorM`, and the
+   * bands follow it only after the decision (the re-banding, capped per frame), so the tree beside the new lens may still be a card
+   * on the frame of the cut; for the same reason a tree in the hysteresis ring that is still drawn as a card can be chosen.
    */
   private lensHiddenOf(u: UnitState): Set<number> | null {
     const rule = this.lensRule;

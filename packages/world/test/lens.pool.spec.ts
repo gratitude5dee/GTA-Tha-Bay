@@ -235,7 +235,7 @@ describe('lens clear: the vegetation pools (BD-FIX-LENS-CLEAR-01)', () => {
     pools.dispose();
   });
 
-  it('shrubs, hedges and impostor cards are never hidden', () => {
+  it('shrubs, hedges and trees further than impostorM (with its hysteresis) from the lens are never hidden', () => {
     // a shrub at the lens's feet (UNIT[4]) and a hedge on the line to the subject
     const recs: Rec[] = [...UNIT, [100, 95, 1.4, TreeForm.Hedge, true]];
     const pools = make('full', { ...SCATTER, impostorM: 150, shrubDrawM: 250 });
@@ -263,6 +263,37 @@ describe('lens clear: the vegetation pools (BD-FIX-LENS-CLEAR-01)', () => {
     expect(meshes.bandsOf(ID)[0]!.band).toBe(BAND_MESH);
     expect(meshes.lensReport().hidden).toBe(1);
     meshes.dispose();
+
+    // the test is the distance to the lens, not the band: 52 m down the same line (inside the hysteresis ring, 50 to 55 m) the tree
+    // lands as a card and is chosen all the same
+    const ring = make('low', SCATTER);
+    frame(ring, 100, 104.5, null);
+    ring.addUnit(ID, trees([[100, 52.5, 12, TreeForm.Plane]]), 0, 0, true, false);
+    expect(ring.bandsOf(ID)[0]!.band).toBe(BAND_IMPOSTOR);
+    frame(ring, 100, 104.5, down);
+    expect(ring.lensReport()).toEqual({ active: true, hidden: 1, decisions: 1 });
+    ring.dispose();
+  });
+
+  it('a shrub and a hedge that stand in the lens and on its line to the subject are not chosen, where a tree of the same size is', () => {
+    // 3.5 m and 6.5 m in front of the lens, on its line to the subject, each 4.5 m tall (the lens is 3 m above their ground)
+    const at = (form: TreeForm, scatter: boolean): Rec[] => [[100, 101, 4.5, form, scatter], [100, 98, 4.5, form, scatter]];
+    const opts: ScatterPoolOptions = { ...SCATTER, impostorM: 150, shrubDrawM: 250 };
+    const hidden = (recs: Rec[]): number[] => {
+      const pools = make('full', opts);
+      frame(pools, 100, 104.5, null);
+      pools.addUnit(ID, trees(recs), 0, 0, true, false);
+      frame(pools, 100, 104.5, SHOT);
+      const out = pools.hiddenOf(ID);
+      pools.dispose();
+      return out;
+    };
+    // as trees, both stand in the lens: the places and the sizes are ones the rule chooses
+    expect(hidden(at(TreeForm.Plane, false))).toEqual([0, 1]);
+    expect(hidden(at(TreeForm.Ficus, true))).toEqual([0, 1]);
+    // as understory, neither is chosen
+    expect(hidden(at(TreeForm.Shrub, true))).toEqual([]);
+    expect(hidden(at(TreeForm.Hedge, true))).toEqual([]);
   });
 
   it('a cut that jumps the camera hides the tree beside the new lens although it is still a card on that frame', () => {
