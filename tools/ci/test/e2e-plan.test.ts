@@ -129,12 +129,19 @@ describe('e2e-plan (BD-FIX-CI-DURSHARD-01)', () => {
     // the timed units sit where they sat without the zeros, so no bound moved
     expect(plan.map((us) => us.filter((u) => u.minutes > 0).map((u) => u.key))).toEqual(before.map((us) => us.map((u) => u.key)));
     expect(plan.map((us) => shardBound(us, 2))).toEqual(before.map((us) => shardBound(us, 2)));
-    // the zeros even out the test counts: no shard holds two tests more than another
-    const tests = plan.map((us) => us.reduce((a, u) => a + u.tests.length, 0));
-    expect(Math.max(...tests) - Math.min(...tests)).toBeLessThanOrEqual(1);
-    // and no shard holds most of them (before this rule one shard took all 41)
-    const perShard = plan.map((us) => us.filter((u) => u.minutes === 0).length);
-    expect(Math.max(...perShard)).toBeLessThanOrEqual(Math.ceil(41 / 4) + Math.max(...before.map((us) => us.length)) - Math.min(...before.map((us) => us.length)));
+    // the zero-minute tests are spread evenly whatever the shards' timed tests count (before this rule one shard took all 41)
+    const perShard = plan.map((us) => us.filter((u) => u.minutes === 0).reduce((a, u) => a + u.tests.length, 0));
+    expect(perShard).toEqual([11, 10, 10, 10]);
+    // ties go to the lower shard, in key order: two zero-minute units over two shards land on shard 1, then shard 2
+    expect(pack([unit('zb', 0), unit('za', 0)], 2, 2).map((us) => us.map((u) => u.key))).toEqual([['za'], ['zb']]);
+    // and the timed tests of a shard do not count: the first zero-minute unit still goes to shard 1 when shard 1 holds more timed tests
+    const lopsided = pack([unit('t1', 5), unit('t2', 5), unit('t3', 9), unit('z1', 0), unit('z2', 0)], 2, 2);
+    expect(lopsided.map((us) => us.filter((u) => u.minutes === 0).map((u) => u.key))).toEqual([['z1'], ['z2']]);
+    // the zero-minute tests inside a timed unit already on a shard count too: shard 1 holds a serial file with three of them, so the
+    // first three zero-minute units go to shard 2 and the fourth back to shard 1
+    const mixed: Unit = { key: 'serial m.spec.ts', minutes: 9, zeroTests: 3, tests: Array.from({ length: 5 }, (_, i) => ({ spec: 'm.spec.ts', file: 'm.spec.ts', titles: [`m${i}`] })) };
+    const withMixed = pack([mixed, unit('t9', 8), unit('z1', 0), unit('z2', 0), unit('z3', 0), unit('z4', 0)], 2, 2);
+    expect(withMixed.map((us) => us.map((u) => u.key))).toEqual([['serial m.spec.ts', 'z4'], ['t9', 'z1', 'z2', 'z3']]);
     // a serial unit of several zero-minute tests counts by its tests
     const serial: Unit = { key: 'serial z.spec.ts', minutes: 0, tests: Array.from({ length: 6 }, (_, i) => ({ spec: 'z.spec.ts', file: 'z.spec.ts', titles: [`t${i}`] })) };
     const withSerial = pack([serial, ...Array.from({ length: 6 }, (_, i) => unit(`y${i}`, 0))], 2, 2);
