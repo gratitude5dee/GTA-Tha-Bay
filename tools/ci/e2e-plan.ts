@@ -14,6 +14,13 @@
  * estimate. `timings` reads the list reporter's lines (`✓  3 [project] › file:line:col › titles (2.1m)`) from CI job logs
  * (`gh api repos/<owner>/<repo>/actions/jobs/<id>/logs`), takes the longest attempt of each test and averages it over the logs, and
  * with `--write` replaces those entries of the table (others are kept).
+ *
+ * A test that skips itself on a project (BD-FIX-CI-PLAN-02; a golden that is chromium-webgl2 only, on the other projects) costs no
+ * minutes, and without an entry it was planned at a median: chromium-webgpu was packed as about 405 test-minutes against 239 run. So
+ * `timings` also reads the skipped lines (`-  12 [project] › file:line:col › titles`) and records 0 for them, under three rules:
+ * a 0 is taken only from a log with no failed test line (a serial group skips its remaining tests after a failure), and only for a test
+ * no log measured; `--write` never replaces a stored value above 0 by 0; and the estimator's medians are built from values above 0, so
+ * the zeros plan their own tests at 0 and change nobody else's estimate.
  */
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -110,14 +117,19 @@ const median = (xs: number[]): number | undefined => {
   return s.length % 2 ? (s[m] as number) : ((s[m - 1] as number) + (s[m] as number)) / 2;
 };
 
-/** Minutes of each test: measured, else the median of its file's measured tests of its kind, else the project's, else 1. */
+/**
+ * Minutes of each test: measured (0 for a test that skips itself or takes no time), else the median of its file's measured tests of its
+ * kind, else the project's, else 1. The medians are built from the values above 0 only (BD-FIX-CI-PLAN-02): the chromium-webgpu table
+ * holds 31 desktop tests with minutes and 43 that skip themselves, and zeros counted as measurements would have turned the project's
+ * desktop median from 2.7 minutes to 0 (webkit-webgl2: 35 and 39, 2.6 to 0).
+ */
 export function estimator(tests: readonly ListedTest[], measured: Readonly<Record<string, number>>): (t: ListedTest) => number {
   const kind = (t: ListedTest): string => (DESKTOP.test(t.titles.join(' ')) ? 'desktop' : 'other');
   const byFile = new Map<string, number[]>();
   const byProject = new Map<string, number[]>();
   for (const t of tests) {
     const m = measured[testKey(t)];
-    if (m === undefined) continue;
+    if (m === undefined || !(m > 0)) continue;
     const f = `${t.spec}|${kind(t)}`;
     byFile.set(f, [...(byFile.get(f) ?? []), m]);
     byProject.set(kind(t), [...(byProject.get(kind(t)) ?? []), m]);
@@ -158,16 +170,27 @@ export function shardBound(units: readonly Unit[], workers: number): number {
 /**
  * Longest unit first, each onto the shard whose bound grows least (ties: the smaller load, then the lower shard), so no shard's bound
  * is far above the others'. One array of units per shard; every unit lands in exactly one.
+ *
+ * A unit of 0 minutes (tests that skip themselves in this project, BD-FIX-CI-PLAN-02) moves no bound, so the rule above would put
+ * every one of them on the same shard. They go to the shard with the fewest tests instead (ties: the lower shard): when such tests
+ * stop skipping before the table is refreshed, their real minutes are then spread over the shards and not stacked on one.
  */
 export function pack(units: readonly Unit[], shards: number, workers: number): Unit[][] {
   if (!Number.isInteger(shards) || shards < 1 || !Number.isInteger(workers) || workers < 1) throw new Error(`bad shape ${shards} x ${workers}`);
   const out: Unit[][] = Array.from({ length: shards }, () => []);
   const load = Array.from({ length: shards }, () => 0);
   const longest = Array.from({ length: shards }, () => 0);
+  const count = Array.from({ length: shards }, () => 0);
   const order = [...units].sort((a, b) => b.minutes - a.minutes || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   for (const u of order) {
     let best = 0;
     let bestBound = Infinity;
+    if (!(u.minutes > 0)) {
+      for (let i = 1; i < shards; i++) if ((count[i] as number) < (count[best] as number)) best = i;
+      count[best] = (count[best] as number) + u.tests.length;
+      (out[best] as Unit[]).push(u);
+      continue;
+    }
     for (let i = 0; i < shards; i++) {
       const bound = ((load[i] as number) + u.minutes) / workers + (1 - 1 / workers) * Math.max(longest[i] as number, u.minutes);
       if (bound < bestBound - 1e-9 || (Math.abs(bound - bestBound) <= 1e-9 && (load[i] as number) < (load[best] as number))) {
@@ -177,26 +200,42 @@ export function pack(units: readonly Unit[], shards: number, workers: number): U
     }
     load[best] = (load[best] as number) + u.minutes;
     longest[best] = Math.max(longest[best] as number, u.minutes);
+    count[best] = (count[best] as number) + u.tests.length;
     (out[best] as Unit[]).push(u);
   }
   return out;
 }
 
-/** Parses list-reporter lines from CI logs: { project -> { key -> minutes } }, the longest attempt per log, averaged over logs. */
+/**
+ * Parses list-reporter lines from CI logs: { project -> { key -> minutes } }, the longest attempt per log, averaged over the logs that
+ * ran the test. A test that only ever appears as skipped (`-  12 [project] › file:line:col › titles`, no duration) is recorded at 0,
+ * and only from logs with no failed test line: after a failure a serial group skips its remaining tests, which says nothing about what
+ * they cost. A log that ran the test always wins over one that skipped it.
+ */
 export function timingsFromLogs(logs: readonly string[]): Record<string, Record<string, number>> {
   const sums: Record<string, Record<string, { total: number; n: number }>> = {};
-  const line = /(?:✓|✘)\s+\d+\s+\[([^\]]+)\]\s+›\s+(\S+?):\d+:\d+\s+›\s+(.*?)(?:\s+\(retry #\d+\))?\s+\((\d+(?:\.\d+)?)(ms|s|m|h)\)\s*$/;
+  const zeros: Record<string, Set<string>> = {};
+  const line = /(✓|✘)\s+\d+\s+\[([^\]]+)\]\s+›\s+(\S+?):\d+:\d+\s+›\s+(.*?)(?:\s+\(retry #\d+\))?\s+\((\d+(?:\.\d+)?)(ms|s|m|h)\)\s*$/;
+  const skippedLine = /(?:^|\s)-\s+\d+\s+\[([^\]]+)\]\s+›\s+(\S+?):\d+:\d+\s+›\s+(.*?)\s*$/;
   const unit: Record<string, number> = { ms: 1 / 60000, s: 1 / 60, m: 1, h: 60 };
+  const keyOf = (file: string, titles: string): string => `${file.replace(/^tests\/e2e\//, '')} ${SEP} ${titles}`;
   for (const log of logs) {
     const best: Record<string, Record<string, number>> = {};
+    const skipped: Record<string, Set<string>> = {};
+    let failed = false;
     for (const l of log.split('\n')) {
       const m = line.exec(l);
-      if (!m) continue;
-      const [, project, file, titles, v, u] = m as unknown as [string, string, string, string, string, string];
-      const key = `${file.replace(/^tests\/e2e\//, '')} ${SEP} ${titles}`;
-      const mins = Number(v) * (unit[u] as number);
-      const p = (best[project] ??= {});
-      p[key] = Math.max(p[key] ?? 0, mins);
+      if (m) {
+        const [, mark, project, file, titles, v, u] = m as unknown as [string, string, string, string, string, string, string];
+        if (mark === '✘') failed = true;
+        const key = keyOf(file, titles);
+        const mins = Number(v) * (unit[u] as number);
+        const p = (best[project] ??= {});
+        p[key] = Math.max(p[key] ?? 0, mins);
+        continue;
+      }
+      const s = skippedLine.exec(l);
+      if (s) (skipped[s[1] as string] ??= new Set()).add(keyOf(s[2] as string, s[3] as string));
     }
     for (const [project, keys] of Object.entries(best))
       for (const [key, mins] of Object.entries(keys)) {
@@ -204,10 +243,25 @@ export function timingsFromLogs(logs: readonly string[]): Record<string, Record<
         s.total += mins;
         s.n += 1;
       }
+    if (failed) continue;
+    for (const [project, keys] of Object.entries(skipped))
+      for (const key of keys) if (best[project]?.[key] === undefined) (zeros[project] ??= new Set()).add(key);
   }
-  return Object.fromEntries(
-    Object.entries(sums).map(([p, keys]) => [p, Object.fromEntries(Object.entries(keys).map(([k, s]) => [k, Math.round((s.total / s.n) * 100) / 100]))]),
-  );
+  const out: Record<string, Record<string, number>> = {};
+  for (const [p, keys] of Object.entries(sums)) out[p] = Object.fromEntries(Object.entries(keys).map(([k, s]) => [k, Math.round((s.total / s.n) * 100) / 100]));
+  for (const [p, keys] of Object.entries(zeros)) for (const k of keys) if (sums[p]?.[k] === undefined) (out[p] ??= {})[k] = 0;
+  return out;
+}
+
+/**
+ * The table's entries of one project after a `timings --write`: the parsed values replace the stored ones, except that a 0 never
+ * replaces a stored value above 0 (a test skipped in these logs, or one too short to round above 0, keeps the minutes it once took);
+ * entries the logs do not name are kept. Sorted by key.
+ */
+export function mergeTimings(stored: Readonly<Record<string, number>>, parsed: Readonly<Record<string, number>>): Record<string, number> {
+  const out: Record<string, number> = { ...stored };
+  for (const [k, v] of Object.entries(parsed)) if (v > 0 || !((stored[k] ?? 0) > 0)) out[k] = v;
+  return Object.fromEntries(Object.entries(out).sort(([a], [b]) => (a < b ? -1 : 1)));
 }
 
 export function readTimings(file = TIMINGS_FILE): Timings {
@@ -226,10 +280,18 @@ function main(): number {
   if (cmd === 'timings') {
     const { values, positionals } = parseArgs({ args: rest, allowPositionals: true, options: { write: { type: 'boolean', default: false } } });
     const parsed = timingsFromLogs(positionals.map((f) => readFileSync(f, 'utf8')));
-    for (const [p, keys] of Object.entries(parsed)) console.log(`${p}: ${Object.keys(keys).length} tests, ${Object.values(keys).reduce((a, b) => a + b, 0).toFixed(1)} min`);
+    for (const [p, keys] of Object.entries(parsed)) {
+      const vs = Object.values(keys);
+      console.log(`${p}: ${vs.length} tests, ${vs.reduce((a, b) => a + b, 0).toFixed(1)} min, ${vs.filter((v) => v === 0).length} at 0 (skipped in every log that named them, or under 0.3 s)`);
+    }
     if (values.write) {
       const t = readTimings();
-      for (const [p, keys] of Object.entries(parsed)) t.projects[p] = Object.fromEntries(Object.entries({ ...t.projects[p], ...keys }).sort(([a], [b]) => (a < b ? -1 : 1)));
+      for (const [p, keys] of Object.entries(parsed)) {
+        const stored = t.projects[p] ?? {};
+        const kept = Object.entries(keys).filter(([k, v]) => v === 0 && (stored[k] ?? 0) > 0).length;
+        t.projects[p] = mergeTimings(stored, keys);
+        if (kept > 0) console.log(`${p}: ${kept} stored values above 0 kept (the logs gave 0)`);
+      }
       writeFileSync(TIMINGS_FILE, `${JSON.stringify(t, null, 2)}\n`);
     }
     return 0;

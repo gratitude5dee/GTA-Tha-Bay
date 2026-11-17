@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
+import { lap, secs, tierOf } from './lap.ts';
 
 /**
  * M02b2 day, night and weather in a real browser, on a `DV_WORLD=synth` QA build (the world half of the e2e legs). The bridge sets
@@ -28,6 +29,7 @@ const world = <T>(page: Page, fn: (w: WorldBridge) => T | Promise<T>): Promise<T
 
 /** Sets the sky through the sim and waits until the page's sky shows it. The clock is frozen at the hour. */
 async function setSky(page: Page, hour: number, weather: string, blackout = false): Promise<void> {
+  const t0 = Date.now();
   await page.evaluate(
     ([h, w, b]) => {
       const world = (window as unknown as W).__dvBridge.world;
@@ -37,6 +39,7 @@ async function setSky(page: Page, hour: number, weather: string, blackout = fals
     },
     [hour, weather, blackout] as const,
   );
+  const t1 = Date.now();
   await page.waitForFunction(
     ([h, w, b]) => {
       const s = (window as unknown as W).__dvBridge.world.sky();
@@ -45,6 +48,7 @@ async function setSky(page: Page, hour: number, weather: string, blackout = fals
     [hour, weather, blackout] as const,
     { timeout: 90_000 },
   );
+  lap(`setSky ${tierOf(page)} ${hour} ${weather}${blackout ? ' blackout' : ''}`, `set ${secs(t0, t1)} s, wait ${secs(t1)} s`);
 }
 
 test.describe('world sky @world-sky', () => {

@@ -3,6 +3,7 @@ import type { TeleportResult } from '../../packages/shared/src/index.ts';
 import type { LandmarksReport } from '../../packages/world/src/client/chunks/landmark-layer.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
+import { lap, secs } from './lap.ts';
 
 /**
  * The code `world-landmarks.spec.ts` and `tour-landmarks-desktop.spec.ts` share (BD-FIX-CI-SHARD8-02: the desktop landmark cases moved to a
@@ -48,6 +49,13 @@ export async function boot(page: Page, tier: string, extra = ''): Promise<string
 
 export const shown = (r: LandmarksReport | null): string[] => (r?.resident ?? []).filter((e) => e.phase === 'shown').map((e) => e.id).sort();
 
+/**
+ * The landmark report with the pedestrian kit's state from the same page read (BD-FIX-CI-PLAN-01: the kit state rides on the read the
+ * cases already make, so a lap line can say whether the kit was still loading at a landmark; no page call is added).
+ */
+export const landmarksAndKit = (page: Page): Promise<{ r: LandmarksReport | null; kit: string | null }> =>
+  world(page, (w) => ({ r: w.landmarks(), kit: w.peds()?.art.state ?? null }));
+
 export async function teleport(page: Page, id: string): Promise<TeleportResult> {
   const t0 = Date.now();
   const f0 = await world(page, (w) => w.chunks().frame);
@@ -69,10 +77,14 @@ export async function twelveResident(page: Page, tier: 'desktop' | 'mobile-low')
   for (const id of TWELVE) {
     const result = await teleport(page, id);
     expect(result.ok, `${id}: ${JSON.stringify(result)}`).toBe(true);
+    const tReply = Date.now();
     await expect
       .poll(async () => shown(await world(page, (w) => w.landmarks())), { timeout: 180_000, intervals: [500, 1000, 2000], message: id })
       .toContain(id);
-    const r = (await world(page, (w) => w.landmarks()))!;
+    const shownS = secs(tReply);
+    const read = await landmarksAndKit(page);
+    lap(`world-landmarks ${tier} ${id}`, `shown ${shownS} s after the teleport reply, pedestrian kit ${String(read.kit)}`);
+    const r = read.r!;
     const e = r.resident.find((x) => x.id === id)!;
     console.log(`world-landmarks ${tier} ${id}: ${e.fidelity} ${e.objects} objects ${e.triangles} tris, ${e.chunks.length} proxy chunks, ${e.chunks.filter((c) => c.masked).length} masked, ${Math.round(e.distM)} m`);
     expect(e.fidelity).toBe(tier === 'desktop' ? 'hi' : 'lo');
