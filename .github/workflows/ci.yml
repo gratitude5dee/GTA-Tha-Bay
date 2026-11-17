@@ -346,7 +346,7 @@ jobs:
   e2e-shard:
     needs: [build, scope]
     # BD-FIX-CI-PLAN-03: skipped only when the scope job said this commit is already green (a push to claude/build). A scope job that
-    # failed or gave no answer is the full run: the condition names `!cancelled()`, so GitHub's default `success()` (which would skip
+    # failed or timed out without the answer `heavy=false` is the full run: the condition names `!cancelled()`, so GitHub's default `success()` (which would skip
     # this job after a failed `scope`) does not apply, and it asks for the green build itself, as `needs: build` alone did before.
     if: ${{ !cancelled() && needs.build.result == 'success' && needs.scope.outputs.heavy != 'false' }}
     runs-on: ubuntu-24.04
