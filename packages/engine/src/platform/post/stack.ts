@@ -8,7 +8,8 @@
  * a pixel the world pass did not draw keeps an AO of 1. A node list that is only `tonemap` draws straight to the canvas through the
  * host's direct path (tone mapping in the renderer, no intermediate target): the cheapest form, for `mobile-low`.
  *
- * M02h8: `traa` keeps a history between frames; a camera cut or a teleport (`isCut`) and a look shot (`resetHistory`) start it again.
+ * M02h8: `traa` keeps a history between frames; a camera cut or a teleport (`isCut`) and a look shot (`resetHistory`) start it again, on
+ * the frame of the reset and once more on the frame after it.
  *
  * `shadowPasses` is the number of shadow passes the active shadow object reports (M02e `look/shadows.ts` sets it); both
  * `RenderBudgetMeter.measure` callers read it so shadow work is inside the counted budget.
@@ -241,6 +242,8 @@ export class PostStack implements GpuResourceOwner {
   /** M02h8: frames this stack has drawn (through the pipeline or the direct path), and the count at the last history reset. */
   frames = 0;
   private resetFrame = 0;
+  /** M02h8: the frame (a value of `frames`) whose draw starts the history a second time after a reset; -1 when none is due. */
+  private rearmFrame = -1;
   private lastPose: CameraPose | null = null;
 
   constructor(o: PostStackOptions) {
@@ -310,6 +313,7 @@ export class PostStack implements GpuResourceOwner {
     this.lastPose = null;
     // a new pipeline has a new history: it counts from here
     this.resetFrame = this.frames;
+    this.rearmFrame = -1;
     this.list = this.listFor(this.features, this.level);
     const onlyTonemap = this.list.length === 0 || (this.list.length === 1 && this.list[0] === 'tonemap');
     this.currentMode = onlyTonemap ? 'direct' : 'pipeline';
@@ -335,12 +339,20 @@ export class PostStack implements GpuResourceOwner {
   /**
    * M02h8: drops the temporal history now (a camera cut, a teleport, a look shot): the next frame starts from its own picture. False when the
    * list has no temporal node.
+   *
+   * The history starts twice: on the next frame drawn and again on the one after it (not counted in `historyResets`). The first frame after
+   * a cut still reprojects through the velocity buffer of the move that was the cut (three's TRAA has no switch for it): points that stood
+   * behind the camera before the turn land inside the picture, so edge pixels of that frame blend with texels of other places and the
+   * residue stays in the history for many frames (0.5 to 0.8 % of the pixels over the golden tolerance 16 frames later). The second start
+   * takes the picture of a frame whose velocity is the camera's real motion, and every reset then converges the same way: 16 frames after
+   * a cut the picture is the one a reset on the settled pose gives.
    */
   resetHistory(): boolean {
     if (!this.pipeline?.resetHistory) return false;
     this.pipeline.resetHistory();
     this.historyResets++;
     this.resetFrame = this.frames;
+    this.rearmFrame = this.frames + 1;
     return true;
   }
 
@@ -353,7 +365,14 @@ export class PostStack implements GpuResourceOwner {
   render(): void {
     if (this.disposed) return;
     if (this.pipeline) {
-      if (this.pipeline.resetHistory) this.watchCut();
+      if (this.pipeline.resetHistory) {
+        this.watchCut();
+        // the second start of a reset (see `resetHistory`); a cut on this very frame has just set a later frame
+        if (this.frames === this.rearmFrame) {
+          this.pipeline.resetHistory();
+          this.rearmFrame = -1;
+        }
+      }
       this.pipeline.render();
     } else this.o.direct();
     this.frames++;

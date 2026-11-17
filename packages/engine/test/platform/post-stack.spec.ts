@@ -264,9 +264,15 @@ describe('PostStack: the TRAA history (M02h8 AC-2)', () => {
     expect(f.resets).toEqual([2]);
     expect(s.historyResets).toBe(1);
     expect(s.framesSinceReset).toBe(1);
+    // the frame after the cut starts the history once more (its own velocity is real motion again); it is not a counted reset
     s.render();
-    expect(f.resets).toEqual([2]);
+    expect(f.resets).toEqual([2, 3]);
+    expect(s.historyResets).toBe(1);
     expect([s.frames, s.framesSinceReset]).toEqual([4, 2]);
+    s.render();
+    s.render();
+    expect(f.resets).toEqual([2, 3]);
+    expect([s.frames, s.framesSinceReset]).toEqual([6, 4]);
   });
 
   it('resets the history on a cut (a 90 degree turn in one frame)', () => {
@@ -274,6 +280,55 @@ describe('PostStack: the TRAA history (M02h8 AC-2)', () => {
     const s = f.make('desktop', 3);
     s.render();
     f.camera.rotation.set(0, Math.PI / 2, 0);
+    s.render();
+    expect(f.resets).toEqual([1]);
+    s.render();
+    s.render();
+    expect(f.resets).toEqual([1, 2]);
+    expect(s.historyResets).toBe(1);
+  });
+
+  it('a requested reset starts the history on the next frame and once more on the one after, as a cut does', () => {
+    const f = traaFakes();
+    const s = f.make('desktop', 3);
+    s.render();
+    s.render();
+    expect(s.resetHistory()).toBe(true);
+    expect(f.resets).toEqual([2]);
+    s.render();
+    expect(f.resets).toEqual([2]);
+    s.render();
+    expect(f.resets).toEqual([2, 3]);
+    s.render();
+    expect(f.resets).toEqual([2, 3]);
+    expect([s.historyResets, s.framesSinceReset]).toEqual([1, 3]);
+  });
+
+  it('a second cut on the frame after a cut is a reset of its own, and its second start follows it', () => {
+    const f = traaFakes();
+    const s = f.make('desktop', 3);
+    s.render();
+    f.camera.position.set(500, 0, 0);
+    s.render();
+    f.camera.position.set(1000, 0, 0);
+    s.render();
+    expect(f.resets).toEqual([1, 2]);
+    expect(s.historyResets).toBe(2);
+    s.render();
+    s.render();
+    expect(f.resets).toEqual([1, 2, 3]);
+    expect(s.historyResets).toBe(2);
+  });
+
+  it('a rebuild drops a second start that was due: the new pipeline has a new history', () => {
+    const f = traaFakes();
+    const s = f.make('desktop', 3);
+    s.render();
+    expect(s.resetHistory()).toBe(true);
+    expect(f.resets).toEqual([1]);
+    s.setLevel(2);
+    s.setLevel(3);
+    s.render();
     s.render();
     expect(f.resets).toEqual([1]);
   });

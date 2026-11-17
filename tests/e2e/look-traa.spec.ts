@@ -17,7 +17,10 @@ import { HIDE_ALL, read, world, type W } from './look-fixes-helpers.ts';
  *     tolerance of the settled picture of the new pose: the picture the QA `shot()` presents, which is the history started again on the
  *     pose and 16 frames (`SHOT_TEMPORAL_FRAMES`); the case takes it the same way, on the pose the cut left the camera in. A TRAA picture
  *     never stands still (its jitter walks a 32-frame cycle, so frame 16 and frame 32 of one pose differ on about 2 % of the pixels),
- *     which is why the settled picture is the one a fixed count after the reset.
+ *     which is why the settled picture is the one a fixed count after the reset. A reset starts the history on its frame and once more
+ *     on the next (`PostStack.resetHistory`), so the frame of the cut, which still reprojects through the velocity of the turn, leaves
+ *     nothing in it: the two pictures were 99.2 to 99.5 % within the tolerance without the second start and are the same picture with it
+ *     (BD-M02h8-13).
  *  3. A slow slide: from `traa-graze` the camera moves 0.0125 m east per frame for eight frames (0.75 m/s at 60 frames a second: every
  *     point of the wall moves by less than half a pixel a frame, the motion at which an edge without a temporal filter hops from pixel
  *     to pixel; the 0.05 m step of the M02g2 pairs moves the near wall by more than a pixel, which is parallax). The share of facade pixels that flicker
