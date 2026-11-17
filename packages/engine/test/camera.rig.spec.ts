@@ -187,7 +187,7 @@ describe('CameraRig modes and the toggle lock (AC-8, R-PLAT-04)', () => {
     rig.toggleFpTp();
     rig.update(FRAME);
     expect(rig.placedLens).toBeNull();
-    // the rig's own shot kinds carry no `pos`: cinematic, but nothing the director placed
+    // a shot without `pos`: cinematic, but nothing the director placed
     const base = { subject: 7, fovDeg: 75, damping: 1, durationTicks: 480, seed: 3 };
     rig.apply(directive({ mode: 'cinematic', lockPlayerToggle: true, reason: 'mission', shot: { kind: 'wide', ...base } }));
     rig.update(FRAME);
@@ -217,6 +217,65 @@ describe('CameraRig modes and the toggle lock (AC-8, R-PLAT-04)', () => {
     rig.update(FRAME);
     expect(rig.mode).toBe('xr');
     expect(rig.placedLens).toBeNull();
+  });
+
+  it('placedLens is only for `fixed` and `spline`: every other placed kind is obeyed without one (BD-FIX-LENS-CLEAR-05)', () => {
+    const { rig, directive, camera } = setup();
+    const base = { subject: 7, fovDeg: 50, damping: 1, durationTicks: 240, seed: 3 };
+    // what the director re-publishes every tick for `tracking`, `orbit`, `over-shoulder` and the auto-director's vocabulary, and the fighter's `side`
+    const kinds = ['chase', 'heli', 'shoulder', 'wide', 'flyby', 'front', 'rearlow', 'enemy', 'side'] as const;
+    kinds.forEach((kind, i) => {
+      const pos: [number, number, number] = [10 + i, 3, 20];
+      rig.apply(directive({ mode: 'cinematic', lockPlayerToggle: true, reason: kind === 'side' ? 'mode' : 'mission', shot: { kind, ...base, pos, lookAt: [10, 1.6, 0] } }));
+      rig.update(FRAME);
+      expect(rig.mode, kind).toBe('cinematic');
+      expect(camera.pos, kind).toEqual(pos);
+      expect(rig.placedLens, kind).toBeNull();
+    });
+    // a `fixed` shot between two of them has its lens for exactly its own frames
+    rig.apply(directive({ mode: 'cinematic', lockPlayerToggle: true, reason: 'mission', shot: { kind: 'fixed', ...base, pos: [1, 2, 3], lookAt: [10, 1.6, 0] } }));
+    rig.update(FRAME);
+    expect(rig.placedLens?.key).toBe('fixed|7|3|240|50');
+    rig.apply(directive({ mode: 'cinematic', lockPlayerToggle: true, reason: 'mission', shot: { kind: 'chase', ...base, pos: [1, 2, 3], lookAt: [10, 1.6, 0] } }));
+    rig.update(FRAME);
+    expect(rig.placedLens).toBeNull();
+  });
+
+  it('the key of placedLens is one per shot: ticks that count down are the same shot, ticks that grow are a cut (BD-FIX-LENS-CLEAR-04)', () => {
+    const { rig, directive } = setup();
+    const base = { kind: 'fixed' as const, subject: 7, fovDeg: 60, damping: 1, seed: 3, pos: [10, 3, 20] as [number, number, number], lookAt: [10, 1.6, 0] as [number, number, number] };
+    const frame = (durationTicks: number, over: Partial<typeof base> = {}): string | null => {
+      rig.apply(directive({ mode: 'cinematic', lockPlayerToggle: true, reason: 'mission', shot: { ...base, ...over, durationTicks } }));
+      rig.update(FRAME);
+      return rig.placedLens?.key ?? null;
+    };
+    // the auto-director re-publishes its shot every tick with the ticks it has left (`endTick - tick`): one key, the span it started with
+    const seen = new Set<string | null>();
+    for (let left = 252; left >= 1; left--) seen.add(frame(left));
+    expect([...seen]).toEqual(['fixed|7|3|252|60']);
+    // a frame that skips ticks (a slow frame) is still the same shot
+    expect(frame(1)).toBe('fixed|7|3|252|60');
+    // its next shot starts a new count: more ticks than the last frame had is a cut, also with the same kind, subject, seed and lens
+    expect(frame(300)).toBe('fixed|7|3|300|60');
+    expect(frame(299)).toBe('fixed|7|3|300|60');
+    expect(frame(300)).toBe('fixed|7|3|300|60');
+    expect(frame(301)).toBe('fixed|7|3|301|60');
+    // the script runner publishes a shot's whole span on every tick: constant, the same shot
+    for (let i = 0; i < 10; i++) expect(frame(480, { kind: 'fixed', subject: 8 })).toBe('fixed|8|3|480|60');
+    // any other field of the identity is a cut, whatever the ticks
+    expect(frame(100, { subject: 9 })).toBe('fixed|9|3|100|60');
+    expect(frame(90, { subject: 9, seed: 4 })).toBe('fixed|9|4|90|60');
+    expect(frame(80, { subject: 9, seed: 4, fovDeg: 28 })).toBe('fixed|9|4|80|28');
+    expect(frame(70, { subject: 9, seed: 4, fovDeg: 28, kind: 'fixed' })).toBe('fixed|9|4|80|28');
+    // a frame without a lens between two shots ends the shot: the count starts again, also from fewer ticks
+    rig.apply(directive());
+    rig.update(FRAME);
+    expect(rig.placedLens).toBeNull();
+    expect(frame(40, { subject: 9, seed: 4, fovDeg: 28 })).toBe('fixed|9|4|40|28');
+    rig.apply(directive({ mode: 'cinematic', lockPlayerToggle: true, reason: 'mission', shot: { ...base, kind: 'shoulder', subject: 9, seed: 4, fovDeg: 28, durationTicks: 39 } }));
+    rig.update(FRAME);
+    expect(rig.placedLens).toBeNull();
+    expect(frame(20, { subject: 9, seed: 4, fovDeg: 28 })).toBe('fixed|9|4|20|28');
   });
 
   it('near planes are 0.1 m (tp) and 0.05 m (fp); FOV is 65 and 75; far is the draw distance', () => {

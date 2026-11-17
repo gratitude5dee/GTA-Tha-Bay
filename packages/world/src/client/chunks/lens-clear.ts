@@ -15,6 +15,8 @@
  *  - `LensDecider`: the set is decided when a shot starts and held until it ends. The director re-places `pos` every tick (a push-in, a
  *    `single` that follows a walking subject), so a new decision is: the shot changed (kind, subject, seed, durationTicks, fovDeg), or the
  *    lens has moved more than `redecideM` from every pose the set was decided for (for a `spline`: from the segment between its ends).
+ *    The shot's key comes from the camera rig, which gives one only for the director's `fixed` and `spline` shots and keeps it while a
+ *    shot's ticks count down (BD-FIX-LENS-CLEAR-04, -05): a decision walks every resident tree, so it must not run on every frame.
  */
 
 export type LensVec3 = readonly [number, number, number];
@@ -39,7 +41,7 @@ export interface LensRule {
 
 /** The director-placed shot the rig obeys now (rule 1), as the renderer's `CullCamera.lens` carries it. */
 export interface LensShot extends Lens {
-  /** What identifies the shot: `kind|subject|seed|durationTicks|fovDeg`. */
+  /** What identifies the shot: `kind|subject|seed|durationTicks|fovDeg`, the same string on every frame of one shot (`durationTicks`: its span). */
   key: string;
   /** A `spline` shot: the two ends of its path (the set is decided for both). */
   ends?: readonly [LensVec3, LensVec3] | null;

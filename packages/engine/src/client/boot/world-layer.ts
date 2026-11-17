@@ -29,7 +29,7 @@ export interface WorldFrame {
   simTick?: number;
   /**
    * BD-FIX-LENS-CLEAR-01 (engine-internal, not a contract field): the director-placed cinematic shot the camera rig obeyed this frame
-   * (`CameraRigImpl.placedLens`), or null: play cameras, the vehicle cameras, the free camera, XR and the rig's own shot kinds. The world
+   * (`CameraRigImpl.placedLens`: a `fixed` or `spline` shot), or null: play cameras, the vehicle cameras, the free camera, XR and every other shot kind. The world
    * layer keeps tree crowns out of this lens. Absent in a test frame.
    */
   lens?: PlacedLens | null;

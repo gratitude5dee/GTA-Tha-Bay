@@ -56,8 +56,9 @@ export interface CullCamera {
   dir: [number, number, number];
   frustum?: Frustum | null;
   /**
-   * Lens clear (BD-FIX-LENS-CLEAR-01): the director-placed cinematic shot the camera rig obeys this frame (mode `cinematic`, the shot
-   * carries `pos` and `lookAt`), or null: play cameras, XR, the rig's own shot kinds and QA `shot()` cameras never set it.
+   * Lens clear (BD-FIX-LENS-CLEAR-01): the director-placed cinematic shot the camera rig obeys this frame (mode `cinematic`, a `fixed` or
+   * `spline` shot that carries `pos` and `lookAt`), or null: play cameras, XR, every other shot kind (also when the director places it:
+   * chase, heli, shoulder, wide, the fighter's side camera) and QA `shot()` cameras never set it.
    */
   lens?: LensShot | null;
 }
