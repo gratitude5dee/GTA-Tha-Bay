@@ -17,7 +17,7 @@ import {
 } from './catalog.ts';
 import { encodeAppearance } from './appearance.ts';
 import type { VoicePreview } from './voice-preview.ts';
-import { mannequinParams, type CreatorStagePort } from './stage.ts';
+import { freeStageArea, mannequinParams, type CreatorStagePort } from './stage.ts';
 
 type TabId = 'body' | 'face' | 'hair' | 'outfit' | 'voice' | 'style' | 'name';
 const TABS: readonly TabId[] = ['body', 'face', 'hair', 'outfit', 'voice', 'style', 'name'];
@@ -145,6 +145,30 @@ export function CreatorEditor(props: CreatorEditorProps) {
     props.stage?.show(params);
   }, [params, props.stage, props.reducedMotion]);
   useEffect(() => props.stage?.setZoom(zoom), [zoom, props.stage]);
+  // The free area of the preview: measured from the real layout and kept current when the window, the panel or the buttons change size
+  // or the page scrolls (the canvas is fixed behind the page). The stage centres the figure in it.
+  const stageEl = useRef<HTMLElement>(null);
+  const panelEl = useRef<HTMLElement>(null);
+  const zoomEl = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const stage = props.stage;
+    const section = stageEl.current;
+    const panel = panelEl.current;
+    if (!stage?.setFreeArea || !section || !panel) return undefined;
+    const measure = (): void => stage.setFreeArea?.(freeStageArea(section.getBoundingClientRect(), panel.getBoundingClientRect(), zoomEl.current?.getBoundingClientRect() ?? null));
+    measure();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    for (const el of [section, panel, zoomEl.current]) if (el) ro?.observe(el);
+    window.addEventListener('resize', measure);
+    window.addEventListener('orientationchange', measure);
+    document.addEventListener('scroll', measure, { capture: true, passive: true });
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('orientationchange', measure);
+      document.removeEventListener('scroll', measure, { capture: true });
+    };
+  }, [props.stage]);
   useEffect(() => () => props.stage?.hide(), [props.stage]);
 
   const finish = (): void => {
@@ -178,7 +202,7 @@ export function CreatorEditor(props: CreatorEditorProps) {
   return (
     <main class="dv-creator" data-testid="creator" data-tab={tab}>
       <Sprite />
-      <section class="dv-creator-stage" aria-label={t('creator.preview')}>
+      <section class="dv-creator-stage" aria-label={t('creator.preview')} ref={stageEl}>
         <div
           class="dv-creator-drag"
           tabIndex={0}
@@ -194,14 +218,14 @@ export function CreatorEditor(props: CreatorEditorProps) {
             if (e.key === 'ArrowRight') props.stage?.rotate(0.15);
           }}
         />
-        <div class="dv-creator-zoom" role="group" aria-label={t('creator.zoom')}>
+        <div class="dv-creator-zoom" role="group" aria-label={t('creator.zoom')} ref={zoomEl}>
           <Button id="zoom-full" label={t('creator.zoom.full')} style={zoom === 'full' ? 'primary' : 'secondary'} onPress={() => setZoom('full')} />
           <Button id="zoom-head" label={t('creator.zoom.head')} style={zoom === 'head' ? 'primary' : 'secondary'} onPress={() => setZoom('head')} />
         </div>
         <p class="dv-muted" data-testid="creator-summary">{t('creator.summary', { bytes: encodeAppearance(a).length })}</p>
       </section>
 
-      <section class="dv-creator-panel">
+      <section class="dv-creator-panel" ref={panelEl}>
         <h1>{t(props.mode === 'wardrobe' ? 'creator.wardrobe' : 'creator.title')}</h1>
         <Tabs id="creator" tabs={tabs} active={tab} onSelect={(id) => setTab(id as TabId)} />
         <div class="dv-creator-body" role="tabpanel" aria-labelledby={`tab-creator-${tab}`}>
