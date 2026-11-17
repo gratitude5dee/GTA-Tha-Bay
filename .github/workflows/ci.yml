@@ -101,10 +101,12 @@ jobs:
 
   # BD-FIX-CI-UNIT-01: the unit suite runs as two Vitest shards and the Workers-runtime suites in the job `workers`; the job `unit` below
   # keeps the name of the required check and is green only when both shards and `workers` passed. As one job the three commands took
-  # 7.5 to 15.1 minutes of this 15-minute limit over forty runs (eight above 14 minutes), and run 44028933781 was cancelled by the limit
-  # in its last step with every test passed. `--shard=<n>/2`: Vitest orders the spec files by the SHA-1 of their path from the root and
-  # gives each shard an equal count, so every file runs in exactly one shard, and a file keeps its shard until the file list changes.
-  # The count stands twice, in the matrix and in the command; tools/ci/test/workflows.test.ts keeps the two equal.
+  # 7.5 to 15.1 minutes of this 15-minute limit in the thirty-six of the last forty runs that ran it to its end or to the limit (eight
+  # above 14 minutes), and run 44028933781 was cancelled by the limit in `check:pipeline`, the last of the three, with every test
+  # passed. `--shard=<n>/<count>`: Vitest orders the spec files by the SHA-1 of their path from the root and gives each shard an equal
+  # count, so every file runs in exactly one shard, and a file keeps its shard until the file list changes.
+  # The count is the matrix's own number of legs (`strategy.job-total`), so the command cannot name a shard that no leg runs; the matrix
+  # holds the shard numbers 1..n and nothing else (tools/ci/test/workflows.test.ts).
   unit-shard:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -143,7 +145,7 @@ jobs:
         run: pnpm map:build -- --area synth && pnpm map:build -- --area civic-excerpt
       # The JSON report is what trace.ts reads (every JSON file of tests/reports/); the milestone and trace reports land there too, in
       # the shard that runs their spec. Each shard names its report after itself, so the two stand side by side in `spec-reports`.
-      - run: pnpm check:unit -- --shard=${{ matrix.shard }}/2 --reporter=default --reporter=json --outputFile.json=tests/reports/vitest-${{ matrix.shard }}.json
+      - run: pnpm check:unit -- --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=default --reporter=json --outputFile.json=tests/reports/vitest-${{ matrix.shard }}.json
       # Kept three days: the job `unit` puts both into `spec-reports`, which is the one to read.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
@@ -153,8 +155,9 @@ jobs:
           if-no-files-found: ignore
           retention-days: 3
 
-  # BD-FIX-CI-UNIT-01: the Workers-runtime suites, until now the last two steps of the unit job. They read no world bake, no git history
-  # and none of the pull-request variables; the job `unit` below waits for them.
+  # BD-FIX-CI-UNIT-01: the Workers-runtime suites, until now the last two of the unit job's three commands. They read no world bake, no
+  # git history and none of the pull-request variables; the job `unit` below waits for them. As steps after `check:unit` they were
+  # skipped when a unit test failed; here they run whatever the shards do.
   workers:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -175,14 +178,19 @@ jobs:
   # BD-FIX-CI-UNIT-01: the check named `unit`, as before the split: green only when both unit shards and the Workers suites passed. A
   # shard or `workers` ended by its time limit has the result `cancelled`, which is not `success`, so the check is red then too (the
   # run goes on after a job's time limit: `!cancelled()` is about the whole run, as for `e2e` and `perf`). It also puts the shards'
-  # reports into the one artifact `spec-reports` (tests/reports/ with vitest-1.json and vitest-2.json), the name M00d gave it.
+  # reports into the one artifact `spec-reports` (tests/reports/ with vitest-1.json and vitest-2.json), the name M00d gave it, and is
+  # red when that artifact does not hold one Vitest report per shard.
+  # On a full run this check reports late: the job needs a runner of its own, and the e2e shards queued before it take the account's
+  # 20 runners first (19 min 52 s of waiting in run 44034719501, where the three jobs were done 5.2 minutes into the run). The jobs
+  # `unit-shard (n)` and `workers` carry the early answer. A push to claude/build that skips the e2e shards has no such queue.
   unit:
     needs: [unit-shard, workers]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      # A shard that never reached its upload left no reports: not an error here, the last step gives the verdict.
+      # A shard that never reached its upload left no reports, and a download that failed left none either: not an error of this step,
+      # the last step counts the reports and gives the verdict.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         continue-on-error: true
         with:
@@ -199,9 +207,20 @@ jobs:
         env:
           SHARDS_RESULT: ${{ needs.unit-shard.result }}
           WORKERS_RESULT: ${{ needs.workers.result }}
+          # The number of legs of the unit-shard matrix (tools/ci/test/workflows.test.ts keeps the two equal; a difference is red here).
+          UNIT_SHARDS: '2'
         run: |
           echo "unit-shard: ${SHARDS_RESULT}; workers: ${WORKERS_RESULT}"
-          test "${SHARDS_RESULT}" = success && test "${WORKERS_RESULT}" = success
+          reports=0
+          for f in tests/reports/vitest-*.json; do
+            if [ -f "$f" ]; then reports=$((reports + 1)); fi
+          done
+          echo "Vitest reports in spec-reports: ${reports} of ${UNIT_SHARDS}"
+          status=0
+          [ "${SHARDS_RESULT}" = success ] || status=1
+          [ "${WORKERS_RESULT}" = success ] || status=1
+          [ "${reports}" -eq "${UNIT_SHARDS}" ] || status=1
+          exit $status
 
   # M02a1: world content gates. The graybox fixture is byte-checked (moved here from the unit step), then the committed
   # civic-excerpt is baked twice with --force and every output byte is compared. `synth` runs where a job needs the full

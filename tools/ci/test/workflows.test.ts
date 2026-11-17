@@ -261,47 +261,65 @@ describe('ci.yml unit: Vitest shards, the Workers suites and one check named uni
   const shard = jobs['unit-shard'] ?? '';
   const workers = jobs['workers'] ?? '';
   const agg = jobs['unit'] ?? '';
-  /** A job's lines without its comment lines. */
-  const code = (job: string): string => job.split('\n').filter((l) => !l.trimStart().startsWith('#')).join('\n');
+  /** A block's lines without its comment lines and blank lines. */
+  const code = (block: string): string => block.split('\n').filter((l) => l.trim() !== '' && !l.trimStart().startsWith('#')).join('\n');
   const jobIfs = (job: string): string[] => job.split('\n').filter((l) => /^ {4}if: /.test(l));
+  const minutes = (job: string): number => Number(/^ {4}timeout-minutes: (\d+)$/m.exec(job)?.[1] ?? 0);
+  /** The one step of a job that runs `pnpm <cmd>`, as code: nothing may ride on it (no `if`, `continue-on-error`, `env`, `shell`). */
+  const testStep = (job: string, cmd: string): string => {
+    const steps = stepsOf(job).filter((s) => code(s).includes(`pnpm ${cmd}`));
+    expect(steps, `one step runs pnpm ${cmd}`).toHaveLength(1);
+    return code(steps[0] ?? '');
+  };
+  /** The legs of the unit-shard matrix: its `strategy` holds `fail-fast: false` and the one list `shard`, and nothing else. */
+  const legs = (): number[] => {
+    const list = /^ {4}strategy:\n {6}fail-fast: false\n {6}matrix:\n {8}shard: \[([\d, ]+)\]\n {4}env:\n/m.exec(code(shard))?.[1] ?? '';
+    return list.split(',').map((s) => Number(s.trim()));
+  };
 
-  it('the shards are 1..n, the command names the same n, and the two together are the whole suite', () => {
-    const list = /^ {4}strategy:\n {6}fail-fast: false\n {6}matrix:\n {8}shard: \[([\d, ]+)\]\n/m.exec(shard)?.[1] ?? '';
-    const shards = list.split(',').map((s) => Number(s.trim()));
+  it('the shards are 1..n and the command takes its count from the matrix, so the legs together are the whole suite', () => {
+    const shards = legs();
     expect(shards.length, 'at least two shards').toBeGreaterThanOrEqual(2);
     expect(shards).toEqual(shards.map((_, i) => i + 1));
-    // one check:unit step: every file of the suite (no path filter, no name filter), cut only by --shard, with the matrix's own count.
-    // A count in the command above the matrix's would leave the files of the missing shards unrun; one below it is refused by Vitest.
-    const runs = code(shard).split('\n').filter((l) => l.includes('check:unit'));
-    expect(runs).toHaveLength(1);
-    expect(runs[0]).toBe(
-      `      - run: pnpm check:unit -- --shard=\${{ matrix.shard }}/${shards.length} --reporter=default --reporter=json --outputFile.json=tests/reports/vitest-\${{ matrix.shard }}.json`,
+    // One step runs check:unit: every file of the suite (no path filter, no name filter), cut only by --shard. The count is
+    // `strategy.job-total`, the number of legs of this matrix (its only list is `shard`, see legs()): a count above the legs would leave
+    // the files of the missing shards unrun, and this spec could be one of them, so the count is not a second number to keep equal.
+    expect(testStep(shard, 'check:unit')).toBe(
+      '      - run: pnpm check:unit -- --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=default --reporter=json --outputFile.json=tests/reports/vitest-${{ matrix.shard }}.json',
     );
-    // every leg runs whatever the others do, and none is conditional
+    // no second check:unit anywhere in the job, every leg runs whatever the others do, and none is conditional
+    expect(code(shard).split('\n').filter((l) => l.includes('check:unit'))).toHaveLength(1);
     expect(jobIfs(shard)).toEqual([]);
     expect(code(shard)).not.toMatch(/^ {4}needs:/m);
     expect(code(shard)).not.toContain('continue-on-error');
   });
 
-  it('each shard uploads its reports under its own name, also when its tests failed', () => {
-    const up = stepsOf(shard).find((s) => s.includes('upload-artifact')) ?? '';
-    expect(up).toContain('        if: always()');
-    expect(up).toContain('          name: spec-reports-${{ matrix.shard }}');
-    expect(up).toContain('          path: tests/reports');
+  it('each shard uploads the whole of tests/reports under its own name, also when its tests failed', () => {
+    const ups = stepsOf(shard).filter((s) => s.includes('upload-artifact'));
+    expect(ups).toHaveLength(1);
+    expect(code(ups[0] ?? '')).toMatch(
+      /^ {6}- uses: actions\/upload-artifact@[0-9a-f]{40}\n {8}if: always\(\)\n {8}with:\n {10}name: spec-reports-\$\{\{ matrix\.shard \}\}\n {10}path: tests\/reports\n {10}if-no-files-found: ignore\n {10}retention-days: \d+$/,
+    );
   });
 
   it('workers runs the Workers-runtime suites and the pipeline check, unconditionally; the unit shards run neither', () => {
-    expect(workers).toMatch(/^ {6}- run: pnpm check:workers$/m);
-    expect(workers).toMatch(/^ {6}- run: pnpm check:pipeline$/m);
+    expect(testStep(workers, 'check:workers')).toBe('      - run: pnpm check:workers');
+    expect(testStep(workers, 'check:pipeline')).toBe('      - run: pnpm check:pipeline');
     expect(workers).toContain('pnpm install --frozen-lockfile');
     expect(jobIfs(workers)).toEqual([]);
     expect(code(workers)).not.toMatch(/^ {4}needs:/m);
     expect(code(workers)).not.toContain('continue-on-error');
     for (const cmd of ['check:workers', 'check:pipeline']) {
-      expect(code(shard), cmd).not.toContain(cmd);
-      // nowhere else in ci.yml either: the job `unit` is the only check that carries them
+      // nowhere else in ci.yml: the job `unit` is the only check that carries them
       for (const [name, job] of Object.entries(jobs)) if (name !== 'workers') expect(code(job), `${name} ${cmd}`).not.toContain(`pnpm ${cmd}`);
     }
+  });
+
+  // No limit was raised by the split: the shards keep the 15 minutes of the one job (they take about 5), and the two new jobs have their own.
+  it('the limits are 15 minutes for a shard, 10 for workers and 5 for the check', () => {
+    expect(minutes(shard)).toBe(15);
+    expect(minutes(workers)).toBe(10);
+    expect(minutes(agg)).toBe(5);
   });
 
   it('unit waits for both, runs unless the run was cancelled, and puts the shards\' reports into the artifact spec-reports', () => {
@@ -310,36 +328,60 @@ describe('ci.yml unit: Vitest shards, the Workers suites and one check named uni
     expect(code(agg)).not.toMatch(/^ {4}continue-on-error/m);
     const steps = stepsOf(agg);
     expect(steps).toHaveLength(3);
-    const [down, up, verdict] = steps as [string, string, string];
-    expect(down).toMatch(/uses: actions\/download-artifact@[0-9a-f]{40}\n {8}continue-on-error: true\n {8}with:\n {10}pattern: spec-reports-\*\n {10}path: tests\/reports\n {10}merge-multiple: true$/);
-    expect(up).toMatch(/uses: actions\/upload-artifact@[0-9a-f]{40}\n {8}with:\n {10}name: spec-reports\n {10}path: tests\/reports\n/);
-    // the verdict is the last step and has no condition of its own: a failed download or upload never hides it
+    const [down, up, verdict] = steps.map(code) as [string, string, string];
+    expect(down).toMatch(/^ {6}- uses: actions\/download-artifact@[0-9a-f]{40}\n {8}continue-on-error: true\n {8}with:\n {10}pattern: spec-reports-\*\n {10}path: tests\/reports\n {10}merge-multiple: true$/);
+    expect(up).toMatch(/^ {6}- uses: actions\/upload-artifact@[0-9a-f]{40}\n {8}with:\n {10}name: spec-reports\n {10}path: tests\/reports\n {10}if-no-files-found: ignore\n {10}retention-days: \d+$/);
+    // The verdict is the last step and has no condition of its own. A failed download does not hide it (continue-on-error; the verdict
+    // then finds no report and is red); a failed upload fails the job by itself.
     expect(verdict).toContain('name: Both unit shards and the Workers suites passed');
     expect(verdict).not.toMatch(/^ {8}(if|continue-on-error): /m);
     expect(verdict).toContain('SHARDS_RESULT: ${{ needs.unit-shard.result }}');
     expect(verdict).toContain('WORKERS_RESULT: ${{ needs.workers.result }}');
+    // the number of reports the verdict asks for is the number of legs
+    expect(/^ {10}UNIT_SHARDS: '(\d+)'$/m.exec(verdict)?.[1]).toBe(String(legs().length));
   });
 
-  it('unit is green only when both results are success', () => {
-    const script = scriptOf(stepsOf(agg).find((s) => s.includes('name: Both unit shards and the Workers suites passed')) ?? '');
+  it('unit is green only when both results are success and the artifact holds one Vitest report per shard', () => {
+    const step = stepsOf(agg).find((s) => s.includes('name: Both unit shards and the Workers suites passed')) ?? '';
+    const script = scriptOf(step);
     expect(script).not.toContain('${{');
-    const run = (env: Record<string, string>): { code: number; out: string } => {
-      const res = spawnSync('bash', ['-e', '-c', script], { cwd: tempDir('dv-unit-agg-'), encoding: 'utf8', env: { PATH: process.env['PATH'] ?? '', ...env } });
+    const n = legs().length;
+    /** Runs the verdict as the runner does (`bash -e`), in a folder whose tests/reports holds the named files. */
+    const run = (env: Record<string, string>, files: string[]): { code: number; out: string } => {
+      const dir = tempDir('dv-unit-agg-');
+      if (files.length > 0) mkdirSync(path.join(dir, 'tests', 'reports'), { recursive: true });
+      for (const f of files) writeFileSync(path.join(dir, 'tests', 'reports', f), '{}');
+      const res = spawnSync('bash', ['-e', '-c', script], { cwd: dir, encoding: 'utf8', env: { PATH: process.env['PATH'] ?? '', UNIT_SHARDS: String(n), ...env } });
       return { code: res.status ?? -1, out: `${res.stdout}${res.stderr}` };
     };
-    const ok = run({ SHARDS_RESULT: 'success', WORKERS_RESULT: 'success' });
+    const all = Array.from({ length: n }, (_, i) => `vitest-${i + 1}.json`);
+    const others = ['trace.json', 'milestones.json', 'spec-files.json', 'trace.md'];
+    const good = { SHARDS_RESULT: 'success', WORKERS_RESULT: 'success' };
+    const ok = run(good, [...all, ...others]);
     expect(ok.code, ok.out).toBe(0);
     expect(ok.out).toContain('unit-shard: success; workers: success');
+    expect(ok.out).toContain(`Vitest reports in spec-reports: ${n} of ${n}`);
     // a job ended by its time limit has the result `cancelled`; a job that never ran, `skipped`
     for (const bad of ['failure', 'cancelled', 'skipped', '']) {
-      const a = run({ SHARDS_RESULT: bad, WORKERS_RESULT: 'success' });
+      const a = run({ ...good, SHARDS_RESULT: bad }, [...all, ...others]);
       expect(a.code, `unit-shard ${bad}: ${a.out}`).toBe(1);
       expect(a.out).toContain(`unit-shard: ${bad}; workers: success`);
-      const b = run({ SHARDS_RESULT: 'success', WORKERS_RESULT: bad });
+      const b = run({ ...good, WORKERS_RESULT: bad }, [...all, ...others]);
       expect(b.code, `workers ${bad}: ${b.out}`).toBe(1);
-      expect(run({ SHARDS_RESULT: bad, WORKERS_RESULT: bad }).code, `both ${bad}`).toBe(1);
+      expect(run({ SHARDS_RESULT: bad, WORKERS_RESULT: bad }, [...all, ...others]).code, `both ${bad}`).toBe(1);
     }
-    expect(run({}).code, 'no result at all').toBe(1);
+    expect(run({}, [...all, ...others]).code, 'no result at all').toBe(1);
+    // both jobs green, but the artifact is short of a report (a download that failed, a shard that wrote none) or holds one too many
+    const short = run(good, [...all.slice(1), ...others]);
+    expect(short.code, short.out).toBe(1);
+    expect(short.out).toContain(`Vitest reports in spec-reports: ${n - 1} of ${n}`);
+    const none = run(good, []);
+    expect(none.code, none.out).toBe(1);
+    expect(none.out).toContain(`Vitest reports in spec-reports: 0 of ${n}`);
+    expect(run(good, others).code, 'the tool reports alone').toBe(1);
+    expect(run(good, [...all, `vitest-${n + 1}.json`]).code, 'one report too many').toBe(1);
+    // the old single report name does not count as a shard's
+    expect(run(good, ['vitest.json', ...all.slice(1)]).code, 'vitest.json in place of a shard report').toBe(1);
   });
 });
 
@@ -363,7 +405,8 @@ describe('ci.yml scope: no second full run on claude/build for a commit that is 
   };
 
   it('the triggers are unchanged: pull requests, and pushes to main, claude/build and claude/integ-**', () => {
-    expect(text).toMatch(/^on:\n {2}pull_request:\n {2}push:\n(?: {4}#.*\n)* {4}branches: \[main, claude\/build, 'claude\/integ-\*\*'\]\n/m);
+    // up to the next top-level key: no `paths` filter, no `branches-ignore`, no third trigger can follow the branches line unseen
+    expect(text).toMatch(/^on:\n {2}pull_request:\n {2}push:\n(?: {4}#.*\n)* {4}branches: \[main, claude\/build, 'claude\/integ-\*\*'\]\n\nconcurrency:\n/m);
   });
 
   it('the scope job may read the runs (actions: read), exposes heavy and run-url, and looks up only on a push to claude/build', () => {
