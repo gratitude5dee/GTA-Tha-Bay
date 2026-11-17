@@ -163,6 +163,10 @@ test.describe('world lens clear @world-lens-clear', () => {
 
     // the pixels: with the layer off the crown is back in the frame, with it on the leaf colour does not cover the frame
     await page.addStyleTag({ content: CANVAS_ONLY });
+    // The captures need the page at its top (`canvasPng` refuses a scrolled page). The Title page is taller than this window (290 px in
+    // 270 here), so the page can be scrolled when the Start press lands, and on CI's WebKit it still was 7 px down at this point
+    // (run 44015675227; here it is 0). Nothing below presses or focuses anything, so it stays at the top for all three captures.
+    await page.evaluate(() => window.scrollTo(0, 0));
     let cut = 1;
     await expect.poll(async () => (cut = await share(page)), { timeout: 60_000, intervals: [100] }).toBeLessThan(LEAF_ON_MAX);
     expect(await page.evaluate(() => (window as unknown as W).__dvBridge.world.setLookLayer('lensClear', false))).toBe(true);
