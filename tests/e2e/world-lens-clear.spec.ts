@@ -6,6 +6,7 @@ import type { WorldBridge } from '../../packages/world/src/client/world-bridge.t
 import { canvasRgba } from './canvas-capture.ts';
 import { observe, SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
 import { leafShare } from './lens-clear-helpers.ts';
+import { hideQaPanels } from './ui/helpers.ts';
 
 /**
  * BD-FIX-LENS-CLEAR-01 in a real browser, on a `DV_WORLD=synth` QA build at `mobile-low` (`@world-lens-clear`): a director-placed
@@ -64,6 +65,10 @@ test.describe('world lens clear @world-lens-clear', () => {
       return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ key, state: 'absent', reason: 'not_in_catalog' }) });
     });
     await page.setViewportSize(SMALL_VIEWPORT);
+    // In this window the QA "Modes debug" panel lies over the Title's Start button (its `story` button is the element at the button's
+    // centre), so the press below was intercepted and retried, and each retry scrolls the page to uncover the button: the page was left
+    // 7 px down on CI and `canvasPng` refuses a scrolled page (run 44015675227, both engines). The small-window specs hide the panels.
+    await hideQaPanels(page);
     await page.goto('/?play=off&tier=mobile-low&mission=m.dev.sample&seed=1&talk=scripted');
     await waitForEngine(page);
     await page.waitForFunction(
@@ -163,6 +168,9 @@ test.describe('world lens clear @world-lens-clear', () => {
 
     // the pixels: with the layer off the crown is back in the frame, with it on the leaf colour does not cover the frame
     await page.addStyleTag({ content: CANVAS_ONLY });
+    // The captures need the page at its top (`canvasPng` refuses a scrolled page), and the Title page is taller than this window (290 px
+    // in 270), so a press can leave the page scrolled. Nothing below presses or focuses anything: it stays at the top for all three.
+    await page.evaluate(() => window.scrollTo(0, 0));
     let cut = 1;
     await expect.poll(async () => (cut = await share(page)), { timeout: 60_000, intervals: [100] }).toBeLessThan(LEAF_ON_MAX);
     expect(await page.evaluate(() => (window as unknown as W).__dvBridge.world.setLookLayer('lensClear', false))).toBe(true);
