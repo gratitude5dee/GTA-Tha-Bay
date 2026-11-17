@@ -13,9 +13,9 @@
 
 | Level | Commands | Where | Gate |
 |---|---|---|---|
-| L1 unit, golden, schema, lint | `pnpm lint`, `pnpm typecheck`, `pnpm check:unit [-- <paths>]` | `ci.yml` `static`, `unit` | every PR |
+| L1 unit, golden, schema, lint | `pnpm lint`, `pnpm typecheck`, `pnpm check:unit [-- <paths>]` | `ci.yml` `static`, `unit-shard` (check `unit`) | every PR |
 | L2 deterministic sim, bots, replays | `pnpm --filter @dv/engine test:determinism`, `pnpm check:missions`, `pnpm check:balance`, `pnpm check:fighter`, `pnpm map:races par -- --check` | `ci.yml` `content` | every PR (short), nightly (all seeds and det suites in browsers) |
-| L3 integration | `pnpm check:workers [-- <suite>]`, `pnpm check:pipeline`, `pnpm check:db`, `pnpm check:db:types` | `ci.yml` `unit`, `db` | every PR (DB path-filtered) |
+| L3 integration | `pnpm check:workers [-- <suite>]`, `pnpm check:pipeline`, `pnpm check:db`, `pnpm check:db:types` | `ci.yml` `workers` (check `unit`), `db` | every PR (DB path-filtered) |
 | L4 end to end | `pnpm check:e2e -- --project=<p> [--grep @tag]`, `pnpm check:e2e:xr` | `ci.yml` `e2e` matrix | every PR |
 | L5 perf, CPU-side | `pnpm check:perf [-- --scenario <id>] [-- --fail]` | `ci.yml` `perf` (warn), `nightly.yml` (`--fail`) | nightly |
 | L6 deployed | `pnpm check:headers -- <url>`, `pnpm check:coi -- <url>`, `pnpm check:smoke -- <url>`, `pnpm test:staging [-- <suite>]` | `preview.yml`, `deploy.yml` | preview and deploy |
@@ -117,7 +117,9 @@ Common: `runs-on: ubuntu-24.04`; actions pinned by SHA; `permissions: contents: 
 | Job | Steps (exact commands) | Lands / required from |
 |---|---|---|
 | `static` | `pnpm lint` · `pnpm typecheck` · `pnpm check:secrets` · `pnpm check:do-migrations` · `pnpm check:api` · `pnpm check:telemetry` · `pnpm check:i18n` · `pnpm check:agents` · `pnpm check:skills` · `pnpm check:rollout` | M00 (lint, typecheck); M00a (secrets, do-migrations; widened by M05b1); M00d (agents, telemetry, rollout; DL-297); M05d (api); M04b1 (i18n); M13a6 (skills) (DL-230) |
-| `unit` | restore or build the `synth` and `civic-excerpt` bakes (`.cache/map`, `dist/world/`) · `DV_REQUIRE_BAKE=1 pnpm check:unit` · `pnpm check:workers` · `pnpm check:pipeline` | M00; M00a; M02b1 (bakes); M05b1 |
+| `unit-shard` (matrix `shard: [1, 2]`) | restore or build the `synth` and `civic-excerpt` bakes (`.cache/map`, `dist/world/`) · `DV_REQUIRE_BAKE=1 pnpm check:unit -- --shard=<n>/2` with the JSON report `tests/reports/vitest-<n>.json` · upload `tests/reports` as `spec-reports-<n>` | M00; M02b1 (bakes); M00d (reports); BD-FIX-CI-UNIT-01 (shards) |
+| `workers` | `pnpm check:workers` · `pnpm check:pipeline` | M00a; M05b1; BD-FIX-CI-UNIT-01 (own job) |
+| `unit` (needs `unit-shard`, `workers`) | merge `spec-reports-*` into the artifact `spec-reports` · pass only when both results are `success` | BD-FIX-CI-UNIT-01 |
 | `content` | `pnpm map:fixture graybox --check` · `pnpm map:build -- --area civic-excerpt --repro` · `pnpm check:missions` · `pnpm check:balance` · `pnpm check:fighter` · `pnpm map:races validate` · `pnpm check:mods` · `pnpm npc:lint` · `pnpm npc:eval -- --replay` | M02a1 (job, fixture check moved from M01f's `unit` step, `civic-excerpt` bake); M05a2; M04d (econ), M09a2 (tycoon); M08b1; M07a1; M13a6; M06a2; M06a4 |
 | `build` | `VITE_DV_QA=1 pnpm build` · `DV_REQUIRE_DIST=1 pnpm check:unit -- apps/web` (M01d, DL-344) · `pnpm check:bundle` · `pnpm check:prod-routes` (bundles the production Worker with `wrangler deploy --dry-run`) · `pnpm check:secrets -- apps/web/dist` · upload `apps/web/dist` (3 days) | M00; M00a (prod-routes, secrets) |
 | `ip` (needs `build`) | `pnpm provenance:check` · `pnpm ip:signatures` · `pnpm ip:extensions` · `pnpm ip:strings` · `pnpm license:scan` · `pnpm names:lint` · `pnpm likeness:gate` · `pnpm check:assets` · `pnpm check:c2pa` | M00b (required); `check:c2pa` M05b1 |
@@ -126,15 +128,17 @@ Common: `runs-on: ubuntu-24.04`; actions pinned by SHA; `permissions: contents: 
 | `perf` | `DV_WORLD=synth pnpm check:perf` (warn); restores or builds the bakes | M02b1 (DL-346) |
 | `device-runs` (paths `docs/device-runs/**`, `docs/device-spike/**`) | for each changed `perf.json`: `pnpm perf:verify -- <file> --tier <tier from file> --checklist tools/ci/checklists/<M##>-<device>.json` | M00d |
 
-Bake-dependent unit suites (from M02a1, DL-545 (a); CI `unit` sets `DV_REQUIRE_BAKE=1` from M02b1) go through `tests/support/require-bake.ts`: without a `dist/world/<area>` bake they print `SKIP <suite>: no bake in dist/world` and pass locally; with `DV_REQUIRE_BAKE=1` (CI `unit`) a missing bake fails.
+Bake-dependent unit suites (from M02a1, DL-545 (a); CI `unit-shard` sets `DV_REQUIRE_BAKE=1` from M02b1) go through `tests/support/require-bake.ts`: without a `dist/world/<area>` bake they print `SKIP <suite>: no bake in dist/world` and pass locally; with `DV_REQUIRE_BAKE=1` (CI `unit-shard`) a missing bake fails.
 
-Dist-dependent unit suites (M01d `apps/web/test/precache.test.ts`) follow the same rule: without `apps/web/dist/sw.js` they print `SKIP precache: apps/web/dist absent` and pass, so `pnpm check:unit && pnpm build` on a clean clone and the `unit` job (which never builds) stay green; the `build` job runs them after the build with `DV_REQUIRE_DIST=1`, where a missing `dist` fails (DL-344).
+Dist-dependent unit suites (M01d `apps/web/test/precache.test.ts`) follow the same rule: without `apps/web/dist/sw.js` they print `SKIP precache: apps/web/dist absent` and pass, so `pnpm check:unit && pnpm build` on a clean clone and the `unit-shard` jobs (which never build) stay green; the `build` job runs them after the build with `DV_REQUIRE_DIST=1`, where a missing `dist` fails (DL-344).
 
 `pnpm --filter @dv/web verify:dist` (M01a2) runs only as that milestone's AC proof (`pnpm build && pnpm --filter @dv/web verify:dist`); no milestone adds a production-build CI job yet (DL-284).
 
 Required for merge: `static`, `unit`, `content`, `build`, `ip`, `e2e` legs per §3.1, `db` when it runs, `device-runs` when it runs. `perf` is informational on PRs.
 
 The `e2e` legs run as `e2e-shard` jobs with a shard count per project (chromium-webgl2 14, chromium-webgpu 5, webkit-webgl2 4, xr-quest3 1; each shard's tests packed by measured minutes with `tools/ci/e2e-plan.ts`), and the four checks named `e2e (<project>)` are green only when every shard of their project passed (BD-FIX-CI-PLAN-02). On a push to `claude/build` whose head commit already has a completed, successful `ci.yml` run from a push to a `claude/integ-*` branch or to `main`, the `e2e-shard` and `perf-group` jobs are skipped and the `e2e (<project>)` and `perf` checks pass with a line naming that run; a pull-request run never counts and any doubt means the full run (job `scope`, BD-FIX-CI-PLAN-03).
+
+The check `unit` is one job over three: the unit suite runs as two Vitest shards in `unit-shard` (Vitest orders the spec files by the SHA-1 of their path and gives each shard an equal count, so every file runs in exactly one), `pnpm check:workers` and `pnpm check:pipeline` run in `workers`, and `unit` is green only when both results are `success` (a job ended by its time limit is `cancelled`, so red). Each shard writes `tests/reports/vitest-<n>.json`; `unit` merges the shards' reports into the artifact `spec-reports`, and `tools/ci/trace.ts` reads every JSON file of that folder. As one job the three commands took 7.5 to 15.1 minutes of a 15-minute limit over forty runs (BD-FIX-CI-UNIT-01).
 
 ### 5.2 `preview.yml` — on `pull_request` [opened, synchronize, reopened, closed]; same-repo PRs only
 1. `preview` (`permissions: contents: read, pull-requests: write, deployments: write`; environment `preview`): `VITE_DV_QA=1 pnpm build` → `pnpm deploy:preview` (Workers Preview `pr-<N>` of `tha-bay-web-staging`, M00) → `pnpm check:headers -- --from test-results/preview-url.txt` → `pnpm check:coi -- --from test-results/preview-url.txt` → PR comment with the URL (M00). `check:smoke` runs inside `deploy:prod` (M00a), not on Previews. From M12b1 the rooms Worker gets its own Preview when `services/rooms/**` or `packages/net/**` changed.

@@ -79,15 +79,16 @@ describe('ci.yml (AC-8)', () => {
     expect(job).toContain('perf:verify -- "$f" --auto');
   });
 
-  it('unit passes DV_PR_LABELS, fetches full history for the golden guard and uploads tests/reports', () => {
-    expect(jobs['unit']).toContain("DV_PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}");
-    expect(jobs['unit']).toContain('fetch-depth: 0');
-    expect(jobs['unit']).toContain('--outputFile.json=tests/reports/vitest.json');
-    expect(jobs['unit']).toMatch(/upload-artifact[\s\S]*path: tests\/reports/);
+  // BD-FIX-CI-UNIT-01: the unit suite runs in the legs of `unit-shard`; `unit` is the check over them (its own describe below).
+  it('unit-shard passes DV_PR_LABELS, fetches full history for the golden guard and uploads tests/reports', () => {
+    expect(jobs['unit-shard']).toContain("DV_PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}");
+    expect(jobs['unit-shard']).toContain('fetch-depth: 0');
+    expect(jobs['unit-shard']).toContain('--outputFile.json=tests/reports/vitest-${{ matrix.shard }}.json');
+    expect(jobs['unit-shard']).toMatch(/upload-artifact[\s\S]*path: tests\/reports/);
   });
 
-  it('unit passes DV_PR_REASON for the verifier lock and content runs check:balance (M04d)', () => {
-    expect(jobs['unit']).toContain('DV_PR_REASON: ${{ github.event.pull_request.body }}');
+  it('unit-shard passes DV_PR_REASON for the verifier lock and content runs check:balance (M04d)', () => {
+    expect(jobs['unit-shard']).toContain('DV_PR_REASON: ${{ github.event.pull_request.body }}');
     expect(jobs['content']).toContain('pnpm check:balance');
   });
 
@@ -103,7 +104,7 @@ describe('ci.yml (AC-8)', () => {
     expect(wf('nightly.yml')).toContain('pnpm check:missions');
   });
 
-  it('has a world-content job (M02a1) that restores .cache/map, checks the graybox fixture and bakes the civic-excerpt twice; unit no longer runs map:fixture', () => {
+  it('has a world-content job (M02a1) that restores .cache/map, checks the graybox fixture and bakes the civic-excerpt twice; the unit jobs no longer run map:fixture', () => {
     const job = jobs['world-content'] ?? '';
     expect(job).toContain('pnpm map:fixture graybox --check');
     expect(job).toContain('pnpm map:build -- --area civic-excerpt --repro');
@@ -111,7 +112,7 @@ describe('ci.yml (AC-8)', () => {
     expect(job).toContain('path: .cache/map');
     expect(job).toContain("hashFiles('tools/map/**', 'config/world/**', 'content/world/**')");
     expect(job).toContain('pnpm install --frozen-lockfile');
-    expect(jobs['unit']).not.toContain('map:fixture');
+    for (const name of ['unit-shard', 'workers', 'unit']) expect(jobs[name], name).not.toContain('map:fixture');
   });
 
   it('every job sets timeout-minutes', () => {
@@ -251,6 +252,96 @@ function scriptOf(step: string): string {
   expect(at, 'the step has a run block').toBeGreaterThan(-1);
   return lines.slice(at + 1).filter((l) => l.startsWith(' '.repeat(10)) || l.trim() === '').map((l) => l.slice(10)).join('\n');
 }
+
+// BD-FIX-CI-UNIT-01: as one job, check:unit, check:workers and check:pipeline took 7.5 to 15.1 minutes of a 15-minute limit (run
+// 44028933781 was cancelled by it with every test passed). The unit suite now runs as Vitest shards in `unit-shard`, the Workers-runtime
+// suites in `workers`, and the job `unit` keeps the name of the required check: green only when all of them passed.
+describe('ci.yml unit: Vitest shards, the Workers suites and one check named unit (BD-FIX-CI-UNIT-01)', () => {
+  const jobs = jobsOf(wf('ci.yml'));
+  const shard = jobs['unit-shard'] ?? '';
+  const workers = jobs['workers'] ?? '';
+  const agg = jobs['unit'] ?? '';
+  /** A job's lines without its comment lines. */
+  const code = (job: string): string => job.split('\n').filter((l) => !l.trimStart().startsWith('#')).join('\n');
+  const jobIfs = (job: string): string[] => job.split('\n').filter((l) => /^ {4}if: /.test(l));
+
+  it('the shards are 1..n, the command names the same n, and the two together are the whole suite', () => {
+    const list = /^ {4}strategy:\n {6}fail-fast: false\n {6}matrix:\n {8}shard: \[([\d, ]+)\]\n/m.exec(shard)?.[1] ?? '';
+    const shards = list.split(',').map((s) => Number(s.trim()));
+    expect(shards.length, 'at least two shards').toBeGreaterThanOrEqual(2);
+    expect(shards).toEqual(shards.map((_, i) => i + 1));
+    // one check:unit step: every file of the suite (no path filter, no name filter), cut only by --shard, with the matrix's own count.
+    // A count in the command above the matrix's would leave the files of the missing shards unrun; one below it is refused by Vitest.
+    const runs = code(shard).split('\n').filter((l) => l.includes('check:unit'));
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toBe(
+      `      - run: pnpm check:unit -- --shard=\${{ matrix.shard }}/${shards.length} --reporter=default --reporter=json --outputFile.json=tests/reports/vitest-\${{ matrix.shard }}.json`,
+    );
+    // every leg runs whatever the others do, and none is conditional
+    expect(jobIfs(shard)).toEqual([]);
+    expect(code(shard)).not.toMatch(/^ {4}needs:/m);
+    expect(code(shard)).not.toContain('continue-on-error');
+  });
+
+  it('each shard uploads its reports under its own name, also when its tests failed', () => {
+    const up = stepsOf(shard).find((s) => s.includes('upload-artifact')) ?? '';
+    expect(up).toContain('        if: always()');
+    expect(up).toContain('          name: spec-reports-${{ matrix.shard }}');
+    expect(up).toContain('          path: tests/reports');
+  });
+
+  it('workers runs the Workers-runtime suites and the pipeline check, unconditionally; the unit shards run neither', () => {
+    expect(workers).toMatch(/^ {6}- run: pnpm check:workers$/m);
+    expect(workers).toMatch(/^ {6}- run: pnpm check:pipeline$/m);
+    expect(workers).toContain('pnpm install --frozen-lockfile');
+    expect(jobIfs(workers)).toEqual([]);
+    expect(code(workers)).not.toMatch(/^ {4}needs:/m);
+    expect(code(workers)).not.toContain('continue-on-error');
+    for (const cmd of ['check:workers', 'check:pipeline']) {
+      expect(code(shard), cmd).not.toContain(cmd);
+      // nowhere else in ci.yml either: the job `unit` is the only check that carries them
+      for (const [name, job] of Object.entries(jobs)) if (name !== 'workers') expect(code(job), `${name} ${cmd}`).not.toContain(`pnpm ${cmd}`);
+    }
+  });
+
+  it('unit waits for both, runs unless the run was cancelled, and puts the shards\' reports into the artifact spec-reports', () => {
+    expect(agg).toMatch(/^ {4}needs: \[unit-shard, workers\]$/m);
+    expect(jobIfs(agg)).toEqual(['    if: ${{ !cancelled() }}']);
+    expect(code(agg)).not.toMatch(/^ {4}continue-on-error/m);
+    const steps = stepsOf(agg);
+    expect(steps).toHaveLength(3);
+    const [down, up, verdict] = steps as [string, string, string];
+    expect(down).toMatch(/uses: actions\/download-artifact@[0-9a-f]{40}\n {8}continue-on-error: true\n {8}with:\n {10}pattern: spec-reports-\*\n {10}path: tests\/reports\n {10}merge-multiple: true$/);
+    expect(up).toMatch(/uses: actions\/upload-artifact@[0-9a-f]{40}\n {8}with:\n {10}name: spec-reports\n {10}path: tests\/reports\n/);
+    // the verdict is the last step and has no condition of its own: a failed download or upload never hides it
+    expect(verdict).toContain('name: Both unit shards and the Workers suites passed');
+    expect(verdict).not.toMatch(/^ {8}(if|continue-on-error): /m);
+    expect(verdict).toContain('SHARDS_RESULT: ${{ needs.unit-shard.result }}');
+    expect(verdict).toContain('WORKERS_RESULT: ${{ needs.workers.result }}');
+  });
+
+  it('unit is green only when both results are success', () => {
+    const script = scriptOf(stepsOf(agg).find((s) => s.includes('name: Both unit shards and the Workers suites passed')) ?? '');
+    expect(script).not.toContain('${{');
+    const run = (env: Record<string, string>): { code: number; out: string } => {
+      const res = spawnSync('bash', ['-e', '-c', script], { cwd: tempDir('dv-unit-agg-'), encoding: 'utf8', env: { PATH: process.env['PATH'] ?? '', ...env } });
+      return { code: res.status ?? -1, out: `${res.stdout}${res.stderr}` };
+    };
+    const ok = run({ SHARDS_RESULT: 'success', WORKERS_RESULT: 'success' });
+    expect(ok.code, ok.out).toBe(0);
+    expect(ok.out).toContain('unit-shard: success; workers: success');
+    // a job ended by its time limit has the result `cancelled`; a job that never ran, `skipped`
+    for (const bad of ['failure', 'cancelled', 'skipped', '']) {
+      const a = run({ SHARDS_RESULT: bad, WORKERS_RESULT: 'success' });
+      expect(a.code, `unit-shard ${bad}: ${a.out}`).toBe(1);
+      expect(a.out).toContain(`unit-shard: ${bad}; workers: success`);
+      const b = run({ SHARDS_RESULT: 'success', WORKERS_RESULT: bad });
+      expect(b.code, `workers ${bad}: ${b.out}`).toBe(1);
+      expect(run({ SHARDS_RESULT: bad, WORKERS_RESULT: bad }).code, `both ${bad}`).toBe(1);
+    }
+    expect(run({}).code, 'no result at all').toBe(1);
+  });
+});
 
 // BD-FIX-CI-PLAN-03 (the Architect's decision of 2026-11-12): on a push to claude/build whose head commit already has a completed,
 // successful push run of ci on a merge candidate or on main, the e2e shards and the perf groups are skipped and their checks pass with a
@@ -631,10 +722,10 @@ describe('world builds in CI (M02b1 AC-12)', () => {
   }
 
   it('ci.yml: unit, e2e and perf restore or build the bakes before their test step; unit requires them', () => {
-    bakeBefore(ciJobs['unit'] ?? '', /pnpm check:unit/, 'unit');
+    bakeBefore(ciJobs['unit-shard'] ?? '', /pnpm check:unit/, 'unit-shard');
     bakeBefore(ciJobs['e2e-shard'] ?? '', /pnpm check:e2e/, 'e2e-shard');
     bakeBefore(ciJobs['perf-group'] ?? '', /pnpm check:perf/, 'perf-group');
-    expect(ciJobs['unit']).toContain("DV_REQUIRE_BAKE: '1'");
+    expect(ciJobs['unit-shard']).toContain("DV_REQUIRE_BAKE: '1'");
   });
 
   it('ci.yml e2e-shard: the gray-box step has its own DV_SKIP_BUILD, the world step builds with DV_WORLD=synth, no job env defines DV_SKIP_BUILD', () => {
