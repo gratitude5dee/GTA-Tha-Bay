@@ -412,6 +412,17 @@
             "scatterKeep": { "$ref": "#/$defs/vegKeep" },
             "shrubKeep": { "$ref": "#/$defs/vegKeep" }
           }
+        },
+        "lens": {
+          "type": "object", "additionalProperties": false,
+          "required": ["maxFrameShare", "corridorM", "redecideM"],
+          "$comment": "BD-FIX-LENS-CLEAR-01: trees hidden for a director-placed cinematic lens (frame share, corridor to the subject, re-decision travel)",
+          "properties": {
+            "$comment": { "type": "string" },
+            "maxFrameShare": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+            "corridorM": { "type": "number", "minimum": 0, "maximum": 10 },
+            "redecideM": { "type": "number", "exclusiveMinimum": 0, "maximum": 100 }
+          }
         }
       }
     },

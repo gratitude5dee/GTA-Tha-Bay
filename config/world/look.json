@@ -184,6 +184,12 @@
       "writeCap": 4096,
       "scatterKeep": { "full": 1, "lite": 0.7, "min": 0.5, "legacy": 0.35 },
       "shrubKeep": { "full": 1, "lite": 0.6, "min": 0.3, "legacy": 0.25 }
+    },
+    "lens": {
+      "$comment": "BD-FIX-LENS-CLEAR-01: while the camera rig obeys a director-placed cinematic shot (C04 fixed and spline shots, pos and lookAt set), a tree mesh is not drawn when its crown (the ellipsoid in the box of the geometry's leaf vertices, chunks/lens-clear.ts) covers more than maxFrameShare of the frame or comes within corridorM metres of the segment from the lens to the look-at point. The set is decided on a cut and held through the shot; a lens that moves more than redecideM metres from the poses it was decided for decides again. maxFrameShare 1 with corridorM 0 turns the rule off. Design values, tuned on the real city.",
+      "maxFrameShare": 0.1,
+      "corridorM": 0.5,
+      "redecideM": 2
     }
   },
   "dynamicCasterRadiusM": 70,

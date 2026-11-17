@@ -43,7 +43,7 @@ import type { XrPanelsLite } from '../xr/panels.ts';
 import type { QaFlags } from '../../platform/qa-flags.ts';
 import type { RendererHost } from '../../platform/renderer-host.ts';
 import { effectiveRenderScale } from '../../platform/render-scale.ts';
-import type { WorldBoot } from './world-layer.ts';
+import type { WorldBoot, WorldFrame } from './world-layer.ts';
 
 export interface BootEngineOptions {
   /**
@@ -678,6 +678,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         });
       }
     }
+    // BD-FIX-LENS-CLEAR-01: the director-placed shot the rig obeys this frame (null on every other camera path of this frame)
+    let lens: WorldFrame['lens'] = null;
     if (rig) {
       const tier = hostScene?.tier ?? null;
       const vfollow = driving && view.camera?.reason === 'vehicle' ? view.camera.follow : undefined;
@@ -726,6 +728,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
             drawDistanceM: (tier?.budget.world.buildingDrawDistanceM ?? FALLBACK_DRAW_DISTANCE_M) + (worldBoot ? (tier?.budget.world.altitudeBoostM ?? 0) : 0),
             depthPolicy: hostScene?.depthPolicy ?? 'standard',
           });
+          lens = rig.placedLens;
         }
         if (xrSmoke) xrSmoke.update();
         xrPanels?.update(nowMs / 1000);
@@ -745,6 +748,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         env: view.env,
         blackout: view.blackout,
         simTick: view.tick,
+        lens,
         boundaryFog: view.boundaryFog,
         poses: view.poses,
         poseCount: view.count,
