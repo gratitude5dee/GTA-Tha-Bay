@@ -170,16 +170,27 @@ export function shardBound(units: readonly Unit[], workers: number): number {
 /**
  * Longest unit first, each onto the shard whose bound grows least (ties: the smaller load, then the lower shard), so no shard's bound
  * is far above the others'. One array of units per shard; every unit lands in exactly one.
+ *
+ * A unit of 0 minutes (tests that skip themselves in this project, BD-FIX-CI-PLAN-02) moves no bound, so the rule above would put
+ * every one of them on the same shard. They go to the shard with the fewest tests instead (ties: the lower shard): when such tests
+ * stop skipping before the table is refreshed, their real minutes are then spread over the shards and not stacked on one.
  */
 export function pack(units: readonly Unit[], shards: number, workers: number): Unit[][] {
   if (!Number.isInteger(shards) || shards < 1 || !Number.isInteger(workers) || workers < 1) throw new Error(`bad shape ${shards} x ${workers}`);
   const out: Unit[][] = Array.from({ length: shards }, () => []);
   const load = Array.from({ length: shards }, () => 0);
   const longest = Array.from({ length: shards }, () => 0);
+  const count = Array.from({ length: shards }, () => 0);
   const order = [...units].sort((a, b) => b.minutes - a.minutes || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   for (const u of order) {
     let best = 0;
     let bestBound = Infinity;
+    if (!(u.minutes > 0)) {
+      for (let i = 1; i < shards; i++) if ((count[i] as number) < (count[best] as number)) best = i;
+      count[best] = (count[best] as number) + u.tests.length;
+      (out[best] as Unit[]).push(u);
+      continue;
+    }
     for (let i = 0; i < shards; i++) {
       const bound = ((load[i] as number) + u.minutes) / workers + (1 - 1 / workers) * Math.max(longest[i] as number, u.minutes);
       if (bound < bestBound - 1e-9 || (Math.abs(bound - bestBound) <= 1e-9 && (load[i] as number) < (load[best] as number))) {
@@ -189,6 +200,7 @@ export function pack(units: readonly Unit[], shards: number, workers: number): U
     }
     load[best] = (load[best] as number) + u.minutes;
     longest[best] = Math.max(longest[best] as number, u.minutes);
+    count[best] = (count[best] as number) + u.tests.length;
     (out[best] as Unit[]).push(u);
   }
   return out;

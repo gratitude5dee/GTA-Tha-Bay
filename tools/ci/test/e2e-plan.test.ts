@@ -119,6 +119,28 @@ describe('e2e-plan (BD-FIX-CI-DURSHARD-01)', () => {
     expect(() => pack(units, 0, 2)).toThrow(/bad shape/);
   });
 
+  it('spreads units of 0 minutes by test count and leaves every bound as it was (BD-FIX-CI-PLAN-02)', () => {
+    const timed = [unit('a', 30), unit('b', 28), unit('c', 20), ...Array.from({ length: 20 }, (_, i) => unit(`s${String(i).padStart(2, '0')}`, 1 + (i % 5)))];
+    const zeros = Array.from({ length: 41 }, (_, i) => unit(`z${String(i).padStart(2, '0')}`, 0));
+    const before = pack(timed, 4, 2);
+    const plan = pack([...timed, ...zeros], 4, 2);
+    // every unit once
+    expect(plan.flat().map((u) => u.key).sort()).toEqual([...timed, ...zeros].map((u) => u.key).sort());
+    // the timed units sit where they sat without the zeros, so no bound moved
+    expect(plan.map((us) => us.filter((u) => u.minutes > 0).map((u) => u.key))).toEqual(before.map((us) => us.map((u) => u.key)));
+    expect(plan.map((us) => shardBound(us, 2))).toEqual(before.map((us) => shardBound(us, 2)));
+    // the zeros even out the test counts: no shard holds two tests more than another
+    const tests = plan.map((us) => us.reduce((a, u) => a + u.tests.length, 0));
+    expect(Math.max(...tests) - Math.min(...tests)).toBeLessThanOrEqual(1);
+    // and no shard holds most of them (before this rule one shard took all 41)
+    const perShard = plan.map((us) => us.filter((u) => u.minutes === 0).length);
+    expect(Math.max(...perShard)).toBeLessThanOrEqual(Math.ceil(41 / 4) + Math.max(...before.map((us) => us.length)) - Math.min(...before.map((us) => us.length)));
+    // a serial unit of several zero-minute tests counts by its tests
+    const serial: Unit = { key: 'serial z.spec.ts', minutes: 0, tests: Array.from({ length: 6 }, (_, i) => ({ spec: 'z.spec.ts', file: 'z.spec.ts', titles: [`t${i}`] })) };
+    const withSerial = pack([serial, ...Array.from({ length: 6 }, (_, i) => unit(`y${i}`, 0))], 2, 2);
+    expect(withSerial.map((us) => us.reduce((a, u) => a + u.tests.length, 0))).toEqual([6, 6]);
+  });
+
   it('bounds a shard by its minutes over the workers plus the part of its longest unit that may start last', () => {
     expect(shardBound([unit('a', 30), unit('b', 10)], 2)).toBe(20 + 15);
     expect(shardBound([], 2)).toBe(0);

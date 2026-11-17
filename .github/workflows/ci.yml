@@ -284,7 +284,7 @@ jobs:
   # tools/ci/ci-scope.ts decides: `heavy=false` only when one of them is a completed, successful run from a push to `claude/integ-*` or
   # to `main` for exactly this commit (a pull_request run never counts: it tested the merge ref). Then `e2e-shard` and `perf-group` are
   # skipped, and `e2e (<project>)` and `perf` pass with one line naming that run. Any doubt is the full run: an API error, a run that
-  # failed, was cancelled or is still going, another commit, a lookup step that did not finish. On every other event and ref (pull
+  # failed, was cancelled or is still going, another commit, a lookup step that did not finish, a scope job that failed. On every other event and ref (pull
   # requests, pushes to `claude/integ-**` and to `main`) the lookup steps are skipped, the job is one shell step and `heavy=true`.
   # The token of the lookup needs `actions: read` and reaches the `gh` step alone (tools/ci/test/secret-env.test.ts); spec/03 section 6
   # holds the endpoint. What this gives up is the only repeat run of a landed commit (spec/11-decision-log-builder.md, BD-FIX-CI-PLAN-03).
@@ -345,9 +345,10 @@ jobs:
   # the project's result from the results of all of its shards. BD-FIX-CI-PLAN-02: each project has its own shard count (the matrix).
   e2e-shard:
     needs: [build, scope]
-    # BD-FIX-CI-PLAN-03: skipped only when the scope job said this commit is already green (a push to claude/build); an empty or
-    # missing answer is the full run.
-    if: needs.scope.outputs.heavy != 'false'
+    # BD-FIX-CI-PLAN-03: skipped only when the scope job said this commit is already green (a push to claude/build). A scope job that
+    # failed or gave no answer is the full run: the condition names `!cancelled()`, so GitHub's default `success()` (which would skip
+    # this job after a failed `scope`) does not apply, and it asks for the green build itself, as `needs: build` alone did before.
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.scope.outputs.heavy != 'false' }}
     runs-on: ubuntu-24.04
     # One shard holds its project's tests over the project's shard count, packed by measured minutes (BD-FIX-CI-DURSHARD-01; the longest single test is about
     # 30 min on a slow runner, a desktop flicker pair on software GL); 60 leaves room for growth. BD-FIX-CI8-S01: with three shards, chromium-webgpu shard 2 of run 39964617132 hit the
@@ -568,7 +569,7 @@ jobs:
         run: |
           echo "build: ${BUILD_RESULT}; scope: ${SCOPE_RESULT}, heavy=${HEAVY:-unset}; e2e-shard: ${SHARDS_RESULT}"
           if [ "$HEAVY" = "false" ] && [ -n "$GREEN_RUN" ] && [ "$SHARDS_RESULT" = "skipped" ] && [ "$BUILD_RESULT" = "success" ]; then
-            echo "e2e ${PROJECT}: not run again on claude/build: this commit already passed the full ci in ${GREEN_RUN} (BD-FIX-CI-PLAN-03)"
+            echo "e2e ${PROJECT}: not run again on claude/build: the ci run ${GREEN_RUN} of this commit concluded success; this project's result is in that run (an advisory project can be red there) (BD-FIX-CI-PLAN-03)"
             exit 0
           fi
           status=0
@@ -590,9 +591,11 @@ jobs:
   # on the code branch (M01c ran check:perf as a step of the chromium-webgl2 e2e leg), so it is created here. BD-FIX-CI-PERFSPLIT-01: it
   # runs as one leg per scenario group, and the job `perf` below gives the one check the groups' verdict.
   perf-group:
-    # BD-FIX-CI-PLAN-03: as e2e-shard, skipped only for a commit the scope job found already green. It needs `scope` alone, not `build`.
+    # BD-FIX-CI-PLAN-03: as e2e-shard, skipped only for a commit the scope job found already green, and a scope job that failed is the
+    # full run (`!cancelled()` in place of the default `success()`). It needs `scope` alone, not `build`, so its legs are queued when
+    # the scope job has ended (one shell step except on a push to claude/build), no longer when the run starts.
     needs: scope
-    if: needs.scope.outputs.heavy != 'false'
+    if: ${{ !cancelled() && needs.scope.outputs.heavy != 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     strategy:
@@ -709,7 +712,7 @@ jobs:
         run: |
           echo "scope: ${SCOPE_RESULT}, heavy=${HEAVY:-unset}; perf-group: ${GROUPS_RESULT}"
           if [ "$HEAVY" = "false" ] && [ -n "$GREEN_RUN" ] && [ "$GROUPS_RESULT" = "skipped" ]; then
-            echo "perf: not run again on claude/build: this commit already passed the full ci in ${GREEN_RUN} (BD-FIX-CI-PLAN-03)"
+            echo "perf: not run again on claude/build: the ci run ${GREEN_RUN} of this commit concluded success; the perf result is in that run (BD-FIX-CI-PLAN-03)"
             exit 0
           fi
           test "${GROUPS_RESULT}" = success

@@ -260,7 +260,11 @@ describe('ci.yml scope: no second full run on claude/build for a commit that is 
   const jobs = jobsOf(text);
   const scope = jobs['scope'] ?? '';
   const ON_BUILD = "if: github.event_name == 'push' && github.ref == 'refs/heads/claude/build'";
-  const HEAVY_IF = "    if: needs.scope.outputs.heavy != 'false'";
+  // `!cancelled()` replaces GitHub's default `success()`, so a scope job that failed does not skip the heavy jobs: it is the full run.
+  const HEAVY_IF: Record<string, string> = {
+    'e2e-shard': "    if: ${{ !cancelled() && needs.build.result == 'success' && needs.scope.outputs.heavy != 'false' }}",
+    'perf-group': "    if: ${{ !cancelled() && needs.scope.outputs.heavy != 'false' }}",
+  };
   const URL = 'https://github.com/owner/repo/actions/runs/41574550973';
   const bash = (script: string, env: Record<string, string>, cwd: string): { code: number; out: string } => {
     const res = spawnSync('bash', ['-e', '-c', script], { cwd, encoding: 'utf8', env: { PATH: process.env['PATH'] ?? '', ...env } });
@@ -342,7 +346,14 @@ describe('ci.yml scope: no second full run on claude/build for a commit that is 
   });
 
   it('e2e-shard and perf-group are the only jobs the answer skips; perf-group still starts without the build', () => {
-    for (const name of ['e2e-shard', 'perf-group']) expect(`\n${jobs[name] ?? ''}`, name).toContain(`\n${HEAVY_IF}\n`);
+    for (const name of ['e2e-shard', 'perf-group']) {
+      expect(`\n${jobs[name] ?? ''}`, name).toContain(`\n${HEAVY_IF[name] ?? ''}\n`);
+      // exactly one job-level condition, and it keeps the job alive after a failed scope job
+      expect((jobs[name] ?? '').split('\n').filter((l) => /^ {4}if: /.test(l)), name).toEqual([HEAVY_IF[name]]);
+      expect(HEAVY_IF[name], name).toContain('!cancelled()');
+    }
+    // the shards still wait for a green build, as `needs: build` alone made them before
+    expect(HEAVY_IF['e2e-shard']).toContain("needs.build.result == 'success'");
     expect(jobs['e2e-shard']).toContain('needs: [build, scope]');
     expect(jobs['perf-group']).toMatch(/^ {4}needs: scope$/m);
     expect(jobs['perf-group']).not.toMatch(/^ {4}needs: .*build/m);
@@ -370,7 +381,7 @@ describe('ci.yml scope: no second full run on claude/build for a commit that is 
       };
       const light = run(green);
       expect(light.code, light.out).toBe(0);
-      expect(light.out).toContain(`e2e ${project}: not run again on claude/build: this commit already passed the full ci in ${URL} (BD-FIX-CI-PLAN-03)`);
+      expect(light.out).toContain(`e2e ${project}: not run again on claude/build: the ci run ${URL} of this commit concluded success; this project's result is in that run (an advisory project can be red there) (BD-FIX-CI-PLAN-03)`);
       expect(light.out).not.toContain('missing');
       // each condition alone is not enough: with no shard result the check is red
       for (const weaker of [
@@ -405,7 +416,7 @@ describe('ci.yml scope: no second full run on claude/build for a commit that is 
     }
     const light = run({ GROUPS_RESULT: 'skipped', HEAVY: 'false', GREEN_RUN: URL });
     expect(light.code, light.out).toBe(0);
-    expect(light.out).toContain(`perf: not run again on claude/build: this commit already passed the full ci in ${URL} (BD-FIX-CI-PLAN-03)`);
+    expect(light.out).toContain(`perf: not run again on claude/build: the ci run ${URL} of this commit concluded success; the perf result is in that run (BD-FIX-CI-PLAN-03)`);
     // a skip that the scope did not ask for, an answer with no run, or groups that ran and failed
     expect(run({ GROUPS_RESULT: 'skipped', HEAVY: 'false', GREEN_RUN: '' }).code).toBe(1);
     expect(run({ GROUPS_RESULT: 'skipped', HEAVY: '', GREEN_RUN: URL }).code).toBe(1);
