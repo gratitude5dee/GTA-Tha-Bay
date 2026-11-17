@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
 import { SMALL_VIEWPORT } from './engine-helpers.ts';
+import { lap, secs, settleText, tierOf } from './lap.ts';
+import { drawWorldFrames, holdWorldDraw, releaseWorldDraw } from './world-hold.ts';
 
 /**
  * M02b2 day, night and weather in a real browser, on a `DV_WORLD=synth` QA build (the world half of the e2e legs). The bridge sets
@@ -12,22 +14,34 @@ import { SMALL_VIEWPORT } from './engine-helpers.ts';
  *    at least 25 % against clear at the same hour, and the blackout reports `uBlackout` 1 with the window factor 0.15;
  *  - @world-sky tiers: each flat tier mounts the sky its matrix row names, the lamps and decals are capped, rain shows its look and
  *    the wet look follows the rain where the tier has one.
+ *
+ * The `desktop` case holds the world's draw from the reveal on (`world-hold.ts`, BD-FIX-CI-PLAN-04). Its gates read `sky()` and the
+ * `luma()` targets, never the canvas, and a `desktop` frame costs 4 to 9 s on software GL: undrawn, a sky is on the page a few loop
+ * frames after the sim has it, where each of the five waits took 5 to 7 drawn frames (30 to 70 s) and every page call waited behind one
+ * more (the case took 9 to 10 of its 10 minutes on CI). Each sky is then drawn once on the canvas before it is read, so the page's own
+ * pipeline still draws every state of the case and a page error of that draw still fails it.
  */
 type W = { __dvBridge: { world: WorldBridge } };
 
-async function bootWorld(page: Page, tier: QualityTierId, query = ''): Promise<void> {
+/** Boots the world and waits for the reveal and the closing settle; `held` holds the world's draw from the reveal on (`world-hold.ts`). */
+async function bootWorld(page: Page, tier: QualityTierId, query = '', held = false): Promise<void> {
+  const t0 = Date.now();
   await page.setViewportSize(SMALL_VIEWPORT);
   await page.goto(`/?tier=${tier}&debug=1${query}`);
   await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world !== undefined, undefined, { timeout: 120_000 });
   await page.waitForFunction(() => (window as unknown as W).__dvBridge.world.boot().revealed, undefined, { timeout: 180_000 });
-  await page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(60_000));
+  const t1 = Date.now();
+  if (held) await holdWorldDraw(page);
+  const settled = await page.evaluate(() => (window as unknown as W).__dvBridge.world.settle(60_000));
+  lap(`bootWorld ${tier}${held ? ' held' : ''}`, `reveal ${secs(t0, t1)} s, closing settle ${secs(t1)} s, ${settleText(settled)}`);
 }
 
 const world = <T>(page: Page, fn: (w: WorldBridge) => T | Promise<T>): Promise<T> =>
   page.evaluate(`(${fn.toString()})(window.__dvBridge.world)`) as Promise<T>;
 
-/** Sets the sky through the sim and waits until the page's sky shows it. The clock is frozen at the hour. */
+/** Sets the sky through the sim and waits until the page's sky shows it (with the draw held: the sky its next frame draws). The clock is frozen at the hour. */
 async function setSky(page: Page, hour: number, weather: string, blackout = false): Promise<void> {
+  const t0 = Date.now();
   await page.evaluate(
     ([h, w, b]) => {
       const world = (window as unknown as W).__dvBridge.world;
@@ -37,6 +51,7 @@ async function setSky(page: Page, hour: number, weather: string, blackout = fals
     },
     [hour, weather, blackout] as const,
   );
+  const t1 = Date.now();
   await page.waitForFunction(
     ([h, w, b]) => {
       const s = (window as unknown as W).__dvBridge.world.sky();
@@ -45,6 +60,7 @@ async function setSky(page: Page, hour: number, weather: string, blackout = fals
     [hour, weather, blackout] as const,
     { timeout: 90_000 },
   );
+  lap(`setSky ${tierOf(page)} ${hour} ${weather}${blackout ? ' blackout' : ''}`, `set ${secs(t0, t1)} s, wait ${secs(t1)} s`);
 }
 
 test.describe('world sky @world-sky', () => {
@@ -53,13 +69,18 @@ test.describe('world sky @world-sky', () => {
   test('clear noon, night, Karl fog and the blackout read as the gates say @world-sky', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await bootWorld(page, 'desktop');
+    await bootWorld(page, 'desktop', '', true);
 
     // Sky luminance: the backdrop pass alone (the dome and the far ring), looking up and away from the sun; the city: both passes from 150 m up, looking west (where the Karl bank is heaviest) over the city.
     const sky = (): Promise<{ mean: number }> => world(page, (w) => w.luma(40, 90, { passes: 'sky' }));
     const city = (): Promise<{ mean: number; variance: number }> => world(page, (w) => w.luma(-8, 90, { heightM: 150 }));
+    // The draw is held (see the header): each sky is drawn once on the canvas, by the page's own pipeline, before it is read.
+    const setAndDraw = async (hour: number, weather: string, blackout = false): Promise<void> => {
+      await setSky(page, hour, weather, blackout);
+      await drawWorldFrames(page);
+    };
 
-    await setSky(page, 13, 'clear');
+    await setAndDraw(13, 'clear');
     const noon = await sky();
     const cityClear = await city();
     console.log(`world-sky noon clear: sky ${noon.mean.toFixed(3)} city mean ${cityClear.mean.toFixed(3)} variance ${cityClear.variance.toFixed(4)}`);
@@ -67,13 +88,13 @@ test.describe('world sky @world-sky', () => {
     expect(noon.mean).toBeLessThanOrEqual(0.85);
     expect((await world(page, (w) => w.sky()))?.uniforms.uNight).toBe(0);
 
-    await setSky(page, 1, 'clear');
+    await setAndDraw(1, 'clear');
     const night = await sky();
     console.log(`world-sky night clear: sky ${night.mean.toFixed(3)}`);
     expect(night.mean).toBeLessThan(0.12);
     expect((await world(page, (w) => w.sky()))?.uniforms.uNight).toBe(1);
 
-    await setSky(page, 13, 'karl-fog');
+    await setAndDraw(13, 'karl-fog');
     const cityKarl = await city();
     console.log(`world-sky noon karl-fog: city mean ${cityKarl.mean.toFixed(3)} variance ${cityKarl.variance.toFixed(4)} (clear ${cityClear.variance.toFixed(4)})`);
     expect(cityClear.variance).toBeGreaterThan(0);
@@ -81,12 +102,13 @@ test.describe('world sky @world-sky', () => {
     const karl = await world(page, (w) => w.sky());
     expect(karl?.uniforms.uBank).toBe(1);
 
-    await setSky(page, 22, 'clear', true);
+    await setAndDraw(22, 'clear', true);
     const dark = await world(page, (w) => w.sky());
     expect(dark?.uniforms.uBlackout).toBe(1);
     expect(dark?.windowFactor).toBeCloseTo(0.15, 6);
-    await setSky(page, 22, 'clear', false);
+    await setAndDraw(22, 'clear', false);
     expect((await world(page, (w) => w.sky()))?.windowFactor).toBe(1);
+    await releaseWorldDraw(page);
     expect(errors).toEqual([]);
   });
 
