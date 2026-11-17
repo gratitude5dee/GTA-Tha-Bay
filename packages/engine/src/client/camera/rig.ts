@@ -23,6 +23,21 @@ export interface CameraRigOptions {
   chestY?: number;
 }
 
+/**
+ * A director-placed cinematic shot as the rig obeys it (BD-FIX-LENS-CLEAR-01; engine-internal, not a contract field): the lens the
+ * world layer keeps tree crowns out of. `key` names the shot (`kind|subject|seed|durationTicks|fovDeg`: the director re-places `pos`
+ * every tick, so the pose alone does not tell a cut from a push-in). The `durationTicks` of the key is the span the shot started with,
+ * not the one of the frame: the auto-director re-publishes its shot every tick with the ticks it has left, and a count that only
+ * falls is the same shot (BD-FIX-LENS-CLEAR-04). `ends` are the two ends of a `spline` shot's path.
+ */
+export interface PlacedLens {
+  pos: [number, number, number];
+  lookAt: [number, number, number];
+  fovDeg: number;
+  key: string;
+  ends: [[number, number, number], [number, number, number]] | null;
+}
+
 /** First person: FOV 75 and near plane 0.05 m; third person: FOV from the follow params (65) and near 0.1 m (C04 rule 3). */
 export const FP_FOV_DEG = 75;
 export const FP_NEAR_M = 0.05;
@@ -45,6 +60,8 @@ const SHAKE_RATE_A = 47;
 const SHAKE_RATE_B = 61;
 
 const HALF = 0.5;
+/** The placed shot kinds the world layer is given a lens for (`placedLens`): the director's `fixed` and `spline` shots. */
+const LENS_KINDS: ReadonlySet<string> = new Set(['fixed', 'spline']);
 
 /**
  * The main-thread camera rig (C04). It obeys the `CameraDirective` the sim publishes and draws the player's choice
@@ -90,6 +107,9 @@ export class CameraRigImpl implements CameraRig {
   /** Metres per second while easing out; 0 when not easing. */
   private easeRate = 0;
   private readonly offset: [number, number, number] = [0, 0, 0];
+  private placed: PlacedLens | null = null;
+  /** The shot `placed` belongs to: `kind|subject|seed|fovDeg`, the `durationTicks` it started with and the last ones seen (null: none). */
+  private placedShot: { base: string; span: number; left: number } | null = null;
 
   constructor(opts: CameraRigOptions) {
     this.opts = opts;
@@ -100,6 +120,17 @@ export class CameraRigImpl implements CameraRig {
 
   get mode(): CameraMode {
     return this._mode;
+  }
+
+  /**
+   * The director-placed shot the last `update` obeyed, or null. Only the director's `fixed` and `spline` shots are one (`LENS_KINDS`): a
+   * camera that stands still or pushes in along a short path, so the trees hidden for it can be held through the shot. Every other
+   * placed shot is obeyed (`placeCinematic`) without one: the director re-publishes `tracking`, `orbit`, `over-shoulder` and the
+   * auto-director's vocabulary with `pos` every tick as chase, heli, shoulder, wide ..., cameras that travel with their subject, and the
+   * fighter mode holds a placed `side` shot for a whole fight (BD-FIX-LENS-CLEAR-05). First and third person and XR never have one.
+   */
+  get placedLens(): PlacedLens | null {
+    return this.placed;
   }
 
   /** Distance from the anchor to the camera in third person, metres. */
@@ -136,6 +167,8 @@ export class CameraRigImpl implements CameraRig {
    */
   enterXr(): void {
     this.xrActive = true;
+    this.placed = null;
+    this.placedShot = null;
     this.lastToggleRefused = false;
     this.setMode('xr');
   }
@@ -202,11 +235,33 @@ export class CameraRigImpl implements CameraRig {
   update(f: { alpha: number; dtSec: number; reducedMotion: boolean; drawDistanceM: number; depthPolicy?: 'standard' | 'reversed' }): void {
     this.advanceBlend(Math.max(0, f.dtSec));
     const d = this.directive;
+    this.placed = null;
     // A cinematic shot that the sim has placed (`pos` and `lookAt`, ENU metres; the story director re-places it every tick) is obeyed as it is.
     if (this._mode === 'cinematic' && d?.shot?.pos && d.shot.lookAt) {
       this.placeCinematic(d.shot.pos, d.shot.lookAt, d.shot.fovDeg, f.drawDistanceM, f.depthPolicy ?? 'standard');
+      const s = d.shot;
+      if (!LENS_KINDS.has(s.kind)) {
+        this.placedShot = null;
+        return;
+      }
+      // The shot of this frame is the one of the last frame while what identifies it stands and its ticks do not grow: the director
+      // publishes a shot's span on every tick, the auto-director the ticks left of it. More ticks than on the last frame is a new shot.
+      const base = `${s.kind}|${s.subject}|${s.seed}|${s.fovDeg}`;
+      let shot = this.placedShot;
+      if (shot && shot.base === base && s.durationTicks <= shot.left) shot.left = s.durationTicks;
+      else shot = this.placedShot = { base, span: s.durationTicks, left: s.durationTicks };
+      const pts = s.kind === 'spline' ? s.spline?.pts : undefined;
+      const a = pts?.[0], b = pts?.[pts.length - 1];
+      this.placed = {
+        pos: [d.shot.pos[0], d.shot.pos[1], d.shot.pos[2]],
+        lookAt: [d.shot.lookAt[0], d.shot.lookAt[1], d.shot.lookAt[2]],
+        fovDeg: s.fovDeg,
+        key: `${s.kind}|${s.subject}|${s.seed}|${shot.span}|${s.fovDeg}`,
+        ends: pts && pts.length >= 2 && a && b ? [[a[0], a[1], a[2]], [b[0], b[1], b[2]]] : null,
+      };
       return;
     }
+    this.placedShot = null;
     const follow = d?.follow;
     if (!d || !follow || (this._mode !== 'fp' && this._mode !== 'tp')) return;
     const pose = this.opts.targetPose(follow.target);

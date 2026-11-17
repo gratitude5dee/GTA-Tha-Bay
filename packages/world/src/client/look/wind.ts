@@ -14,6 +14,7 @@
 import { uniform as uniformNode } from 'three/tsl';
 import type { WeatherPreset } from '@dv/shared';
 import { attribute, dot, float, positionLocal, sin, vec2, vec3, type L, type U } from '../sky/tsl.ts';
+import type { LensRule } from '../chunks/lens-clear.ts';
 import type { LookFile } from './config.ts';
 
 const uniform = <V>(v: V): U<V> => uniformNode(v as never) as unknown as U<V>;
@@ -39,7 +40,12 @@ export interface VegetationLook {
   dirDeg: number;
   /** M02h5: the scatter's bands, re-banding and thinning on the client (`chunks/vegetation-pool.ts`). */
   scatter: ScatterLook;
+  /** BD-FIX-LENS-CLEAR-01: the trees hidden for a director-placed cinematic lens (`chunks/lens-clear.ts`). */
+  lens: LensLook;
 }
+
+/** `look.json` `vegetation.lens`: the frame share and the corridor that hide a tree, and the lens travel that decides again. */
+export type LensLook = LensRule;
 
 /** M02h5: `look.json` `vegetation.scatter`. Distances per mesher profile id; keeps per look profile. */
 export interface ScatterLook {

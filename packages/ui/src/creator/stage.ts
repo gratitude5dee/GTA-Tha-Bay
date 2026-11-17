@@ -72,9 +72,46 @@ export interface CreatorStagePort {
   rotate(dyaw: number): void;
   /** No auto-rotation under reduced motion. */
   setReducedMotion(on: boolean): void;
+  /**
+   * The part of the viewport the figure can be drawn in (`freeStageArea`), or null for none; the stage centres the figure and the
+   * floor disc in it at both zoom presets. Optional: a stage without it draws the figure at the centre of the canvas
+   * (BD-FIX-CREATOR-FRAME-01).
+   */
+  setFreeArea?(area: StageArea | null): void;
   /** The URL of a card portrait (`portrait/pc-<part>`); null when the asset is not available. Absent on a stage without an asset port. */
   portrait?(ref: string): Promise<string | null>;
   hide(): void;
+}
+
+/** A rectangle in CSS pixels of the viewport (the numbers of `getBoundingClientRect`). */
+export interface StageArea {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** The edges the page measures: the preview section, the options panel and the zoom buttons. */
+export interface StageEdges {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * The free area of the preview (10-ui-pages.md section 2.8: the preview is on the left, the tabs on the right): the preview section
+ * while the options panel stands beside it (on either side, so a right-to-left layout works too), down to the top of the zoom buttons,
+ * so the buttons and the "Look data" line under them do not cover the figure. Null when the panel is not beside the section (the
+ * one-column layout of a narrow window, where the panel covers the whole width): the stage then keeps the figure at the centre.
+ */
+export function freeStageArea(stage: StageEdges, panel: StageEdges, controls: StageEdges | null): StageArea | null {
+  const beside = panel.left >= stage.right - 0.5 || panel.right <= stage.left + 0.5;
+  if (!beside) return null;
+  const bottom = controls && controls.top > stage.top && controls.top < stage.bottom ? controls.top : stage.bottom;
+  const width = stage.right - stage.left;
+  const height = bottom - stage.top;
+  return width > 0 && height > 0 ? { x: stage.left, y: stage.top, width, height } : null;
 }
 
 function hex(s: string): number {
